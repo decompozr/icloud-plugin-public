@@ -100,7 +100,7 @@ test('built owner application completes private enrollment, OAuth MCP, rotation,
   expect((await mcp.listTools()).tools.some(t=>t.name==='mail_mark')).toBe(true);
   expect((await mcp.callTool({name:'mail_list_mailboxes',arguments:{}})).isError).not.toBe(true);expect(usedCredentials.at(-1)).toBe('accepted-fixture');
   const denied=await mcp.callTool({name:'mail_mark',arguments:{mailbox:'INBOX',uid:1,uidValidity:'1',seen:true}});expect(denied.isError).toBe(true);expect(writes).toBe(0);
-  expect(z.object({_meta:z.object({'mcp/www_authenticate':z.string()})}).parse(denied)._meta['mcp/www_authenticate']).toContain('scope="mail.read mail.write"');
+  expect(z.object({_meta:z.object({'mcp/www_authenticate':z.string()})}).parse(denied)._meta['mcp/www_authenticate']).toContain('scope="mail.read mail.write offline_access"');
   const callsBefore=usedCredentials.length;
   expect((await fetch(publicOrigin+'/icloud/mcp',{method:'POST',headers:{authorization:'Bearer invalid','content-type':'application/json'},body:'{}'})).status).toBe(401);expect(usedCredentials.length).toBe(callsBefore);
   expect((await request('/icloud/admin/plugin.zip',undefined,true)).status).toBe(403); // HTTP-only auth fixture cannot produce a public HTTPS package.

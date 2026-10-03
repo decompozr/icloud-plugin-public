@@ -54,7 +54,7 @@ test('built HTTP MCP application traverses auth/protocol/service/provider and re
   }
   expect(gateway.calls).toBe(0);
   await client.connect(new StreamableHTTPClientTransport(url,{requestInit:{headers:{authorization:'Bearer fixture-token'}}}));
-  const tools=await client.listTools();expect(tools.tools.map(tool=>tool.name).sort()).toEqual(['mail_batch','mail_flag','mail_list_mailboxes','mail_mark','mail_move','mail_organize','mail_read','mail_search','mail_tag','mail_unsubscribe_discover','mail_unsubscribe_submit']);
+  const tools=await client.listTools();expect(tools.tools.map(tool=>tool.name).sort()).toEqual(['mail_batch','mail_flag','mail_list_mailboxes','mail_mark','mail_move','mail_organize','mail_read','mail_request_persistent_access','mail_search','mail_tag','mail_unsubscribe_discover','mail_unsubscribe_submit']);
   const schemes=z.array(z.object({type:z.literal('oauth2'),scopes:z.array(z.string())}));
   const wireResponse=await fetch(url,{method:'POST',headers:{authorization:'Bearer fixture-token','content-type':'application/json',accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:900,method:'tools/list'})});
   const wireTools=z.object({result:z.object({tools:z.array(z.object({name:z.string(),securitySchemes:schemes,_meta:z.object({securitySchemes:schemes})}))})}).parse(await wireResponse.json()).result;

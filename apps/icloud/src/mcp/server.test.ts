@@ -61,3 +61,30 @@ test('extension descriptors expose required scopes but deny insufficient grants 
  policy.allowRead=false;expect((await client.listTools()).tools).toHaveLength(0);
  }finally{await client.close();await server.close();}
 });
+
+test('optional persistence requires explicit intent and preserves enabled grants without provider calls',async()=>{
+ const mail:MailOperations={listMailboxes:unused,search:unused,read:unused,mark:unused,move:unused,flag:unused,tag:unused,organize:unused,batch:unused};
+ const scopes=new Set(['mail.read','mail.write','mail.send']);const policy={...config,allowWrites:true,allowSend:true};
+ const server=createServer(mail,policy,scopes);const client=new Client({name:'persistence',version:'1'});const [a,b]=InMemoryTransport.createLinkedPair();
+ try{await server.connect(b);await client.connect(a);
+  const catalog=(await client.listTools()).tools;const tool=catalog.find(t=>t.name==='mail_request_persistent_access')!;
+  expect(tool._meta?.securitySchemes).toEqual([{type:'oauth2',scopes:['mail.read','offline_access']}]);
+  expect(tool.annotations).toMatchObject({readOnlyHint:true,destructiveHint:false,idempotentHint:true});
+  expect(catalog.find(t=>t.name==='mail_read')?._meta?.securitySchemes).toEqual([{type:'oauth2',scopes:['mail.read']}]);
+  for(const args of [{},{confirm:false},{confirm:true,extra:'reject'},{confirm:'true'}]){
+   const result=await client.callTool({name:tool.name,arguments:args});expect(result.isError).toBe(true);expect(result._meta?.['mcp/www_authenticate']).toBeUndefined();
+  }
+  for(let i=0;i<2;i++){
+   const result=await client.callTool({name:tool.name,arguments:{confirm:true}});expect(result.isError).toBe(true);expect(result._meta?.['mcp/www_authenticate']).toContain('scope="mail.read mail.send mail.write offline_access"');
+  }
+  expect([...scopes]).toEqual(['mail.read','mail.write','mail.send']);
+  policy.allowWrites=false;const narrowed=await client.callTool({name:tool.name,arguments:{confirm:true}});expect(narrowed._meta?.['mcp/www_authenticate']).toContain('scope="mail.read mail.send offline_access"');
+  scopes.add('offline_access');scopes.delete('mail.send');
+  const mark=await client.callTool({name:'mail_flag',arguments:{}});expect(mark.isError).toBe(true);
+  for(let i=0;i<2;i++){const result=await client.callTool({name:tool.name,arguments:{confirm:true}});expect(result.isError).not.toBe(true);expect(result._meta?.['mcp/www_authenticate']).toBeUndefined();expect(JSON.stringify(result.content)).toContain('continuedAccessVerified');}
+  policy.allowWrites=true;scopes.delete('mail.write');
+  const upgrade=await client.callTool({name:'mail_flag',arguments:{}});expect(upgrade._meta?.['mcp/www_authenticate']).toContain('scope="mail.read mail.write offline_access"');
+  scopes.delete('mail.read');const noRead=await client.callTool({name:tool.name,arguments:{confirm:true}});expect(noRead.isError).toBe(true);expect(noRead._meta?.['mcp/www_authenticate']).toContain('mail.read');
+  policy.allowRead=false;expect((await client.listTools()).tools).toHaveLength(0);expect((await client.callTool({name:tool.name,arguments:{confirm:true}}))._meta?.['mcp/www_authenticate']).toBeUndefined();
+ }finally{await client.close();await server.close();}
+});

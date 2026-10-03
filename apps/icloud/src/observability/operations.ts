@@ -1,9 +1,9 @@
 import {ZodError} from 'zod';
 import {randomUUID} from 'node:crypto';
 import {MailOperationError,type MailErrorCode} from '../domain/mail.js';
-const tools=['mail_list_mailboxes','mail_search','mail_read','mail_mark','mail_flag','mail_tag','mail_move','mail_organize','mail_batch','mail_unsubscribe_discover','mail_unsubscribe_submit','mail_send','mail_reply','mail_draft_create','mail_attachment_download','mail_draft_read','mail_draft_edit','mail_draft_send','mail_forward'] as const;
+const tools=['mail_request_persistent_access','mail_list_mailboxes','mail_search','mail_read','mail_mark','mail_flag','mail_tag','mail_move','mail_organize','mail_batch','mail_unsubscribe_discover','mail_unsubscribe_submit','mail_send','mail_reply','mail_draft_create','mail_attachment_download','mail_draft_read','mail_draft_edit','mail_draft_send','mail_forward'] as const;
 export type OperationTool=typeof tools[number]|'unknown';
-const actions=['list_mailboxes','search','read','mark','flag','tag','move','organize','trash','archive','junk','not_junk','restore','batch','unsubscribe_discover','unsubscribe_submit','send','reply','draft','attachment_download','draft_read','draft_edit','draft_send','forward'] as const;
+const actions=['request_persistent_access','list_mailboxes','search','read','mark','flag','tag','move','organize','trash','archive','junk','not_junk','restore','batch','unsubscribe_discover','unsubscribe_submit','send','reply','draft','attachment_download','draft_read','draft_edit','draft_send','forward'] as const;
 export type OperationAction=typeof actions[number]|'unknown';
 const errorCodes=['invalid_input','stale_identity','missing','outcome_unknown','unsupported_capability','ambiguous_destination','forbidden','upstream_failure'] as const satisfies readonly MailErrorCode[];
 export type OperationOutcome='succeeded'|'rejected'|'partial'|'unknown'|'failed';

@@ -51,3 +51,5 @@ user to secure setup outside the conversation. Do not expose secrets or bulk
 mailbox data in logs, files, links or unrelated tools.
 
 Attachments are in-memory canonical base64, up to 1 MiB total; paths and URLs are not accepted. Existing-draft source and forward source are limited to 1 MiB. Signed/encrypted and inline-content drafts are rejected rather than rewritten incompletely. An unknown edit may include replacementTarget: inspect that identity and never append a second replacement blindly.
+
+Use `mail_request_persistent_access` only when the user explicitly requests continued connection access, passing `confirm: true`. It requests optional offline_access consent, preserving current enabled Mail scopes. Never invoke it merely to read mail or silently fix expiry. Declining keeps existing permissions. A successful result confirms the token scope only, not that ChatGPT retained a refresh credential or performed refresh.

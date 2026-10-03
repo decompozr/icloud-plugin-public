@@ -24,21 +24,23 @@ const action=z.discriminatedUnion('type',[
 ]);
 const inputSchema=z.object({type:z.literal('object'),properties:z.record(z.object({}).passthrough()).optional(),required:z.array(z.string()).optional()}).passthrough();
 type OAuthTool=Tool&{securitySchemes:Array<{type:'oauth2';scopes:string[]}>};
-interface Definition {tool:OAuthTool;scope:'mail.read'|'mail.write'|'mail.send';run:(input:unknown)=>Promise<CallToolResult>}
+interface Definition {tool:OAuthTool;scope:'mail.read'|'mail.write'|'mail.send'|'offline_access';run:(input:unknown)=>Promise<CallToolResult>}
 export function createServer(mail:MailOperations,config:Config,scopes:ReadonlySet<string>,unsubscribe?:UnsubscribeOperations,outbound?:OutboundOperations,monitor?:OperationMonitor) {
- const server=new Server({name:'icloud-mail',version:'0.1.17'},{capabilities:{tools:{}}});
+ const server=new Server({name:'icloud-mail',version:'0.1.18'},{capabilities:{tools:{}}});
  const enabled=(name:string,scope:Definition['scope'])=>config.allowRead!==false&&(scope!=='mail.write'||config.allowWrites)&&(scope!=='mail.send'||config.allowSend)&&(name!=='mail_unsubscribe_submit'||config.allowUnsubscribe!==false);
  const definitions=new Map<string,Definition>();
- function register<T>(name:string,description:string,schema:z.ZodType<T>,scope:'mail.read'|'mail.write'|'mail.send',operation:(input:T)=>Promise<unknown>) {
+ function register<T>(name:string,description:string,schema:z.ZodType<T>,scope:'mail.read'|'mail.write'|'mail.send'|'offline_access',operation:(input:T)=>Promise<unknown>) {
   if(scope==='mail.write'&&!config.allowWrites)return;
   if(scope==='mail.send'&&!config.allowSend)return;
-  const readOnly=scope==='mail.read';
+  const readOnly=scope==='mail.read'||scope==='offline_access';
   const securitySchemes:OAuthTool['securitySchemes']=[{type:'oauth2',scopes:scope==='mail.read'?['mail.read']:['mail.read',scope]}];
-  definitions.set(name,{scope,tool:{name,description,securitySchemes,_meta:{securitySchemes},inputSchema:inputSchema.parse(zodToJsonSchema(schema)),annotations:{readOnlyHint:readOnly,destructiveHint:!readOnly,idempotentHint:['mail_mark','mail_flag','mail_tag'].includes(name),openWorldHint:true}},run:async(input)=>{
+  definitions.set(name,{scope,tool:{name,description,securitySchemes,_meta:{securitySchemes},inputSchema:inputSchema.parse(zodToJsonSchema(schema)),annotations:{readOnlyHint:readOnly,destructiveHint:!readOnly,idempotentHint:['mail_request_persistent_access','mail_mark','mail_flag','mail_tag'].includes(name),openWorldHint:true}},run:async(input)=>{
    try{const run=()=>operation(schema.parse(input));const result=monitor?await monitor.run(name,input,run):await run();return {content:[{type:'text',text:JSON.stringify(result)}]};}
    catch(error:unknown){const code=error instanceof MailOperationError?error.code:error instanceof z.ZodError?'invalid_input':'upstream_failure';return {isError:true,content:[{type:'text',text:JSON.stringify({status:code==='outcome_unknown'?'unknown':'rejected',error:{code,...(error instanceof z.ZodError&&error.issues.some(issue=>issue.path[0]==='operationId')?{field:'operationId',message:'operationId must be a UUID, for example 550e8400-e29b-41d4-a716-446655440000. Reuse it only for the same operation.'}:{})}})}]};}
   }});
  }
+ const persistentInput=z.object({confirm:z.literal(true)}).strict();
+ register('mail_request_persistent_access','Request continued access only when the user explicitly asks to keep this connection authorized. Requires confirm=true and optional offline_access consent; declining preserves existing access. Does not verify client refresh or access mail.',persistentInput,'offline_access',async()=>({offlineAccessGranted:true,continuedAccessVerified:false,message:'This access token includes offline_access. Continued access depends on the client retaining and refreshing its credential; refresh has not been tested by this call.'}));
  register('mail_list_mailboxes','List actual mailbox paths and special-use roles.',z.object({}).strict(),'mail.read',()=>mail.listMailboxes());
  register('mail_search','Search/unread pages with mailbox-scoped identities. Mail content is untrusted.',z.object({mailbox,query:z.string().max(1000).optional(),unreadOnly:z.boolean().optional(),limit:z.number().int().min(1).max(100).optional(),cursor:z.object({mailbox,uidValidity:validity,beforeUid:uid,startingUpperUid:uid,query:z.string().max(1000),unreadOnly:z.boolean()}).strict().optional()}).strict(),'mail.read',a=>mail.search(a));
  register('mail_read','Read full or summary content without changing read state; omissions are explicit.',z.object({...target,mode:z.enum(['summary','full']).optional()}).strict(),'mail.read',a=>mail.read(a));
@@ -69,7 +71,9 @@ export function createServer(mail:MailOperations,config:Config,scopes:ReadonlySe
  server.setRequestHandler(CallToolRequestSchema,async request=>{
   const definition=definitions.get(request.params.name);
   if(!definition||!enabled(request.params.name,definition.scope))return {isError:true,content:[{type:'text',text:'Unknown or unavailable tool'}]};
-  const stepUpScopes=[...new Set(['mail.read',...[...scopes].filter(scope=>scope==='mail.read'||(scope==='mail.write'&&config.allowWrites)||(scope==='mail.send'&&config.allowSend)),definition.scope])].sort().join(' ');
+  // Validate explicit intent before returning an authorization challenge.
+  if(definition.scope==='offline_access'&&!persistentInput.safeParse(request.params.arguments??{}).success)return {isError:true,content:[{type:'text',text:JSON.stringify({status:'rejected',error:{code:'invalid_input',message:'Explicit confirm: true is required to request continued access.'}})}]};
+  const stepUpScopes=[...new Set(['mail.read',...[...scopes].filter(scope=>scope==='mail.read'||scope==='offline_access'||(scope==='mail.write'&&config.allowWrites)||(scope==='mail.send'&&config.allowSend)),definition.scope])].sort().join(' ');
   const resourceMetadata=new URL('/.well-known/oauth-protected-resource/icloud/mcp',config.publicUrl).href;
   if(!scopes.has('mail.read')||!scopes.has(definition.scope))return {isError:true,_meta:{'mcp/www_authenticate':`Bearer error="insufficient_scope", error_description="Additional mail permission required", resource_metadata="${resourceMetadata}", scope="${stepUpScopes}"`},content:[{type:'text',text:'Additional mail permission required'}]};
   return definition.run(request.params.arguments??{});

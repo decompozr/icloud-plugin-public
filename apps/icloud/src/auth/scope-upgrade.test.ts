@@ -194,6 +194,54 @@ test('persisted resource scope upgrade reproduces narrowing and merge preserves 
   await expect(ownershipProvider.provider.api.adminUpdateOAuthClient({headers:cookieHeaders(),body:{client_id:sendClient.client_id,update:{scope:'mail.read mail.write mail.send offline_access'}}})).resolves.toBeDefined();
   await expect(ownershipProvider.provider.api.adminUpdateOAuthClient({headers:cookieHeaders(),body:{client_id:anonymous.client_id,update:{scope:'mail.read mail.send'}}})).rejects.toMatchObject({status:'UNAUTHORIZED'});
   expect(db.query('SELECT scopes,updatedAt FROM oauthClient WHERE clientId=?').get(anonymous.client_id)).toEqual(anonymousBefore);
+  // Existing-client persistence opt-in: all state below is synthetic.
+  const persistentClient=clientSchema.parse(await(await request('/icloud/auth/oauth2/register',{client_name:'Persistence opt-in fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read mail.write mail.send offline_access'})).json());
+  const consentLocation=async(scopes:string)=>{
+   const query=new URLSearchParams(sendPath.split('?')[1]);query.set('client_id',persistentClient.client_id);query.set('scope',scopes);query.set('prompt','consent');
+   const response=await request('/icloud/auth/oauth2/authorize?'+query);expect(response.status).toBe(302);const location=new URL(response.headers.get('location')!,base);expect(location.pathname).toBe('/icloud/consent');return location;
+  };
+  const decide=async(location:URL,accept:boolean)=>new URL(z.object({url:z.string()}).parse(await(await request('/icloud/auth/oauth2/consent',{accept,oauth_query:location.search.slice(1)})).json()).url);
+  const exchangePersistent=async(callback:URL)=>{
+   const response=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:persistentClient.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:callback.searchParams.get('code')!,code_verifier:verifier},true);expect(response.status).toBe(200);return z.object({access_token:z.string(),refresh_token:z.string().optional()}).parse(await response.json());
+  };
+  const initialPersistent=await exchangePersistent(await decide(await consentLocation('mail.read mail.write mail.send'),true));
+  expect(initialPersistent.refresh_token).toBeUndefined();
+  const originalConsent=db.query('SELECT clientId,scopes FROM oauthConsent WHERE clientId=?').all(persistentClient.client_id);
+  expect(JSON.parse((originalConsent[0] as {scopes:string}).scopes)).toEqual(['mail.read','mail.write','mail.send']);
+  const countClients=db.query<{n:number},[]>('SELECT count(*) AS n FROM oauthClient').get()!.n;
+  const persistenceScopes=(await component.verifyBearer('Bearer '+initialPersistent.access_token)).scopes;
+  const persistenceServer=mcpModule.createServer({listMailboxes:noAdapter,search:noAdapter,read:noAdapter,mark:noAdapter,move:noAdapter,flag:noAdapter,tag:noAdapter,organize:noAdapter,batch:noAdapter},{...mcpConfig,allowWrites:true,allowSend:true},persistenceScopes);
+  const persistenceMcp=new Client({name:'persistence-opt-in',version:'1'});const [pa,pb]=InMemoryTransport.createLinkedPair();
+  let requestedPersistence='';
+  try{await persistenceServer.connect(pb);await persistenceMcp.connect(pa);
+   const descriptor=(await persistenceMcp.listTools()).tools.find(tool=>tool.name==='mail_request_persistent_access');
+   expect(descriptor?._meta?.securitySchemes).toEqual([{type:'oauth2',scopes:['mail.read','offline_access']}]);
+   const challenge=await persistenceMcp.callTool({name:'mail_request_persistent_access',arguments:{confirm:true}});
+   requestedPersistence=z.string().parse(challenge._meta?.['mcp/www_authenticate']).match(/scope="([^"]+)"/)![1]!;
+   expect(requestedPersistence.split(' ').sort()).toEqual(['mail.read','mail.send','mail.write','offline_access']);expect(adapterCalls).toBe(0);
+  }finally{await persistenceMcp.close();await persistenceServer.close();}
+  const refusedPersistence=await decide(await consentLocation(requestedPersistence),false);
+  expect(refusedPersistence.searchParams.get('error')).toBe('access_denied');
+  expect(db.query('SELECT clientId,scopes FROM oauthConsent WHERE clientId=?').all(persistentClient.client_id)).toEqual(originalConsent);
+  expect(db.query<{n:number},[string]>('SELECT count(*) AS n FROM oauthRefreshToken WHERE clientId=?').get(persistentClient.client_id)!.n).toBe(0);
+  expect([...(await component.verifyBearer('Bearer '+initialPersistent.access_token)).scopes]).toEqual(['mail.read','mail.write','mail.send']);
+  const approvedCallback=await decide(await consentLocation(requestedPersistence),true);
+  const approvedPersistence=await exchangePersistent(approvedCallback);
+  expect(approvedPersistence.refresh_token).toBeDefined();
+  expect([...(await component.verifyBearer('Bearer '+approvedPersistence.access_token)).scopes].sort()).toEqual(['mail.read','mail.send','mail.write','offline_access']);
+  expect([...(await component.verifyBearer('Bearer '+initialPersistent.access_token)).scopes]).toEqual(['mail.read','mail.write','mail.send']);
+  expect(db.query<{n:number},[]>('SELECT count(*) AS n FROM oauthClient').get()!.n).toBe(countClients);
+  expect(db.query<{n:number},[string]>('SELECT count(*) AS n FROM oauthRefreshToken WHERE clientId=?').get(persistentClient.client_id)!.n).toBe(1);
+  const grantedPersistenceServer=mcpModule.createServer({listMailboxes:noAdapter,search:noAdapter,read:noAdapter,mark:noAdapter,move:noAdapter,flag:noAdapter,tag:noAdapter,organize:noAdapter,batch:noAdapter},{...mcpConfig,allowWrites:true,allowSend:true},(await component.verifyBearer('Bearer '+approvedPersistence.access_token)).scopes);
+  const grantedPersistenceClient=new Client({name:'granted-persistence',version:'1'});const [ga,gb]=InMemoryTransport.createLinkedPair();
+  try{await grantedPersistenceServer.connect(gb);await grantedPersistenceClient.connect(ga);
+   for(let i=0;i<2;i++){const result=await grantedPersistenceClient.callTool({name:'mail_request_persistent_access',arguments:{confirm:true}});expect(result.isError).not.toBe(true);expect(result._meta?.['mcp/www_authenticate']).toBeUndefined();}
+   expect(adapterCalls).toBe(0);expect(db.query<{n:number},[string]>('SELECT count(*) AS n FROM oauthRefreshToken WHERE clientId=?').get(persistentClient.client_id)!.n).toBe(1);
+  }finally{await grantedPersistenceClient.close();await grantedPersistenceServer.close();}
+  expect((await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:persistentClient.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:approvedCallback.searchParams.get('code')!,code_verifier:verifier},true)).status).toBe(400);
+  await expect(component.verifyBearer('Bearer '+approvedPersistence.access_token)).rejects.toThrow(); // Provider's existing code-replay defense.
+  expect([...(await component.verifyBearer('Bearer '+initialPersistent.access_token)).scopes]).toEqual(['mail.read','mail.write','mail.send']);
+  console.log('PERSISTENCE_STEPUP_PASS: same registered client, initial mail-only grant, refused offline consent preserves grant/no refresh, accepted consent issues refresh; old token unchanged; no new registration. Synthetic only.');
   // Lifecycle checks alter only synthetic fixture expiry timestamps.
   const escalation=await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:sendClient.client_id,refresh_token:reduced.refresh_token,resource:base+'/icloud/mcp',scope:'mail.read mail.send'},true);
   expect(escalation.status).toBe(400);

@@ -1,3 +1,15 @@
+## Source verification before merge (2026-10-03)
+
+The pending 0.1.18 source changes were retained after an independent review found no blocking issues. `bun run checkpoint` passed application and tooling typechecks, the production build, application/tooling tests, and all 11 built E2E tests (236 assertions). The local installed-release link points to 0.1.18. This verification did not repeat the historical deployment checks or exercise real ChatGPT consent and refresh.
+
+## Owner-approved 0.1.18 deployment (2026-10-03)
+
+Scott approved redeployment of the independently reviewed optional persistent-access candidate. Archive SHA-256: `38707e06a311a918c6a8a59400afbbe80b7f77e0445461f44457cafe53c58ff8`. The 12-file source patch applied after exact baseline/candidate hash checks. Live current is releases/0.1.18-darwin-arm64, owned PID58210. Previous PID47095 was idle and exited gracefully; stop-to-readiness was2.753s (shutdown0.105s). Stopped backup: backups/pre-0.1.18; rollback0.1.17 retained and unused.
+
+All13 read-only doctor checks passed and all123 compiled installed files match the approved candidate. Installed-module discovery with inert providers lists20 tools, including mail_request_persistent_access requiring mail.read+offline_access. This is not an authenticated ChatGPT discovery check. Configuration/custody bytes/modes and selected nonsecret client/consent/access/refresh/resource/operator metadata remained unchanged. No mail calls, actual persistent-access invocation, new consent/grant, or routing changes occurred.
+
+Before packaging, candidate checks passed143 application tests,8 tooling tests,11 built E2E/236 assertions,18 artifact tests/146 assertions. Independent source/test review found no blocking issues. Explicit confirm=true is required before the server issues the optional tool challenge; enabled prior grants are preserved. Ordinary tool scope requirements are unchanged. Real ChatGPT metadata refresh, consent ordering, and later refresh credential use remain unverified; owner consent is still separate.
+
 ## Deployed 0.1.17 (2026-10-03)
 
 The live deployment is 0.1.17, owned PID47095. The independently reviewed release adds attachment download, draft read/edit/send, forwarding, and bounded attachments on send/reply/create-draft. Deployment passed13 read-only doctor checks; stop-to-readiness was2.422s. The new mail actions have not been live-accepted. Draft sends retain the original, edits save a replacement then move the old draft to Trash, and forwards attach the original MIME. Existing-draft limits and permission acceptance gates are recorded in mailbox-tools.md and oauth-request-scope-diagnosis.md. The historical inventory below describes0.1.16. Installed0.1.17 module discovery returns19 tools; actual ChatGPT catalog refresh and no-reinstall consent remain unverified. Existing grants/configuration/custody were preserved;0.1.16 remains available for rollback.

@@ -24,7 +24,7 @@
     },
     "apps/icloud": {
       "name": "@icloud-plugin/icloud",
-      "version": "0.1.17",
+      "version": "0.1.18",
       "dependencies": {
         "@better-auth/oauth-provider": "1.7.7",
         "@better-auth/passkey": "1.7.7",
