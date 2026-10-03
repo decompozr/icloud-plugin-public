@@ -1,0 +1,1 @@
+{"name":"icloud-mail-research-playground","private":true,"type":"module","scripts":{"test":"bun test ./protocol.test.ts ./headers.test.ts ./extended.test.ts ./policy-sketch.test.ts"},"dependencies":{"imapflow":"1.7.8","mailparser":"3.9.33"}}

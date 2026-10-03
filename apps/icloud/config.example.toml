@@ -1,0 +1,18 @@
+# Origins must share a hostname and use separate Serve/Funnel HTTPS ports.
+public_origin = "https://your-mac.your-tailnet.ts.net"
+private_origin = "https://your-mac.your-tailnet.ts.net:8443"
+public_port = 4100
+private_port = 4101
+host = "127.0.0.1"
+runtime_mode = "native"
+state_directory = "./state"
+# Keep key and installation marker outside the backed-up state directory.
+master_key_file = "./custody/master.key"
+installation_marker = "./custody/installation.marker"
+allow_writes = false
+# Separate sending permission; enabling also requires new mail.send OAuth consent.
+allow_send = false
+tailscale_binary = "tailscale"
+
+# Exact trusted Tailscale user login, pinned by the installer (never first visitor).
+bootstrap_owner_login = "owner@example.invalid"

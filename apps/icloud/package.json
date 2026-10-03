@@ -1,0 +1,43 @@
+{
+  "name": "@icloud-plugin/icloud",
+  "version": "0.1.18",
+  "private": true,
+  "type": "module",
+  "description": "Personal iCloud Mail MCP server with authenticated remote transport",
+  "scripts": {
+    "build": "bun ../../packages/tooling/src/build-application.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test ./src",
+    "start": "bun ./dist/index.js",
+    "dev": "bun run build:browser && bun --watch ./src/index.ts",
+    "runtime": "bun ./dist/index.js",
+    "build:browser": "bun build ./src/auth/browser.ts --target=browser --outfile=dist/assets/auth-browser.js && bun build ./src/admin/browser.ts --target=browser --outfile=dist/assets/admin-browser.js",
+    "build:types": "tsc --project tsconfig.build.json"
+  },
+  "dependencies": {
+    "@better-auth/oauth-provider": "1.7.7",
+    "@better-auth/passkey": "1.7.7",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@simplewebauthn/browser": "14.0.0",
+    "better-auth": "1.7.7",
+    "express": "^5.1.0",
+    "i18next": "25.6.0",
+    "imapflow": "^1.0.181",
+    "ipaddr.js": "^2.5.0",
+    "jose": "^6.1.0",
+    "mailauth": "^7.1.0",
+    "mailparser": "^3.7.4",
+    "nodemailer": "^7.0.10",
+    "zod": "^3.25.0",
+    "zod-to-json-schema": "^3.25.2"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "@types/express": "^5.0.0",
+    "@types/mailparser": "^3.4.6",
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^7.0.0",
+    "cbor-x": "1.6.4",
+    "typescript": "^5.9.0"
+  }
+}

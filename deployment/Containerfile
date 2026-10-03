@@ -1,0 +1,26 @@
+# Build for the runtime OS/architecture. Never copy host node_modules or .env.
+FROM oven/bun:1.4.2 AS build
+WORKDIR /build
+COPY package.json bun.lock LICENSE THIRD_PARTY_NOTICES.md plugin.json ./
+COPY apps/icloud/package.json apps/icloud/tsconfig.json apps/icloud/tsconfig.build.json ./apps/icloud/
+COPY packages/tooling/package.json ./packages/tooling/package.json
+COPY apps/e2e/package.json ./apps/e2e/package.json
+RUN bun install --frozen-lockfile
+COPY apps/icloud/src ./apps/icloud/src
+COPY apps/icloud/assets/plugin-icon.png ./apps/icloud/assets/plugin-icon.png
+COPY skills/icloud-mail/SKILL.md ./skills/icloud-mail/SKILL.md
+COPY bin ./bin
+COPY packages/tooling ./packages/tooling
+COPY apps/e2e/package.json ./apps/e2e/package.json
+RUN bun run build && bun bin/build-artifact /artifact
+
+FROM oven/bun:1.4.2 AS runtime
+WORKDIR /opt/icloud
+COPY --from=build /artifact/ ./
+USER root
+RUN mkdir -p /state /custody /config /diagnostics && chown 10001:10001 /state /custody /config /diagnostics
+# Public plugin templates may originate in an owner-only checkout.
+RUN find /opt/icloud/apps/icloud/dist/plugin-template -type d -exec chmod 755 {} + && find /opt/icloud/apps/icloud/dist/plugin-template -type f -exec chmod 644 {} +
+USER 10001:10001
+EXPOSE 4100 4101
+ENTRYPOINT ["bun", "apps/icloud/dist/index.js", "--config", "/config/config.toml"]

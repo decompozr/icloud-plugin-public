@@ -6,3 +6,5 @@ dist/
 *.log
 .DS_Store
 .flow-runtime/
+releases/
+.e2e/
