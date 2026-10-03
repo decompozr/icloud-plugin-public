@@ -46,6 +46,8 @@ test('dashboard status and capability mutations require owner and explicit eleva
   const get=()=>fetch(f.url+'/icloud/admin/status',{headers:{'x-fixture-session':'owner'}});
   const initial=await(await get()).text();expect(initial).toContain('credentialStored');expect(initial).not.toContain('dummy-secret');expect(initial).not.toContain('owner@example');
   const policy={read:true,write:true,send:true,unsubscribe:false};
+  expect((await f.post('/icloud/admin/capabilities',{policy:{...policy,undeclared:true},confirmEnable:true})).status).toBe(400);
+  expect((await f.post('/icloud/admin/capabilities',{policy:{read:true},confirmEnable:true})).status).toBe(400);
   expect((await f.post('/icloud/admin/capabilities',{policy,confirmEnable:false})).status).toBe(409);
   expect((await f.post('/icloud/admin/capabilities',{policy,confirmEnable:true},'other')).status).toBe(403);
   expect((await f.post('/icloud/admin/capabilities',{policy,confirmEnable:true},'owner','https://evil.invalid')).status).toBe(403);

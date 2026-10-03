@@ -6,12 +6,15 @@ import {outboundResultSchema,type OutboundResult,type OutboundLedger} from '../d
 /** Owner-bound durable tombstones never expire into a fresh operation. */
 export class SqliteOutboundLedger implements OutboundLedger {
  private readonly key:Buffer;
+ private disposed=false;
+ dispose():void{this.disposed=true;this.key.fill(0);}
+ private ensureActive():void{if(this.disposed)throw Error('Outbound ledger disposed');}
  constructor(private readonly database:Database,masterKey:Uint8Array,private readonly owner:()=>string){
   this.key=createHash('sha256').update(masterKey).update('outbound-ledger-v1').digest();
   database.exec('CREATE TABLE IF NOT EXISTS icloudOutbound(owner TEXT NOT NULL, operation TEXT NOT NULL, digest TEXT NOT NULL, messageId TEXT NOT NULL, receipt BLOB, PRIMARY KEY(owner,operation))');
  }
  claim(operationId:string,digest:string,messageId:string):{fresh:true}|{fresh:false;result:OutboundResult}{
-  const owner=this.owner();
+  this.ensureActive();const owner=this.owner();
   return this.database.transaction(()=>{
    const found=this.database.query('SELECT digest,messageId,receipt FROM icloudOutbound WHERE owner=? AND operation=?').get(owner,operationId);
    if(found){
@@ -28,7 +31,7 @@ export class SqliteOutboundLedger implements OutboundLedger {
   }).immediate();
  }
  finish(operationId:string,result:OutboundResult):void{
-  const owner=this.owner(),nonce=randomBytes(12),cipher=createCipheriv('aes-256-gcm',this.key,nonce);
+  this.ensureActive();const owner=this.owner(),nonce=randomBytes(12),cipher=createCipheriv('aes-256-gcm',this.key,nonce);
   cipher.setAAD(Buffer.from(owner+'\0'+operationId));
   const plain=Buffer.from(JSON.stringify(outboundResultSchema.parse(result)));
   try{const encrypted=Buffer.concat([cipher.update(plain),cipher.final()]);

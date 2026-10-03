@@ -1,7 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {OperationMonitor,type OperationEvent} from './operations.js';
-import {MailOperationError} from '../domain/mail.js';
+import {OperationMonitor as GenericOperationMonitor,type OperationEvent} from './operations.js';
+import {MailOperationError} from '../mail/domain/mail.js';
+import {mailOperationClassifier} from '../mail/observability.js';
+class OperationMonitor extends GenericOperationMonitor {override run<T>(tool:string,input:unknown,operation:()=>Promise<T>):Promise<T>{return super.run(tool,input,operation,mailOperationClassifier);}}
 test('operation events include only approved enums and never private input/output/error fields',async()=>{
  const events:OperationEvent[]=[];const monitor=new OperationMonitor(event=>{events.push(event);});const canary='PRIVATE_TOKEN_BODY_ADDRESS_MAILBOX';
  const result={status:'partial',items:[{status:'succeeded',target:{mailbox:canary,uid:123}},{status:'failed',message:canary}],subject:canary};
@@ -40,4 +42,19 @@ test('actual create-draft tool maps to an allowlisted diagnostic action',async()
  const events:OperationEvent[]=[];const monitor=new OperationMonitor(event=>{events.push(event);});
  await monitor.run('mail_draft_create',{subject:'private'},async()=>({status:'draft_saved'}));
  assert.equal(events[0]?.tool,'mail_draft_create');assert.equal(events[0]?.action,'draft');
+});
+
+test('shared monitor classifies another module without mail knowledge and bounds untrusted values',async()=>{
+ const events:OperationEvent[]=[];const monitor=new GenericOperationMonitor(event=>{events.push(event);});
+ const canary='PRIVATE_CALENDAR_EVENT';
+ await monitor.run('calendar_list',{title:canary},async()=>({title:canary}),{
+  tools:['calendar_list'],actions:['list'],errorCodes:['unavailable'],
+  action:()=> 'list',result:()=>({outcome:'succeeded',errorCode:canary,counts:{succeeded:1,failed:0,unknown:0,notAttempted:0}}),error:()=>({outcome:'failed'})
+ });
+ expectCalendar(events);
+ assert.equal(JSON.stringify(events).includes(canary),false);
+ function expectCalendar(values:OperationEvent[]){assert.equal(values[0]?.tool,'calendar_list');assert.equal(values[0]?.action,'list');const completed=values[1];if(completed?.event==='completed'){assert.equal(completed.outcome,'succeeded');assert.equal(completed.errorCode,undefined);}}
+ const fallback:OperationEvent[]=[];const generic=new GenericOperationMonitor(event=>{fallback.push(event);});
+ await generic.run(canary,{secret:canary},async()=>({secret:canary}));
+ assert.equal(fallback[0]?.tool,'unknown');assert.equal(JSON.stringify(fallback).includes(canary),false);
 });

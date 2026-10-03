@@ -11,7 +11,7 @@ import {z} from 'zod';
 import {createApplication} from '../../icloud/dist/server/application.js';
 import {SqliteOwnerStore} from '../../icloud/dist/storage/owner-store.js';
 import type {AppSettings} from '../../icloud/dist/server/settings.js';
-import type {MailGateway,MailSession,MailMessageInput,SendResult} from '../../icloud/dist/domain/mail.js';
+import type {MailGateway,MailSession,MailMessageInput,SendResult} from '../../icloud/dist/mail/domain/mail.js';
 import {passkeyResponse} from './helpers/owner-passkey.js';
 
 // Run via the separate E2E workspace: the built application API, real HTTP/auth/storage,

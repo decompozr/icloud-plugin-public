@@ -33,3 +33,6 @@ test('encrypted receipt is bound to owner and key and never stores body or recip
   assert.throws(()=>ledger.finish(id,receipt),/already finalized/);
  }finally{db.close();rmSync(dir,{recursive:true,force:true});}
 });
+test('module disposal retires ledger access without closing the shared database or altering receipts',()=>{
+ const db=new Database(':memory:');try{const ledger=new SqliteOutboundLedger(db,key,()=> 'owner');ledger.claim(id,'digest',messageId);ledger.dispose();ledger.dispose();assert.throws(()=>ledger.claim(id,'digest',messageId),/disposed/);assert.throws(()=>ledger.finish(id,{operationId:id,messageId,status:'unknown',replayed:false}),/disposed/);const replacement=new SqliteOutboundLedger(db,key,()=> 'owner');assert.equal(replacement.claim(id,'digest',messageId).fresh,false);replacement.dispose();}finally{db.close();}
+});

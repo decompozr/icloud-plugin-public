@@ -1,7 +1,7 @@
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
-import type {createServer as ProductionMcpFactory} from '../mcp/server.js';
-import {readConfig} from '../config.js';
+import type {createServer as ProductionMcpFactory} from '../mail/mcp/server.js';
+import {readConfig} from '../mail/config.js';
 import {test,expect} from 'bun:test';
 import {Database} from 'bun:sqlite';
 import {Encoder} from 'cbor-x';
@@ -162,7 +162,7 @@ test('persisted resource scope upgrade reproduces narrowing and merge preserves 
   const oldScopeSet=(await component.verifyBearer('Bearer '+sameClientOldAccess)).scopes;
   let adapterCalls=0;const noAdapter=async():Promise<never>=>{adapterCalls++;throw Error('Unexpected adapter');};
   const mcpConfig=readConfig({ICLOUD_USER:'fixture@example.invalid',ICLOUD_APP_PASSWORD:'fixture-only',MCP_PUBLIC_URL:'https://fixture.invalid/icloud/mcp',MCP_OAUTH_ISSUER:'https://fixture.invalid/icloud/auth',MCP_OAUTH_AUDIENCE:'https://fixture.invalid/icloud/mcp',MCP_OAUTH_JWKS_URL:'https://fixture.invalid/unused',MCP_OAUTH_ALLOWED_SUBJECTS:'owner'});
-  const mcpModule:{createServer:typeof ProductionMcpFactory}=process.env.CP5_ARTIFACT_DIR?await import(pathToFileURL(join(process.env.CP5_ARTIFACT_DIR,'apps/icloud/dist/mcp/server.js')).href):await import('../mcp/server.js');
+  const mcpModule:{createServer:typeof ProductionMcpFactory}=process.env.CP5_ARTIFACT_DIR?await import(pathToFileURL(join(process.env.CP5_ARTIFACT_DIR,'apps/icloud/dist/mail/mcp/server.js')).href):await import('../mail/mcp/server.js');
   const catalogServer=mcpModule.createServer({listMailboxes:noAdapter,search:noAdapter,read:noAdapter,mark:noAdapter,move:noAdapter,flag:noAdapter,tag:noAdapter,organize:noAdapter,batch:noAdapter},{...mcpConfig,allowWrites:true,allowSend:true},oldScopeSet,undefined,{send:noAdapter,reply:noAdapter,draft:noAdapter});
   const catalogClient=new Client({name:'same-client-stepup',version:'1'});const [catalogTransport,serverTransport]=InMemoryTransport.createLinkedPair();
   try{

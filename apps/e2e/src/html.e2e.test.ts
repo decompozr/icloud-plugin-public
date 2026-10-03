@@ -2,11 +2,11 @@ import { test, expect } from 'bun:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { z } from 'zod';
-import { createHttpApp } from '../../icloud/dist/server/http.js';
-import { MailService } from '../../icloud/dist/services/mail.js';
-import { ICloudMailAdapter } from '../../icloud/dist/icloud/adapter.js';
-import { readConfig } from '../../icloud/dist/config.js';
-import type { MailGateway, MailSession } from '../../icloud/dist/domain/mail.js';
+import { createHttpApp } from '../../icloud/dist/mail/http.js';
+import { MailService } from '../../icloud/dist/mail/services/mail.js';
+import { ICloudMailAdapter } from '../../icloud/dist/mail/icloud/adapter.js';
+import { readConfig } from '../../icloud/dist/mail/config.js';
+import type { MailGateway, MailSession } from '../../icloud/dist/mail/domain/mail.js';
 
 const envelope = z.object({ content: z.array(z.object({ type: z.literal('text'), text: z.string() })), isError: z.boolean().optional() });
 const readResult = z.object({ mode: z.enum(['summary', 'full']), text: z.string(), truncated: z.boolean(), excerpt: z.string().optional(), attachments: z.array(z.unknown()).optional() });

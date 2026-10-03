@@ -1,3 +1,4 @@
+import {consentScopeLabel} from './scope-labels.js';
 import { authT } from './i18n.js';
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import { z } from 'zod';
@@ -56,8 +57,9 @@ function mount(){
  if(mode==='consent'){
   const params=new URLSearchParams(location.search),target=document.querySelector('[data-auth-client]');
   if(target)target.textContent=params.get('client_id')??authT('unknownClient');
-  const labels:Record<string,string>={'mail.send':authT('scopeSend'),'mail.read':authT('scopeRead'),'mail.write':authT('scopeWrite'),'mail.unsubscribe':authT('scopeUnsubscribe'),'offline_access':authT('scopeOffline')};
-  const list=document.querySelector('[data-auth-scopes]');for(const scope of(params.get('scope')??'').split(' ').filter(Boolean)){const item=document.createElement('li');item.textContent=labels[scope]??scope;list?.append(item);}
+  const labels=z.record(z.string(),z.union([z.string(),z.record(z.string(),z.string())])).parse(JSON.parse(document.body.dataset.authScopeLabels??'{}'));
+  labels.offline_access=authT('scopeOffline');
+  const list=document.querySelector('[data-auth-scopes]');for(const scope of(params.get('scope')??'').split(' ').filter(Boolean)){const item=document.createElement('li');item.textContent=consentScopeLabel(labels,scope,document.documentElement.lang);list?.append(item);}
  }
 }
 if(typeof document!=='undefined')mount();

@@ -14,11 +14,12 @@ async function main() {
  const database=new Database(join(settings.state_directory,'auth.sqlite'),{create:store.ownerId()===null,readwrite:true});
  const moduleDirectory=dirname(fileURLToPath(import.meta.url));
  const assetsDirectory=import.meta.url.endsWith('.ts')?resolve(moduleDirectory,'../dist/assets'):join(moduleDirectory,'assets');
- const app=await createApplication(settings,{store,masterKey,authDatabase:database,assetsDirectory});
+ let app:Awaited<ReturnType<typeof createApplication>>;
+ try{app=await createApplication(settings,{store,masterKey,authDatabase:database,assetsDirectory});}catch(error){database.close();store.close();masterKey.fill(0);throw error;}
  const listeners=[app.publicApp.listen(settings.public_port,settings.host),app.privateApp.listen(settings.private_port,settings.host)];
  for(const listener of listeners)app.lifecycle.attach(listener);
  let stopping=false;
- const stop=async()=>{if(stopping)return;stopping=true;await app.lifecycle.shutdown(listeners,app.monitor,{onWaiting:counts=>console.info(JSON.stringify({event:'shutdown_waiting',...counts}))});database.close();store.close();masterKey.fill(0);};
+ const stop=async()=>{if(stopping)return;stopping=true;try{await app.lifecycle.shutdown(listeners,app.monitor,{onWaiting:counts=>console.info(JSON.stringify({event:'shutdown_waiting',...counts}))});await app.runtime.dispose();}finally{database.close();store.close();masterKey.fill(0);}};
  for(const signal of ['SIGINT','SIGTERM'] as const)process.once(signal,()=>{void stop().then(()=>process.exit(0));});
  for(const listener of listeners)listener.on('error',()=>{void stop().then(()=>{process.exitCode=1;});});
  console.error('Private setup and public MCP listeners started. Public access still requires owner OAuth.');

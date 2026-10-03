@@ -1,12 +1,9 @@
+import {createMailModule,type MailModuleDependencies} from '../mail/module.js';
+import {ModuleRuntime} from '../modules/runtime.js';
 import {configuredPluginArchive} from '../plugin/package.js';
-import {SqliteOperatorPolicy} from '../storage/operator-policy.js';
 import express from'express';
 import {OperationMonitor} from '../observability/operations.js';
 import {HttpLifecycle} from './lifecycle.js';
-import {ICloudOutboundAdapter} from '../icloud/outbound.js';
-import {OutboundService} from '../services/outbound.js';
-import {SqliteOutboundLedger} from '../storage/outbound-ledger.js';
-import type {OutboundGateway} from '../domain/outbound.js';
 import{Database}from'bun:sqlite';
 import{createHash}from'node:crypto';
 import{join,dirname}from'node:path';
@@ -15,15 +12,9 @@ import{createBootstrapAccess}from'../auth/bootstrap.js';
 import{z}from'zod';
 import type{AppSettings}from'./settings.js';
 import type{OwnerSecretStore}from'../storage/owner-store.js';
-import type{MailGateway,MailMessageInput,SendResult}from'../domain/mail.js';
-import{MailOperationError}from'../domain/mail.js';
 import{createOwnerAuth}from'../auth/owner.js';
 import{renderAuthPage}from'../auth/pages.js';
-import{createPrivateAdmin,type AppleCredential,type TailscaleStatus}from'../admin/handler.js';
-import{ICloudMailAdapter}from'../icloud/adapter.js';
-import{MailService}from'../services/mail.js';
-import{UnsubscribeService}from'../services/unsubscribe.js';
-import{createUnsubscribeGateway}from'../icloud/unsubscribe.js';
+import{createPrivateAdmin,type TailscaleStatus}from'../admin/handler.js';
 import{createHttpApp}from'./http.js';
 import{fetchBridge,guardHost}from'./bridge.js';
 import{prerequisites}from'./prerequisites.js';
@@ -31,13 +22,12 @@ import{prerequisites}from'./prerequisites.js';
 export interface ApplicationDependencies{
  monitor?:OperationMonitor;lifecycle?:HttpLifecycle;
  store:OwnerSecretStore;masterKey:Uint8Array;authDatabase:Database;assetsDirectory:string;
- outboundProvider?:(credential:AppleCredential)=>OutboundGateway;
+ outboundProvider?:MailModuleDependencies['outboundProvider'];
  diagnostics?:()=>Promise<TailscaleStatus>;
  bootstrapProof?:()=>string;
- provider?:(credential:AppleCredential)=>MailGateway&{send(input:MailMessageInput):Promise<SendResult>};
+ provider?:MailModuleDependencies['provider'];
 }
-const credentialSchema=z.object({user:z.string().email(),appPassword:z.string().min(1)}).strict();
-export async function createApplication(settings:AppSettings,deps:ApplicationDependencies):Promise<{publicApp:express.Express;privateApp:express.Express;auth:Awaited<ReturnType<typeof createOwnerAuth>>;monitor:OperationMonitor;lifecycle:HttpLifecycle}>{
+export async function createApplication(settings:AppSettings,deps:ApplicationDependencies):Promise<{publicApp:express.Express;privateApp:express.Express;auth:Awaited<ReturnType<typeof createOwnerAuth>>;monitor:OperationMonitor;lifecycle:HttpLifecycle;runtime:ModuleRuntime}>{
  const monitor=deps.monitor??new OperationMonitor(),lifecycle=deps.lifecycle??new HttpLifecycle();
  const establishedOwner=deps.store.ownerId();
  if(establishedOwner){
@@ -45,37 +35,30 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
   const row=z.object({count:z.number().int().positive()}).parse(deps.authDatabase.query('SELECT count(*) AS count FROM passkey WHERE userId=?').get(establishedOwner));
   if(!row.count)throw Error('Owner authentication recovery required');
  }
- const operatorPolicy=new SqliteOperatorPolicy(deps.authDatabase,{read:true,write:settings.allow_writes,send:settings.allow_send,unsubscribe:settings.allow_writes});
- const capabilities=()=>operatorPolicy.snapshot();
- const scopes=()=>{const p=capabilities();return p.read?['mail.read',...(p.write?['mail.write']:[]),...(p.send?['mail.send']:[])]:[];};
+ const mailModule=createMailModule(settings,{...deps,monitor});
+ const runtime=new ModuleRuntime().register(mailModule.registration);
+ await runtime.start();
+ try{
+ const config=mailModule.config;
+ const scopeLabels=Object.fromEntries(runtime.scopeDescriptors.map(scope=>[scope.name,{default:scope.description,...scope.descriptionLocales}]));
  const diagnostics=deps.diagnostics??(()=>prerequisites(settings));
- const provider=deps.provider??(credential=>new ICloudMailAdapter({user:credential.user,password:credential.appPassword}));
- const auth=await createOwnerAuth({database:deps.authDatabase,publicBaseURL:settings.public_origin,privateOrigin:settings.private_origin,rpID:new URL(settings.public_origin).hostname,secret:createHash('sha256').update(deps.masterKey).update('owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:['mail.read','mail.write','mail.send','offline_access'],allowedScopes:()=>[...scopes(),'offline_access'],ownerId:()=>deps.store.ownerId(),checkBootstrapProof:proof=>deps.store.checkBootstrapProof(proof)});
+ const auth=await createOwnerAuth({database:deps.authDatabase,publicBaseURL:settings.public_origin,privateOrigin:settings.private_origin,rpID:new URL(settings.public_origin).hostname,secret:createHash('sha256').update(deps.masterKey).update('owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,allowedScopes:()=>runtime.allowedScopes,ownerId:()=>deps.store.ownerId(),checkBootstrapProof:proof=>deps.store.checkBootstrapProof(proof)});
  const bootstrap=createBootstrapAccess({login:settings.bootstrap_owner_login,origin:settings.private_origin,isEnrolled:()=>deps.store.ownerId()!==null});
  const internalProof=deps.bootstrapProof??(()=>readFileSync(join(dirname(settings.master_key_file),'bootstrap-proof'),'utf8'));
  const setupState=async(request:Request)=>{let passkeyRegistered=false;try{const session=await auth.enrollmentSession(request.headers);passkeyRegistered=bootstrap.resumed(request,session.user.id);}catch{}return{bootstrapAuthorized:bootstrap.allowed(request),passkeyRegistered};};
- const credentials=()=>{const owner=deps.store.ownerId();if(!owner)throw new MailOperationError('forbidden','Owner setup required');const bytes=deps.store.readSecret(owner);if(!bytes)throw new MailOperationError('forbidden','Mail credentials revoked');try{return credentialSchema.parse(JSON.parse(Buffer.from(bytes).toString('utf8')));}finally{bytes.fill(0);}};
- const current=()=>{const owner=deps.store.ownerId();if(!owner)throw new MailOperationError('forbidden','Owner setup required');const bytes=deps.store.readSecret(owner);if(!bytes)throw new MailOperationError('forbidden','Mail credentials revoked');try{return provider(credentialSchema.parse(JSON.parse(Buffer.from(bytes).toString('utf8'))));}finally{bytes.fill(0);}};
- const gateway:MailGateway={withSession:run=>current().withSession(run),parse:source=>current().parse(source)};
- const mail=new MailService({allowWrites:settings.allow_writes},gateway,capabilities);
- const unsubscribe=new UnsubscribeService(mail,createUnsubscribeGateway({sendMail:input=>current().send(input)}),{get enabled(){const p=capabilities();return p.read&&p.write&&p.unsubscribe;}});
- const outboundProvider=()=>{const credential=credentials();return deps.outboundProvider?.(credential)??new ICloudOutboundAdapter({user:credential.user,password:credential.appPassword});};
- const ledger=new SqliteOutboundLedger(deps.authDatabase,deps.masterKey,()=>{const owner=deps.store.ownerId();if(!owner)throw new MailOperationError('forbidden','Owner setup required');credentials();return owner;});
- const outbound=new OutboundService({get allowRead(){return capabilities().read;},get allowSend(){const p=capabilities();return p.read&&p.send;},get allowWrites(){const p=capabilities();return p.read&&p.write;}},gateway,{compose:input=>{const p=outboundProvider();if(!p.compose)throw new Error("Compose unavailable");return p.compose(input);},send:input=>outboundProvider().send(input),draft:(input,mailbox)=>outboundProvider().draft(input,mailbox)},ledger);
- const config={user:'',password:'',get allowRead(){return capabilities().read;},get allowWrites(){const p=capabilities();return p.read&&p.write;},get allowSend(){const p=capabilities();return p.read&&p.send;},get allowUnsubscribe(){return capabilities().unsubscribe;},transport:'http' as const,host:settings.host,port:settings.public_port,publicUrl:settings.public_origin+'/icloud/mcp',issuer:settings.public_origin+'/icloud/auth',audience:settings.public_origin+'/icloud/mcp',jwksUrl:settings.public_origin+'/unused',get scopes(){return scopes();},allowedSubjects:[]};
- const publicApp=createHttpApp(config,mail,auth.verifyBearer,unsubscribe,outbound,monitor,lifecycle);
+ const publicApp=createHttpApp(config,runtime,auth.verifyBearer,lifecycle);
  publicApp.use(guardHost(settings.public_origin,settings.public_port));
- for(const page of ['sign-in','consent'] as const)publicApp.get('/icloud/'+page,(_req,res)=>{res.set({'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}).type('html').send(renderAuthPage(page));});
+ for(const page of ['sign-in','consent'] as const)publicApp.get('/icloud/'+page,(_req,res)=>{res.set({'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}).type('html').send(renderAuthPage(page,false,scopeLabels));});
  publicApp.get('/icloud/assets/auth-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'auth-browser.js'),{dotfiles:'allow'}));
  publicApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.public_origin,auth.publicHandler,lifecycle));
- const admin=createPrivateAdmin({privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,capabilities,updateCapabilities:async(next,confirm)=>operatorPolicy.update(next,confirm),validateCredential:async credential=>{await provider(credential).withSession(session=>session.list());}});
+ const admin=createPrivateAdmin({privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin});
  const privateApp=express();privateApp.disable('x-powered-by');privateApp.use(lifecycle.admission);privateApp.use(guardHost(settings.private_origin,settings.private_port));
  privateApp.use((req,res,next)=>{
   const address=req.socket.remoteAddress?.replace(/^::ffff:/,'');
   if(address!=='127.0.0.1'&&address!=='::1'&&!(settings.runtime_mode==='container'&&settings.private_proxy_address&&address===settings.private_proxy_address)){res.status(403).end();return;}next();
  });
  privateApp.get('/setup',(_req,res)=>res.redirect(308,'/icloud/setup'));
- privateApp.get('/icloud/sign-in',(_req,res)=>res.set({'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}).type('html').send(renderAuthPage('sign-in',true)));
+ privateApp.get('/icloud/sign-in',(_req,res)=>res.set({'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}).type('html').send(renderAuthPage('sign-in',true,scopeLabels)));
  privateApp.get('/icloud/setup/health',(_req,res)=>res.type('text/plain').send('icloud-private'));
  privateApp.get('/icloud/assets/plugin-icon.png',(_req,res)=>res.type('png').sendFile(join(deps.assetsDirectory,'plugin-icon.png'),{dotfiles:'allow'}));
  privateApp.get('/icloud/assets/admin-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'admin-browser.js'),{dotfiles:'allow'}));
@@ -113,5 +96,6 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
   }
   return admin(request);
  },lifecycle));
- return{publicApp,privateApp,auth,monitor,lifecycle};
+ return{publicApp,privateApp,auth,monitor,lifecycle,runtime};
+ }catch(error){try{await runtime.dispose();}catch{}throw error;}
 }

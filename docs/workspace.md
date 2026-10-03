@@ -5,34 +5,39 @@ separate `apps/server` and no production MCP client. Codex and ChatGPT consume
 Streamable HTTP; stdio is not an initial interface. `docs/` stays authoritative,
 and `playground/` remains separate experiments with independent packages/locks.
 
-```
-apps/icloud/
-  src/
-    index.ts       composition root
-    server/        HTTP routers, transport and lifecycle wiring
-    mcp/           MCP schemas, tool handlers and protocol results
-    services/      mailbox use cases; no HTTP/MCP/provider imports
-    domain/        typed requests/results/identities and provider ports
-    icloud/        IMAP/SMTP/MIME adapters
-    auth/          token verification and access policy
-    admin/         private setup and owner credential management
-    storage/       encrypted owner state and persistent bootstrap closure
-  # unit/component .test.ts files live beside their modules
-  package.json
-  tsconfig.json
-  config.example.toml
+```text
+apps/icloud/src/
+  index.ts         process entrypoint
+  modules/         feature registration and lifecycle contracts
+  mail/            Mail module and all Mail-owned implementation
+    domain/        typed identities, results and provider ports
+    services/      mailbox and outbound use cases
+    icloud/        IMAP/SMTP/MIME/network adapters
+    mcp/           Mail schemas and tool contributions
+    storage/       Mail policy and outbound ledger
+  server/          HTTP listeners, lifecycle and application composition
+  mcp/             shared protocol host for registered tools
+  auth/            shared owner Passkey/OAuth authentication
+  admin/           private owner setup and management shell
+  storage/         opaque encrypted owner state and bootstrap closure
+  observability/   operation tracking and draining
+  plugin/          configured client artifact generation
+  ui/              shared page primitives
+  i18n/            typed interface copy
 ```
 
+Every source subsystem has a README describing its purpose, owned contracts,
+use cases, dependencies, state/security boundaries, verification and limitations.
+The [source index](../apps/icloud/src/README.md) links each one. Central
+[architecture](architecture.md) owns cross-subsystem composition; the
+[Mail contract](mailbox-tools.md) owns detailed user-facing operation semantics.
+These documents are part of the source deliverable and must change with behavior.
+
 External input is validated at runtime; internal ports carry explicit types.
-CP1–CP5 implement these boundaries and pass reviewed local checkpoints. The
-maintained owner Passkey/OAuth provider is composed into both private and public
-routers; the earlier external JWT verifier remains a compatibility/test module.
-The deployed 0.1.16 Mail surface includes send, reply and draft creation, with
-owner-reported live acceptance. Deployed release 0.1.17 additionally implements
-bounded attachments, existing-draft read/edit/send and forwarding; these new
-actions are not yet live-accepted. Owner enrollment and a fresh ChatGPT connection have
-been completed. See [current status](current-status.md) and the
-[roadmap](roadmap.md) for remaining acceptance and historical evidence.
+Mail is the production feature module. Calendar remains an isolated feasibility
+experiment, not a production registration. Source/test evidence and historical
+owner-reported acceptance are recorded in [current status](current-status.md);
+this layout inventory does not identify or verify a running release.
 
 ## Separate lifecycle commands
 

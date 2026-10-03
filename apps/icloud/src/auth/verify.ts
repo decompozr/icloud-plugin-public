@@ -9,7 +9,6 @@ export function createVerifier(config: Config, key: JWTVerifyGetKey = createRemo
     if (typeof payload.sub !== 'string' || !payload.sub || typeof payload.scope !== 'string') throw new Error('Invalid token claims');
     if (!config.allowedSubjects.includes(payload.sub)) throw new Error('Unauthorized subject');
     const scopes = new Set(payload.scope.split(' ').filter(Boolean));
-    if (!scopes.has('mail.read')) throw new Error('Missing mail.read');
     return { subject: payload.sub, scopes };
   };
 }

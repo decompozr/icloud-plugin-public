@@ -1,17 +1,18 @@
 # Durable owner and secret storage
 
-Goal: a typed server-only SQLite component supports exclusive owner enrollment,
+This shared server-only SQLite component supports exclusive owner enrollment,
 authenticated-encryption of opaque provider credentials, rotation and local
 revocation across process restarts. It never authenticates callers itself:
 admin must verify Passkey identity/provider connection before enrollment or edits.
 
-Acceptance before implementation: separate explicit provisioning; ordinary open
+The contract requires separate explicit provisioning; ordinary open
 never creates state; missing/corrupt database or separately retained marker fails
 closed; concurrent enrollment has one winner; completed bootstrap cannot reopen;
 wrong keys/tampering fail; no secret output; process restart retains owner/secret.
 
 The caller supplies a 32-byte master key with an independently managed custody
-boundary. No default key location or production key-management method is selected.
+boundary. The installation/configuration layer selects custody paths; this component does
+not choose or provision a key-management service.
 The marker is HMAC authenticated and retained outside the application data volume.
 An enrollment writes its terminal marker before committing SQLite: failure between
 those steps requires recovery and cannot silently reopen enrollment. Rotation is
@@ -31,3 +32,32 @@ it has no time-based expiry. Treat it as an offline installation credential,
 never a public login token. Proof lifetime/rate limiting at the setup transport
 boundary must be explicit. Owner integrity assumes the external marker and master
 key cannot both be replaced by an attacker; rollback of both files is not detected.
+
+
+## API, dependencies and feature ownership
+
+`SqliteOwnerStore.provision` exclusively creates installation state; `open` requires
+existing state. `OwnerSecretStore` exposes owner lookup, bootstrap proof validation,
+enrollment, opaque secret read/rotate/revoke and close. The implementation depends
+on Bun SQLite, authenticated cryptography and protected local files. Callers own
+authentication and provider validation; stored bytes have no Mail schema here.
+
+Use this component to preserve the installation owner and encrypted credentials
+across restarts. Data flows from authenticated admin enrollment to encrypted SQLite
+state plus authenticated external marker, then through an authorized read into the
+feature that interprets the plaintext. Returned temporary secret buffers should be
+cleared after use. The caller owns shutdown and closes the store.
+
+Mail capability policy and outbound replay state are owned by
+[Mail storage](../mail/storage/README.md). Source placement does not imply a second
+copy of the user's mailbox or storage within Apple iCloud. Actual mutable files use
+the configured installation state/custody paths. `ports.ts` retains a separate
+credential-store type sketch; it is not the concrete owner store API.
+
+## Verification and limits
+
+Colocated owner-store tests and the worker fixture cover provisioning/open behavior,
+exclusive enrollment, tamper/key failures, owner integrity, rotation/revocation and
+restart persistence. They do not prove rollback resistance or a production backup
+recovery procedure. [Operations](../../../../docs/operations.md) owns deployment and
+custody guidance. This refactor does not change table names, keys or state paths.
