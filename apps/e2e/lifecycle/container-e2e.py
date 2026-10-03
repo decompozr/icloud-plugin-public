@@ -24,7 +24,7 @@ try:
  # Resolve test imports against Linux image dependencies, never host node_modules.
  dependencies=json.loads((root/'apps/e2e/package.json').read_text())['dependencies']
  for dependency in [*dependencies,'imapflow','zod-to-json-schema','better-auth','@better-auth/passkey','@better-auth/oauth-provider']:
-  if dependency in ['@icloud-plugin/icloud','cbor-x']:continue
+  if dependency == 'cbor-x':continue
   link=stage/'node_modules'/dependency;link.parent.mkdir(parents=True,exist_ok=True)
   link.symlink_to('/opt/icloud/apps/icloud/node_modules/'+dependency)
  for directory,_,files in os.walk(stage):

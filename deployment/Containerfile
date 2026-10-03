@@ -1,18 +1,17 @@
 # Build for the runtime OS/architecture. Never copy host node_modules or .env.
 FROM oven/bun:1.4.2 AS build
 WORKDIR /build
-COPY package.json bun.lock LICENSE THIRD_PARTY_NOTICES.md plugin.json ./
-COPY apps/icloud/package.json apps/icloud/tsconfig.json apps/icloud/tsconfig.build.json ./apps/icloud/
-COPY packages/tooling/package.json ./packages/tooling/package.json
-COPY apps/e2e/package.json ./apps/e2e/package.json
-RUN bun install --frozen-lockfile
+COPY LICENSE THIRD_PARTY_NOTICES.md plugin.json ./
+COPY apps/icloud/package.json apps/icloud/bun.lock apps/icloud/tsconfig.json apps/icloud/tsconfig.build.json ./apps/icloud/
+COPY packages/tooling/package.json packages/tooling/bun.lock ./packages/tooling/
+RUN cd apps/icloud && bun install --frozen-lockfile
+RUN cd packages/tooling && bun install --frozen-lockfile
 COPY apps/icloud/src ./apps/icloud/src
 COPY apps/icloud/assets/plugin-icon.png ./apps/icloud/assets/plugin-icon.png
 COPY skills/icloud-mail/SKILL.md ./skills/icloud-mail/SKILL.md
 COPY bin ./bin
 COPY packages/tooling ./packages/tooling
-COPY apps/e2e/package.json ./apps/e2e/package.json
-RUN bun run build && bun bin/build-artifact /artifact
+RUN bun bin/build && bun bin/build-artifact /artifact
 
 FROM oven/bun:1.4.2 AS runtime
 WORKDIR /opt/icloud

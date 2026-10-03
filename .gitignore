@@ -8,3 +8,4 @@ dist/
 .flow-runtime/
 releases/
 .e2e/
+apps/icloud/build/

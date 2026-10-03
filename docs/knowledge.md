@@ -79,3 +79,17 @@ adapter, checks original UIDVALIDITY and complete headers, and validates explici
 recipients against Reply-To/From. The built HTTP fixture traverses the SDK,
 service, actual IMAP header lookup and SMTP/APPEND protocol adapters. These are
 local synthetic peers, not a real outgoing message or draft in the owner's account.
+
+## Production installer boundary
+
+Production installation is explicitly `~/.decompozr/plugins/icloud`, selected by
+the release-provided `icloud-plugin install` command. Root `releases/` stores
+versioned distributions. Installed immutable versions live under `releases/` with
+an atomic `current` selector; private configuration, custody and state belong in
+`runtime/`. Installation never initializes state or starts the service. Run the
+installed `current/icloud-plugin run` only after configuration/state preparation.
+The `0.1.19-installer1` packaging revision preserves the previously verified
+application byte-for-byte and adds the installer, avoiding accidental deployment
+of an unrelated source refactor. See deployment lifecycle for verification and
+archive provenance. Neither build nor release should create `.flow-runtime` or
+external installation directories implicitly.

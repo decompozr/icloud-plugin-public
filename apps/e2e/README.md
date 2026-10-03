@@ -1,6 +1,6 @@
-# Application E2E workspace
+# Application E2E package
 
-Run `bun run build` at the repository root first, then `bun run e2e`.
+Run `bun bin/build` at the repository root first, then `bun bin/e2e`.
 Tests consume the existing private built application modules in `apps/icloud/dist`;
 no application source runtime imports are bundled into these tests. The app's
 existing composition interfaces allow local IMAP/SMTP/HTTP and synthetic owner

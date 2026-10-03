@@ -51,10 +51,12 @@ and unfinished source do not override them.
 [Architecture comparison and contract defaults](docs/architecture.md) distinguish
 resolved internal choices from deployment recommendations and remaining evidence.
 
-The accepted [workspace and lifecycle layout](docs/workspace.md) has one complete
+The accepted [independent package and lifecycle layout](docs/workspace.md) has one complete
 `apps/icloud` application, typed server/service/auth/MCP boundaries, Streamable
 HTTP, and distinct dev/build/release/runtime phases for Mac and Apple Container.
 
 [Local owner setup](docs/local-setup.md) describes the explicit TOML configuration, protected installation custody and private setup flow being verified in CP3/CP4.
 
 [Configured client artifact](docs/client-artifact.md) explains the separate Codex marketplace export and ChatGPT remote connection flow. The repository MCP descriptor is a template; export produces a concrete HTTPS URL without credentials.
+
+Each app/package owns its manifest, lockfile and dependencies; the repository root is not a Bun workspace. See the linked layout for per-package installation and `bun bin/checkpoint` verification.

@@ -15,11 +15,18 @@ activation remain separate user integration checks.
 
 ## Build and release
 
-From the checkout, `bun run build` emits JS. Then
+Install dependencies independently in `apps/icloud` and `packages/tooling` using
+`bun install --frozen-lockfile` in each directory. From the checkout,
+`bun bin/build` emits JS into `apps/icloud/dist`. Then
 `bun bin/build-artifact /absolute/fresh-artifact-directory`
 prepares production dependencies for the current platform, excluding source,
-tests, private config and environment files. `bun run release /absolute/artifact-directory /absolute/output-directory` packages that existing
-artifact; it refuses overwriting a versioned archive. The archive requires the
+tests, private config and environment files. `bun bin/release /absolute/artifact-directory /absolute/output-directory` packages that existing
+artifact; it refuses overwriting a versioned archive. Without explicit paths,
+assembly uses `apps/icloud/build/<platform>-<arch>` and release archives use
+`releases`. For this checkout, extract the selected archive into
+`releases/<version>-<platform>-<arch>` and invoke its `./icloud-plugin install`. Production installs to
+`~/.decompozr/plugins/icloud`, with private configuration/state/custody under
+`runtime/` and immutable versions selected by `current`. Production dependencies stay under the artifact app directory. The archive requires the
 matching Bun runtime. Build on each target OS/architecture; do not relabel a Mac
 artifact as Linux.
 
@@ -33,8 +40,9 @@ Apple credentials and does not create a public route.
 ## Native installation, update and removal
 
 Unpack a trusted reviewed release into a staging directory. Use
-`bun bin/install install /absolute/artifact /absolute/install`
-(or `update` against an existing owned installation). Each version is immutable;
+`./icloud-plugin install` from that release (default `~/.decompozr/plugins/icloud`),
+or `./icloud-plugin update` against an existing owned installation.
+Use `--prefix /absolute/install` only for an explicitly separate instance. Each version is immutable;
 an atomic `current` symlink selects it. Stop this service before updating and
 retain the old release for rollback. Do not switch back after schema migration
 without an independently validated backup/migration plan.
@@ -43,7 +51,8 @@ Keep TOML config, `state_directory`, `master_key_file` and `installation_marker`
 outside the release tree. Use the supplied example config with separate state
 and custody locations. Explicit one-time provisioning is
 `/absolute/install/current/runtime.sh /absolute/config.toml --initialize`.
-Normal runtime is `/absolute/install/current/runtime.sh /absolute/config.toml`.
+Normal production runtime is `~/.decompozr/plugins/icloud/current/icloud-plugin run`,
+which defaults to `~/.decompozr/plugins/icloud/runtime/config.toml`.
 It never provisions, installs or compiles automatically. Protect config/custody
 with owner-only permissions. Losing either key or marker is recovery failure,
 not authorization to enroll a new owner.

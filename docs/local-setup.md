@@ -3,7 +3,7 @@
 This is the current application entry path. CP3/CP4 local integration passed independent review. CP5 artifact validation and CP6 actual routing/client checks are tracked separately.
 The native private Tailscale setup route is live. No real owner Passkey or iCloud account has been enrolled automatically.
 
-1. Build with `bun run build`. Copy `apps/icloud/config.example.toml` to an
+1. Build with `bun bin/build`. Copy `apps/icloud/config.example.toml` to an
    owner-controlled directory outside the release; use absolute file paths or
    paths relative to that configuration. Configure one hostname with different
    private and public HTTPS ports, plus distinct internal listeners.

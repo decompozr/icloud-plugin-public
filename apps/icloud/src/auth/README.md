@@ -52,7 +52,7 @@ listener port, so route/session/origin boundaries remain necessary.
 Colocated owner, bootstrap, rate-limit, page and scope-upgrade tests exercise signed
 synthetic authenticators, HTTP OAuth flows, replay/revocation, resource/scope checks
 and persisted reopen behavior. The test-fixture folder documents synthetic owners.
-Run with the application's unit suite or the root `bun run test` dispatcher.
+Run with the application's unit suite or the root `bun bin/test` dispatcher.
 [Built E2E](../../../e2e/README.md) covers full listener/application integration.
 Physical authenticators, current deployed routes and actual client consent remain
 separate evidence; historical counts do not establish this refactor's acceptance.
