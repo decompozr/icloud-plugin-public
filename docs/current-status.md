@@ -41,6 +41,14 @@ launches briefly hit the host file-descriptor limit and recovered; that host
 condition did not invalidate the completed checkpoint. Existing live acceptance below
 is separate and does not establish live behavior of these new corrections.
 
+## Automatic renewal acceptance (2026-10-03 04:52 UTC)
+
+**PASS for one real ChatGPT renewal cycle.** The parent's single post-expiry mailbox-list call succeeded at04:52:20. Same-client, unchanged-consent metadata confirms refresh rotation and new access retaining all four scopes; the original authorization-code link was inherited, not fresh manual authorization. New access expires05:52:20 UTC. This closes the pending renewal check for the observed cycle only, not indefinite reliability. [Exact evidence and limits](oauth-request-scope-diagnosis.md#real-chatgpt-automatic-renewal--one-cycle-accepted-2026-10-03). ZIP-name matching, receiver attachment byte/hash equality, and live idempotency remain separate unresolved items.
+
+## Latest bounded Mail acceptance (2026-10-03, parent-reported)
+
+The owner-authorized 04:02 UTC live test passed draft attachment download, existing-draft replacement, draft send with retained source, and original-MIME forwarding to Gmail. Source download bytes/SHA-256 were verified; Gmail receipt and nested MIME preservation were independently reviewed. Receiver-side raw attachment download returned403, so receiver byte/hash equality remains unverified. Receipt replay was blocked before execution: live idempotency was not tested, and no retry is requested. Draft432 remains, old test draft is Trash34629, original draft430 and unrelated mail were untouched. See [the exact live receipts and limits](mailbox-tools.md#bounded-live-mail-acceptance--2026-10-03-parent-reported). Earlier pending statements below are historical for these tested paths. The subsequent post-expiry verification passed one automatic-renewal cycle at04:52:20 UTC, as recorded above.
+
 ## Multi-account source checkpoint (2026-10-03)
 
 Application **0.1.20** is published as the stable native `darwin-arm64` release
