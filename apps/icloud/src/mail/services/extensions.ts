@@ -9,7 +9,8 @@ const hash=(v:Uint8Array)=>createHash('sha256').update(v).digest('hex');
 export class MailExtensions {
  private queue:Promise<unknown>=Promise.resolve();
  private serialized<T>(run:()=>Promise<T>):Promise<T>{const pending=this.queue.then(run);this.queue=pending.catch(()=>undefined);return pending;}
- constructor(private policy:{allowRead?:boolean;allowSend:boolean;allowWrites:boolean},private mail:MailGateway,private provider:OutboundGateway,private ledger:OutboundLedger){}
+ constructor(private policy:{allowRead?:boolean;allowSend:boolean;allowWrites:boolean},private mail:MailGateway,private provider:OutboundGateway,private ledger:OutboundLedger,private revisionNamespace?:()=>string){}
+ private revision(source:Uint8Array){const namespace=this.revisionNamespace?.();return namespace?hash(Buffer.concat([Buffer.from(namespace+"\0"),source])):hash(source);}
  private allowed(kind:'read'|'write'|'send') {if(this.policy.allowRead===false||(kind==='write'&&!this.policy.allowWrites)||(kind==='send'&&!this.policy.allowSend))throw new MailOperationError('forbidden','Mail operation disabled');}
  private async selected<T>(target:MailTarget,draft:boolean,write:boolean,run:(session:MailSession)=>Promise<T>):Promise<T>{
   return this.mail.withSession(async session=>{
@@ -47,16 +48,17 @@ export class MailExtensions {
   if(Buffer.byteLength(text)>100000||(html&&Buffer.byteLength(html)>100000))throw new MailOperationError('unsupported_capability','Draft body exceeds supported limit');
   return{to:(Array.isArray(parsed.to)?parsed.to:parsed.to?[parsed.to]:[]).flatMap(g=>g.value.map(a=>a.address).filter((a):a is string=>Boolean(a))),subject:parsed.subject??'',text,html,attachments,inReplyTo:parsed.inReplyTo,references:refs};
  }
- async readDraft(request:z.infer<typeof draftReadSchema>){this.allowed('read');const input=draftReadSchema.parse(request);return this.selected(input.target,true,false,async session=>{const source=await this.source(session,input.target);return{target:input.target,revision:hash(source),...await this.content(source)};});}
+ async readDraft(request:z.infer<typeof draftReadSchema>){this.allowed('read');const input=draftReadSchema.parse(request);return this.selected(input.target,true,false,async session=>{const source=await this.source(session,input.target);return{target:input.target,revision:this.revision(source),...await this.content(source)};});}
  private async execute(kind:'edit'|'draft-send'|'forward',input:z.infer<typeof draftEditSchema>|z.infer<typeof draftSendSchema>|z.infer<typeof forwardSchema>):Promise<OutboundResult>{
   const permission=kind==='edit'?'write':'send';
   this.allowed(permission);
-  const digest=hash(Buffer.from(JSON.stringify({kind,input}))),messageId=`<${input.operationId}@icloud-plugin.invalid>`,claim=this.ledger.claim(input.operationId,digest,messageId);
+  const namespace=this.revisionNamespace?.(),suffix=namespace?'-'+hash(Buffer.from(namespace)).slice(0,32):'';
+  const digest=hash(Buffer.from(JSON.stringify({kind,input}))),messageId=`<${input.operationId}${suffix}@icloud-plugin.invalid>`,claim=this.ledger.claim(input.operationId,digest,messageId);
   if(!claim.fresh)return claim.result;
   let attempted=false;let replacement:MailTarget|undefined;let result:OutboundResult;
   try{result=await this.serialized(()=>{this.allowed(permission);return this.selected(input.target,kind!=='forward',kind==='edit',async session=>{
    const source=await this.source(session,input.target);
-   if('revision' in input&&hash(source)!==input.revision)throw new MailOperationError('stale_identity','Draft revision changed');
+   if('revision' in input&&this.revision(source)!==input.revision)throw new MailOperationError('stale_identity','Draft revision changed');
    let message:OutboundMessage;
    if(kind==='forward') {const value=forwardSchema.parse(input);message={to:value.to,subject:value.subject,text:value.text,messageId,attachments:attachmentsSchema.parse([...(value.attachments??[]),{filename:'forwarded-message.eml',contentType:'message/rfc822',contentBase64:source.toString('base64')}])};}
    else{const original=await this.content(source);message={...original,to:input.to,messageId};if(kind==='edit'){const value=draftEditSchema.parse(input);message={...message,subject:value.subject,text:value.text,html:undefined,attachments:value.attachments??original.attachments};}}

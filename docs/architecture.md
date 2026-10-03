@@ -57,8 +57,8 @@ are closed by the application lifecycle, not by feature code borrowing them.
 
 Public MCP/OAuth and private setup/admin use distinct listeners. Forwarded host
 headers cannot choose private handlers. Private enrollment requires trusted
-bootstrap access, owner Passkey enrollment and credential validation. The current
-private setup workflow integrates Mail; a new feature's setup and credential
+bootstrap access and owner Passkey enrollment. Public OAuth selection/addition
+validates Mail credentials and binds each grant to one stable account; a new feature's setup and credential
 requirements need an explicit integration contract rather than assumptions that
 all iCloud services use IMAP credentials.
 
