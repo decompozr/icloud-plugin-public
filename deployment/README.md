@@ -62,8 +62,12 @@ all paths and create private log directories before explicit `launchctl bootstra
 It starts after user login; logout/sleep/offline interrupt availability. Stop only
 `local.icloud-plugin` using `launchctl bootout gui/$(id -u)/local.icloud-plugin`.
 Once stopped, `bun bin/install uninstall /absolute/install`
-removes only owned releases/current/marker. It retains state, custody, config,
-logs and unknown files. Remove the optional plist separately. OAuth grant
+removes only owned releases/current. The corrected source installer retains its
+ownership marker, state, custody, config, logs and unknown files. Reinstall from
+a staged release at the same prefix requires that retained regular-file marker
+and absent current/releases; arbitrary or symlinked directories are rejected.
+Older distributions that removed the marker require explicit recovery rather
+than automatic adoption. Remove the optional plist separately. OAuth grant
 revocation and Apple app-password revocation are separate operator actions;
 uninstall does not delete mail or alter unrelated Tailscale routes.
 

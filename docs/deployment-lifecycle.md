@@ -92,6 +92,15 @@ requires explicit `--initialize`. Installation does not migrate data or manage
 processes implicitly. Stop the old service before migrating existing state and
 preserve configuration bytes, SQLite state, custody and owner-only permissions.
 
+Scoped uninstall retains the installation ownership marker along with private
+runtime data. Same-prefix reinstall may reuse a real directory only when its
+regular-file ownership marker matches and both `current` and `releases` are
+absent. It preserves retained bytes and permissions without initialization.
+Existing active installations require update; arbitrary, unmarked or symlinked
+prefixes must be rejected. A prefix left unmarked by an older uninstall requires
+explicit recovery, not automatic adoption. These are the source lifecycle
+requirements; the historical installer1 distribution below is unchanged.
+
 ### Installer packaging revision evidence
 
 The `0.1.19-installer1` distribution adds the standalone CLI to the previously

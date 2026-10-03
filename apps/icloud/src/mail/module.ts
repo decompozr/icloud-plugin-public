@@ -45,10 +45,14 @@ export function createMailModule(settings:AppSettings,deps:MailModuleDependencie
  const credentials=()=>{const account=selected();const bytes=accountStore.readAccountSecret?accountStore.readAccountSecret(account.owner,account.id):deps.store.readSecret(account.owner);if(!bytes)throw new MailOperationError('forbidden','Mail credentials revoked');try{return credentialSchema.parse(JSON.parse(Buffer.from(bytes).toString('utf8')));}finally{bytes.fill(0);}};
  const current=()=>provider(credentials());
  const identity={
-  validate(input:unknown){const account=selected();const visit=(value:unknown):void=>{if(Array.isArray(value)){for(const item of value)visit(item);return;}if(!value||typeof value!=='object')return;const object=value as Record<string,unknown>;if(typeof object.mailbox==='string'&&typeof object.uidValidity==='string'){
+  bind(input:unknown){const account=selected();const visit=(value:unknown):void=>{if(Array.isArray(value)){for(const item of value)visit(item);return;}if(!value||typeof value!=='object')return;const object=value as Record<string,unknown>;if(typeof object.mailbox==='string'&&typeof object.uidValidity==='string'){
    if(object.accountId!==account.id&&!(object.accountId===undefined&&account.legacy))throw new MailOperationError('stale_identity','Message reference belongs to another account; search again');
-  }for(const child of Object.values(object))visit(child);};visit(input);},
-  annotate(output:unknown):unknown{const account=selected();const visit=(value:unknown):unknown=>{if(Array.isArray(value))return value.map(visit);if(!value||typeof value!=='object')return value;const object=Object.fromEntries(Object.entries(value).map(([key,child])=>[key,visit(child)]));if(typeof object.mailbox==='string'&&typeof object.uidValidity==='string')object.accountId=account.id;return object;};return visit(output);},
+  }for(const child of Object.values(object))visit(child);};visit(input);
+   // Result identity is fixed at admission; annotating an observed outcome cannot revoke it.
+   const accountId=account.id;
+   const annotate=(value:unknown):unknown=>{if(Array.isArray(value))return value.map(annotate);if(!value||typeof value!=='object')return value;const object=Object.fromEntries(Object.entries(value).map(([key,child])=>[key,annotate(child)]));if(typeof object.mailbox==='string'&&typeof object.uidValidity==='string')object.accountId=accountId;return object;};
+   return annotate;
+  },
   profile(){const account=selected();const email=account.metadata?.user??credentials().user;return{id:account.id,name:account.metadata?.label??email,email};}
  };
  const gateway:MailGateway={withSession:run=>current().withSession(run),parse:source=>current().parse(source)};

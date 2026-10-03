@@ -1,5 +1,5 @@
 import {artifactSchema,type Artifact} from './artifact.js';
-import {cp,mkdir,readFile,rename,rm,symlink,lstat} from 'node:fs/promises';
+import {cp,mkdir,readFile,readdir,rename,rm,symlink,lstat} from 'node:fs/promises';
 import {resolve,join,relative,parse,dirname} from 'node:path';
 export async function inspectArtifact(path:string):Promise<Artifact>{
  const value=artifactSchema.parse(JSON.parse(await readFile(join(path,'artifact.json'),'utf8')) as unknown);
@@ -9,13 +9,30 @@ export async function inspectArtifact(path:string):Promise<Artifact>{
  return value;
 }
 const marker=JSON.stringify({format:1,owner:'icloud-plugin-install'});
+async function assertOwnedPrefix(prefix:string){
+ if(!(await lstat(prefix)).isDirectory())throw Error('Not an owned installation directory');
+ const path=join(prefix,'.icloud-install');
+ if(!(await lstat(path)).isFile()||await readFile(path,'utf8')!==marker)throw Error('Not an owned installation');
+}
 export async function installArtifact(source:string,prefix:string,update=false){
  source=resolve(source);prefix=resolve(prefix);
  if(prefix===parse(prefix).root)throw Error('Installation requires a dedicated application directory');
  if(!relative(source,prefix).startsWith('..'))throw Error('Installation must be outside artifact');
  const metadata=await inspectArtifact(source);
- if(update){if(await readFile(join(prefix,'.icloud-install'),'utf8')!==marker)throw Error('Not an owned installation');}
- else{await mkdir(dirname(prefix),{recursive:true});await mkdir(prefix,{recursive:false,mode:0o700});await Bun.write(join(prefix,'.icloud-install'),marker);}
+ if(update)await assertOwnedPrefix(prefix);
+ else{
+  await mkdir(dirname(prefix),{recursive:true});
+  let retained=false;
+  try{await mkdir(prefix,{recursive:false,mode:0o700});}
+  catch(error){
+   if((error as NodeJS.ErrnoException).code!=='EEXIST')throw error;
+   await assertOwnedPrefix(prefix);
+   const entries=await readdir(prefix);
+   if(entries.includes('current')||entries.includes('releases'))throw Error('Installation already contains deployment files; use update');
+   retained=true;
+  }
+  if(!retained)await Bun.write(join(prefix,'.icloud-install'),marker);
+ }
  const id=`${metadata.version}-${metadata.platform}-${metadata.arch}`;
  const release=join(prefix,'releases',id),pending=join(prefix,`.current-${process.pid}`);
  await mkdir(join(prefix,'releases'),{recursive:true});
@@ -32,11 +49,11 @@ export async function installArtifact(source:string,prefix:string,update=false){
 export async function uninstallArtifact(prefix:string){
  prefix=resolve(prefix);
  if(prefix===parse(prefix).root)throw Error('Uninstall requires a dedicated application directory');
- if(await readFile(join(prefix,'.icloud-install'),'utf8')!==marker)throw Error('Not an owned installation');
- // Remove only deployment-owned entries. State, custody and unknown files survive.
+ await assertOwnedPrefix(prefix);
+ // Retain ownership so this prefix can be reinstalled without adopting unknown directories.
+ // State, custody, configuration and unknown files survive.
  await rm(join(prefix,'current'),{force:true});
  await rm(join(prefix,'releases'),{recursive:true,force:true});
- await rm(join(prefix,'.icloud-install'));
 }
 if(import.meta.main){
  const [action,first,second]=process.argv.slice(2);

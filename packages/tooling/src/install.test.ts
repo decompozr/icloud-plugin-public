@@ -1,5 +1,5 @@
 import {test,expect} from 'bun:test';
-import {mkdtemp,mkdir,rm,readlink} from 'node:fs/promises';
+import {mkdtemp,mkdir,rm,readlink,symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {installArtifact,uninstallArtifact} from './install.js';
@@ -28,8 +28,41 @@ test('scoped version switch preserves state; mismatched update leaves current in
   await uninstallArtifact(prefix);
   expect(await Bun.file(join(prefix,'state.sqlite')).text()).toBe('retained private state');
   expect(await Bun.file(join(prefix,'custody.key')).text()).toBe('retained dummy key');
-  expect(await Bun.file(join(prefix,'.icloud-install')).exists()).toBe(false);
+  expect(await Bun.file(join(prefix,'.icloud-install')).exists()).toBe(true);
+  await installArtifact(source,prefix);
+  expect(await readlink(join(prefix,'current'))).toContain('0.2.0');
+  expect(await Bun.file(join(prefix,'state.sqlite')).text()).toBe('retained private state');
+  expect(await Bun.file(join(prefix,'custody.key')).text()).toBe('retained dummy key');
   await expect(uninstallArtifact(dir)).rejects.toThrow();
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+test('installation refuses unknown directories and symlinked ownership boundaries',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'icloud-install-boundary-'));
+ try{
+  const source=join(dir,'artifact'),prefix=join(dir,'install');
+  await mkdir(join(source,'apps/icloud/dist'),{recursive:true});
+  await Bun.write(join(source,'runtime.sh'),'#!/bin/sh\n');
+  await Bun.write(join(source,'apps/icloud/dist/index.js'),'// fixture');
+  await Bun.write(join(source,'artifact.json'),JSON.stringify({format:1,name:'icloud-plugin',version:'0.1.0',platform:process.platform,arch:process.arch,bun:Bun.version}));
+  await mkdir(prefix);
+  await Bun.write(join(prefix,'unknown.txt'),'preserve me');
+  await expect(installArtifact(source,prefix)).rejects.toThrow();
+  expect(await Bun.file(join(prefix,'unknown.txt')).text()).toBe('preserve me');
+  expect(await Bun.file(join(prefix,'.icloud-install')).exists()).toBe(false);
+  const owned=join(dir,'owned'),alias=join(dir,'alias');
+  await installArtifact(source,owned);
+  await uninstallArtifact(owned);
+  await symlink(owned,alias);
+  await expect(installArtifact(source,alias)).rejects.toThrow('owned installation directory');
+  await expect(installArtifact(source,alias,true)).rejects.toThrow('owned installation directory');
+  await expect(uninstallArtifact(alias)).rejects.toThrow('owned installation directory');
+  await symlink(join(owned,'.icloud-install'),join(prefix,'.icloud-install'));
+  await expect(installArtifact(source,prefix)).rejects.toThrow('Not an owned installation');
+  await expect(installArtifact(source,prefix,true)).rejects.toThrow('Not an owned installation');
+  await expect(uninstallArtifact(prefix)).rejects.toThrow('Not an owned installation');
+  await symlink(join(dir,'missing'),join(owned,'current'));
+  await expect(installArtifact(source,owned)).rejects.toThrow('deployment files');
+  expect(await Bun.file(join(prefix,'unknown.txt')).text()).toBe('preserve me');
  }finally{await rm(dir,{recursive:true,force:true});}
 });
 test('Tailscale diagnostics exports only allowlisted fields, no raw secret',async()=>{

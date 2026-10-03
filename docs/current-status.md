@@ -1,5 +1,46 @@
 # Source architecture and evidence status
 
+## Audit corrections integrated with multi-account source (2026-10-03 UTC)
+
+The source now preserves unknown outcomes when STORE acknowledgement is missing,
+stops remaining batch items, and carries confirmed COPY destination evidence as
+`recovery.copiedTarget` through single and batch MCP results without claiming a
+successful move. Send/reply and draft creation recheck current read and action
+policy after asynchronous preparation, immediately before provider submission;
+revoked operations retain rejected receipts, while already submitted work drains.
+Uninstall retains installation ownership proof so same-prefix reinstall preserves
+private state; arbitrary, unmarked or symlinked prefixes remain rejected.
+
+The corrections are integrated with `origin/main` at `b87f3d7` (multi-account
+release 0.1.20). A fresh `bun bin/checkpoint` passed application/tooling typechecks,
+production build, 196 application tests (887 assertions), 10 tooling tests
+(126 assertions), E2E compilation and all 11 built E2E tests (253 assertions).
+All four corrections received independent review before this integration.
+The final integration review accepted the result after 16 targeted tests
+(105 assertions).
+New production-module regressions verify that single and batch move-recovery
+identities retain the authenticated account and are rejected across accounts.
+The integration review also exposed a late annotation check that could replace
+an in-flight outcome with a rejection after credential revocation. Result
+annotation now captures account identity at admission: completed and unknown
+results retain their evidence, while new invocations still enforce current
+credentials. Single and batch regressions cover both outcomes and denied
+subsequent provider access.
+Policy revocation tests use a verified nonlegacy account context, retaining
+account-scoped operation receipts and restart replay.
+Regression fixtures cover real ImapFlow STORE responses, staged move failures,
+SQLite-backed policy changes and retained-prefix CLI reinstall. Better Auth's
+existing SQLite array/TEXT mapping warnings remain visible; the checks passed.
+The STORE adapter's private ImapFlow command boundary remains a maintenance
+dependency guarded by protocol tests and command-shape validation.
+
+These are source and synthetic-fixture results. No release archive, installed
+application, live mailbox, authorization grant or route was changed by this work.
+The full integration checkpoint exited successfully. Subsequent read-only shell
+launches briefly hit the host file-descriptor limit and recovered; that host
+condition did not invalidate the completed checkpoint. Existing live acceptance below
+is separate and does not establish live behavior of these new corrections.
+
 ## Multi-account source checkpoint (2026-10-03)
 
 Application **0.1.20** is published as the stable native `darwin-arm64` release

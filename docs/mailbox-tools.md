@@ -184,11 +184,19 @@ capabilities still means unsupported, before any mutation.
 
 A library false result that conflates server rejection and connection loss is
 uncertain, not proof that nothing happened. Any unconfirmed native MOVE, COPY,
-or later fallback stage produces outcome_unknown, stops remaining batch items,
+STORE (including read/flag/tag changes), or later fallback stage produces
+outcome_unknown, marks remaining batch items not_attempted,
 and forbids automatic retry. After COPY, subsequent failure must never be
 reported as a clean rejection or successful move; the destination copy may
-already exist. The destination identity is reported as success only after all
-stages are confirmed. Synthetic protocol/E2E fixtures must cover these stages
+already exist. Preserve a confirmed COPYUID destination identity and completed
+copy stage as evidence in the unknown result; this is not a successful move
+receipt. The authenticated account binding applies equally to recovered copied
+targets and successful message references. Capture that account binding at
+invocation admission: later credential revocation must not replace a completed
+or unknown provider outcome with a clean rejection or discard known copy
+evidence. New invocations and new provider credential requests still enforce
+current authorization and credential availability. The destination identity is reported as success only after all stages
+are confirmed. Synthetic protocol/E2E fixtures must cover these stages
 and failures before release; no real-message experiment is authorized by this
 contract.
 
@@ -267,6 +275,13 @@ grants general sending. Tool schemas, OAuth consent and advertised security
 metadata must agree with those gates. Caller intent must identify the actual
 recipients and content; authorization decisions remain with the calling agent,
 while the service enforces inputs, capability gates and operation identity.
+
+After asynchronous reply-header or Drafts discovery, recheck current read access
+and the relevant send/write policy immediately before invoking SMTP or APPEND.
+Revocation during preflight must return a durable rejected operation receipt
+without invoking the submission provider. An already invoked provider operation
+continues to its actual outcome; revocation does not imply cancellation or make
+an uncertain submission safe to retry.
 
 Credential-free production-path fixtures must demonstrate exact recipient/body
 submission, reply threading and stale-identity rejection, Drafts APPEND and
