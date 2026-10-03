@@ -2,7 +2,7 @@ import type {Tool,CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 export interface ScopeDescriptor {name:string;title:string;description:string;descriptionLocales?:Readonly<Record<string,string>>;enabled:()=>boolean}
 export interface RegisteredTool {
  tool:Tool&{securitySchemes?:Array<{type:'oauth2';scopes:string[]}>};requiredScopes:readonly string[];enabled:()=>boolean;
- run:(input:unknown)=>Promise<CallToolResult>;
+ run:(input:unknown,scopes?:ReadonlySet<string>)=>Promise<CallToolResult>;
  validateIntent?:(input:unknown)=>CallToolResult|undefined;
 }
 export interface RuntimeModule {id:string;scopes:readonly ScopeDescriptor[];tools:readonly RegisteredTool[];start?:()=>Promise<void>;dispose?:()=>Promise<void>}
@@ -33,9 +33,9 @@ export class ModuleRuntime {
  listTools():Tool[]{return [...this.tools.values()].filter(entry=>this.available(entry)).map(entry=>entry.tool);}
  tool(name:string):RegisteredTool|undefined{const entry=this.tools.get(name);return entry&&this.available(entry)?entry:undefined;}
  private available(entry:RegisteredTool){return entry.enabled()&&entry.requiredScopes.every(scope=>scope==='offline_access'||this.scopes.get(scope)?.enabled());}
- async invoke(entry:RegisteredTool,input:unknown):Promise<CallToolResult>{
+ async invoke(entry:RegisteredTool,input:unknown,scopes?:ReadonlySet<string>):Promise<CallToolResult>{
   if(this.state==='disposing'||this.state==='disposed')throw Error('Runtime draining');
-  this.active++;try{return await entry.run(input);}finally{this.active--;if(this.active===0){for(const resolve of this.idle)resolve();this.idle.clear();}}
+  this.active++;try{return await entry.run(input,scopes);}finally{this.active--;if(this.active===0){for(const resolve of this.idle)resolve();this.idle.clear();}}
  }
  async start():Promise<void>{
   if(this.state!=='registering')throw Error('Runtime already started');this.state='starting';

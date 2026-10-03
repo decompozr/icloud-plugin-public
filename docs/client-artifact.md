@@ -3,7 +3,7 @@
 The server release and client plugin are separate artifacts. Native/Linux server
 packages contain executable service dependencies; `export:plugin` creates a
 configured local Codex marketplace containing the remote MCP descriptor and
-workflow skill. Neither export installs a client connection or publishes an app.
+workflow skills. Neither export installs a client connection or publishes an app.
 
 After selecting the service's public MCP URL, run from the repository root:
 
@@ -12,7 +12,9 @@ bun bin/export-plugin --url https://YOUR-HOST.ts.net/icloud/mcp --out /NEW/clien
 ```
 
 The output includes `.agents/plugins/marketplace.json` and
-`plugins/icloud-plugin/{plugin.json,mcp.json,skills/icloud-mail/SKILL.md}` with
+`plugins/icloud-plugin/{plugin.json,mcp.json}` plus
+`skills/icloud-mail/SKILL.md` and `skills/icloud-calendar/SKILL.md` under that
+plugin directory, with
 license notices. Marketplace references resolve from the output root. The
 exporter validates the concrete HTTPS `/icloud/mcp` URL, rejects embedded credentials,
 and refuses to overwrite an existing artifact. It includes no tokens, Apple
@@ -43,13 +45,13 @@ pending; its configured URL is not evidence of reachability. The running native
 server remains on its previously reviewed immutable release until an explicit
 update is prepared and verified.
 
-Validation currently checks the artifact structure, path resolution, URL, preserved skill and absence of app mapping. It is not an official remote schema validator run or an actual Codex installation test.
+Validation currently checks the artifact structure, path resolution, URL, preserved skills and absence of app mapping. It is not an official remote schema validator run or an actual Codex installation test.
 
 ## Standalone private plugin ZIP
 
 `bin/export-plugin --url https://YOUR-HOST.ts.net/icloud/mcp --out /NEW/client-directory`
 also creates `icloud-plugin.zip`. This ZIP has one `icloud-plugin/` root containing
-the portable manifest, configured MCP descriptor, workflow skill, project-owned
+the portable manifest, configured MCP descriptor, both workflow skills, project-owned
 icon and license notices. The surrounding `.agents` marketplace is not inside
 the ZIP. Never upload the server runtime artifact, state, custody, or credentials.
 
@@ -65,6 +67,13 @@ CRC integrity, configured URL, contained icon, and repeatable bytes. This is loc
 package validation, not acceptance by the hosted importer or public review.
 [Official portable package format](https://developers.openai.com/plugins/build/plugins).
 
-The private owner admin wizard offers an authenticated plugin ZIP download. Each request builds the archive from the installed release's allowlisted manifest, workflow skill, icon and license files, adding only the configured public origin's `/icloud/mcp` URL. Request Host, query parameters, credentials, tokens and runtime state do not enter the package. The download is private, no-store and does not register or validate a client connection; manual connection instructions remain available.
+The private owner admin wizard offers an authenticated plugin ZIP download. Each request builds the archive from the installed release's allowlisted manifest, both workflow skills, icon and license files, adding only the configured public origin's `/icloud/mcp` URL. Request Host, query parameters, credentials, tokens and runtime state do not enter the package. The download is private, no-store and does not register or validate a client connection; manual connection instructions remain available.
 
 Local verification (candidate 0.1.14): ZIP integrity and deterministic six-entry contents passed extraction tests. The HTTP owner guard and download were tested using the actual installed candidate modules/template in a temporary installation (9 assertions), with a fixture owner session. Separate real owner-auth HTTP tests check the public route remains absent. This does not claim hosted importer acceptance, and no package was uploaded.
+
+Calendar packaging adds one allowlisted skill to both export paths (seven ZIP
+entries). The module remains disabled by default and requires independent
+`calendar.read`, `calendar.write`, `calendar.schedule` and `calendar.share` grants
+for the relevant operations. Packaging does not change existing Mail permissions
+or credentials. Local install/update/uninstall preserve owner state and policy;
+uninstall performs no remote Calendar operations.

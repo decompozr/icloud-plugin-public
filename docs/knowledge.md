@@ -1,5 +1,30 @@
 # Engineering knowledge from the experiments
 
+## Calendar integration decision (2026-10-03 UTC)
+
+Final disposition: the registered source module passed independent review,
+source/build/artifact checks and a bounded registered real-iCloud smoke. The user
+accepted remaining recipient-side sharing verification limits. Reviewed cleanup
+verified recipient revocation, test calendar absence and a fresh inventory of
+four originals with zero markers. No installed service or policy was changed;
+unverified recipient enforcement is not promoted to a passing test.
+
+The owner now requires production Calendar as a registered module. Keep shared
+runtime/authentication/custody while separating Calendar enablement and client
+scopes from Mail. Existing Mail grants must not gain Calendar access. Scheduling
+permission applies to updates/deletes of existing attendee-bearing events too.
+The missing sharing roster property remains unknown, not evidence of an empty
+roster. [Production coverage](calendar-production.md) retains these gates; source
+integration does not establish deployment or live sharing support.
+
+The later live empty-collection probe showed that iCloud accepted a stale-ETag
+rename and stale-ETag DELETE, despite sending `If-Match`. Production collection
+operations must describe their non-atomic semantics; an empty listing or
+collection ETag is not protection against concurrent additions/changes. Event
+resource stale writes separately returned 412 in earlier tests. The probe was
+removed and only the four original calendars plus the pending shared test
+calendar remained. See [current evidence](calendar-production.md).
+
 This document records what the evidence supports and why it matters. Requirements
 live in the linked specifications; experiment code and the [register](experiments.md)
 retain reproducible evidence. Observed behavior is not a production implementation.
@@ -24,7 +49,8 @@ Open decisions: safe move behavior when extensions are absent; production valida
 batch defaults; iCloud keyword/junk support; unsubscribe execution policy; WebAuthn
 RP/origin layout; complete OAuth/provider arrangement; credential key/recovery
 strategy; and container/Tailscale topology. Candidates and sketches are not
-selected architecture. Calendar and other providers remain outside current scope.
+selected architecture. Calendar remains outside production scope; its later
+bounded experiments are recorded below. Other providers remain outside scope.
 
 [Current architecture](architecture.md) records implemented feature ownership,
 registration and shared-host boundaries. Historical provider comparisons and
@@ -93,3 +119,99 @@ application byte-for-byte and adds the installer, avoiding accidental deployment
 of an unrelated source refactor. See deployment lifecycle for verification and
 archive provenance. Neither build nor release should create `.flow-runtime` or
 external installation directories implicitly.
+
+## Calendar query completeness and mutation ordering
+
+The [sequential Calendar experiment](calendar-feasibility.md#sequential-application-experiment-2026-10-03-utc)
+uses actual ICS parsing and a synthetic application server to connect reading,
+search/free-time/summary and personal-event CRUD. Its JSON discovery/query route
+is not CalDAV discovery or provider-side search, and no live account was accessed.
+
+An occurrence moved into a search window may have its original RECURRENCE-ID
+outside that window. The fixture evaluates detached overrides by actual time
+while retaining original identity. DATE end boundaries remain exclusive, with an
+explicit UTC interpretation for this experiment. UTC/simple recurrence query
+support does not inherit general timezone support from the separate synthetic
+VTIMEZONE parser tests.
+
+Free-time computation requires more than successful parsing. Expansion/resource/
+result limits and unsupported semantics must expose incomplete coverage. A complete
+text search can still omit busy events, and a complete narrow query cannot support
+a wider availability window. The fixture records query coverage/filtering and
+refuses these inputs; complete here means complete for the supplied synthetic
+snapshot, not a remote calendar account.
+
+Conditional mutation checks must occur against current state after asynchronous
+request-body consumption. Review exposed a stale-check race; the fixture now
+consumes the body before its uninterrupted precondition-check/mutation section,
+and delayed-body create/update regressions preserve the competing successful
+write. This in-memory ordering does not establish transactional behavior for a
+production adapter. Lost responses still require reconciliation before retrying.
+
+The personal-write fixture combines strong ETags with whole-resource scheduling/
+recurrence rejection and identity-preserving edits. Conflict and no-retry tests
+support that local policy, not provider notification behavior. See C1–C3 in the
+[experiment register](experiments.md#calendar-sequential-exploration-2026-10-03-utc)
+for observed results and the remaining live acceptance gates.
+
+## Calendar protocol and full-operation boundaries
+
+The [expanded acceptance matrix](calendar-acceptance-matrix.md) separates parsed
+data, fixture protocol behavior and provider acceptance. Actual CalDAV XML over
+loopback is stronger transport evidence than the earlier JSON fixture, but the
+handwritten server remains unable to establish independent interoperability or
+iCloud filtering/completeness.
+
+Sync tokens commit with a completely validated replacement snapshot. A partial
+multistatus or unsupported pagination must retain the old snapshot/token; an
+invalid token starts a fresh sync. Following an uncertain write, exact readback
+can establish desired state without establishing causation. Normalizing servers
+may prevent byte equality even after a successful write, so unknown must remain
+unknown and cannot authorize a blind mutation retry. The playground currently
+lacks durable operation journaling and normalized comparison.
+
+Calendar-level deletion has a wider concurrency boundary than event ETags. A
+verified empty collection can receive another event before DELETE. In-memory
+ownership and a preceding listing do not solve that race; the current collection
+helper is fixture evidence, not a safe live shared-calendar deletion mechanism.
+
+Scheduling serialization does not send an invitation or prove recipient state.
+Likewise, Apple CalendarServer's historical sharing extension can guide local
+request generation without proving current iCloud support. Real scheduling and
+sharing need observed capabilities, identities, concurrency semantics and actual
+delivery evidence. Preserve the distinction from personal-event editing, which
+continues to reject scheduling-bearing resources.
+
+The later dedicated live runner adds a private durable manifest and verifies
+semantic event content on provider readback; this does not retroactively add
+journaling to the generic client. Its first real calendar creation exposed a
+bootstrap-origin versus shard-origin principal identity mismatch. Matching paths
+alone were insufficient: authenticated shard current-principal and exact
+calendar-home witnesses established the alias before reviewed exact-ledger empty
+cleanup. A corrected fresh lifecycle then passed, and separate read-only checks confirmed
+both test calendars absent and the original calendar count unchanged. Observed
+ACL/invite properties were unavailable, so they did not establish privacy.
+The live success covers one isolated UTC personal-series lifecycle, not
+scheduling/sharing delivery, arbitrary calendars or complete Calendar support.
+
+The extended provider run exposed three interoperability assumptions: sync can
+include collection metadata, changed resources can be ETag-only and require
+validated hydration, and calendar-multiget needed path-form hrefs where absolute
+forms returned resource404. Treat exact collection rows separately and preserve
+resource/ETag identity through hydration; do not weaken unrelated row validation.
+The provider also returned the same resource for positive and guaranteed-negative
+SUMMARY filters. Successful REPORT is not proof of text-filter execution: local
+filtering needs a complete bounded snapshot and must report that server filtering
+was ignored. Finally, semantically equivalent timezone normalization should not
+be mistaken for byte preservation or a failed event update. These distinctions
+were verified on six isolated live cases, not arbitrary provider behavior.
+
+The actual organizer invitation showed another valid provider normalization: an
+ORGANIZER principal alias appeared in the authenticated sender address set. A
+post-write guard stop retained the acknowledged resource; reviewed read-only
+identity reconciliation avoided a duplicate invitation. Mailbox delivery, user
+RSVP screenshots and organizer PARTSTAT ACCEPTED are separate evidence channels
+that together support end-to-end acceptance. Scheduling status1.1 alone did not
+establish delivery or acceptance. A fresh sharing target's CS:invite404 prevented
+POST; advertised sharing capability therefore still does not prove a completed
+share or effective recipient access.

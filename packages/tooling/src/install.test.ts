@@ -18,6 +18,9 @@ test('scoped version switch preserves state; mismatched update leaves current in
   const original=await readlink(join(prefix,'current'));
   await Bun.write(join(prefix,'state.sqlite'),'retained private state');
   await Bun.write(join(prefix,'custody.key'),'retained dummy key');
+  const policy='[mail]\nread=true\nwrite=true\n[calendar]\nread=false\nwrite=false\nschedule=false\nshare=false\n';
+  await Bun.write(join(prefix,'config.toml'),policy);
+  await Bun.write(join(prefix,'calendar-operations.sqlite'),'retained unknown calendar operation');
   await Bun.write(join(source,'artifact.json'),JSON.stringify({...metadata,version:'0.2.0',platform:'invalid'}));
   await expect(installArtifact(source,prefix,true)).rejects.toThrow('platform');
   expect(await readlink(join(prefix,'current'))).toBe(original);
@@ -25,14 +28,21 @@ test('scoped version switch preserves state; mismatched update leaves current in
   await installArtifact(source,prefix,true);
   expect(await readlink(join(prefix,'current'))).toContain('0.2.0');
   expect(await Bun.file(join(prefix,'releases',original.split('/')[1]!,'artifact.json')).exists()).toBe(true);
+  expect(await Bun.file(join(prefix,'config.toml')).text()).toBe(policy);
+  expect(await Bun.file(join(prefix,'state.sqlite')).text()).toBe('retained private state');
+  expect(await Bun.file(join(prefix,'calendar-operations.sqlite')).text()).toBe('retained unknown calendar operation');
   await uninstallArtifact(prefix);
   expect(await Bun.file(join(prefix,'state.sqlite')).text()).toBe('retained private state');
   expect(await Bun.file(join(prefix,'custody.key')).text()).toBe('retained dummy key');
+  expect(await Bun.file(join(prefix,'config.toml')).text()).toBe(policy);
+  expect(await Bun.file(join(prefix,'calendar-operations.sqlite')).text()).toBe('retained unknown calendar operation');
   expect(await Bun.file(join(prefix,'.icloud-install')).exists()).toBe(true);
   await installArtifact(source,prefix);
   expect(await readlink(join(prefix,'current'))).toContain('0.2.0');
   expect(await Bun.file(join(prefix,'state.sqlite')).text()).toBe('retained private state');
   expect(await Bun.file(join(prefix,'custody.key')).text()).toBe('retained dummy key');
+  expect(await Bun.file(join(prefix,'config.toml')).text()).toBe(policy);
+  expect(await Bun.file(join(prefix,'calendar-operations.sqlite')).text()).toBe('retained unknown calendar operation');
   await expect(uninstallArtifact(dir)).rejects.toThrow();
  }finally{await rm(dir,{recursive:true,force:true});}
 });

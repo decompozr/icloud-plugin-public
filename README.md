@@ -1,7 +1,6 @@
 # iCloud plugin
 
-The project is named **icloud-plugin**. Its current agreed scope is Mail;
-The roadmap continues through Calendar, Drive, Contacts and Photos after Mail; these later capabilities are not implemented.
+The project is named **icloud-plugin**. Mail and an optional registered Calendar module share one authenticated MCP server. Calendar is disabled by default and requires separate operator permissions and client consent; see [Calendar acceptance](docs/calendar-production.md) for verified behavior and remaining limitations. Drive, Contacts and Photos remain planned.
 
 The goal is to provide precise, basic iCloud mailbox tools for external agents
 in Codex and ChatGPT first, through the intended Tailscale setup on this Mac.

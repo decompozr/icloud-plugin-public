@@ -1,5 +1,76 @@
 # Experiment register
 
+## Calendar production follow-up (2026-10-03 UTC)
+
+Final disposition: the user accepted the registered production source module and
+the disclosed recipient-verification limits. Controlled cleanup revoked the
+exact test recipient, verified roster absence, deleted the shared test calendar
+and confirmed absence. Fresh discovery returned four original calendars and zero
+test markers; both the sharing and production-smoke ledgers are complete without
+pending operations. Recipient-side disappearance/read-only enforcement was not
+independently verified and is not claimed. No active remote experiment remains;
+no deployment, resend or read-write share experiment occurred. Earlier stage
+receipts below retain their chronology; [current coverage](calendar-production.md)
+is authoritative for final status.
+
+Production integration is accepted and in progress. The next bounded provider
+question is whether a fresh private calendar with unavailable `CS:invite` can
+support verified private sharing without interpreting missing data as an empty
+roster. Success requires actual share submission, recipient access/read-only
+denial and revocation/cleanup. No new live result is claimed here. See
+[production coverage](calendar-production.md) for source and lifecycle gates.
+
+The reviewed follow-up passed 21 targeted tests / 129 assertions. Its live
+preflight stopped with `ENROLLED_CREDENTIAL_UNAVAILABLE` before discovery or any
+network mutation: selected protected state and custody metadata did not match.
+No invitation, manifest or new remote resource resulted. This was a credential-use
+prerequisite failure, resolved by the later v2 loader; it was not evidence that
+iCloud sharing failed.
+
+After the independently checked v2 custody loader, a subsequent attempt submitted
+one share POST and received provider acceptance. Strict readback stopped with
+`UNVERIFIED_SHARE_ORGANIZER`; no replay occurred. The authorized recipient's inbox
+contains the actual join invitation. Acceptance and read-only access are not yet
+verified. A subsequent exact organizer-alias correction passed independent
+17 tests / 115 assertions. Zero-network reconciliation confirmed recipientPresent,
+read access and invite-noresponse and cleared the canonical ledger pending field.
+The guard failure is resolved. The marked calendar/ledger remain retained for
+recipient verification and controlled cleanup, not an unknown submission; no
+all-artifacts-clean claim applies to this new stage.
+
+The user later reported that the shared calendar was unavailable after an
+acceptance attempt. Read-only diagnosis confirmed the exact marked calendar
+exists (207), is empty and remains in the five-calendar inventory; the recipient
+still has read/invite-noresponse metadata and the ledger pending field is null.
+No revoke/delete occurred. Recipient acceptance/effective access is unverified;
+the exact error, current link and authenticated recipient identity remain open
+diagnostic inputs. No matching authenticated recipient browser session was
+available for independent verification.
+
+A subsequent dedicated empty-collection concurrency probe found that iCloud
+accepts stale collection `If-Match`: rename changed E0 to E1, a stale-E0 rename
+returned property status 200 and changed the name, and stale-E0 DELETE returned
+204 followed by GET/PROPFIND 404. The probe is cleaned. Final inventory was five
+calendars (four originals and the pending shared test). Event-resource stale
+412 evidence is unaffected. Production collection semantics now explicitly report preflight-only concurrency;
+no atomic rename/delete guarantee is supported.
+
+The subsequent registered-source gate passed independent Calendar checks
+(46 tests / 181 assertions). Final app243/1087 and tooling10/134 checks, both
+typechecks, full build, native artifact/client ZIP inspection and disposable
+install/update/uninstall/reinstall passed. These source/artifact results do not
+close the production-path live smoke or recipient sharing/access/cleanup gates.
+Exact coverage is recorded in [Calendar production](calendar-production.md).
+
+The subsequent actual registered Calendar production path passed 16 real-iCloud
+invocations and cleaned its own event/calendar. Exact inventory remained five
+(four originals plus the separate pending shared test); no notifications were
+generated. Creation, recurring series/instance changes, query, availability,
+read/sync, deletion sync and preflight-only collection rename/delete passed.
+This used isolated synthetic owner/account state with real protected provider
+credentials, not installed OAuth. Recipient sharing permissions and cleanup of
+the remaining shared test remain open.
+
 Record questions, observable acceptance and evidence before turning an experiment
 into a product decision. Never record an unexecuted check as passing.
 
@@ -159,3 +230,120 @@ suite remains 2 tests/19 assertions; these manual follow-ups are separate eviden
 Independent review reran the current setup and auth-provider suites together:
 **6 tests/52 assertions passed** (setup5/37, provider1/15). No new aggregate run
 or manual runtime replay by the reviewer is claimed.
+
+## Calendar sequential exploration (2026-10-03 UTC)
+
+Accepted order: calendar connection/read/recurrence, search/free-time/summary,
+then personal test-event create/update/delete. All three were exercised against
+synthetic loopback fixtures; live iCloud acceptance remains open for all three.
+The application fixture uses JSON discovery/query responses and is not an
+independent CalDAV server. See [Calendar findings](calendar-feasibility.md#sequential-application-experiment-2026-10-03-utc)
+and the [runnable playground](../playground/calendar/README.md).
+
+| ID | Question | Observable acceptance | Evidence and status |
+| --- | --- | --- | --- |
+| C1 | Can bounded calendar reads preserve useful event identity and recurrence? | Read calendar/resource metadata and actual ICS; distinguish UID/href/ETag and original instance identity; honor EXDATE and moved overrides. | Fixture passes, including an original October 5 instance moved into the October 2 window. Real calendar discovery, ACLs, authentication and timezone coverage remain unverified. |
+| C2 | Can searches and summaries support truthful free-time results? | Finite half-open overlap and text filtering; merge/clip busy intervals; transparent/cancelled events do not occupy time; refuse availability when result completeness or coverage is insufficient. | Fixture passes for UTC and explicit all-day UTC policy. Demo returns five occurrences, two planning matches, 120 busy minutes and 120 free minutes in its four-hour window. Unsupported semantics and budgets return explicit issues. Provider-side search and complete remote snapshots remain unverified. |
+| C3 | Can personal-event mutations preserve identity and reject conflicts? | Conditional create/update/delete, readback, unchanged content after stale writes, final GET 404, no blind retry; reject scheduling and recurring writes. | Fixture lifecycle passes with UID/unknown-property/alarm preservation and delayed-body concurrency checks. No real event or invitation was changed; lost-response reconciliation and independent provider behavior remain open. |
+
+Implementation and independent review each verified **19 tests / 138 assertions
+passed** on Bun 1.4.2 and a successful sequential demo, on 2026-10-03 UTC.
+Review confirmed the verification copy matched current source;
+no blocking findings remain within this bounded fixture scope.
+Normal commands with dependencies present are `bun test` and `bun run demo` from
+`playground/calendar`. This run used a temporary copy and existing pinned
+dependencies because this checkout had no dependency directory; it installed
+nothing. These counts include the earlier ten calendar parser/transport tests,
+not a repository-wide rerun. Calendar production integration, release, installation
+and live account testing are outside this completed fixture slice.
+
+## Expanded Calendar operation contracts (2026-10-03 UTC)
+
+The accepted request now includes all Calendar operation families. The
+[full coverage matrix](calendar-acceptance-matrix.md) distinguishes narrower
+fixture checks from still-open live and semantic acceptance. New modules remain
+isolated; no production Calendar capability is installed.
+
+| ID | Question | Observed local evidence | Remaining gate |
+| --- | --- | --- | --- |
+| C4 | Can actual CalDAV transport discover/read/mutate and preserve sync state? | XML principal/home discovery, query/multiget, strong ETag CRUD, namespace/propstat handling and atomic snapshot/token replacement. | Real provider filters, privileges, paginated sync and independent interoperability. |
+| C5 | Can full personal fields and recurrence be edited without losing identity? | Fields, DISPLAY alarms, simple daily/weekly/monthly and selected BYDAY rules, detached edits/cancellations, original IDs and unknown data. | General recurrence, RANGE and migration of exception identities after base-pattern changes. |
+| C6 | Can timezone distinctions survive edits and queries? | Embedded VTIMEZONE DST, explicit DATE/floating policy, unknown zone and gap/fold rejection. | General timezone coverage, timezone DURATION and real provider round-trip. |
+| C7 | Can owned test calendars be managed? | Create, rename/property-status/readback and owned empty collection delete/absence. | Live deletion is unsafe against concurrent writes because empty-check and DELETE are separate. |
+| C8 | Can scheduling and sharing contracts be represented accurately? | Pure REQUEST/update/REPLY/CANCEL serialization, all three RSVP responses; capability inspection and legacy CalendarServer share request generation. | Actual notifications/recipient state, schedule tags, recurring scheduling and current iCloud sharing support. |
+| C9 | Can uncertain writes and stale sync tokens recover without blind retries? | Single readback reconciles exact desired bytes or deletion absence; unknown remains explicit; invalid-token refresh and partial-sync preservation. | Durable operation identity/journal, semantic normalized comparison and live failure behavior. |
+
+The separately gated `live-diagnostic.ts` is read-only and reports counts. After
+explicit owner account selection, it authenticated and discovered four calendars;
+the finite 2026-10-03 through 2026-10-10 UTC query returned zero resources. Home
+OPTIONS advertised scheduling/sharing/access-control and calendar privileges
+included read/write. These are discovery/advertisement observations, not event
+content, mutation, delivery or sharing acceptance. Existing Mail enrollment does
+not imply Calendar consent; isolated lifecycle and scheduling counterpart gates
+remain. See the playground README for commands and limits.
+
+Independent final verification: **43 tests / 309 assertions across 9 files**,
+Bun 1.4.2; sequential and composed demos both exited successfully. The composed
+demo made 27 loopback requests, sent zero external messages and explicitly
+reported no live iCloud verification. A first integration comparison failed on
+XML-normalized line endings; the corrected comparison and final aggregate passed.
+Existing pinned dependencies were reused in an owned temporary copy without
+installation. This is the Calendar playground aggregate, not a repository-wide
+or deployed-product test result.
+
+The subsequent dedicated live-lifecycle readiness suite expands the independent
+aggregate to **49 tests / 341 assertions across 10 files**, with final source-copy
+equality and owned-copy cleanup verified. It adds a private operation manifest
+and fresh-calendar identity checks; this is local readiness evidence only.
+
+The later authorized live run verified dedicated calendar create/rename/remove
+and one personal UTC DAILY-series create/read/update/delete, one moved instance
+and one cancelled instance. Actual provider readback matched semantics and
+expanded to two active occurrences. The initial empty-calendar owner-origin
+guard stop was reconciled with authenticated principal/home witnesses and exact-
+ledger cleanup before a fresh successful run. Separate final read-only checks found
+both experiment targets absent and the original four-calendar count unchanged.
+No invitations, shares or pre-existing resources were changed; live timezone,
+alarms, sync and stale-conflict cases remain unverified. Final independent local
+aggregate is **54 tests / 370 assertions / 10 files**; source equality/cleanup
+verified. The unchanged demos retain their prior pass, not a new final replay.
+
+The final live extension passed six application cases (DATE, floating, spring/fall
+DST TZID, weekly BYDAY, monthly ordinal BYDAY), personal create/read/update/delete,
+timing/status/URL/DISPLAY-alarm changes, stale PUT/DELETE 412 with unchanged data,
+finite queries/path-form multiget and initial/create/update/delete sync. Provider
+SUMMARY filtering was observed ignored; local complete-snapshot filtering passed
+matching/nonmatching checks. Equivalent timezone-normalized readback is semantic
+evidence, not byte preservation. Guarded sync-shape and href incompatibilities
+were reconciled with exact-resource cleanup before fresh successful runs.
+
+Authoritative independent final aggregate: **64 tests / 452 assertions / 10 files**,
+Bun 1.4.2, with 20 source/manifest files matching the snapshot and owned-copy
+cleanup complete. Existing dependencies and production installation are unchanged.
+Live invitations/RSVP/sharing, invalid-token/transport failure injection and general
+standards coverage remain open; production Calendar integration is not delivered.
+
+The same operator's separate final read-only check confirmed all four extension
+calendar targets 404 and the original four-calendar count; all created test
+resources were removed and ledgers settled. A planned never-created resource
+was confirmed absent rather than called deleted. Earlier core targets were
+already absent. No remote experiment resource remains.
+
+The authorized counterpart stage subsequently submitted one invitation, verified
+its delivery in the exact recipient's mailbox and reconciled the provider's
+ORGANIZER address-set alias without resending. User screenshots of the exact
+invitation show Accepted; organizer readback independently supplies the sender
+PARTSTAT ACCEPTED evidence. A separate sharing calendar stopped before POST on
+CS:invite404, so sharing remains uncompleted. The user requested all-experiment
+cleanup rather than further sharing attempts.
+
+Latest independent source aggregate: **71 tests / 502 assertions / 11 test files**,
+Bun 1.4.2; 22 source/manifest files matched the snapshot and owned verification
+copy was removed. No installs or live actions occurred during that test run.
+
+User-requested final cleanup verified invitation DELETE204/GET404 and both
+dedicated calendar DELETE204/PROPFIND404. A separate final global read-only check
+by the same operator found the original four calendars and no experiment-marker,
+title or path matches. Ledgers were settled and all planned current-stage targets
+absent, including the never-created first attempt. No remote experiment resources
+remain; recipient mailbox history/cancellation receipt is not inferred removed.
