@@ -111,7 +111,7 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
   const response=await auth.handler(new Request(issuer+'/oauth2/introspect',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({token:match[1]!,client_id:resourceClient.client_id,client_secret:resourceClient.client_secret,token_type_hint:'access_token'})}));
   if(!response.ok)throw Error('Invalid token');const token=tokenSchema.parse(await response.json());
   if(token.sub!==options.ownerId()||token.iss!==issuer||token.exp<=Date.now()/1000||!(Array.isArray(token.aud)?token.aud:[token.aud]).includes(options.resource))throw Error('Invalid token claims');
-  const scopes=new Set(token.scope.split(' '));if(!scopes.has('mail.read'))throw Error('Missing mail.read');
+  const scopes=new Set(token.scope.split(' '));
   return{subject:token.sub,scopes};
  }
  return{publicHandler:(request:Request)=>route(request,false),privateHandler:(request:Request)=>route(request,true),verifyBearer,ownerSession:(headers:Headers)=>session(headers),enrollmentSession:(headers:Headers)=>session(headers,false)};

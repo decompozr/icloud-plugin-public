@@ -71,3 +71,26 @@ test('send consent is explicit in both supported locales',async()=>{
   expect(authT('scopeSend')).toBe('從你的 iCloud 信箱寄送新郵件及回覆');
  }finally{await i18n.changeLanguage('en');}
 });
+
+ test('registered consent labels escape HTML attribute injection and accept non-mail scopes',()=>{
+ const html=renderAuthPage('consent',false,{'calendar.read':'Read events \"<private>','calendar.write':'Update calendar'});
+ expect(html).toContain('calendar.read');expect(html).toContain('&lt;private&gt;');expect(html).not.toContain('<private>');
+ });
+
+test('registered Mail consent labels retain locale and unknown-module fallback through rendered metadata',async()=>{
+ const {i18n}=await import('../i18n/index.js');
+ const {mailScopeDescriptions}=await import('../mail/consent.js');
+ const {consentScopeLabel}=await import('./scope-labels.js');
+ try{
+  await i18n.changeLanguage('zh-TW');
+  const html=renderAuthPage('consent',false,{...mailScopeDescriptions,'calendar.read':{default:'Read calendar'}});
+  expect(html).toContain('<html lang="zh-TW">');
+  const attribute=html.match(/data-auth-scope-labels="([^"]*)"/)![1]!;
+  const labels=JSON.parse(attribute.replaceAll('&quot;','"').replaceAll('&#39;',"'").replaceAll('&lt;','<').replaceAll('&gt;','>').replaceAll('&amp;','&'));
+  expect(consentScopeLabel(labels,'mail.send')).toBe('從你的 iCloud 信箱寄送新郵件及回覆');
+  expect(consentScopeLabel(labels,'mail.read')).toBe('讀取及搜尋郵件');
+  expect(consentScopeLabel(labels,'calendar.read')).toBe('Read calendar');
+  expect(consentScopeLabel(labels,'calendar.write')).toBe('calendar.write');
+  expect(consentScopeLabel(labels,'mail.send','fr')).toBe('Send new messages and replies from your iCloud mailbox');
+ }finally{await i18n.changeLanguage('en');}
+});

@@ -1,3 +1,56 @@
+# Source architecture and evidence status
+
+The source now separates the Mail feature from shared module registration, MCP,
+authentication, owner storage and server infrastructure. Current boundaries and
+extension limits are documented in [architecture](architecture.md) and the
+[source subsystem index](../apps/icloud/src/README.md). Calendar remains unimplemented
+in production. Every source subsystem has local ownership/design documentation;
+these documents are part of the implementation, not optional follow-up material.
+
+This refactor does not establish which release is currently running, migrate runtime
+state or deploy source changes. Release paths, process IDs and test counts in the
+historical sections below are observations from their respective work, not refreshed
+live evidence.
+In particular, previously recorded release numbers must not be used to infer the
+current filesystem or authorize removal of runtime data. Refactor verification is
+reported separately from those historical acceptance records.
+
+## Mail module refactor verification
+
+The application now registers Mail tools/scopes through `ModuleRuntime`; the shared
+MCP host dispatches registered contributions. Mail domain, services, iCloud adapters,
+policy/ledger storage, tool definitions, admin presentation, consent translations
+and telemetry classification are owned under `src/mail`. Auth has no `mail.read`
+minimum; module descriptors supply consent labels, including locale fallbacks.
+Shutdown drains accepted tool callbacks, disposes modules (including clearing the
+Mail ledger's derived key) and then closes shared storage. Application-assembly
+failure also unwinds started modules. Existing storage tables, encryption contexts, tool names and scopes remain
+compatible; no runtime data migration or live deployment was performed.
+
+Merge verification ran `bun run checkpoint` against an isolated export of the
+staged Mail refactor, with unchanged baseline manifests and tooling. Existing
+local dependency installations were reused; no fresh install was performed:
+
+- `bun run test`: application 154 tests, 626 assertions across 26 files;
+  tooling 8 tests, 87 assertions across 5 files; zero failures.
+- `bun bin/build`: passed, including application typecheck and declaration build.
+- `bun run e2e`: 11 tests, 236 assertions across 6 files; zero failures.
+- Independent review found no blocking issues. The five module/runtime integration
+  tests cover namespace rejection, Mail plus synthetic Calendar registration,
+  a signed Calendar-only bearer through HTTP, startup-failure cleanup and draining.
+  Consent metadata/resolver checks cover Traditional Chinese, unknown-locale
+  fallback and arbitrary module labels. Ledger tests include post-disposal rejection.
+- Documentation verification checked 81 local link targets across 22 documents:
+  all exist. Every source-containing subsystem has a README. Markdown diff
+  whitespace checks passed.
+
+The Calendar contribution is a synthetic test fixture, not a shipped Calendar
+module, CalDAV integration or evidence of real calendar access. Current enrollment
+still uses one Apple account credential form; shared copy/client artifact content
+is not a fully module-generated UI. No live mailbox operations, physical Passkey
+ceremonies, deployment/routing changes or actual client catalog refresh were run
+for this refactor. Historical acceptance records follow separately.
+
 ## Source verification before merge (2026-10-03)
 
 The pending 0.1.18 source changes were retained after an independent review found no blocking issues. `bun run checkpoint` passed application and tooling typechecks, the production build, application/tooling tests, and all 11 built E2E tests (236 assertions). The local installed-release link points to 0.1.18. This verification did not repeat the historical deployment checks or exercise real ChatGPT consent and refresh.

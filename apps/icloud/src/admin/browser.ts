@@ -7,7 +7,7 @@ const root=document.getElementById('wizard');
 const admin=root?.dataset.admin==='true';
 let status:SetupStatus|undefined;
 let busy=false;
-let dashboard:{credentialStored:boolean;capabilities:{read:boolean;write:boolean;send:boolean;unsubscribe:boolean}|null}|undefined;
+let dashboard:{credentialStored:boolean;capabilities:Record<string,boolean>|null}|undefined;
 let lastMessage:{key:CopyKey|'';error:boolean}={key:'',error:false};
 class CopyError extends Error {constructor(readonly key:CopyKey){super(key);}}
 const node=(id:string)=>document.getElementById(id);
@@ -34,14 +34,14 @@ if(root&&!admin)void run(check,'connectionLoading');
 
 document.querySelectorAll<HTMLButtonElement>('[data-clipboard]').forEach(button=>button.addEventListener('click',()=>{const id=button.dataset.clipboard;if(!id)return;const field=document.getElementById(id),feedback=document.getElementById(`${id}-feedback`);if(!field||!feedback)return;button.disabled=true;void(async()=>{try{await navigator.clipboard.writeText(field.textContent??'');feedback.className='sr-only';feedback.textContent=t('copied');button.classList.add('copied');setTimeout(()=>button.classList.remove('copied'),1800);}catch{feedback.className='copy-feedback-error';feedback.textContent=t('copyFailed');const range=document.createRange();range.selectNodeContents(field);const selection=window.getSelection();selection?.removeAllRanges();selection?.addRange(range);}finally{button.disabled=false;}})();}));
 
-const dashboardSchema=z.object({credentialStored:z.boolean(),capabilities:z.object({read:z.boolean(),write:z.boolean(),send:z.boolean(),unsubscribe:z.boolean()}).nullable()});
+const dashboardSchema=z.object({credentialStored:z.boolean(),capabilities:z.record(z.string(),z.boolean()).nullable()});
 
-function renderDashboard(){if(!dashboard)return;const credential=node('credential-status');if(credential)credential.textContent=t(dashboard.credentialStored?'stored':'removed');for(const key of ['read','write','send','unsubscribe'] as const){const target=node(`policy-${key}`);if(target)target.textContent=t(dashboard.capabilities===null?'unavailable':dashboard.capabilities[key]?'enabled':'disabled');const field=node(`policy-input-${key}`);if(field instanceof HTMLInputElement){field.disabled=dashboard.capabilities===null;field.checked=dashboard.capabilities?.[key]??false;}}}
+function renderDashboard(){if(!dashboard)return;const credential=node('credential-status');if(credential)credential.textContent=t(dashboard.credentialStored?'stored':'removed');for(const key of Object.keys(dashboard.capabilities??{})){const target=node(`policy-${key}`);if(target)target.textContent=t(dashboard.capabilities===null?'unavailable':dashboard.capabilities[key]?'enabled':'disabled');const field=node(`policy-input-${key}`);if(field instanceof HTMLInputElement){field.disabled=dashboard.capabilities===null;field.checked=dashboard.capabilities?.[key]??false;}}}
 async function refreshDashboard(){const response=await fetch('/icloud/admin/status',{credentials:'same-origin',cache:'no-store'});if(!response.ok)throw new CopyError('statusError');dashboard=dashboardSchema.parse(await response.json());renderDashboard();}
 if(root&&admin)void run(refreshDashboard,'connectionLoading');
 
-let pendingPolicy:{read:boolean;write:boolean;send:boolean;unsubscribe:boolean}|undefined;
+let pendingPolicy:Record<string,boolean>|undefined;
 async function savePolicy(confirmEnable:boolean){if(!pendingPolicy)return;await post('/icloud/admin/capabilities',{policy:pendingPolicy,confirmEnable});pendingPolicy=undefined;node('policy-confirm')!.hidden=true;await refreshDashboard();message('policySaved');}
-node('policy-save')?.addEventListener('click',()=>{if(!dashboard?.capabilities)return;pendingPolicy={read:input('policy-input-read').checked,write:input('policy-input-write').checked,send:input('policy-input-send').checked,unsubscribe:input('policy-input-unsubscribe').checked};if((['read','write','send','unsubscribe'] as const).some(key=>pendingPolicy![key]&&!dashboard!.capabilities![key])){node('policy-confirm')!.hidden=false;node('policy-confirm-yes')?.focus();}else void run(()=>savePolicy(false),'workingPolicy');});
+node('policy-save')?.addEventListener('click',()=>{if(!dashboard?.capabilities)return;pendingPolicy=Object.fromEntries(Object.keys(dashboard.capabilities).map(key=>[key,input(`policy-input-${key}`).checked]));if((Object.keys(dashboard.capabilities??{})).some(key=>pendingPolicy![key]&&!dashboard!.capabilities![key])){node('policy-confirm')!.hidden=false;node('policy-confirm-yes')?.focus();}else void run(()=>savePolicy(false),'workingPolicy');});
 node('policy-confirm-yes')?.addEventListener('click',()=>void run(()=>savePolicy(true),'workingPolicy'));
 node('policy-confirm-no')?.addEventListener('click',()=>{pendingPolicy=undefined;node('policy-confirm')!.hidden=true;node('policy-save')?.focus();});

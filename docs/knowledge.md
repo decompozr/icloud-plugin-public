@@ -26,9 +26,10 @@ RP/origin layout; complete OAuth/provider arrangement; credential key/recovery
 strategy; and container/Tailscale topology. Candidates and sketches are not
 selected architecture. Calendar and other providers remain outside current scope.
 
-[Architecture comparison](architecture.md) now records concrete internal defaults
-and sourced protocol/auth-routing recommendations. These refine what remains
-unknown without turning live provider or deployment assumptions into facts.
+[Current architecture](architecture.md) records implemented feature ownership,
+registration and shared-host boundaries. Historical provider comparisons and
+protocol experiments remain in [research](research.md) and
+[experiments](experiments.md); they do not establish current deployment behavior.
 
 Later [runtime follow-up](deployment-lifecycle.md#follow-up-a-working-candidate-route-and-linux-bun)
 established basic Linux Bun container execution and a host-loopback proxy
@@ -51,7 +52,7 @@ account capability, not a permanent claim about every iCloud account.
 
 The new adapter protocol fixtures confirm explicit COPY/STORE/UID EXPUNGE stages
 can preserve unrelated Deleted messages while refusing to continue after an
-unconfirmed stage. `apps/icloud/src/icloud/adapter.move.test.ts` exercises fourteen
+unconfirmed stage. `apps/icloud/src/mail/icloud/adapter.move.test.ts` exercises fourteen
 success/failure cases against the actual library. The built HTTP MCP tests in
 `apps/e2e/src/imap.e2e.test.ts` separately confirm service batch outcomes and
 remaining-target cancellation. These do not prove a real iCloud move succeeded:

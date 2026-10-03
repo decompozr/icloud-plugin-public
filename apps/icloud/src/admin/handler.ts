@@ -1,14 +1,15 @@
 import { z } from 'zod';
 import type { OwnerSecretStore } from '../storage/owner-store.js';
-import { setupPage } from './page.js';
+import { setupPage,type AdminPresentation } from './page.js';
 export interface TailscaleStatus { installed: boolean; authenticated: boolean; online: boolean; privateReachable: boolean }
 export interface AppleCredential { user: string; appPassword: string }
 export interface AdminOptions {
  privateOrigin: string;
  publicMcpUrl?: string;
+ presentation?:AdminPresentation;
  pluginArchive?():Promise<Uint8Array>;
- updateCapabilities?(next:{read:boolean;write:boolean;send:boolean;unsubscribe:boolean},confirmEnable:boolean):Promise<{read:boolean;write:boolean;send:boolean;unsubscribe:boolean}>;
- capabilities?(): {read:boolean;write:boolean;send:boolean;unsubscribe:boolean};
+ updateCapabilities?(next:Record<string,boolean>,confirmEnable:boolean):Promise<Record<string,boolean>>;
+ capabilities?(): Record<string,boolean>;
  store: OwnerSecretStore;
  ownerAuth: { ownerSession(headers: Headers): Promise<{user: {id: string}}>; enrollmentSession(headers: Headers): Promise<{user: {id: string}}> };
  diagnostics(): Promise<TailscaleStatus>;
@@ -60,7 +61,7 @@ export function createPrivateAdmin(options:AdminOptions) {
      if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     }
     const status=await options.diagnostics();
-    return new Response(setupPage({enrolled,ready:ready(status),admin:path==='/icloud/admin',publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
+    return new Response(setupPage({enrolled,ready:ready(status),admin:path==='/icloud/admin',publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,presentation:options.presentation}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
    }
    if(request.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405);
    if(request.headers.get('origin')!==options.privateOrigin)return json({error:'ORIGIN_DENIED'},403);
@@ -79,9 +80,10 @@ export function createPrivateAdmin(options:AdminOptions) {
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     if(!options.capabilities||!options.updateCapabilities)return json({error:'NOT_AVAILABLE'},409);
-    const parsed=z.object({policy:z.object({read:z.boolean(),write:z.boolean(),send:z.boolean(),unsubscribe:z.boolean()}).strict(),confirmEnable:z.boolean()}).strict().safeParse(await parseBody(request));
+    const parsed=z.object({policy:z.record(z.string(),z.boolean()),confirmEnable:z.boolean()}).strict().safeParse(await parseBody(request));
     if(!parsed.success)return json({error:'INVALID_INPUT'},400);
     const current=options.capabilities();
+    if(Object.keys(parsed.data.policy).length!==Object.keys(current).length||Object.keys(parsed.data.policy).some(key=>!Object.hasOwn(current,key)))return json({error:'INVALID_INPUT'},400);
     if(Object.entries(parsed.data.policy).some(([key,value])=>value&&!current[key as keyof typeof current])&&!parsed.data.confirmEnable)return json({error:'CONFIRMATION_REQUIRED'},409);
     return json({capabilities:await options.updateCapabilities(parsed.data.policy,parsed.data.confirmEnable)});
    }

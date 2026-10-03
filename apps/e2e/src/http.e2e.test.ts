@@ -2,12 +2,12 @@ import {test,expect} from 'bun:test';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {z} from 'zod';
-import {createHttpApp} from '../../icloud/dist/server/http.js';
-import {UnsubscribeService} from '../../icloud/dist/services/unsubscribe.js';
-import {createUnsubscribeGateway} from '../../icloud/dist/icloud/unsubscribe.js';
-import {MailService} from '../../icloud/dist/services/mail.js';
-import type {MailGateway,MailSession,Mailbox,MessageMetadata,MailDownload,MessageSummary,MailMessageInput,ParsedMessage,SendResult} from '../../icloud/dist/domain/mail.js';
-import {readConfig} from '../../icloud/dist/config.js';
+import {createHttpApp} from '../../icloud/dist/mail/http.js';
+import {UnsubscribeService} from '../../icloud/dist/mail/services/unsubscribe.js';
+import {createUnsubscribeGateway} from '../../icloud/dist/mail/icloud/unsubscribe.js';
+import {MailService} from '../../icloud/dist/mail/services/mail.js';
+import type {MailGateway,MailSession,Mailbox,MessageMetadata,MailDownload,MessageSummary,MailMessageInput,ParsedMessage,SendResult} from '../../icloud/dist/mail/domain/mail.js';
+import {readConfig} from '../../icloud/dist/mail/config.js';
 
 /** Stateful fixture at the provider port, not a live IMAP server or auth implementation. */
 class FixtureGateway implements MailGateway {
