@@ -191,7 +191,11 @@ reported as a clean rejection or successful move; the destination copy may
 already exist. Preserve a confirmed COPYUID destination identity and completed
 copy stage as evidence in the unknown result; this is not a successful move
 receipt. The authenticated account binding applies equally to recovered copied
-targets and successful message references. The destination identity is reported as success only after all stages
+targets and successful message references. Capture that account binding at
+invocation admission: later credential revocation must not replace a completed
+or unknown provider outcome with a clean rejection or discard known copy
+evidence. New invocations and new provider credential requests still enforce
+current authorization and credential availability. The destination identity is reported as success only after all stages
 are confirmed. Synthetic protocol/E2E fixtures must cover these stages
 and failures before release; no real-message experiment is authorized by this
 contract.

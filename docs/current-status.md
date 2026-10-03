@@ -13,11 +13,19 @@ private state; arbitrary, unmarked or symlinked prefixes remain rejected.
 
 The corrections are integrated with `origin/main` at `b87f3d7` (multi-account
 release 0.1.20). A fresh `bun bin/checkpoint` passed application/tooling typechecks,
-production build, 191 application tests (835 assertions), 10 tooling tests
+production build, 196 application tests (887 assertions), 10 tooling tests
 (126 assertions), E2E compilation and all 11 built E2E tests (253 assertions).
 All four corrections received independent review before this integration.
+The final integration review accepted the result after 16 targeted tests
+(105 assertions).
 New production-module regressions verify that single and batch move-recovery
 identities retain the authenticated account and are rejected across accounts.
+The integration review also exposed a late annotation check that could replace
+an in-flight outcome with a rejection after credential revocation. Result
+annotation now captures account identity at admission: completed and unknown
+results retain their evidence, while new invocations still enforce current
+credentials. Single and batch regressions cover both outcomes and denied
+subsequent provider access.
 Policy revocation tests use a verified nonlegacy account context, retaining
 account-scoped operation receipts and restart replay.
 Regression fixtures cover real ImapFlow STORE responses, staged move failures,

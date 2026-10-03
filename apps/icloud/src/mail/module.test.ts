@@ -10,14 +10,14 @@ import type {OwnerSecretStore} from '../storage/owner-store.js';
 import type {AppSettings} from '../server/settings.js';
 import {MailOperationError,type MailSession} from './domain/mail.js';
 
-async function fixture(moveUnknown=false){
+async function fixture(moveUnknown=false,revokeOnMove=false){
  const database=new Database(':memory:');const users: string[]=[];const sends:string[]=[];const moves:string[]=[];
  const accounts=[{id:'a',user:'a@icloud.com',label:'Personal',credentialStored:true},{id:'b',user:'b@icloud.com',label:'Work',credentialStored:true}];
  const store={ownerId:()=> 'owner',legacyAccountId:()=> 'a',account:(_owner:string,id:string)=>accounts.find(a=>a.id===id)??null,readAccountSecret:(_owner:string,id:string)=>new TextEncoder().encode(JSON.stringify({user:accounts.find(a=>a.id===id)!.user,appPassword:'test-password'}))} as unknown as OwnerSecretStore;
  const settings={allow_writes:true,allow_send:true,host:'127.0.0.1',public_port:4100,public_origin:'https://example.test'} as AppSettings;
  const source=Buffer.from('From: sender@example.com\r\nTo: receiver@example.com\r\nSubject: Draft\r\nMessage-ID: <original@example.com>\r\nContent-Type: text/plain\r\n\r\nsame draft');
  const module=createMailModule(settings,{store,authDatabase:database,masterKey:new Uint8Array(32).fill(3),monitor:new OperationMonitor(),provider:credential=>{
-  const session:MailSession={supportsMove:true,list:async()=>[{path:'INBOX',name:credential.user,selectable:true},{path:'Drafts',name:'Drafts',specialUse:'\\Drafts',selectable:true},{path:'Archive',name:'Archive',specialUse:'\\Archive',selectable:true}],select:async()=>({uidValidity:'123',uidNext:3,supportsKeywords:true,release(){}}),search:async()=>[2,1],summaries:async uids=>uids.map(uid=>({uid,subject:credential.user,from:[],flags:[]})),metadata:async()=>({attachments:[],size:source.length}),download:async()=>({contentType:'message/rfc822',chunks:(async function*(){yield source;})(),cancel(){}}),mark:async()=>true,flag:async()=>true,tag:async()=>true,move:async()=>{moves.push(credential.user);if(moveUnknown)throw new MailOperationError('outcome_unknown','Source removal unconfirmed',{copiedTarget:{mailbox:'Archive',uid:81,uidValidity:'901'}});return{uid:1,uidValidity:'123'};}};
+  const session:MailSession={supportsMove:true,list:async()=>[{path:'INBOX',name:credential.user,selectable:true},{path:'Drafts',name:'Drafts',specialUse:'\\Drafts',selectable:true},{path:'Archive',name:'Archive',specialUse:'\\Archive',selectable:true}],select:async()=>({uidValidity:'123',uidNext:3,supportsKeywords:true,release(){}}),search:async()=>[2,1],summaries:async uids=>uids.map(uid=>({uid,subject:credential.user,from:[],flags:[]})),metadata:async()=>({attachments:[],size:source.length}),download:async()=>({contentType:'message/rfc822',chunks:(async function*(){yield source;})(),cancel(){}}),mark:async()=>true,flag:async()=>true,tag:async()=>true,move:async()=>{moves.push(credential.user);if(revokeOnMove)accounts.find(account=>account.user===credential.user)!.credentialStored=false;if(moveUnknown)throw new MailOperationError('outcome_unknown','Source removal unconfirmed',{copiedTarget:{mailbox:'Archive',uid:81,uidValidity:'901'}});return{uid:1,uidValidity:'123'};}};
   return{withSession:async run=>{users.push(credential.user);await new Promise(resolve=>setTimeout(resolve,5));return run(session);},parse:async()=>({to:[],text:credential.user}),send:async()=>({messageId:'fixture',accepted:[],rejected:[]})};
  },outboundProvider:credential=>({send:async input=>{sends.push(credential.user);await new Promise(resolve=>setTimeout(resolve,5));return{messageId:input.messageId,accepted:input.to,rejected:[]};},draft:async()=>({mailbox:'Drafts',uid:2,uidValidity:'123',messageId:'fixture'})})});
  const runtime=new ModuleRuntime().register(module.registration);await runtime.start();
@@ -53,8 +53,8 @@ test('operation replay and draft revisions do not cross account boundaries',asyn
  }finally{await f.close();}
 });
 
-for(const name of ['mail_move','mail_organize','mail_batch'] as const)test(`${name} binds uncertain copied targets to the authenticated account`,async()=>{
- const f=await fixture(true);try{
+for(const revoked of [false,true])for(const name of ['mail_move','mail_organize','mail_batch'] as const)test(`${name} binds uncertain copied targets to the authenticated account${revoked?' after credential revocation':''}`,async()=>{
+ const f=await fixture(true,revoked);try{
   const [a,b]=await Promise.all([f.connect('a'),f.connect('b')]);
   const target={accountId:'b',mailbox:'INBOX',uid:2,uidValidity:'123'};
   const args=name==='mail_batch'?{accountId:'b',mailbox:'INBOX',uidValidity:'123',uids:[2,1],action:{type:'move',destination:'Archive'}}
@@ -71,5 +71,28 @@ for(const name of ['mail_move','mail_organize','mail_batch'] as const)test(`${na
   const calls=f.users.length;
   const cross=await a.callTool({name:'mail_read',arguments:recovery.copiedTarget});
   expect(cross.isError).toBe(true);expect(result(cross).error.code).toBe('stale_identity');expect(f.users.length).toBe(calls);
+  if(revoked){
+   const denied=await b.callTool({name,arguments:args});
+   expect(denied.isError).toBe(true);expect(result(denied).error.code).toBe('forbidden');
+   expect(f.users.length).toBe(calls);expect(f.moves).toEqual(['b@icloud.com']);
+  }
+ }finally{await f.close();}
+});
+
+for(const name of ['mail_move','mail_batch'] as const)test(`${name} preserves confirmed completion when credentials are revoked during provider work`,async()=>{
+ const f=await fixture(false,true);try{
+  const b=await f.connect('b');
+  const args=name==='mail_batch'?{accountId:'b',mailbox:'INBOX',uidValidity:'123',uids:[2],action:{type:'move',destination:'Archive'}}
+   :{accountId:'b',mailbox:'INBOX',uid:2,uidValidity:'123',destination:'Archive'};
+  const response=await b.callTool({name,arguments:args}),body=result(response);
+  expect(response.isError).not.toBe(true);
+  const moved=name==='mail_batch'?body.items[0].result:body;
+  if(name==='mail_batch'){expect(body.status).toBe('completed');expect(body.items[0].status).toBe('succeeded');}
+  expect(moved.moved).toBe(true);
+  expect(moved.destinationTarget).toEqual({accountId:'b',mailbox:'Archive',uid:1,uidValidity:'123'});
+  expect(f.moves).toEqual(['b@icloud.com']);const calls=f.users.length;
+  const denied=await b.callTool({name,arguments:args});
+  expect(denied.isError).toBe(true);expect(result(denied).error.code).toBe('forbidden');
+  expect(f.users.length).toBe(calls);expect(f.moves).toEqual(['b@icloud.com']);
  }finally{await f.close();}
 });
