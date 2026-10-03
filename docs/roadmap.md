@@ -543,7 +543,7 @@ Rendered browser interaction and live ChatGPT account/profile/reconnection accep
 remain open; see [current status](current-status.md#multi-account-source-checkpoint-2026-10-03).
 
 
-### Planned application release 0.1.20
+### Published native application release 0.1.20
 
 Release 0.1.20 delivers one owner's multiple iCloud accounts through client OAuth:
 setup finishes with a Passkey, each authorization selects or adds a validated
@@ -552,10 +552,13 @@ bound to that account. Existing active single-account credentials and grants
 migrate to the original stable account; revoked unknown legacy identity stays
 unusable. Private administration rotates or locally revokes the named account.
 
-PR, merge, release and upgrade are authorized, with final versioned-candidate
-checks being rerun. This note does not claim publication or installation. Before
-opening migrated state, retain a stopped compatible backup of owner/auth databases
-and installation custody/configuration. Rolling back to an older binary requires
-restoring that compatible state together with its release; changing only the
-release symlink cannot reverse this schema migration. Rendered browser and live
-ChatGPT add-account/profile/reconnection acceptance remain outstanding.
+PR #5 merged at `b87f3d7fd7756bb176f48d3e944585412e490add`. The stable
+[native v0.1.20 release](https://github.com/decompozr/icloud-plugin/releases/tag/v0.1.20)
+is published and the existing installation was upgraded through the shipped CLI.
+The protected stopped pre-update backup and previous release are retained; owner,
+Passkeys, grants, configuration/custody and the original account migration were
+checked after startup. See [current status](current-status.md#application-0120-release-and-installed-upgrade-2026-10-03-utc)
+for archive, backup and process evidence. Independent post-upgrade audit passed 13 doctor checks, both SQLite
+integrity checks and 33 stopped backup-entry byte/mode comparisons. Older-binary rollback restores compatible state and release together.
+Rendered browser and live ChatGPT add-account/profile/reconnection acceptance
+remain outstanding.

@@ -130,3 +130,32 @@ and extracted distributions were removed after verification. The final installer
 archive remains at project root `releases/`; the sole installed application and
 private runtime occupy approximately 155 MiB at the standard prefix. See current
 status for observed process IDs and retained distribution sizes.
+
+
+## Native 0.1.20 release and upgrade (2026-10-03 UTC)
+
+PR #5 merged at `b87f3d7fd7756bb176f48d3e944585412e490add`; stable
+[v0.1.20](https://github.com/decompozr/icloud-plugin/releases/tag/v0.1.20) publishes
+the native `darwin-arm64` application only. The archive is 24,369,484 bytes, SHA-256
+`cc10c3bfcd3b21f087a0d0e568cae2304a85226ba90fd711e9ff11292174324d`.
+Packaging uses `COPYFILE_DISABLE=1` to omit AppleDouble metadata. The earlier
+unpublished candidate remains identified as task-owned output, not the released
+archive. The previous 0.1.19 evidence above is historical.
+
+The shipped installer `update` and selected `current/icloud-plugin run` upgraded
+`/Users/scottchu/.decompozr/plugins/icloud` to `releases/0.1.20-darwin-arm64`,
+using existing configuration without `--initialize`. Launcher/server PIDs were
+25006/25010. The protected stopped backup remains at
+`runtime/backups/pre-0.1.20-20261003T144627Z` with `upgrade-receipt.json`; the previous
+release remains available. Configuration/custody bytes and modes match; both SQLite
+integrity checks pass. Owner, Passkeys and existing grants remain intact, the one
+active original credential migrated to its fixed account, and bootstrap stays
+closed. Rollback to an older binary restores compatible stopped state and release
+together, rather than changing only the symlink. Independent post-upgrade audit passed all 13 doctor checks,
+both read-only SQLite integrity checks, unchanged owner/install hashes and auth
+row counts, and 33 protected stopped backup-entry byte/mode comparisons. The
+launcher is detached (parent PID 1); the server has the exact installed working
+directory and loopback listeners on ports 4100/4101. The protected receipt is
+finalized. Task-owned controller/pointer/temporary files were removed while backup,
+previous release and release artifacts remain. Live ChatGPT account addition/profile/reconnection and rendered
+browser interaction remain unverified.
