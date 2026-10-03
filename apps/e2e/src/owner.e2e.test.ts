@@ -1,0 +1,131 @@
+import {test,expect} from 'bun:test';
+import {Database} from 'bun:sqlite';
+import {createHash,randomBytes} from 'node:crypto';
+import {mkdtempSync,rmSync,mkdirSync,writeFileSync,cpSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createServer as probeServer,type Server} from 'node:net';
+import {Client} from '@modelcontextprotocol/sdk/client/index.js';
+import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import {z} from 'zod';
+import {createApplication} from '../../icloud/dist/server/application.js';
+import {SqliteOwnerStore} from '../../icloud/dist/storage/owner-store.js';
+import type {AppSettings} from '../../icloud/dist/server/settings.js';
+import type {MailGateway,MailSession,MailMessageInput,SendResult} from '../../icloud/dist/domain/mail.js';
+import {passkeyResponse} from './helpers/owner-passkey.js';
+
+// Run via the separate E2E workspace: the built application API, real HTTP/auth/storage,
+// and synthetic Passkey signatures. This is not browser/Apple/Tailscale acceptance.
+const challenge=z.object({challenge:z.string()});
+const tokens=z.object({access_token:z.string(),refresh_token:z.string()});
+const hash=(v:string)=>createHash('sha256').update(v).digest('base64url');
+async function freePort(){const s=probeServer();s.listen(0,'127.0.0.1');await new Promise<void>(r=>s.once('listening',r));const a=s.address();if(!a||typeof a==='string')throw Error('No port');await close(s);return a.port;}
+async function close(s:Server){await new Promise<void>((resolve,reject)=>s.close(e=>e?reject(e):resolve()));}
+
+test('built owner application completes private enrollment, OAuth MCP, rotation, revocation and restart over HTTP',async()=>{
+ const directory=mkdtempSync(join(tmpdir(),'icloud-owner-e2e-'));
+ mkdirSync(join(directory,'.assets'));writeFileSync(join(directory,'.assets','admin-browser.js'),'export const fixture = true;');writeFileSync(join(directory,'.assets','auth-browser.js'),'export const fixture = true;');
+ cpSync(new URL('../../icloud/dist/plugin-template',import.meta.url),join(directory,'plugin-template'),{recursive:true});
+ const masterKey=randomBytes(32),proof=randomBytes(32).toString('hex');
+ const options={databasePath:join(directory,'owner.sqlite'),markerPath:join(directory,'marker'),masterKey};
+ let store=SqliteOwnerStore.provision({...options,bootstrapProof:proof});
+ let db=new Database(join(directory,'auth.sqlite'));
+ const publicPort=await freePort();let privatePort=await freePort();while(privatePort===publicPort)privatePort=await freePort();
+ const publicOrigin=`http://127.0.0.1:${publicPort}`,privateOrigin=`http://127.0.0.1:${privatePort}`;
+ const settings:AppSettings={public_origin:publicOrigin,private_origin:privateOrigin,public_port:publicPort,private_port:privatePort,host:'127.0.0.1',runtime_mode:'native',state_directory:directory,master_key_file:join(directory,'key'),installation_marker:options.markerPath,allow_send:false,allow_writes:true,tailscale_binary:'unused',bootstrap_owner_login:'owner@fixture.invalid'};
+ let ready=false;const usedCredentials:string[]=[];let writes=0;
+ const session:MailSession={supportsMove:true,list:async()=>[{path:'INBOX',name:'INBOX',selectable:true}],select:async()=>({uidValidity:'1',uidNext:2,supportsKeywords:false,release(){}}),search:async()=>[1],summaries:async()=>[{uid:1,subject:'Fixture',from:[],flags:[]}],metadata:async()=>({attachments:[],flags:[]}),download:async()=>{throw Error('Unused');},mark:async()=>{writes++;return true;},flag:async()=>false,tag:async()=>false,move:async()=>false};
+ const dependencies=()=>({bootstrapProof:()=>proof,store,masterKey,authDatabase:db,assetsDirectory:join(directory,'.assets'),diagnostics:async()=>({installed:ready,authenticated:ready,online:ready,privateReachable:ready}),provider:(credential:{user:string;appPassword:string}):MailGateway&{send(input:MailMessageInput):Promise<SendResult>}=>({withSession:async run=>{usedCredentials.push(credential.appPassword);if(credential.appPassword==='rejected-fixture')throw Error('Provider rejects fixture');return run(session);},parse:async()=>({to:[],text:'fixture'}),send:async()=>{throw Error('Unused');}})});
+ let listeners:Server[]=[];
+ const start=async()=>{const app=await createApplication(settings,dependencies());for(const [http,port] of [[app.publicApp,publicPort],[app.privateApp,privatePort]] as const){const listener=http.listen(port,'127.0.0.1');await new Promise<void>(r=>listener.once('listening',r));listeners.push(listener);}};
+ const stop=async()=>{for(const listener of listeners)await close(listener);listeners=[];};
+ const cookies=new Map<string,string>();
+ const request=async(path:string,body?:Record<string,unknown>,privateRoute=false,form=false,bootstrap=true)=>{
+  const origin=privateRoute?privateOrigin:publicOrigin;
+  const response=await fetch(origin+path,{method:body?'POST':'GET',redirect:'manual',headers:{origin,cookie:[...cookies].map(([k,v])=>`${k}=${v}`).join('; '),...(bootstrap?{'tailscale-user-login':'owner@fixture.invalid'}:{}),...(body?{'content-type':form?'application/x-www-form-urlencoded':'application/json'}:{})},body:body?(form?new URLSearchParams(z.record(z.string()).parse(body)):JSON.stringify(body)):undefined});
+  for(const c of response.headers.getSetCookie()){const pair=c.split(';')[0]!,at=pair.indexOf('=');cookies.set(pair.slice(0,at),pair.slice(at+1));}return response;
+ };
+ const clients:Client[]=[];
+ const connect=async(token:string)=>{const c=new Client({name:'owner-e2e',version:'1'});clients.push(c);await c.connect(new StreamableHTTPClientTransport(new URL(publicOrigin+'/icloud/mcp'),{requestInit:{headers:{authorization:'Bearer '+token}}}));return c;};
+ await start();
+ try{
+  const legacy=await request('/setup',undefined,true);expect(legacy.status).toBe(308);expect(legacy.headers.get('location')).toBe('/icloud/setup');
+  for(const path of ['/mcp','/api/auth/get-session','/assets/auth-browser.js'])expect((await request(path)).status).toBe(404);
+  for(const path of ['/setup/complete','/admin/revoke'])expect((await request(path,{},true)).status).toBe(404);
+  const protectedMetadata=await(await request('/.well-known/oauth-protected-resource/icloud/mcp')).json();expect(protectedMetadata).toMatchObject({resource:publicOrigin+'/icloud/mcp',authorization_servers:[publicOrigin+'/icloud/auth']});
+  const authorizationMetadata=await(await request('/.well-known/oauth-authorization-server/icloud/auth')).json();expect(authorizationMetadata).toMatchObject({issuer:publicOrigin+'/icloud/auth',authorization_endpoint:publicOrigin+'/icloud/auth/oauth2/authorize'});
+  const setupHtml=await(await request('/icloud/setup',undefined,true)).text();expect(setupHtml).toContain('4 Connect ChatGPT');for(const text of ['Create custom MCP server','Server URL','Description (optional)','I understand and want to continue','Create as a plugin'])expect(setupHtml).toContain(text);expect(setupHtml).toContain(publicOrigin+'/icloud/mcp');expect(setupHtml).toContain('https://chatgpt.com/plugins');for(const id of ['chatgpt-name','chatgpt-description','chatgpt-url','chatgpt-prompt'])expect(setupHtml).toContain(`data-clipboard="${id}"`);expect(setupHtml).toContain('not a readiness check');expect(setupHtml).not.toContain(proof);expect(setupHtml).not.toContain('<textarea');expect(setupHtml).toContain('class="copy-icon"');expect(setupHtml).toContain('Connect your AI assistant to iCloud.');
+  const asset=await request('/icloud/assets/admin-browser.js',undefined,true);expect(asset.status).toBe(200);expect(asset.headers.get('content-type')).toContain('javascript');expect(await asset.text()).toContain('fixture');
+  expect((await request('/icloud/auth/passkey/generate-register-options',undefined,true)).status).toBe(409);
+  ready=true;
+  expect((await request('/icloud/auth/passkey/generate-register-options',undefined,true,false,false)).status).toBe(403);
+  expect((await request('/icloud/setup/begin',{},true)).status).toBe(200);
+  for(const path of ['/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/auth/passkey/generate-register-options'])expect((await request(path)).status).toBe(404);
+  const weak=challenge.parse(await(await request('/icloud/auth/passkey/generate-register-options',undefined,true)).json());
+  expect((await request('/icloud/auth/passkey/verify-registration',{response:passkeyResponse(weak.challenge,privateOrigin,true,false),createSession:true},true)).status).toBe(400);
+  const regOptions=await(await request('/icloud/auth/passkey/generate-register-options',undefined,true)).json();
+  const visibleOptions=z.object({rp:z.object({name:z.string()}),user:z.object({id:z.string(),name:z.string(),displayName:z.string()})}).parse(regOptions);
+  expect(visibleOptions.rp.name).toBe('iCloud Plugin');
+  expect(visibleOptions.user.name).toBe('iCloud Plugin Admin');
+  expect(visibleOptions.user.displayName).toBe('iCloud Plugin Admin');
+  expect(visibleOptions.user.id.length).toBeGreaterThan(0);
+  const reg=challenge.parse(regOptions);
+  expect((await request('/icloud/auth/passkey/verify-registration',{response:passkeyResponse(reg.challenge,privateOrigin,true),createSession:true},true)).status).toBe(200);
+  expect((await request('/icloud/auth/passkey/generate-register-options',undefined,true)).status).toBe(409);
+  const protectedAdmin=await request('/icloud/admin',undefined,true);
+  expect(protectedAdmin.status).toBe(303);expect(protectedAdmin.headers.get('location')).toBe('/icloud/sign-in');
+  expect((await request('/icloud/setup/complete',{user:'owner@example.invalid',appPassword:'rejected-fixture'},true)).status).toBe(422);expect(store.ownerId()).toBeNull();
+  expect((await request('/icloud/setup/complete',{user:'owner@example.invalid',appPassword:'accepted-fixture'},true)).status).toBe(200);
+  const owner=store.ownerId();expect(owner).not.toBeNull();
+  const emptyAuth=new Database(':memory:');
+  try{await expect(createApplication(settings,{...dependencies(),authDatabase:emptyAuth})).rejects.toThrow();}finally{emptyAuth.close();}
+  expect((await request('/icloud/setup/complete',{user:'owner@example.invalid',appPassword:'duplicate-fixture'},true)).status).toBe(409);
+  expect((await request('/icloud/auth/passkey/generate-register-options',undefined,true)).status).toBe(403);
+  await request('/icloud/auth/sign-out',{});cookies.clear();
+  const weakLogin=challenge.parse(await(await request('/icloud/auth/passkey/generate-authenticate-options')).json());
+  expect((await request('/icloud/auth/passkey/verify-authentication',{response:passkeyResponse(weakLogin.challenge,publicOrigin,false,false)})).status).toBe(401);
+  const login=challenge.parse(await(await request('/icloud/auth/passkey/generate-authenticate-options')).json());
+  expect((await request('/icloud/auth/passkey/verify-authentication',{response:passkeyResponse(login.challenge,publicOrigin,false)})).status).toBe(200);
+  const registered=z.object({client_id:z.string()}).parse(await(await request('/icloud/auth/oauth2/register',{client_name:'Owner E2E',application_type:'native',redirect_uris:[publicOrigin+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read offline_access'})).json());
+  const verifier=randomBytes(32).toString('base64url');
+  const authPath='/icloud/auth/oauth2/authorize?'+new URLSearchParams({client_id:registered.client_id,redirect_uri:publicOrigin+'/callback',response_type:'code',scope:'mail.read offline_access',resource:publicOrigin+'/icloud/mcp',state:'e2e-state',code_challenge:hash(verifier),code_challenge_method:'S256'});
+  const authorization=await request(authPath);expect(authorization.status).toBe(302);
+  const consentURL=new URL(authorization.headers.get('location')!,publicOrigin);expect(consentURL.pathname).toBe('/icloud/consent');
+  const consent=z.object({url:z.string()}).parse(await(await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:consentURL.search.slice(1)})).json());
+  const callback=new URL(consent.url);expect(callback.searchParams.get('state')).toBe('e2e-state');
+  const tokenBody={grant_type:'authorization_code',client_id:registered.client_id,redirect_uri:publicOrigin+'/callback',resource:publicOrigin+'/icloud/mcp',code:callback.searchParams.get('code')!,code_verifier:verifier};
+  const issued=tokens.parse(await(await request('/icloud/auth/oauth2/token',tokenBody,false,true)).json());
+  const mcp=await connect(issued.access_token);
+  expect((await mcp.listTools()).tools.some(t=>t.name==='mail_list_mailboxes')).toBe(true);
+  expect((await mcp.listTools()).tools.some(t=>t.name==='mail_mark')).toBe(true);
+  expect((await mcp.callTool({name:'mail_list_mailboxes',arguments:{}})).isError).not.toBe(true);expect(usedCredentials.at(-1)).toBe('accepted-fixture');
+  const denied=await mcp.callTool({name:'mail_mark',arguments:{mailbox:'INBOX',uid:1,uidValidity:'1',seen:true}});expect(denied.isError).toBe(true);expect(writes).toBe(0);
+  expect(z.object({_meta:z.object({'mcp/www_authenticate':z.string()})}).parse(denied)._meta['mcp/www_authenticate']).toContain('scope="mail.read mail.write"');
+  const callsBefore=usedCredentials.length;
+  expect((await fetch(publicOrigin+'/icloud/mcp',{method:'POST',headers:{authorization:'Bearer invalid','content-type':'application/json'},body:'{}'})).status).toBe(401);expect(usedCredentials.length).toBe(callsBefore);
+  expect((await request('/icloud/admin/plugin.zip',undefined,true)).status).toBe(403); // HTTP-only auth fixture cannot produce a public HTTPS package.
+  expect((await request('/icloud/admin/plugin.zip')).status).toBe(404);
+  const policy={read:false,write:true,send:false,unsubscribe:true};
+  expect((await request('/icloud/admin/capabilities',{policy,confirmEnable:false},true)).status).toBe(200);
+  const disabledCalls=usedCredentials.length;
+  expect((await mcp.callTool({name:'mail_list_mailboxes',arguments:{}})).isError).toBe(true);
+  expect(usedCredentials.length).toBe(disabledCalls);
+  expect((await request('/icloud/admin/capabilities',{policy:{...policy,read:true},confirmEnable:false},true)).status).toBe(409);
+  expect((await request('/icloud/admin/capabilities',{policy:{...policy,read:true},confirmEnable:true},true)).status).toBe(200);
+  expect((await mcp.callTool({name:'mail_list_mailboxes',arguments:{}})).isError).not.toBe(true);
+  expect((await mcp.listTools()).tools.some(t=>t.name==='mail_send')).toBe(false);
+  expect((await request('/icloud/admin/credential',{user:'owner@example.invalid',appPassword:'rotated-fixture'},true)).status).toBe(200);
+  await mcp.callTool({name:'mail_list_mailboxes',arguments:{}});expect(usedCredentials.at(-1)).toBe('rotated-fixture');
+  await mcp.close();await stop();store.close();db.close();
+  store=SqliteOwnerStore.open(options);db=new Database(join(directory,'auth.sqlite'));await start();
+  expect(store.ownerId()).toBe(owner);expect((await request('/icloud/setup/status',undefined,true)).status).toBe(200);
+  expect((await request('/icloud/auth/passkey/generate-register-options',undefined,true)).status).toBe(403);
+  const restarted=await connect(issued.access_token);expect((await restarted.callTool({name:'mail_list_mailboxes',arguments:{}})).isError).not.toBe(true);expect(usedCredentials.at(-1)).toBe('rotated-fixture');
+  expect((await request('/icloud/admin/revoke',{},true)).status).toBe(200);
+  const prior=usedCredentials.length;expect((await restarted.callTool({name:'mail_list_mailboxes',arguments:{}})).isError).toBe(true);expect(usedCredentials.length).toBe(prior);expect(store.ownerId()).toBe(owner);
+  expect((await request('/icloud/auth/passkey/generate-register-options',undefined,true)).status).toBe(403);
+  expect((await request('/icloud/auth/oauth2/revoke',{client_id:registered.client_id,token:issued.access_token,token_type_hint:'access_token'},false,true)).status).toBe(200);
+  expect((await fetch(publicOrigin+'/icloud/mcp',{method:'POST',headers:{authorization:'Bearer '+issued.access_token,'content-type':'application/json'},body:'{}'})).status).toBe(401);
+  expect((await request('/icloud/auth/oauth2/token',tokenBody,false,true)).status).toBe(400);
+ }finally{for(const client of clients)await client.close();await stop();store.close();db.close();rmSync(directory,{recursive:true,force:true});}
+},30000);

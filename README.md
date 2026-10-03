@@ -1,11 +1,13 @@
-# iCloud Mail plugin — planning foundation
+# iCloud plugin
+
+The project is named **icloud-plugin**. Its current agreed scope is Mail;
+The roadmap continues through Calendar, Drive, Contacts and Photos after Mail; these later capabilities are not implemented.
 
 The goal is to provide precise, basic iCloud mailbox tools for external agents
 in Codex and ChatGPT first, through the intended Tailscale setup on this Mac.
 Dots and other providers are deferred; future support can be added when needed.
-The agent owns scheduling, rules, approval decisions, notifications and reports. **Feature implementation is paused for
-requirements discussion.** Existing code, manifests and deployment notes are
-preserved, incomplete drafts; they are not a working or accepted integration.
+The agent owns scheduling, rules, approval decisions, notifications and reports. **Implementation proceeds through reviewed checkpoints in the
+[roadmap](docs/roadmap.md).** Mailbox checkpoints CP1/CP2 are reviewed. Owner setup/authentication CP3/CP4 is independently reviewed for local automated integration; native and Linux runtime checks pass. The native 0.1.17 service is enrolled and connected through ChatGPT. The owner reported successful read/search/tag, Junk/Trash moves, draft creation and send/reply threading. Release 0.1.17 adds attachments, existing-draft operations and forwarding; these new actions and actual client catalog refresh still require live acceptance. See [current status](docs/current-status.md) for evidence and remaining gates. Sending is disabled by default in new installations and requires explicit operator enablement and OAuth consent.
 
 [Project decisions and status](docs/project.md) are the authoritative foundation.
 [Mailbox scope and expected outcomes](docs/mailbox-tools.md) define the agreed
@@ -16,11 +18,43 @@ Prose specifications come first; implementation follows the agreed specification
 Bun produces normal compiled system output. No custom documentation compiler is
 planned.
 
-This initial repository contains the prose specification foundation. Unfinished
-runtime code and earlier deployment proposals are preserved locally and excluded
-from the initial commit. No general provider framework is planned at this stage. No mailbox, OAuth provider, Tailscale endpoint
-or client connection has been configured by this work.
+The original commit contains the prose foundation. The repository now includes the application, lifecycle tooling, tests and isolated experiments. Earlier deployment proposals are preserved as historical evidence. No general provider framework is planned at this stage. The private native setup service and its Tailscale Serve route are now configured. The owner completed credential enrollment and client authorization; secrets remain server-side.
 
 The draft adapts [minagishl/icloud-mail-mcp](https://github.com/minagishl/icloud-mail-mcp).
 Upstream MIT attribution is preserved in [LICENSE](LICENSE) and
 [third-party notices](THIRD_PARTY_NOTICES.md).
+
+See [reference implementations](docs/references.md) for the three upstream
+examples, their documented capabilities and evidence limits.
+
+[Research findings and Bun experiments](docs/research.md) compare operation
+mechanics, feasibility, and the evidence behind current implementation.
+
+The accepted [setup and authentication flow](docs/setup-and-auth.md) uses private
+Tailscale owner enrollment (Passkey and iCloud app-specific password), followed
+by OAuth client access with Passkey login. Local synthetic-ceremony verification is recorded in the roadmap; the owner has also completed the real browser ceremony.
+
+## Documentation map
+
+- **Authoritative intent:** [project decisions](docs/project.md),
+  [mailbox requirements](docs/mailbox-tools.md), [setup/auth requirements](docs/setup-and-auth.md)
+  and [deployment/lifecycle requirements](docs/deployment-lifecycle.md).
+- **Durable engineering knowledge:** [findings and implications](docs/knowledge.md)
+  connect observations to requirements without selecting unproven architecture.
+- **Supporting evidence:** [experiment register](docs/experiments.md),
+  [detailed research](docs/research.md), [upstream references](docs/references.md)
+  and the isolated `playground/` fixtures. Passing a fixture is not production acceptance.
+
+Implementation follows these prose specifications. Historical deployment drafts
+and unfinished source do not override them.
+
+[Architecture comparison and contract defaults](docs/architecture.md) distinguish
+resolved internal choices from deployment recommendations and remaining evidence.
+
+The accepted [workspace and lifecycle layout](docs/workspace.md) has one complete
+`apps/icloud` application, typed server/service/auth/MCP boundaries, Streamable
+HTTP, and distinct dev/build/release/runtime phases for Mac and Apple Container.
+
+[Local owner setup](docs/local-setup.md) describes the explicit TOML configuration, protected installation custody and private setup flow being verified in CP3/CP4.
+
+[Configured client artifact](docs/client-artifact.md) explains the separate Codex marketplace export and ChatGPT remote connection flow. The repository MCP descriptor is a template; export produces a concrete HTTPS URL without credentials.

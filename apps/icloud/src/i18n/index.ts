@@ -1,0 +1,94 @@
+import { createInstance } from 'i18next';
+export const en = {
+pluginDownload:'Download plugin ZIP',pluginDownloadHelp:'This package uses this installation’s configured public endpoint. Import it using a supported private plugin workflow and authorize access, or follow the manual setup below. Downloading does not install or verify a connection.',
+workingPolicy:'Updating capabilities…', policySave:'Save capabilities', policyConfirm:'Enabling capabilities lets clients request those permissions. Existing OAuth grants remain unchanged. Enable the selected capabilities?', policyEnable:'Confirm enabling', policySaved:'Service capabilities updated.', shellAccount:'One iCloud account', shellSetup:'Initial setup', dashboardTitle:'Connection overview', credentialStatus:'Stored mail credentials', policyTitle:'Service capabilities', policyNote:'These are service settings, not permissions granted to a client. Sending also requires a new OAuth consent with mail.send. Existing grants are not upgraded.', policyManaged:'Capability settings are managed in the service configuration.', capabilityRead:'Read mail', capabilityWrite:'Organize mail', capabilitySend:'Send and reply', capabilityUnsubscribe:'Unsubscribe', enabled:'Enabled', disabled:'Disabled', unavailable:'Unavailable', stored:'Stored', removed:'Not stored', replaceNote:'Updating this form replaces the single connected account. It does not add another account. Enter the account address and a new App-specific password; saved passwords are never shown.', iconDownload:'Download plugin icon', iconHelp:'256 × 256 PNG, under 10 KB. Upload this file in the optional Icon field.', shellManage:'Manage connection',
+
+guideOpen:"1. Open ChatGPT in your browser",
+guideDeveloper:"2. Enable developer mode",
+developerInstructions:"Open **Settings** → **Security and login** → **Developer mode** and enable it. Your plan and workspace permissions must allow custom MCP connections.",
+guideCreate:"3. Create custom MCP server",
+guideAuth:"4. Set up authentication",
+guideSubmit:"5. Create as a plugin",
+guideAuthorize:"6. Authorize access",
+guideTry:"7. Try it",
+openInstructions:"Use ChatGPT in a web browser for this setup, rather than the desktop or mobile app. Sign in, then open **ChatGPT Plugins**.",
+submitInstructions:"Read **I understand and want to continue** and select the acknowledgment only if you agree. Then click **Create as a plugin**.",
+
+connectTitle:"Connect ChatGPT",
+connectIntro:"Your iCloud setup is complete. Follow these steps to connect ChatGPT; this page does not verify the assistant connection.",
+endpointPrerequisite:"Before creating the connection, the service operator must enable and verify the public MCP/OAuth endpoint. The address below is configured, not a readiness check. The private setup address is for administration only.",
+openChatGPT:"Open ChatGPT Plugins ↗",
+chatgptPath:"Open **Create custom MCP server** in ChatGPT Plugins. Enter the fields below. Icon is optional. Under **Connection**, select **Server URL**, not Tunnel, for this service. Availability depends on your plan and workspace policy.",
+fieldName:"Name",
+fieldDescription:"Description (optional)",
+fieldUrl:"Server URL",
+appName:"iCloud Plugin",
+appDescription:"Connect your AI assistant to iCloud.",
+copyValue:"Copy",
+copied:"Copied.",
+copyFailed:"Could not copy automatically. Select the field and copy it manually.",
+urlMissing:"Public MCP URL is not configured. Contact the service operator.",
+oauthInstructions:"Under **Authentication**, select **OAuth**. Once automatic discovery succeeds, **Advanced OAuth settings** can remain collapsed. If discovery fails, ask the service operator to verify public MCP/OAuth reachability, then retry discovery. Do not invent manual client credentials or enter your Apple password in this dialog.",
+authorizeInstructions:"Follow the authorization prompt, use your **iCloud Plugin Admin Passkey**, and approve the requested access. This is separate from your Apple account sign-in.",
+promptLabel:"First test prompt",
+safePrompt:"List my 5 most recent emails with sender, subject, and date. Do not change their read/unread state or make any other mailbox changes.",
+promptInstructions:"In a new ChatGPT conversation, select the connected plugin from the **tools menu** and paste this prompt. If it is unavailable, finish authorization or check workspace permissions.",
+
+ sessionExpired:'Your setup session expired. Continue from the owner step to renew it, then try saving again. Your entered mail credentials are still here.',
+ titleSetup:'iCloud Plugin · Setup', titleAdmin:'iCloud Plugin · Manage connection', brand:'ICLOUD PLUGIN · PRIVATE CONNECTION',
+ headingSetup:'Connect your iCloud',headingAdmin:'Manage your iCloud connection',introSetup:'A few steps to set up your private connection.',introAdmin:'Update or remove your stored mail credentials over your private connection.',
+ progress:'Setup progress',stepConnection:'1 Connection',stepOwner:'2 Owner',stepMail:'3 iCloud',stepDone:'4 Connect ChatGPT',
+ connectionTitle:'Check your private connection',connectionIntro:'Setup and administration use your private Tailscale network. These checks describe the computer running the service.',
+ installed:'Tailscale installed',authenticated:'Signed in to Tailscale',online:'Service computer online',privateReachable:'Private service reachable',checking:'Checking…',
+ connectionHelp:'Need help connecting?',download:'Download Tailscale',downloadHelp:'Open Tailscale, sign in to the same private network, and make sure the service computer is connected.',serveHelp:'Private service connection guide',next:'Continue',recheck:'Check again',back:'Back',
+ ownerTitle:'Create your owner passkey',ownerIntro:'Use Touch ID, Face ID, or your device unlock to create your personal sign-in.',ownerNote:'Setup starts only from an approved private connection. Follow your device’s prompt to create a passkey.',existingPasskey:'This browser has already registered a passkey. Continue to connect your mailbox.',register:'Create passkey and continue',resume:'Continue to iCloud connection',ownerDenied:'This connection is not authorized to set up the owner. Open the private service from the approved Tailscale account, then check again.',
+ mailTitle:'Connect your iCloud',mailAdminTitle:'Update iCloud credentials',mailIntro:'This connection currently supports Mail. Use your iCloud email address and an Apple app-specific password, not your regular Apple Account password.',appleGuide:'How to create an app-specific password ↗',appleGuideHelp:'Follow Apple’s official instructions, then return here to continue.',email:'iCloud email address',password:'Apple app-specific password',emailPlaceholder:'you@icloud.com',passwordHelp:'We verify the mail connection before saving. Your password is not kept in browser storage.',save:'Verify connection and finish',saveAdmin:'Verify and update',
+ revokeTitle:'Remove local connection',revokeIntro:'Remove the mail credentials stored by this service. This does not delete mail or revoke your Apple password or client grants.',revoke:'Remove stored credentials',revokeConfirm:'Remove these credentials? Your assistant will lose mailbox access through this service until you reconnect.',revokeYes:'Confirm removal',cancel:'Cancel',
+ doneTitle:'Your iCloud connection is ready',doneIntro:'Your owner account and credentials are saved. Mail is currently supported; your assistant still needs its own connection and authorization.',doneNote:'Finishing setup does not automatically enable the public OAuth endpoint or install a ChatGPT or Codex connection.',nextSteps:'Next: connect your assistant',codexHelp:'1. Prepare the service’s MCP/OAuth address for your chosen assistant. The private setup address is not the connector URL. This page does not activate public access.',chatgptHelp:'2. In Codex, add the configured remote MCP service or generated plugin. In ChatGPT, use an eligible account’s custom MCP connection. Use the service’s /icloud/mcp URL and sign in with your owner Passkey.',clientGuide:'Official connection guide',testHelp:'3. Ask your assistant to list your mail folders. Approve the connection when prompted. You can rotate or remove stored credentials using Manage connection below.',manage:'Manage connection',noScript:'This setup wizard requires JavaScript. Enable it and reload.',language:'Language',
+ retry:'The action did not complete. Please try again.',providerError:'Could not sign in to iCloud Mail. Check your email address and app-specific password, then try again.',prerequisiteError:'Your private connection is not ready. Go back to Connection and check Tailscale sign-in and connectivity.',closedError:'This service is already set up. Sign in on the management page.',ownerError:'Your session expired or does not belong to this service’s owner. Sign in again.',originError:'This page is not on the configured private service address. Reopen the original private URL.',inputError:'Enter your email address and app-specific password.',networkError:'Connection interrupted. Check your private network and try again.',actionError:'The action did not complete. Check your sign-in and private connection, then try again.',checkError:'Could not check connectivity. Use the private service URL and select Check again.',statusError:'Could not read connection status. Please try again shortly.',ready:'Ready',notReady:'Not ready',missingInstall:'Tailscale was not detected on the service computer. Install it, or check that the service can use the Tailscale command.',missingLogin:'Open Tailscale on the service computer and sign in to your private network.',missingOnline:'The service computer is offline. Connect Tailscale and check again.',missingPrivate:'The private service cannot be reached. Check the private URL and Tailscale Serve configuration.',connectionReady:'Your private connection is ready. You can continue.',connectionNotReady:'Follow the guidance above, then check again.',connectionLoading:'Checking your private connection…',passkeyError:'Passkey setup did not complete. Use an approved private connection and finish the device prompt. If you cancelled it, you can try again.',passkeyLoading:'Follow your device’s prompt to create a passkey…',emailInvalid:'Enter a valid iCloud email address.',passwordInvalid:'Enter your Apple app-specific password.',saved:'Mail connection verified and updated.',saving:'Verifying your iCloud Mail connection…',revoked:'Local mail credentials removed. Revoke your Apple app-specific password and client grants separately if needed.',revoking:'Removing local credentials…',missingInput:'The form could not load. Reload this page.'
+} as const;
+export type CopyKey=keyof typeof en;
+const zh:Record<CopyKey,string>={
+pluginDownload:'下載外掛 ZIP',pluginDownloadHelp:'此套件使用本服務設定的公開端點。請透過支援的私人外掛流程匯入並授權，或依照下方手動設定。下載不代表已安裝或驗證連線。',
+workingPolicy:'正在更新功能…', policySave:'儲存功能設定', policyConfirm:'啟用功能後，用戶端可以要求對應權限；既有 OAuth 授權不會改變。確定啟用選擇的功能？', policyEnable:'確認啟用', policySaved:'已更新服務功能設定。', shellAccount:'一個 iCloud 帳號', shellSetup:'首次設定', dashboardTitle:'連線概況', credentialStatus:'已儲存的郵件憑證', policyTitle:'服務功能', policyNote:'這是服務設定，不代表用戶端已取得權限。寄信仍須重新同意包含 mail.send 的 OAuth 授權；既有授權不會自動升級。', policyManaged:'功能開關由服務設定管理。', capabilityRead:'讀取郵件', capabilityWrite:'整理郵件', capabilitySend:'寄信與回覆', capabilityUnsubscribe:'取消訂閱', enabled:'已啟用', disabled:'已停用', unavailable:'無法取得', stored:'已儲存', removed:'未儲存', replaceNote:'此表單會取代唯一連接的帳號，不會新增帳號。請輸入帳號地址及新的 App 專用密碼；不會顯示已儲存密碼。', iconDownload:'下載外掛圖示', iconHelp:'256 × 256 PNG，小於 10 KB。請在選填的 Icon 欄位上傳此檔案。', shellManage:'管理連線',
+
+guideOpen:"1. 在瀏覽器開啟 ChatGPT",
+guideDeveloper:"2. 啟用 Developer mode",
+developerInstructions:"開啟 **Settings** → **Security and login** → **Developer mode** 並啟用。你的方案及工作區權限必須允許自訂 MCP 連線。",
+guideCreate:"3. Create custom MCP server",
+guideAuth:"4. 設定驗證方式",
+guideSubmit:"5. Create as a plugin",
+guideAuthorize:"6. 授權存取",
+guideTry:"7. 試用連線",
+openInstructions:"請在網頁瀏覽器進行設定，不要使用桌面版或手機 App。登入後開啟 **ChatGPT Plugins**。",
+submitInstructions:"閱讀 **I understand and want to continue** 確認事項，同意後再勾選，然後按 **Create as a plugin**。",
+
+connectTitle:"連接 ChatGPT",
+connectIntro:"iCloud 設定已完成。接著依照下列步驟連接 ChatGPT；此頁不會判定助理連線是否成功。",
+endpointPrerequisite:"建立連線前，服務管理者必須先啟用並驗證公開 MCP／OAuth 入口。下方是設定的網址，不代表已驗證可連線。私人設定網址僅供管理使用。",
+openChatGPT:"開啟 ChatGPT Plugins ↗",
+chatgptPath:"在 ChatGPT Plugins 開啟 **Create custom MCP server**，填入下方欄位；Icon 為選填。**Connection** 請選擇 **Server URL**，而不是 Tunnel。功能是否可用取決於方案及工作區政策。",
+fieldName:"Name（名稱）",
+fieldDescription:"Description（選填）",
+fieldUrl:"Server URL",
+appName:"iCloud Plugin",
+appDescription:"將你的 AI 助理連接到 iCloud。",
+copyValue:"複製",
+copied:"已複製。",
+copyFailed:"無法自動複製，請選取欄位內容後手動複製。",
+urlMissing:"尚未設定公開 MCP 網址，請聯絡服務管理者。",
+oauthInstructions:"**Authentication** 選擇 **OAuth**。自動探索成功後，**Advanced OAuth settings** 可維持收合。若探索失敗，請先由服務管理者確認公開 MCP／OAuth 入口可連線，再重試探索；不要猜測手動用戶端憑證，也不要在這個視窗輸入 Apple 密碼。",
+authorizeInstructions:"依授權提示使用 **iCloud Plugin Admin Passkey** 登入，並核准所要求的存取權限；這與登入 Apple 帳號不同。",
+promptLabel:"首次測試提示",
+safePrompt:"列出我最新的 5 封郵件，包含寄件者、主旨與日期。不要更改已讀／未讀狀態，也不要進行任何其他郵件變更。",
+promptInstructions:"在新的 ChatGPT 對話中，從**工具選單**選擇已連接的外掛，再貼上此提示。若找不到外掛，請先完成授權或確認工作區權限。",
+
+ sessionExpired:'設定連線已到期。請從擁有者步驟繼續以更新連線，再次儲存。你剛輸入的郵件憑證仍保留在此頁。',
+ titleSetup:'iCloud Plugin · 開始設定',titleAdmin:'iCloud Plugin · 管理連線',brand:'ICLOUD PLUGIN · 私人連線',headingSetup:'連接你的 iCloud',headingAdmin:'管理你的 iCloud 連線',introSetup:'只需幾個步驟，建立屬於你的安全連線。',introAdmin:'在私人連線中更新或移除已儲存的郵件憑證。',progress:'設定進度',stepConnection:'1 連線檢查',stepOwner:'2 確認擁有者',stepMail:'3 連接 iCloud',stepDone:'4 連接 ChatGPT',connectionTitle:'先確認私人連線',connectionIntro:'設定與管理只透過你的 Tailscale 私人網路進行。以下檢查的是執行服務的電腦。',installed:'Tailscale 已安裝',authenticated:'已登入 Tailscale',online:'服務電腦已上線',privateReachable:'私人服務可連線',checking:'檢查中…',connectionHelp:'需要安裝或連線協助？',download:'下載 Tailscale',downloadHelp:'開啟 Tailscale，登入同一個私人網路，再確認服務所在電腦已連線。',serveHelp:'查看私人服務連線說明',next:'繼續',recheck:'重新檢查',back:'返回',ownerTitle:'建立你的擁有者 Passkey',ownerIntro:'使用 Touch ID、Face ID 或裝置解鎖，建立只屬於你的登入方式。',ownerNote:'設定只能從已核准的私人連線開始。依照裝置提示建立 Passkey。',existingPasskey:'這個瀏覽器已完成 Passkey 登記，可以繼續連接 iCloud。',register:'建立 Passkey 並繼續',resume:'繼續連接 iCloud',ownerDenied:'此連線尚未獲准設定擁有者。請透過已核准的 Tailscale 帳號開啟私人服務，再重新檢查。',mailTitle:'連接你的 iCloud',mailAdminTitle:'更新 iCloud 郵件憑證',mailIntro:'此連線目前支援郵件。請使用 iCloud 郵件地址及 Apple「App 專用密碼」，不要輸入平常登入 Apple 帳號的密碼。',appleGuide:'如何建立 App 專用密碼 ↗',appleGuideHelp:'開啟 Apple 官方說明，完成後再回來繼續。',email:'iCloud 郵件地址',password:'Apple App 專用密碼',emailPlaceholder:'you@icloud.com',passwordHelp:'儲存前會先驗證郵件連線。密碼不會保存在瀏覽器儲存空間。',save:'驗證連線並完成設定',saveAdmin:'驗證並更新',revokeTitle:'移除本機連線',revokeIntro:'移除這台服務儲存的郵件憑證，不會刪除郵件，也不會撤銷 Apple 密碼或用戶端授權。',revoke:'移除已儲存的憑證',revokeConfirm:'確定移除？助理將無法透過此服務存取郵件，直到你重新連接。',revokeYes:'確認移除',cancel:'取消',doneTitle:'iCloud 連線已就緒',doneIntro:'擁有者與憑證已儲存。目前支援郵件；助理仍需要另外建立連線並取得授權。',doneNote:'完成此頁不會自動開放公開 OAuth 入口，也不會自動安裝 ChatGPT 或 Codex 連線。',nextSteps:'下一步：連接助理',codexHelp:'1. 準備助理可連線的 MCP／OAuth 服務地址。私人設定網址不是連接器網址；此頁不會啟用公開存取。',chatgptHelp:'2. 在 Codex 加入遠端 MCP 服務或產生的外掛；ChatGPT 則使用符合資格帳號的自訂 MCP 連線。填入服務的 /icloud/mcp 網址，並使用擁有者 Passkey 登入。',clientGuide:'查看官方連線說明',testHelp:'3. 請助理列出郵件資料夾，依提示核准連線。下方管理連線可更新或移除已儲存憑證。',manage:'管理郵件連線',noScript:'此設定精靈需要 JavaScript。請啟用後重新載入。',language:'語言',retry:'操作未完成，請重試。',providerError:'無法登入 iCloud 郵件。請確認郵件地址與 App 專用密碼正確，再試一次。',prerequisiteError:'私人連線尚未就緒。請返回連線檢查，確認 Tailscale 已登入並上線。',closedError:'這個服務已完成設定，請前往管理頁面登入。',ownerError:'登入已失效或不是此服務的擁有者。請重新登入管理頁面。',originError:'頁面來源不符合私人服務設定。請從原本的私人網址重新開啟。',inputError:'請確認郵件地址與 App 專用密碼已完整填寫。',networkError:'連線中斷。請確認私人網路正常後再試一次。',actionError:'操作未完成。請確認登入狀態及私人連線後重試。',checkError:'無法檢查連線。請使用私人服務網址，再按「重新檢查」。',statusError:'無法取得連線狀態，請稍後重試。',ready:'已就緒',notReady:'尚未就緒',missingInstall:'服務所在電腦尚未偵測到 Tailscale。請先安裝，或確認服務可使用 Tailscale 指令。',missingLogin:'請在服務所在電腦開啟 Tailscale 並登入私人網路。',missingOnline:'服務所在電腦目前離線。請開啟 Tailscale 連線後重新檢查。',missingPrivate:'私人服務尚未連通。請確認私人網址與 Tailscale Serve 設定。',connectionReady:'私人連線已就緒，可以繼續。',connectionNotReady:'完成上方提示後，請重新檢查。',connectionLoading:'正在檢查私人連線…',passkeyError:'Passkey 尚未完成。請從核准的私人連線開啟頁面並完成裝置提示；若取消了提示，可以再試一次。',passkeyLoading:'請依照裝置提示完成 Passkey 設定…',emailInvalid:'請輸入有效的 iCloud 郵件地址。',passwordInvalid:'請輸入 Apple App 專用密碼。',saved:'郵件連線已驗證並更新。',saving:'正在驗證 iCloud 郵件連線…',revoked:'已移除本機郵件憑證。如有需要，請另行撤銷 Apple App 專用密碼與用戶端授權。',revoking:'正在移除本機憑證…',missingInput:'表單未能載入，請重新整理頁面。'
+};
+export const i18n=createInstance();
+void i18n.init({lng:'en',fallbackLng:'en',initImmediate:false,resources:{en:{translation:en},'zh-TW':{translation:zh}},interpolation:{escapeValue:false}});
+export function t(key:CopyKey):string{return i18n.t(key);}
+export function isCopyKey(value:string):value is CopyKey{return Object.hasOwn(en,value);}
+
+export function richText(key:CopyKey):ReadonlyArray<{text:string;strong:boolean}>{return t(key).split(/(\*\*[^*]+\*\*)/g).filter(Boolean).map(part=>part.startsWith('**')&&part.endsWith('**')?{text:part.slice(2,-2),strong:true}:{text:part,strong:false});}

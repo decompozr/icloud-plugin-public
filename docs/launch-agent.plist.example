@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.icloud-mail-mcp</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/ABSOLUTE/PATH/TO/bun</string>
+    <string>/ABSOLUTE/INSTALL/PREFIX/current/apps/icloud/dist/index.js</string>
+    <string>--config</string>
+    <string>/ABSOLUTE/PRIVATE/CONFIG/config.toml</string>
+  </array>
+  <key>WorkingDirectory</key><string>/ABSOLUTE/INSTALL/PREFIX/current</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>StandardOutPath</key><string>/ABSOLUTE/PRIVATE/LOG/DIRECTORY/icloud-mail-mcp.out.log</string>
+  <key>StandardErrorPath</key><string>/ABSOLUTE/PRIVATE/LOG/DIRECTORY/icloud-mail-mcp.err.log</string>
+</dict>
+</plist>
