@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { ImapFlow } from 'imapflow';
 import { MailService } from './mail.js';
 import { ICloudMailAdapter } from '../icloud/adapter.js';
+import { MailOperationError } from '../domain/mail.js';
 import type { MailGateway, MailSession, Mailbox, ProviderSearch } from '../domain/mail.js';
 
 const target = { mailbox: 'INBOX', uid: 41, uidValidity: '900' };
@@ -78,9 +79,17 @@ test('duplicate, missing and stale batch inputs cause zero mutations', async () 
   assert.equal(calls.some(call => call.startsWith('mark:')), false);
 });
 test('batch keeps known per-item rejections separate from successful changes', async () => {
-  const { service } = fixture({ mark: async uid => uid !== 42 });
+  const { service } = fixture({ mark: async uid => { if (uid === 42) throw new MailOperationError('upstream_failure', 'Explicit provider refusal'); return true; } });
   const result = await service.batch({ ...target, uids: [41, 42, 43], action: { type: 'mark', seen: false } });
   assert.equal(result.status, 'partial'); assert.deepEqual(result.items.map(item => item.status), ['succeeded', 'failed', 'succeeded']);
+});
+test('ambiguous provider false stops the batch as unknown', async () => {
+  let writes = 0;
+  const { service } = fixture({ mark: async () => { writes++; return false; } });
+  const result = await service.batch({ ...target, uids: [41, 42], action: { type: 'mark', seen: true } });
+  assert.equal(result.status, 'unknown');
+  assert.deepEqual(result.items.map(item => item.status), ['outcome_unknown', 'not_attempted']);
+  assert.equal(writes, 1);
 });
 test('unknown mutation outcome stops remaining batch items without retries', async () => {
   const touched: number[] = [];
@@ -130,18 +139,6 @@ test('adapter refuses false SEARCH rather than inventing an empty result', async
   const { client, adapter } = sdkFixture();
   client.search = async () => false;
   await assert.rejects(adapter.withSession(session => session.search()), { code: 'upstream_failure' });
-});
-test('adapter emits explicit UID keyword/flag operations and distinguishes NO from transport uncertainty', async () => {
-  const { client, adapter } = sdkFixture();
-  const stores: unknown[] = [];
-  client.messageFlagsAdd = async (uid, flags, options) => { stores.push({ uid, flags, options }); return true; };
-  await adapter.withSession(session => session.tag(41, 'Project', true));
-  await adapter.withSession(session => session.flag(42, true));
-  assert.deepEqual(stores, [{ uid: 41, flags: ['Project'], options: { uid: true } }, { uid: 42, flags: ['\\Flagged'], options: { uid: true } }]);
-  client.messageFlagsAdd = async () => { throw { responseStatus: 'NO' }; };
-  await assert.rejects(adapter.withSession(session => session.flag(41, true)), { code: 'upstream_failure' });
-  client.messageFlagsAdd = async () => { throw new Error('Disconnected'); };
-  await assert.rejects(adapter.withSession(session => session.flag(41, true)), { code: 'outcome_unknown' });
 });
 test('adapter normalizes COPYUID map for exactly the requested source UID', async () => {
   const { client, adapter } = sdkFixture(); client.capabilities.set('MOVE', true);

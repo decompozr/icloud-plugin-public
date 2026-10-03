@@ -2,6 +2,8 @@
 export interface MailPolicy { allowWrites?: boolean; maxMessages?: number; maxBodyChars?: number; maxAttachmentBytes?: number }
 export interface MailConfig extends MailPolicy { user: string; password: string }
 export interface MailTarget { mailbox: string; uid: number; uidValidity: string }
+/** Confirmed copy evidence; does not establish successful source removal. */
+export interface MailMoveRecovery { copiedTarget: MailTarget }
 export interface SearchCursor { mailbox: string; uidValidity: string; beforeUid: number; startingUpperUid: number; query: string; unreadOnly: boolean }
 export interface SearchRequest { mailbox: string; query?: string; unreadOnly?: boolean; limit?: number; cursor?: SearchCursor }
 export interface ReadRequest extends MailTarget { mode?: 'summary' | 'full' }
@@ -70,11 +72,11 @@ export interface MailGateway {
 export type MailErrorCode = 'invalid_input' | 'stale_identity' | 'missing' | 'outcome_unknown'
   | 'unsupported_capability' | 'ambiguous_destination' | 'forbidden' | 'upstream_failure';
 export class MailOperationError extends Error {
-  constructor(readonly code: MailErrorCode, message: string) { super(message); this.name = 'MailOperationError'; }
+  constructor(readonly code: MailErrorCode, message: string, readonly recovery?: MailMoveRecovery) { super(message); this.name = 'MailOperationError'; }
 }
 export type MailItemOutcome =
   | { target: MailTarget; status: 'succeeded'; result: MailMutationResult }
   | { target: MailTarget; status: 'failed'; code: Exclude<MailErrorCode, 'outcome_unknown'> }
-  | { target: MailTarget; status: 'outcome_unknown'; code: 'outcome_unknown' }
+  | { target: MailTarget; status: 'outcome_unknown'; code: 'outcome_unknown'; recovery?: MailMoveRecovery }
   | { target: MailTarget; status: 'not_attempted' };
 export interface MailBatchOutcome { status: 'completed' | 'rejected' | 'partial' | 'unknown'; items: MailItemOutcome[] }

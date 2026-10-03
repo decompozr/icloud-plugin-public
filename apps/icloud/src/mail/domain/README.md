@@ -7,6 +7,9 @@ Use it when adding a mailbox operation or implementing a provider fixture.
 `mail.ts` defines mailbox/message identities, bounded reads/search, operation
 errors and session/gateway ports. Message identity combines exact mailbox path,
 UIDVALIDITY and UID; sequence numbers and RFC Message-ID are not mutation keys.
+`MailMoveRecovery.copiedTarget` preserves a confirmed destination-copy identity
+on an unknown move outcome. Services and MCP results carry this evidence without
+implying source removal or successful movement; it does not authorize a retry.
 `outbound.ts` defines composition, send/draft results and ledger/provider contracts.
 `extensions.ts` and `unsubscribe.ts` define extended-mail and unsubscribe contracts.
 

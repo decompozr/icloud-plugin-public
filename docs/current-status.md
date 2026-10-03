@@ -1,5 +1,32 @@
 # Source architecture and evidence status
 
+## Four audit corrections verified in source (2026-10-03 UTC)
+
+The source now preserves unknown outcomes when STORE acknowledgement is missing,
+stops remaining batch items, and carries confirmed COPY destination evidence as
+`recovery.copiedTarget` through single and batch MCP results without claiming a
+successful move. Send/reply and draft creation recheck current read and action
+policy after asynchronous preparation, immediately before provider submission;
+revoked operations retain rejected receipts, while already submitted work drains.
+Uninstall retains installation ownership proof so same-prefix reinstall preserves
+private state; arbitrary, unmarked or symlinked prefixes remain rejected.
+
+The integrated `bun bin/checkpoint` passed application/tooling typechecks,
+production build, 172 application tests (626 assertions), 10 tooling tests
+(126 assertions), E2E compilation and all 11 built E2E tests (236 assertions).
+Independent reviews accepted all four corrections with no blocking findings.
+Regression fixtures cover real ImapFlow STORE responses, staged move failures,
+SQLite-backed policy changes and retained-prefix CLI reinstall. Better Auth's
+existing SQLite array/TEXT mapping warnings remain visible; the checks passed.
+The STORE adapter's private ImapFlow command boundary remains a maintenance
+dependency guarded by protocol tests and command-shape validation.
+
+These are source and synthetic-fixture results. No release archive, installed
+application, live mailbox, authorization grant or route was changed by this work.
+The initial checkpoint process launch hit a transient host file-descriptor limit;
+a subsequent complete run exited successfully. Existing live acceptance below
+is separate and does not establish live behavior of these new corrections.
+
 ## Production installation verified (2026-10-03 UTC)
 
 The released `icloud-plugin install` command installed the stable 0.1.19

@@ -127,7 +127,7 @@ export class MailService implements MailOperations {
       const success = action.type === 'mark' ? await session.mark(target.uid, action.seen)
         : action.type === 'flag' ? await session.flag(target.uid, action.flagged)
           : await session.tag(target.uid, action.keyword, action.enabled);
-      if (!success) throw new MailOperationError('upstream_failure', 'Provider rejected the message update');
+      if (!success) throw new MailOperationError('outcome_unknown', 'Provider did not confirm the message update');
       let confirmed: MessageMetadata | undefined;
       try { confirmed = await session.metadata(target.uid); }
       catch { throw new MailOperationError('outcome_unknown', 'Message state could not be verified after the update'); }
@@ -157,7 +157,8 @@ export class MailService implements MailOperations {
         }
         catch (error: unknown) {
           const code = error instanceof MailOperationError ? error.code : 'outcome_unknown';
-          if (code === 'outcome_unknown') { unknown = true; items.push({ target, status: 'outcome_unknown', code }); }
+          if (code === 'outcome_unknown') { unknown = true; items.push({ target, status: 'outcome_unknown', code,
+            ...(error instanceof MailOperationError && error.recovery ? { recovery: error.recovery } : {}) }); }
           else items.push({ target, status: 'failed', code });
         }
       }
@@ -169,7 +170,8 @@ export class MailService implements MailOperations {
     const batch = await this.batch({ mailbox: target.mailbox, uidValidity: target.uidValidity, uids: [target.uid], action });
     const item = batch.items[0];
     if (item?.status === 'succeeded') return item.result;
-    throw new MailOperationError(item?.status === 'failed' || item?.status === 'outcome_unknown' ? item.code : 'upstream_failure', 'Mail operation was not confirmed');
+    throw new MailOperationError(item?.status === 'failed' || item?.status === 'outcome_unknown' ? item.code : 'upstream_failure', 'Mail operation was not confirmed',
+      item?.status === 'outcome_unknown' ? item.recovery : undefined);
   }
   async mark(target: MarkRequest): Promise<MarkResult> { await this.single(target, { type: 'mark', seen: target.seen }); return { ...target, updated: true }; }
   async flag(target: FlagRequest): Promise<FlagResult> { await this.single(target, { type: 'flag', flagged: target.flagged }); return { ...target, updated: true }; }

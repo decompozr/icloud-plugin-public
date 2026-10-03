@@ -45,9 +45,11 @@ export class OutboundService implements OutboundOperations {
     const boxes=await this.mail.withSession(session=>session.list());
     const drafts=boxes.filter(box=>box.selectable&&box.specialUse==='\\Drafts');
     if(drafts.length!==1)throw new MailOperationError(drafts.length?'ambiguous_destination':'missing','One Drafts mailbox is required');
+    this.permitted(kind);
     const saved=await this.provider.draft(message,drafts[0]!.path);
     output={operationId:parsed.operationId,messageId:id,status:'draft_saved',replayed:false,draftTarget:{mailbox:saved.mailbox,uid:saved.uid,uidValidity:saved.uidValidity}};
    }else{
+    this.permitted(kind);
     const sent=await this.provider.send(message);
     output={operationId:parsed.operationId,messageId:id,status:sent.accepted.length?(sent.rejected.length?'partial':'submitted'):'rejected',replayed:false,accepted:sent.accepted,rejected:sent.rejected};
    }
