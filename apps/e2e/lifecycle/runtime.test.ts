@@ -2,7 +2,6 @@ import {test,expect} from 'bun:test';
 import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve,dirname} from 'node:path';
-import {installArtifact} from '../../../packages/tooling/src/install.js';
 const artifact=process.env.CP5_ARTIFACT_DIR;
 const scenario=artifact?test:test.skip;
 scenario('installed artifact initializes explicitly, restarts without resetting custody, and shuts down',async()=>{
@@ -12,10 +11,11 @@ scenario('installed artifact initializes explicitly, restarts without resetting 
  const config=join(dir,'config.toml');
  const base=`http://127.0.0.1:${privatePort}`,publicBase=`http://127.0.0.1:${publicPort}`;
  const prefix=join(dir,'.installed');
- await installArtifact(resolve(artifact!),prefix);
- const entry=join(prefix,'current/runtime.sh');
+ const install=Bun.spawn([join(resolve(artifact!),'icloud-plugin'),'install','--prefix',prefix],{stdout:'pipe',stderr:'pipe'});
+ expect(await install.exited).toBe(0);
+ const entry=join(prefix,'current/icloud-plugin');
  let child:ReturnType<typeof Bun.spawn>|undefined;
- const spawn=(initialize=false)=>Bun.spawn([entry,config,...(initialize?['--initialize']:[])],{cwd:dir,env:{PATH:`${dirname(process.execPath)}:/usr/bin:/bin`},stdout:'pipe',stderr:'pipe'});
+ const spawn=(initialize=false)=>Bun.spawn([entry,'run','--config',config,...(initialize?['--initialize']:[])],{cwd:dir,env:{PATH:`${dirname(process.execPath)}:/usr/bin:/bin`},stdout:'pipe',stderr:'pipe'});
  try{
   await Bun.write(config,`public_origin="https://icloud.invalid"\nprivate_origin="https://icloud.invalid:8443"\npublic_port=${publicPort}\nprivate_port=${privatePort}\nstate_directory="./state"\nmaster_key_file="./custody/master.key"\ninstallation_marker="./custody/installation.marker"\ntailscale_binary="/nonexistent-fixture-tailscale"\n`);
   expect(await spawn().exited).toBe(1);

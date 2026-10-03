@@ -1,6 +1,6 @@
 {
   "name": "@icloud-plugin/icloud",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "private": true,
   "type": "module",
   "description": "Personal iCloud Mail MCP server with authenticated remote transport",
@@ -39,5 +39,6 @@
     "@types/nodemailer": "^7.0.0",
     "cbor-x": "1.6.4",
     "typescript": "^5.9.0"
-  }
+  },
+  "packageManager": "bun@1.4.2"
 }

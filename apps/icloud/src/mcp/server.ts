@@ -3,7 +3,7 @@ import {CallToolRequestSchema,ListToolsRequestSchema,type CallToolResult} from '
 import type {ModuleRuntime} from '../modules/runtime.js';
 /** Protocol host; authorization and availability derive exclusively from registrations. */
 export function createServer(runtime:ModuleRuntime,publicUrl:string,scopes:ReadonlySet<string>,track:(operation:()=>Promise<CallToolResult>)=>Promise<CallToolResult>=operation=>operation()){
- const server=new Server({name:'icloud',version:'0.1.18'},{capabilities:{tools:{}}});
+ const server=new Server({name:'icloud',version:'0.1.19'},{capabilities:{tools:{}}});
  server.setRequestHandler(ListToolsRequestSchema,async()=>({tools:runtime.listTools()}));
  server.setRequestHandler(CallToolRequestSchema,async request=>{
   const entry=runtime.tool(request.params.name);

@@ -56,7 +56,7 @@ multi-provider or multi-account registry.
 ## Verification and extension
 
 Tests remain colocated in each owned component. Application typechecks and unit
-tests run through `bun run typecheck` and `bun run test` from the repo root; built
+tests run through `bun bin/typecheck` and `bun bin/test` from the repo root; built
 protocol/application tests belong to [apps/e2e](../../../e2e/README.md).
 Synthetic fixtures establish local contracts, not live Apple interoperability.
 

@@ -1,4 +1,4 @@
-# Bun workspace and application boundaries
+# Independent packages and application boundaries
 
 The accepted structure has one complete application, `apps/icloud`. There is no
 separate `apps/server` and no production MCP client. Codex and ChatGPT consume
@@ -43,14 +43,45 @@ this layout inventory does not identify or verify a running release.
 
 | Lifecycle | Command from repository root | Output and boundary |
 | --- | --- | --- |
-| Development | `bun run dev` | Runs source with watch; requires local app configuration. No deployment. |
-| Build | `bun run build` | Typechecks then emits `apps/icloud/dist/index.js` for Bun. Does not start a service. |
-| Release | `bun run release` | Packages the existing build and installed dependencies into a versioned host-platform archive under `releases/`; refuses overwrite. No build, registry upload or publication. |
-| Runtime | `bun run runtime` | Runs the existing app build only; no compilation or dependency installation. |
-| Verification | `bun run typecheck`, `bun run test` | Checks app and tooling units/types; `bun run e2e` uses the separate built-service project. Playground remains explicit. |
+| Development | `bun bin/dev` | Runs source with watch; requires local app configuration. No deployment. |
+| Build | `bun bin/build` | Typechecks then emits `apps/icloud/dist/index.js` for Bun. Does not start a service. |
+| Release | `bun bin/release` | Packages the existing build and installed dependencies into a versioned host-platform archive under `releases/`; refuses overwrite. No build, registry upload or publication. |
+| Runtime | `bun bin/runtime` | Runs the existing app build only; no compilation or dependency installation. |
+| Verification | `bun bin/typecheck`, `bun bin/test` | Checks app and tooling units/types; `bun bin/e2e` uses the separate built-service project. Playground remains explicit. |
 
-Install workspace dependencies with `bun install --frozen-lockfile` after the
-root lockfile is updated. Runtime configuration is explicit TOML passed with `--config`; copy `apps/icloud/config.example.toml` outside the release. Apple credentials are enrolled through the private setup UI, never environment variables. The old `.env.example` is a superseded external-auth prototype. Never package configuration, `.env`, custody files or credentials.
+Each application/package owns its `package.json`, committed `bun.lock`, and local
+`node_modules`. The repository root has no package manifest, lockfile, workspace
+configuration, or dependency installation. No `workspace:*` dependency is allowed.
+Install independently from each owner directory:
+
+```sh
+(cd apps/icloud && bun install --frozen-lockfile)
+(cd apps/e2e && bun install --frozen-lockfile)
+(cd packages/tooling && bun install --frozen-lockfile)
+```
+
+Root `bin/` entrypoints only dispatch commands; they do not own dependencies.
+The E2E package reads the already-built application through relative paths and
+has its own test dependencies. Playground packages retain independent ownership.
+
+Build emits `apps/icloud/dist`. Artifact assembly defaults to
+`apps/icloud/build/<platform>-<arch>` and owns production dependencies at
+`apps/icloud/node_modules` inside the assembled artifact. Release archives default
+to `releases`. Neither step installs or restarts a service.
+Extract the selected archive into `releases/<version>-<platform>-<arch>`.
+For production, run that release's `./icloud-plugin install`; the default owned
+installation is `~/.decompozr/plugins/icloud`. Root `releases/` holds distribution
+artifacts, not production private state. The installation contains immutable
+`releases/<version>-<platform>-<arch>`, an atomic `current` link, and separately
+managed private configuration/custody/state under `runtime/`.
+Run `~/.decompozr/plugins/icloud/current/icloud-plugin run` after configuring
+`runtime/config.toml`. Installation never provisions an owner or launches a
+service. `update` requires an existing owned installation; `--prefix PATH`
+selects an explicit isolated instance. Neither action compiles or downloads.
+The prior root `releases/runtime` deployment is historical; migration must stop
+the old process and preserve private state and permissions before starting the
+installed release without initialization.
+ Runtime configuration is explicit TOML passed with `--config`; copy `apps/icloud/config.example.toml` outside the release. Apple credentials are enrolled through the private setup UI, never environment variables. The old `.env.example` is a superseded external-auth prototype. Never package configuration, `.env`, custody files or credentials.
 The root MCP manifest intentionally has no configured server: deployment must
 provide a reviewed URL using `docs/mcp.remote.example.json`. No app mapping ID or
 active public endpoint is invented.
@@ -64,15 +95,15 @@ with external dependencies, not a cross-platform executable. Package/release on
 the target OS/architecture with compatible dependencies and test that artifact.
 The archive includes dependency files; it still requires a compatible Bun runtime.
 
-Native artifact installation and updates are implemented, and the owned native
-service runs 0.1.17. Earlier application candidates passed isolated Linux
+Native artifact installation and updates are implemented. Historical native
+deployment observations are recorded separately in current status. Earlier application candidates passed isolated Linux
 container checks; this does not establish live container acceptance or Linux
 validation of release 0.1.17. Persistent login/reboot service installation and
 live container deployment remain incomplete. See the
 [deployment lifecycle](deployment-lifecycle.md) for operational boundaries.
 
-Old root build output was preserved under ignored `.flow-runtime/pre-workspace-dist`.
-It is not current output. No existing private configuration was moved or created.
+Historical root build output once used `.flow-runtime/pre-workspace-dist`; it is
+not part of the current lifecycle. Current builds use only the application paths above.
 
 ## Historical structural verification
 
@@ -88,8 +119,23 @@ runtime login or Linux application acceptance. No playground suite was rerun.
 ## Test and command ownership
 
 `apps/icloud/src` contains production code and colocated component/unit `.test.ts`
-files. `apps/e2e` is a separate Bun workspace: runtime imports use the existing private built
+files. `apps/e2e` is an independent Bun package: runtime imports use the existing private built
 application modules, and it owns protocol/HTTP/lifecycle fixtures. E2E code is not a
 production dependency or release payload. `bin` provides lifecycle command entry
 points; reusable build/deployment implementations and their colocated tests live
 in `packages/tooling/src`. Playground experiments remain independent.
+
+## Independent package verification
+
+The package-isolation change passed frozen installs independently in all three
+packages with no root `node_modules`, application/tooling typechecks and build,
+unit tests, and 11 built E2E tests (236 assertions). Version 0.1.19 was assembled
+with production dependencies under its application directory and archived using
+the application build and root release defaults. An archive extracted outside the checkout passed
+installation, initialization with synthetic state, two starts, preserved custody,
+and graceful shutdown (25 assertions). Dependency symlinks remain inside their
+own package. Existing locked dependency versions were retained.
+
+Container build definitions now install the app and tooling separately. Linux
+execution was not rerun: the local Apple Container API server was not running or
+registered with launchd. Historical Linux checks do not validate this new layout.

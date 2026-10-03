@@ -1,6 +1,6 @@
 import {artifactSchema,type Artifact} from './artifact.js';
 import {cp,mkdir,readFile,rename,rm,symlink,lstat} from 'node:fs/promises';
-import {resolve,join,relative,parse} from 'node:path';
+import {resolve,join,relative,parse,dirname} from 'node:path';
 export async function inspectArtifact(path:string):Promise<Artifact>{
  const value=artifactSchema.parse(JSON.parse(await readFile(join(path,'artifact.json'),'utf8')) as unknown);
  if(value.bun!==Bun.version)throw Error('Artifact requires its recorded Bun version');
@@ -15,7 +15,7 @@ export async function installArtifact(source:string,prefix:string,update=false){
  if(!relative(source,prefix).startsWith('..'))throw Error('Installation must be outside artifact');
  const metadata=await inspectArtifact(source);
  if(update){if(await readFile(join(prefix,'.icloud-install'),'utf8')!==marker)throw Error('Not an owned installation');}
- else{await mkdir(prefix,{recursive:false});await Bun.write(join(prefix,'.icloud-install'),marker);}
+ else{await mkdir(dirname(prefix),{recursive:true});await mkdir(prefix,{recursive:false,mode:0o700});await Bun.write(join(prefix,'.icloud-install'),marker);}
  const id=`${metadata.version}-${metadata.platform}-${metadata.arch}`;
  const release=join(prefix,'releases',id),pending=join(prefix,`.current-${process.pid}`);
  await mkdir(join(prefix,'releases'),{recursive:true});

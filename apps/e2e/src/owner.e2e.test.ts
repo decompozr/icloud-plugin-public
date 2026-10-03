@@ -14,7 +14,7 @@ import type {AppSettings} from '../../icloud/dist/server/settings.js';
 import type {MailGateway,MailSession,MailMessageInput,SendResult} from '../../icloud/dist/mail/domain/mail.js';
 import {passkeyResponse} from './helpers/owner-passkey.js';
 
-// Run via the separate E2E workspace: the built application API, real HTTP/auth/storage,
+// Run via the separate E2E package: the built application API, real HTTP/auth/storage,
 // and synthetic Passkey signatures. This is not browser/Apple/Tailscale acceptance.
 const challenge=z.object({challenge:z.string()});
 const tokens=z.object({access_token:z.string(),refresh_token:z.string()});

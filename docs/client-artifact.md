@@ -8,7 +8,7 @@ workflow skill. Neither export installs a client connection or publishes an app.
 After selecting the service's public MCP URL, run from the repository root:
 
 ```sh
-bun run export:plugin --url https://YOUR-HOST.ts.net/icloud/mcp --out /NEW/client-directory
+bun bin/export-plugin --url https://YOUR-HOST.ts.net/icloud/mcp --out /NEW/client-directory
 ```
 
 The output includes `.agents/plugins/marketplace.json` and

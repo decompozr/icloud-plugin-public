@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "icloud-plugin",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "description": "Read and manage your own iCloud mailbox through a locally hosted MCP server.",
   "license": "MIT",
   "keywords": [

@@ -77,3 +77,56 @@ credentials, tokens, raw errors or stack traces. Logging failure must not change
 the operation result. No telemetry is proof of remote delivery.
 
 Operator capability policy is seeded once from the installation's current TOML flags, including an already enabled sending flag. Subsequent owner-confirmed changes are persisted separately in SQLite and take effect for new tool calls without restarting. Disabling Read blocks all mailbox tools; Write additionally controls mutations and unsubscribe submission; Send remains a separate OAuth permission. Re-enabling a capability requires explicit owner confirmation. Changes never expand existing OAuth clients or grants, and already admitted work drains to its actual outcome. Downloadable plugin archives remain a separate delivery checkpoint.
+
+## Production installation location
+
+The release provides an executable `icloud-plugin` command. `icloud-plugin install`
+installs that artifact into `~/.decompozr/plugins/icloud`; `update` atomically
+selects a new immutable release in an existing marked installation. Root project
+`releases/` remains the distribution output. Production config/state/custody live
+under the installation's `runtime/`, outside immutable version directories.
+`current/icloud-plugin run` starts the selected build with `runtime/config.toml`
+and never initializes, builds, installs dependencies, or rewrites configuration.
+An explicit `--config` permits a different private configuration; provisioning
+requires explicit `--initialize`. Installation does not migrate data or manage
+processes implicitly. Stop the old service before migrating existing state and
+preserve configuration bytes, SQLite state, custody and owner-only permissions.
+
+### Installer packaging revision evidence
+
+The `0.1.19-installer1` distribution adds the standalone CLI to the previously
+validated `0.1.19` application without rebuilding or deploying the concurrent
+Mail-module source refactor. `packaging.json` records this provenance. All 14,259
+original files/symlinks were independently compared and preserved; the only
+additions are the launcher, bundled installer JavaScript and packaging record.
+The application version and installed release ID remain `0.1.19` and
+`0.1.19-darwin-arm64`; `installer1` identifies the distribution packaging revision.
+The original archive was preserved during packaging and removed after successful
+production migration, as recorded below. The installer1 archive SHA-256 is
+`d4af08188e53f77518736398c5bec7cda5296508583fa54783510a867995048e`.
+
+The shipped CLI passed the native lifecycle test (1 test, 26 assertions): actual
+installation, explicit-only provisioning, two starts, protected endpoints/assets,
+graceful termination, closed listeners and unchanged custody across restarts.
+The standalone CLI suite additionally checks the standard prefix with an isolated
+home, paths with spaces, duplicate-install/update refusal and retained config on
+uninstall. The production runtime migration has its own separately recorded
+process/configuration and health evidence.
+
+During installer work, checks against the concurrently changing checkout briefly
+passed typecheck and 147 application unit tests, then exposed an E2E drain timeout
+and a later module-fixture type error. Those intermediate observations are not
+acceptance evidence for deploying that refactor. No `0.1.20` application was
+installed: its unshipped staging artifact and archive were removed. Independent
+refactor results, if subsequently recorded, are separate from this stable
+application packaging and migration.
+
+Production migration completed through the actual released install command. The
+installed `current/icloud-plugin run` launcher started application 0.1.19 using
+the migrated `runtime/config.toml`; all 13 doctor checks plus local/private health
+checks passed. Configuration/custody and persistent owner/auth/policy records were
+verified unchanged, with SQLite integrity checks passing. Task-owned root runtime
+and extracted distributions were removed after verification. The final installer1
+archive remains at project root `releases/`; the sole installed application and
+private runtime occupy approximately 155 MiB at the standard prefix. See current
+status for observed process IDs and retained distribution sizes.

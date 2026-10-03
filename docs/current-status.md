@@ -1,5 +1,25 @@
 # Source architecture and evidence status
 
+## Production installation verified (2026-10-03 UTC)
+
+The released `icloud-plugin install` command installed the stable 0.1.19
+application with installer1 packaging into `~/.decompozr/plugins/icloud`.
+The detached launcher PID 15377 (parent PID 1) starts server PID 15381 from
+`~/.decompozr/plugins/icloud/releases/0.1.19-darwin-arm64`, using
+`~/.decompozr/plugins/icloud/runtime/config.toml`. These are observed process IDs,
+not persistent identifiers. All 13 doctor checks and local/private health checks
+passed. The stopped-state copy preserved all bytes and modes; post-start checks
+confirmed unchanged configuration/custody and owner, user, passkey, OAuth client,
+token, consent and operator-policy records. Both SQLite integrity checks passed.
+
+The installation occupies approximately 155 MiB. Root `releases/` now contains
+only the installer1 archive (24 MiB) and the pre-existing 0.1.0 archive (34 MiB).
+Task-owned extracted releases, the old 0.1.19 archive and root runtime data were
+removed only after successful migration and preservation checks. The concurrent
+Mail-module source refactor was not deployed. Release provenance and archive hash
+are recorded in [deployment lifecycle](deployment-lifecycle.md).
+
+
 The source now separates the Mail feature from shared module registration, MCP,
 authentication, owner storage and server infrastructure. Current boundaries and
 extension limits are documented in [architecture](architecture.md) and the
@@ -15,6 +35,22 @@ In particular, previously recorded release numbers must not be used to infer the
 current filesystem or authorize removal of runtime data. Refactor verification is
 reported separately from those historical acceptance records.
 
+## Combined source verification before PR (2026-10-03 UTC)
+
+`bun bin/checkpoint` passed application/tooling typechecks, the production build,
+application/tooling unit suites (including the standalone installer CLI), E2E
+compilation and all 11 built E2E tests (236 assertions). A fresh native artifact
+assembled from this combined source also passed the actual released CLI lifecycle
+in an isolated temporary installation: 1 test, 26 assertions, including explicit
+initialization, protected endpoints/assets, two starts, graceful shutdown and
+preserved custody. The task-owned verification assembly was removed after the
+check; no distribution archive or production installation was changed.
+
+This verifies the combined package isolation, release installer and Mail module
+source changes. It does not deploy that source or repeat live iCloud operations,
+ChatGPT consent/refresh, or Linux container execution. The production installation
+record above remains separate from this source verification.
+
 ## Mail module refactor verification
 
 The application now registers Mail tools/scopes through `ModuleRuntime`; the shared
@@ -27,14 +63,13 @@ Mail ledger's derived key) and then closes shared storage. Application-assembly
 failure also unwinds started modules. Existing storage tables, encryption contexts, tool names and scopes remain
 compatible; no runtime data migration or live deployment was performed.
 
-Merge verification ran `bun run checkpoint` against an isolated export of the
-staged Mail refactor, with unchanged baseline manifests and tooling. Existing
-local dependency installations were reused; no fresh install was performed:
+Final integrated verification reported by the implementation worker after the
+localization and ledger-disposal corrections:
 
-- `bun run test`: application 154 tests, 626 assertions across 26 files;
-  tooling 8 tests, 87 assertions across 5 files; zero failures.
+- `bun bin/test`: application 154 tests, 626 assertions across 26 files;
+  tooling 9 tests, 97 assertions across 6 files; zero failures.
 - `bun bin/build`: passed, including application typecheck and declaration build.
-- `bun run e2e`: 11 tests, 236 assertions across 6 files; zero failures.
+- `bun bin/e2e`: 11 tests, 236 assertions across 6 files; zero failures.
 - Independent review found no blocking issues. The five module/runtime integration
   tests cover namespace rejection, Mail plus synthetic Calendar registration,
   a signed Calendar-only bearer through HTTP, startup-failure cleanup and draining.
@@ -50,6 +85,36 @@ still uses one Apple account credential form; shared copy/client artifact conten
 is not a fully module-generated UI. No live mailbox operations, physical Passkey
 ceremonies, deployment/routing changes or actual client catalog refresh were run
 for this refactor. Historical acceptance records follow separately.
+
+## Historical package isolation and initial release 0.1.19 deployment
+
+Each application/package now owns its manifest, committed lockfile, and dependency
+installation. Root `package.json`, `bun.lock`, and `node_modules` are removed.
+`bun bin/checkpoint` dispatches verification without creating a root workspace.
+Build output is `apps/icloud/dist`, native assembly is
+`apps/icloud/build/<platform>-<arch>`, and archives are in the repository-root `releases/`.
+At that stage, the selected release ran directly from
+`releases/0.1.19-darwin-arm64`, with configuration/state/custody in
+`releases/runtime`. Versioned runtime and mutable state are separate
+from build output. See [layout](workspace.md).
+
+Frozen installs, typechecks, build, unit/tooling tests, 11 built E2E tests
+(236 assertions), archive structure checks, and an extracted-release lifecycle
+test (25 assertions) passed. Version 0.1.19 archive SHA-256 is
+`367ce7fe30f29461d1d9a660a35cdc2d3d069ce548326c48e06e1dda053cca88`.
+Linux container execution was not rerun because its API server was unavailable.
+That initial owner-requested migration ran the extracted release directly at
+`releases/0.1.19-darwin-arm64`, PID 8749 (detached, parent PID 1), with matching
+working directory. Configuration/state/custody were stored in `releases/runtime`;
+the external installation prefix was removed. All 13 read-only doctor checks
+passed. SQLite integrity checks passed; owner/account/Passkey/OAuth tables
+were preserved, as were exact configuration/custody bytes and modes. Historical
+status/logs and backups were then retained under `releases/runtime`. The former `.flow-runtime`
+directory was deleted after preservation checks, reclaiming 1,308,428 KiB
+(about 1.25 GiB). Task verification copies, obsolete root dependency copies,
+and the rebuildable application assembly directory were also removed.
+No mailbox mutations or new OAuth consent were performed. The entries below
+describe historical deployments.
 
 ## Source verification before merge (2026-10-03)
 
