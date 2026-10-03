@@ -43,12 +43,12 @@ is separate and does not establish live behavior of these new corrections.
 
 ## Multi-account source checkpoint (2026-10-03)
 
-Application version **0.1.20** is the planned multi-account release. The user has
-authorized PR, merge, release and installed-service upgrade; packaging, release
-and deployment outcomes will be recorded only after those actions complete. The
-observed installed version below remains the historical 0.1.19 baseline. The release
-candidate's full `bun bin/checkpoint` passed after the version bump to 0.1.20,
-including all 190 tests summarized below.
+Application **0.1.20** is published as the stable native `darwin-arm64` release
+from PR #5 merge commit `b87f3d7fd7756bb176f48d3e944585412e490add`:
+[release v0.1.20](https://github.com/decompozr/icloud-plugin/releases/tag/v0.1.20).
+The authorized local upgrade completed; release and installation evidence follows
+below. The versioned candidate's full `bun bin/checkpoint` passed, including all
+190 tests summarized here.
 
 The source implements the accepted owner-only account chooser/add flow, three-stage
 owner setup without Apple credentials, per-grant account binding and stable profile
@@ -74,10 +74,19 @@ providers; known Better Auth SQLite TEXT/string-array mapping warnings remain.
 Rendered browser interaction could not be verified: CUA in-app/Chrome surfaces were
 unavailable, and native Chrome returned `cgWindowNotFound`. Narrow-layout changes
 have source review and passing HTTP/HTML integration checks, not rendered-screen
-visual or interaction acceptance. No deployment or live ChatGPT **Connect another
-account**, account-label/profile or reconnection acceptance has been performed.
+visual or interaction acceptance. Live ChatGPT **Connect another account**,
+account-label/profile and reconnection acceptance have not been performed.
 
-## Production installation verified (2026-10-03 UTC)
+## Application 0.1.20 release and installed upgrade (2026-10-03 UTC)
+
+The published native archive is 24,369,484 bytes with SHA-256
+`cc10c3bfcd3b21f087a0d0e568cae2304a85226ba90fd711e9ff11292174324d`.
+Packaging used `COPYFILE_DISABLE=1` to exclude macOS AppleDouble metadata.
+Only `darwin-arm64` is released; there is no 0.1.20 Linux release claim.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Historical 0.1.19 production installation (2026-10-03 UTC)
 
 The released `icloud-plugin install` command installed the stable 0.1.19
 application with installer1 packaging into `~/.decompozr/plugins/icloud`.
@@ -232,7 +241,7 @@ Historical read-only snapshot: native release **0.1.16**, owned PID **9988**. Cu
 | Apple Container mode | Implemented and isolated-tested, not live | Linux UID10001 E2E11/236 and installed auth+MCP1/78 passed. Host proxy path tested; native port publishing previously failed. Real production container/Tailscale/user-account acceptance remains open. |
 | Doctor and setup-plan commands | Repository tools implemented | Read-only doctor tested and run against live service; setup-plan emits validated TOML/plist/scoped route proposals only. It does not provision, load services or change routes. |
 | Calendar | Playground only; not deployed | Synthetic parser/loopback CalDAV fixtures10/55. PROPFIND/REPORT responses are canned: these do not prove search-filter correctness or independent CalDAV interoperability. No production files, MCP tools, scopes or real iCloud calendar calls. |
-| Multiple iCloud accounts | Source locally verified; not deployed | Owner-only OAuth chooser/add, account-bound grant/refresh/profile and cross-account reference checks pass. Rendered browser and actual ChatGPT Connect another account/profile/reconnection acceptance remain open. |
+| Multiple iCloud accounts | Locally verified; native 0.1.20 installed | Owner-only OAuth chooser/add, account-bound grant/refresh/profile and cross-account reference checks pass. Rendered browser and actual ChatGPT Connect another account/profile/reconnection acceptance remain open. |
 | Drive, Contacts, Photos, cross-feature workflows | Not implemented | Deferred roadmap, not current product capabilities. |
 
 ## Safe next checks
