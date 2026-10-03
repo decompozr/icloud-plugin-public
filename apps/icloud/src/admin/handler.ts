@@ -16,7 +16,6 @@ export interface AdminOptions {
  validateCredential(credential: AppleCredential): Promise<void>;
  setupState?(request:Request):Promise<{bootstrapAuthorized:boolean;passkeyRegistered:boolean}>;
 }
-const credentialSchema = z.object({user:z.string().email().max(320),appPassword:z.string().min(1).max(256)}).strict();
 const ready = (status:TailscaleStatus) => status.installed && status.authenticated && status.online && status.privateReachable;
 const headers = { 'cache-control':'no-store', 'x-content-type-options':'nosniff', 'referrer-policy':'no-referrer' };
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers});
@@ -41,9 +40,7 @@ export function createPrivateAdmin(options:AdminOptions) {
    if(request.method==='GET' && path==='/icloud/admin/status') {
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
-    const secret=options.store.readSecret(session.user.id);
-    const credentialStored=secret!==null;secret?.fill(0);
-    return json({credentialStored,capabilities:options.capabilities?.()??null});
+    return json({accounts:options.store.listAccounts(session.user.id),capabilities:options.capabilities?.()??null});
    }
    if(request.method==='GET' && path==='/icloud/setup/status') {
     const status=await options.diagnostics(),enrolled=options.store.ownerId()!==null;
@@ -71,9 +68,8 @@ export function createPrivateAdmin(options:AdminOptions) {
     if(!ready(await options.diagnostics()))return json({error:'PREREQUISITES_REQUIRED'},409);
     options.store.checkBootstrapProof(request.headers.get('x-bootstrap-proof')??'');
     const session=await options.ownerAuth.enrollmentSession(request.headers);
-    const parsed=credentialSchema.safeParse(await parseBody(request));if(!parsed.success)return json({error:'INVALID_INPUT'},400);
-    try { await options.validateCredential(parsed.data); } catch { return json({error:'PROVIDER_VALIDATION_FAILED'},422); }
-    options.store.enroll({proof:request.headers.get('x-bootstrap-proof')??'',ownerId:session.user.id,credential:Buffer.from(JSON.stringify(parsed.data))});
+    const parsed=z.object({}).strict().safeParse(await parseBody(request));if(!parsed.success)return json({error:'INVALID_INPUT'},400);
+    options.store.enroll({proof:request.headers.get('x-bootstrap-proof')??'',ownerId:session.user.id});
     return json({enrolled:true});
    }
    if(path==='/icloud/admin/capabilities') {
@@ -91,12 +87,14 @@ export function createPrivateAdmin(options:AdminOptions) {
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     if(path==='/icloud/admin/revoke') {
-     const body=z.object({}).strict().safeParse(await parseBody(request));if(!body.success)return json({error:'INVALID_INPUT'},400);
-     options.store.revokeSecret(session.user.id);return json({revoked:'local-provider-credential'});
+     const body=z.object({accountId:z.string().min(1)}).strict().safeParse(await parseBody(request));if(!body.success)return json({error:'INVALID_INPUT'},400);
+     options.store.revokeAccountSecret(session.user.id,body.data.accountId);return json({revoked:'local-provider-credential'});
     }
-    const parsed=credentialSchema.safeParse(await parseBody(request));if(!parsed.success)return json({error:'INVALID_INPUT'},400);
-    try { await options.validateCredential(parsed.data); } catch { return json({error:'PROVIDER_VALIDATION_FAILED'},422); }
-    options.store.rotateSecret(session.user.id,Buffer.from(JSON.stringify(parsed.data)));return json({updated:true});
+    const parsed=z.object({accountId:z.string().min(1),appPassword:z.string().min(1).max(256)}).strict().safeParse(await parseBody(request));if(!parsed.success)return json({error:'INVALID_INPUT'},400);
+    const account=options.store.listAccounts(session.user.id).find(item=>item.id===parsed.data.accountId);if(!account)return json({error:'ACCOUNT_NOT_FOUND'},404);
+    const credential={user:account.user,appPassword:parsed.data.appPassword};
+    try { await options.validateCredential(credential); } catch { return json({error:'PROVIDER_VALIDATION_FAILED'},422); }
+    options.store.rotateAccountSecret(session.user.id,parsed.data.accountId,Buffer.from(JSON.stringify(credential)));return json({updated:true});
    }
    return json({error:'NOT_FOUND'},404);
   } catch { return json({error:'ACCESS_OR_STATE_DENIED'},403); }

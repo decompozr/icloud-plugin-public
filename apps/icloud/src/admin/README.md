@@ -15,22 +15,22 @@ come from composition rather than Mail storage imports. The handler verifies tha
 submitted policy keys match the current policy and requires explicit confirmation
 for elevation. Enabling capabilities never changes existing OAuth grants.
 
-The current credential form remains the single Apple account address/app-specific
-password workflow. It is not a general multi-feature credential registry: adding
-Calendar with different enrollment requirements needs an explicit integration.
-The shell uses shared UI/i18n; Mail-specific presentation is supplied from Mail.
+Owner setup ends after Passkey enrollment. Mail credentials are added through the
+public OAuth account chooser after owner login. Private management lists accounts
+and targets rotation/revocation by stable account ID. This remains one owner's
+installation, rather than unrelated-owner registration or a multi-feature provider
+registry. Calendar enrollment still needs an explicit integration.
 
 ## Data flow and security
 
-Setup checks private connectivity before Passkey enrollment or credentials. An
-eligible enrollment session, independent internally injected bootstrap proof and
-successful provider validation precede owner-store enrollment. A failed validation
-can retry without exposing the password. Management requires the authoritative owner
+Setup checks private connectivity before Passkey enrollment. An
+eligible enrollment session, independent internally injected bootstrap proof precede owner-store enrollment without Apple credentials. Public account addition
+requires provider validation before encrypted persistence. Management requires the authoritative owner
 session; POST operations require exact private Origin, JSON content type and bounded
 validated bodies. The handler must only be mounted on the private listener.
 
 Status returns whether a credential exists, never its contents. Credential rotation
-replaces the single stored account. Local removal does not delete mail, revoke the
+replaces only the named account secret. Local removal does not delete mail, revoke the
 Apple password or revoke OAuth grants. Plugin export is owner-only and contains no
 server secrets. The configured public MCP URL is connection guidance, not a
 readiness check or permission to activate routing.

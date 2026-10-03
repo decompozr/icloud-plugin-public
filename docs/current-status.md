@@ -1,5 +1,41 @@
 # Source architecture and evidence status
 
+## Multi-account source checkpoint (2026-10-03)
+
+Application version **0.1.20** is the planned multi-account release. The user has
+authorized PR, merge, release and installed-service upgrade; packaging, release
+and deployment outcomes will be recorded only after those actions complete. The
+observed installed version below remains the historical 0.1.19 baseline. The release
+candidate's full `bun bin/checkpoint` passed after the version bump to 0.1.20,
+including all 190 tests summarized below.
+
+The source implements the accepted owner-only account chooser/add flow, three-stage
+owner setup without Apple credentials, per-grant account binding and stable profile
+identity. Independent source review findings are closed. Frozen dependency installs
+were explicitly approved and completed without lockfile changes.
+
+The final combined source checks passed:
+
+- `bun bin/typecheck`: application and tooling typechecks.
+- `bun bin/build`: production application and actual browser bundles.
+- `bun bin/test`: 170 application tests / 813 assertions and nine tooling tests /
+  97 assertions.
+- `bun bin/e2e`: 11 built HTTP/protocol E2E tests / 253 assertions.
+- `git diff --check`: no whitespace errors.
+
+The passing regressions cover actual legacy and new account bindings, simultaneous
+account selections, and rejecting formerly issued unbound refresh tokens when no
+legacy account exists (`invalid_grant`). Owner HTTP E2E covers two accounts with
+identical mailbox/UID identities, cross-account reference rejection, stable profiles
+and account-preserving refresh/restart. These tests use synthetic Passkeys and mail
+providers; known Better Auth SQLite TEXT/string-array mapping warnings remain.
+
+Rendered browser interaction could not be verified: CUA in-app/Chrome surfaces were
+unavailable, and native Chrome returned `cgWindowNotFound`. Narrow-layout changes
+have source review and passing HTTP/HTML integration checks, not rendered-screen
+visual or interaction acceptance. No deployment or live ChatGPT **Connect another
+account**, account-label/profile or reconnection acceptance has been performed.
+
 ## Production installation verified (2026-10-03 UTC)
 
 The released `icloud-plugin install` command installed the stable 0.1.19
@@ -80,8 +116,9 @@ localization and ledger-disposal corrections:
   whitespace checks passed.
 
 The Calendar contribution is a synthetic test fixture, not a shipped Calendar
-module, CalDAV integration or evidence of real calendar access. Current enrollment
-still uses one Apple account credential form; shared copy/client artifact content
+module, CalDAV integration or evidence of real calendar access. That refactor
+retained one Apple account credential form; the subsequent accepted multi-account
+source change moves credential addition into OAuth connection. Shared copy/client artifact content
 is not a fully module-generated UI. No live mailbox operations, physical Passkey
 ceremonies, deployment/routing changes or actual client catalog refresh were run
 for this refactor. Historical acceptance records follow separately.
@@ -144,7 +181,7 @@ Historical read-only snapshot: native release **0.1.16**, owned PID **9988**. Cu
 | Send and reply | Yes; operator sending enabled | Synthetic SMTP/error/replay/threading tests. User reported iCloud→Gmail→iCloud→Gmail three-email exchange in one thread, correct reply headers: live PASS. This does not authorize additional sends. |
 | Create draft | Yes | Synthetic APPEND/identity/replay tests; user reported saved Drafts UID430/UIDVALIDITY4 with Chinese text/emoji and readback: live PASS. Editing or sending an existing draft is not implemented. |
 | Unsubscribe discovery/submission | Yes, bounded supported mechanisms | Header classification and production outbound destination/redirect/bounds policy tested with fixtures. Real subscription cancellation not live-accepted; submission is not confirmation and arbitrary browsing is not supported. |
-| Single-owner Passkey/OAuth setup | Yes | Real synthetic signed Passkey/HTTP OAuth tests; user completed actual owner enrollment and connected ChatGPT. No multi-account support. |
+| Single-owner Passkey/OAuth setup | Yes | Real synthetic signed Passkey/HTTP OAuth tests; user completed actual owner enrollment and connected ChatGPT. The deployed baseline is single-account; multi-account source acceptance is tracked below. |
 | Account management and capability controls | Yes | Private owner-session/Origin checks, credential rotation/revoke and persisted policy tests; confirmed elevation required. UI controls are deployed but post-upgrade live owner interaction has not been independently exercised. Grants are never automatically expanded. |
 | Incremental scope discovery/consent | Corrected in 0.1.16 | Actual installed auth+MCP same-client lifecycle regression passed 1 test/90 assertions, including expiry, refresh rotation, rejected scope escalation (400), rejected replay of old/successor refresh tokens (400), revocation, and an unaffected separate read-only grant; policy-enabled descriptors expose read+action scopes while calls still enforce permission. Actual ChatGPT upgrade without reinstall remains unverified; legacy clients with narrower registered ceilings are not automatically migrated. |
 | Private wizard, shared UI/i18n, monochrome icon | Yes | Typed English/Chinese resources, component checks and prior browser wizard evidence; new deployed icon hash verified. Complete latest dashboard visual/accessibility walkthrough still pending. |
@@ -154,7 +191,8 @@ Historical read-only snapshot: native release **0.1.16**, owned PID **9988**. Cu
 | Apple Container mode | Implemented and isolated-tested, not live | Linux UID10001 E2E11/236 and installed auth+MCP1/78 passed. Host proxy path tested; native port publishing previously failed. Real production container/Tailscale/user-account acceptance remains open. |
 | Doctor and setup-plan commands | Repository tools implemented | Read-only doctor tested and run against live service; setup-plan emits validated TOML/plist/scoped route proposals only. It does not provision, load services or change routes. |
 | Calendar | Playground only; not deployed | Synthetic parser/loopback CalDAV fixtures10/55. PROPFIND/REPORT responses are canned: these do not prove search-filter correctness or independent CalDAV interoperability. No production files, MCP tools, scopes or real iCloud calendar calls. |
-| Drive, Contacts, Photos, cross-feature workflows, multi-account | Not implemented | Deferred roadmap, not current product capabilities. |
+| Multiple iCloud accounts | Source locally verified; not deployed | Owner-only OAuth chooser/add, account-bound grant/refresh/profile and cross-account reference checks pass. Rendered browser and actual ChatGPT Connect another account/profile/reconnection acceptance remain open. |
+| Drive, Contacts, Photos, cross-feature workflows | Not implemented | Deferred roadmap, not current product capabilities. |
 
 ## Safe next checks
 

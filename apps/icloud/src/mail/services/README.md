@@ -19,3 +19,10 @@ identity validation, selected-message operations, outbound replay/error paths,
 extensions and unsubscribe policy with injected providers. These tests do not prove
 live mailbox capabilities or subscriber removal. New feature behavior belongs in
 its own feature module rather than being added to Mail services.
+
+The production module resolves credentials from the verified invocation account
+for every gateway operation. Its shared durable ledger namespaces new-account
+replay keys by owner and account, retaining the original owner namespace only for
+the migrated legacy account. New-account draft revisions also include account
+identity; legacy revisions retain their previous hash for compatibility. Module
+teardown disposes the shared ledger once, after runtime invocation draining.

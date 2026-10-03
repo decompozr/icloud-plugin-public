@@ -1,5 +1,5 @@
 import {test,expect} from 'bun:test';
-import {signedOAuthQuery} from './browser.js';
+import {signedOAuthQuery,connectionCredential} from './browser.js';
 import {renderAuthPage} from './pages.js';
 test('signed continuation filters page parameters and preserves repeated resource parameters',()=>{
  const query=signedOAuthQuery('?client_id=c&resource=a&resource=b&ba_param=client_id&ba_param=resource&sig=s&theme=dark');
@@ -94,3 +94,21 @@ test('registered Mail consent labels retain locale and unknown-module fallback t
   expect(consentScopeLabel(labels,'mail.send','fr')).toBe('Send new messages and replies from your iCloud mailbox');
  }finally{await i18n.changeLanguage('en');}
 });
+
+ test('native account connection collects transient secrets and consent identifies selected account',async()=>{
+ const {i18n}=await import('../i18n/index.js');
+ try{for(const locale of ['en','zh-TW']){await i18n.changeLanguage(locale);const html=renderAuthPage('connect');expect(html).toContain('data-connect-accounts');expect(html).toContain('data-connect-form hidden');expect(html).toContain('type="password"');expect(html).toContain('autocomplete="new-password"');expect(html).not.toContain('name="appPassword" value=');expect(html).toContain('data-auth-deny');expect(renderAuthPage('consent')).toContain('data-auth-account');}}
+ finally{await i18n.changeLanguage('en');}
+ });
+
+test('adding an account with no optional name omits the label and preserves transient password',()=>{
+ const data=new FormData();data.set('user','first@icloud.com');data.set('appPassword','transient');data.set('label','   ');
+ expect(connectionCredential(data)).toEqual({user:'first@icloud.com',appPassword:'transient'});
+ data.set('label',' Work ');expect(connectionCredential(data).label).toBe('Work');
+});
+
+ test('saved-account recovery explicitly requires a fresh native connection in both locales',async()=>{
+ const {authT}=await import('./i18n.js');const {i18n}=await import('../i18n/index.js');
+ try{for(const locale of ['en','zh-TW']){await i18n.changeLanguage(locale);expect(authT('savedReconnect')).toContain('Connect another account');expect(authT('connectionExpired')).toContain('Connect another account');}}
+ finally{await i18n.changeLanguage('en');}
+ });

@@ -29,13 +29,16 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
  const server=Bun.serve({hostname:'127.0.0.1',port:0,fetch:r=>handler(r)}),base=`http://127.0.0.1:${server.port}`;
  let enabledScopes=['mail.read','mail.write','offline_access'];
  let owner:string|undefined;const proof='fixture-proof';
+ const accounts=[{id:'original-mailbox',user:'first@icloud.com',label:'First',credentialStored:true},{id:'second-mailbox',user:'second@icloud.com',label:'Second',credentialStored:true}];
+ let legacyId:string|null=accounts[0]!.id;
+ const accountStore={listAccounts:()=>accounts,legacyAccountId:()=>legacyId,account:(_owner:string,id:string)=>{const account=accounts.find(a=>a.id===id);if(!account)throw Error('Account unavailable');return account;},addAccount:()=>{throw Error('Not exercised');}};
  const cookies=new Map<string,string>();
  const request=async(path:string,body?:Record<string,unknown>,form=false,privateRoute=false)=>{
   const r=new Request(base+path,{method:body?'POST':'GET',headers:{origin:base,cookie:[...cookies].map(([k,v])=>`${k}=${v}`).join('; '),'x-bootstrap-proof':proof,...(body?{'content-type':form?'application/x-www-form-urlencoded':'application/json'}:{})},body:body?(form?new URLSearchParams(z.record(z.string()).parse(body)):JSON.stringify(body)):undefined});
   const res=privateRoute?await component.privateHandler(r):await fetch(r,{redirect:'manual'});
   for(const cookie of res.headers.getSetCookie()){const pair=cookie.split(';')[0]!,at=pair.indexOf('=');cookies.set(pair.slice(0,at),pair.slice(at+1));}return res;
  };
- const config={database:db,publicBaseURL:base,privateOrigin:base,rpID:'127.0.0.1',secret:'fixture-long-only-secret-production-never-123',resource:base+'/icloud/mcp',scopes:['mail.read','mail.write','mail.send','offline_access'],allowedScopes:()=>enabledScopes,ownerId:()=>owner,checkBootstrapProof:(value:string)=>{if(value!==proof)throw Error('Denied');}};
+ const config={accountStore,database:db,publicBaseURL:base,privateOrigin:base,rpID:'127.0.0.1',secret:'fixture-long-only-secret-production-never-123',resource:base+'/icloud/mcp',scopes:['mail.read','mail.write','mail.send','offline_access'],allowedScopes:()=>enabledScopes,ownerId:()=>owner,checkBootstrapProof:(value:string)=>{if(value!==proof)throw Error('Denied');}};
  db.exec('CREATE TABLE plugin_auth_private (id TEXT PRIMARY KEY, value TEXT NOT NULL)');
  db.query('INSERT INTO plugin_auth_private VALUES (?,?)').run('resource-client','legacy-encrypted-record');
  let component=await createOwnerAuth(config);
@@ -76,13 +79,31 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const verifier=b64(randomBytes(32));
   const authorizationPath='/icloud/auth/oauth2/authorize?'+new URLSearchParams({client_id:client.client_id,redirect_uri:base+'/callback',response_type:'code',scope:'mail.read offline_access',resource:base+'/icloud/mcp',state:'fixture-state',code_challenge:b64(hash(verifier)),code_challenge_method:'S256'});
   const start=await request(authorizationPath);
-  expect(start.status).toBe(302);const location=new URL(start.headers.get('location')!,base);expect(location.pathname).toBe('/icloud/consent');
-  const consent=await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:location.search.slice(1)});
+  expect(start.status).toBe(302);const location=new URL(start.headers.get('location')!,base);expect(location.pathname).toBe('/icloud/connect');
+  expect((await request('/icloud/connect/status?oauth_query='+encodeURIComponent(location.search.slice(1)))).status).toBe(200);
+  expect((await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:location.search.slice(1)})).status).toBe(403);
+  expect((await request('/icloud/auth/oauth2/continue',{postLogin:true,oauth_query:location.search.slice(1)})).status).toBe(403);
+  expect((await request('/icloud/connect/select',{accountId:'second-mailbox',oauth_query:location.search.slice(1).replace('fixture-state','tampered-state')})).status).toBe(400);
+  const selected=z.object({url:z.string()}).parse(await(await request('/icloud/connect/select',{accountId:'original-mailbox',oauth_query:location.search.slice(1)})).json());
+  const consentLocation=new URL(selected.url,base);expect(consentLocation.pathname).toBe('/icloud/consent');
+  // Another raw authorization with the same client/state/PKCE must not change an already displayed consent.
+  await new Promise(resolve=>setTimeout(resolve,2));
+  const overlapping=await request(authorizationPath),overlappingLocation=new URL(overlapping.headers.get('location')!,base);
+  const overlappingSelection=z.object({url:z.string()}).parse(await(await request('/icloud/connect/select',{accountId:'second-mailbox',oauth_query:overlappingLocation.search.slice(1)})).json());
+  const overlappingConsent=new URL(overlappingSelection.url,base);
+  const originalStatus=await request('/icloud/connect/status?oauth_query='+encodeURIComponent(consentLocation.search.slice(1)));
+  expect(z.object({selectedAccount:z.object({id:z.string()})}).parse(await originalStatus.json()).selectedAccount.id).toBe('original-mailbox');
+  expect((await request('/icloud/auth/oauth2/consent',{accept:false,oauth_query:overlappingConsent.search.slice(1)})).status).toBe(200);
+  const parallelConsent=await Promise.all([request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:consentLocation.search.slice(1)}),request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:consentLocation.search.slice(1)})]);
+  expect(parallelConsent.map(item=>item.status).sort()).toEqual([200,403]);
+  const consent=parallelConsent.find(item=>item.status===200)!;
   const decision=z.object({url:z.string()}).parse(await consent.json());
   const callback=new URL(decision.url);expect(callback.searchParams.get('state')).toBe('fixture-state');
   const exchanged=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:client.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:callback.searchParams.get('code')!,code_verifier:verifier},true);
   const tokens=tokensSchema.parse(await exchanged.json());expect(exchanged.status).toBe(200);
   expect((await component.verifyBearer('Bearer '+tokens.access_token)).subject).toBe(owner);
+  expect((await component.verifyBearer('Bearer '+tokens.access_token)).accountId).toBe('original-mailbox');
+  expect((await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:consentLocation.search.slice(1)})).status).toBe(403);
   const refreshed=await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:tokens.refresh_token,resource:base+'/icloud/mcp'},true);
   expect(refreshed.status).toBe(200);const next=tokensSchema.parse(await refreshed.json());
   expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('mail.read')).toBe(true);
@@ -94,17 +115,23 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   enabledScopes.push('mail.send');
   const sendStart=await request(authorizationPath.replace(client.client_id,sendClient.client_id).replace('mail.read+offline_access','mail.read+mail.send+offline_access'));
   const sendLocation=new URL(sendStart.headers.get('location')!,base);
-  expect(sendLocation.pathname).toBe('/icloud/consent');
+  expect(sendLocation.pathname).toBe('/icloud/connect');
+  const sendSelection=z.object({url:z.string()}).parse(await(await request('/icloud/connect/select',{accountId:'second-mailbox',oauth_query:sendLocation.search.slice(1)})).json());
+  const sendConsentLocation=new URL(sendSelection.url,base);
   expect(sendLocation.searchParams.get('scope')).toContain('mail.send');
   enabledScopes=enabledScopes.filter(scope=>scope!=='mail.send');
-  expect((await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:sendLocation.search.slice(1)})).status).toBe(403);
+  expect((await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:sendConsentLocation.search.slice(1)})).status).toBe(403);
   enabledScopes.push('mail.send');
-  const sendConsent=await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:sendLocation.search.slice(1)});
+  const sendConsent=await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:sendConsentLocation.search.slice(1)});
   const sendCallback=new URL(z.object({url:z.string()}).parse(await sendConsent.json()).url);
   const sendExchange=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:sendClient.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:sendCallback.searchParams.get('code')!,code_verifier:verifier},true);
   expect(sendExchange.status).toBe(200);
   const sendTokens=tokensSchema.parse(await sendExchange.json());
   expect((await component.verifyBearer('Bearer '+sendTokens.access_token)).scopes.has('mail.send')).toBe(true);
+  expect((await component.verifyBearer('Bearer '+sendTokens.access_token)).accountId).toBe('second-mailbox');
+  expect((await component.verifyBearer('Bearer '+next.access_token)).accountId).toBe('original-mailbox');
+  const secondRefresh=tokensSchema.parse(await(await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:sendClient.client_id,refresh_token:sendTokens.refresh_token,resource:base+'/icloud/mcp'},true)).json());
+  expect((await component.verifyBearer('Bearer '+secondRefresh.access_token)).accountId).toBe('second-mailbox');
   // Approving another client's send grant does not upgrade the original grant.
   expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('mail.send')).toBe(false);
   db.close();db=new Database(databasePath);component=await createOwnerAuth({...config,database:db});handler=component.publicHandler;
@@ -115,13 +142,37 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   expect((await request('/icloud/auth/oauth2/revoke',{client_id:client.client_id,token:next.refresh_token,token_type_hint:'refresh_token'},true)).status).toBe(200);
   expect((await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:next.refresh_token},true)).status).toBe(400);
   const repeated=await request(authorizationPath);
-  const secondCallback=new URL(repeated.headers.get('location')!,base);
-  expect(secondCallback.pathname).toBe('/callback');
+  const repeatedLocation=new URL(repeated.headers.get('location')!,base);expect(repeatedLocation.pathname).toBe('/icloud/connect');
+  const repeatedSelection=z.object({url:z.string()}).parse(await(await request('/icloud/connect/select',{accountId:'original-mailbox',oauth_query:repeatedLocation.search.slice(1)})).json());
+  const repeatedConsent=new URL(repeatedSelection.url,base);expect(repeatedConsent.pathname).toBe('/icloud/consent');
+  const secondCallback=new URL(z.object({url:z.string()}).parse(await(await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:repeatedConsent.search.slice(1)})).json()).url);
   const wrong={grant_type:'authorization_code',client_id:client.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:secondCallback.searchParams.get('code')!,code_verifier:b64(randomBytes(32))};
   expect((await request('/icloud/auth/oauth2/token',wrong,true)).status).toBe(401);
   expect((await request('/icloud/auth/oauth2/token',{...wrong,code_verifier:verifier},true)).status).toBe(400);
   const wrongResource=await request(authorizationPath.replace(encodeURIComponent(base+'/icloud/mcp'),encodeURIComponent(base+'/other')));
   expect(new URL(wrongResource.headers.get('location')!,base).searchParams.get('error')).toBe('invalid_target');
+  // Mint a genuine pre-upgrade grant with no account reference, then upgrade with two accounts present.
+  component=await createOwnerAuth({...config,database:db,accountStore:undefined});handler=component.publicHandler;
+  const legacyStart=await request(authorizationPath.replace('fixture-state','legacy-state'));
+  let legacyCallback=new URL(legacyStart.headers.get('location')!,base);
+  if(legacyCallback.pathname==='/icloud/consent')legacyCallback=new URL(z.object({url:z.string()}).parse(await(await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:legacyCallback.search.slice(1)})).json()).url);
+  expect(legacyCallback.pathname).toBe('/callback');
+  const legacyTokens=tokensSchema.parse(await(await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:client.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:legacyCallback.searchParams.get('code')!,code_verifier:verifier},true)).json());
+  expect(db.query<{count:number},[]>("SELECT count(*) AS count FROM oauthAccessToken WHERE referenceId IS NULL").get()!.count).toBeGreaterThan(0);
+  expect((await component.verifyBearer('Bearer '+legacyTokens.access_token)).accountId).toBeUndefined();
+  component=await createOwnerAuth({...config,database:db});handler=component.publicHandler;
+  expect((await component.verifyBearer('Bearer '+legacyTokens.access_token)).accountId).toBe('original-mailbox');
+  const legacyRefresh=tokensSchema.parse(await(await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:legacyTokens.refresh_token,resource:base+'/icloud/mcp'},true)).json());
+  expect((await component.verifyBearer('Bearer '+legacyRefresh.access_token)).accountId).toBe('original-mailbox');
+  db.close();db=new Database(databasePath);component=await createOwnerAuth({...config,database:db});handler=component.publicHandler;
+  expect((await component.verifyBearer('Bearer '+legacyRefresh.access_token)).accountId).toBe('original-mailbox');
+  // A fresh owner has no legacy mapping. Existing new accounts must never supply a fallback.
+  legacyId=null;
+  await expect(component.verifyBearer('Bearer '+legacyTokens.access_token)).rejects.toThrow();
+  await expect(component.verifyBearer('Bearer '+legacyRefresh.access_token)).rejects.toThrow();
+  expect((await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:legacyRefresh.refresh_token,resource:base+'/icloud/mcp'},true)).status).not.toBe(200);
+  expect((await component.verifyBearer('Bearer '+secondRefresh.access_token)).accountId).toBe('second-mailbox');
+  legacyId='original-mailbox';
   await request('/icloud/auth/sign-out',{});cookies.clear();
   const loginStart=await request(authorizationPath);
   const loginLocation=new URL(loginStart.headers.get('location')!,base);
@@ -130,7 +181,7 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const resumed=await request('/icloud/auth/passkey/verify-authentication',{response:response(resumedChallenge.challenge,base,false,true,2),oauth_query:loginLocation.search.slice(1)});
   expect(resumed.status).toBe(200);
   const resumeBody=z.object({url:z.string()}).parse(await resumed.json());
-  expect(new URL(resumeBody.url,base).pathname).toBe('/callback');
+  expect(new URL(resumeBody.url,base).pathname).toBe('/icloud/connect');
 
 
  }finally{await server.stop(true);db.close();rmSync(directory,{recursive:true,force:true});}

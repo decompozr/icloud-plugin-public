@@ -522,3 +522,40 @@ Scott approved redeployment of the independently reviewed optional persistent-ac
 All13 read-only doctor checks passed and all123 compiled installed files match the approved candidate. Installed-module discovery with inert providers lists20 tools, including mail_request_persistent_access requiring mail.read+offline_access. This is not an authenticated ChatGPT discovery check. Configuration/custody bytes/modes and selected nonsecret client/consent/access/refresh/resource/operator metadata remained unchanged. No mail calls, actual persistent-access invocation, new consent/grant, or routing changes occurred.
 
 Before packaging, candidate checks passed143 application tests,8 tooling tests,11 built E2E/236 assertions,18 artifact tests/146 assertions. Independent source/test review found no blocking issues. Explicit confirm=true is required before the server issues the optional tool challenge; enabled prior grants are preserved. Ordinary tool scope requirements are unchanged. Real ChatGPT metadata refresh, consent ordering, and later refresh credential use remain unverified; owner consent is still separate.
+
+
+## Accepted multi-account connection change (2026-10-03)
+
+The user selected ChatGPT's plugin details **Connect another account** entry.
+Initial setup now enrolls the owner Passkey without Apple credentials. Client OAuth
+authorization must offer existing accounts and provider-validated account addition,
+then bind explicit consent and subsequent refresh/tool use to one selected account.
+Existing account/grant identity and account-specific references must remain isolated.
+This is one owner's multi-account service; unrelated-owner registration is outside
+scope. Earlier multi-account deferral records above are historical.
+
+See [the accepted authentication contract](setup-and-auth.md#multiple-icloud-accounts-through-client-authorization).
+Source work does not deploy the running installation or establish live ChatGPT
+acceptance. The final source snapshot passed application/tooling typechecks,
+production/browser builds, application units (170 tests / 813 assertions), tooling
+units (nine / 97) and built E2E (11 / 253). Independent source findings are closed.
+Rendered browser interaction and live ChatGPT account/profile/reconnection acceptance
+remain open; see [current status](current-status.md#multi-account-source-checkpoint-2026-10-03).
+
+
+### Planned application release 0.1.20
+
+Release 0.1.20 delivers one owner's multiple iCloud accounts through client OAuth:
+setup finishes with a Passkey, each authorization selects or adds a validated
+iCloud account, and grants/refresh/profile identity and message references stay
+bound to that account. Existing active single-account credentials and grants
+migrate to the original stable account; revoked unknown legacy identity stays
+unusable. Private administration rotates or locally revokes the named account.
+
+PR, merge, release and upgrade are authorized, with final versioned-candidate
+checks being rerun. This note does not claim publication or installation. Before
+opening migrated state, retain a stopped compatible backup of owner/auth databases
+and installation custody/configuration. Rolling back to an older binary requires
+restoring that compatible state together with its release; changing only the
+release symlink cannot reverse this schema migration. Rendered browser and live
+ChatGPT add-account/profile/reconnection acceptance remain outstanding.

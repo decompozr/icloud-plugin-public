@@ -28,6 +28,10 @@ scope policies are enabled. Client consent is checked separately by the MCP host
 Disabling a feature capability therefore affects discovery and subsequent dispatch
 without granting or rewriting any OAuth scopes.
 
+`context.ts` supplies request-local verified principal context so account-aware
+modules resolve the selected account without a process-global mutable selection.
+Modules still own their credential interpretation and per-account resources.
+
 ## Lifecycle and resources
 
 Start runs in registration order. Cleanup runs in reverse order, includes a module
@@ -53,3 +57,12 @@ and waiting for active callbacks during disposal. See
 contribution proves extension mechanics only; no production Calendar module or
 CalDAV behavior is delivered. Admin setup and generated client content still need
 explicit feature integration when another feature is implemented.
+
+## Request identity
+
+`context.ts` carries an immutable verified `{ownerId, accountId}` through
+`AsyncLocalStorage` for one protocol invocation. The HTTP host supplies the bearer
+principal; tool arguments cannot select or mutate this context. Concurrent clients
+share registrations and resources while keeping their account identities separate.
+Production Mail invocations require an account binding. Unscoped test/stdio callers
+may use the explicitly migrated legacy account for compatibility.

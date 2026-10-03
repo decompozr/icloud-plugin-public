@@ -31,8 +31,10 @@ examples, their documented capabilities and evidence limits.
 mechanics, feasibility, and the evidence behind current implementation.
 
 The accepted [setup and authentication flow](docs/setup-and-auth.md) uses private
-Tailscale owner enrollment (Passkey and iCloud app-specific password), followed
-by OAuth client access with Passkey login. Local synthetic-ceremony verification is recorded in the roadmap; the owner has also completed the real browser ceremony.
+Tailscale owner enrollment with a Passkey, followed by OAuth client access with
+Passkey login and an iCloud account chooser. Each connection selects or adds one
+iCloud account using an Apple app-specific password on the hosted connection page.
+This multi-account source change is not deployed. Local synthetic-ceremony verification is recorded in the roadmap; the owner has also completed the real browser ceremony.
 
 ## Documentation map
 

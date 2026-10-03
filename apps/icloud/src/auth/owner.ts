@@ -8,6 +8,8 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID }
 import { z } from 'zod';
 import type { Principal } from './verify.js';
 import { authRateLimit } from './rate-limit.js';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { createAccountConnection, type AccountStore } from './connect.js';
 
 export interface OwnerAuthOptions {
  database: Database;
@@ -20,11 +22,13 @@ export interface OwnerAuthOptions {
  allowedScopes?(): readonly string[];
  ownerId(): string | null | undefined;
  checkBootstrapProof(proof: string): void;
+ accountStore?: AccountStore;
+ validateCredential?(credential:{user:string;appPassword:string}):Promise<void>;
 }
 const bootstrapPaths = new Set(['/icloud/auth/passkey/generate-register-options','/icloud/auth/passkey/verify-registration']);
-const publicPaths = new Set(['/icloud/auth/passkey/generate-authenticate-options','/icloud/auth/passkey/verify-authentication','/icloud/auth/get-session','/icloud/auth/sign-out','/icloud/auth/oauth2/authorize','/icloud/auth/oauth2/consent','/icloud/auth/oauth2/token','/icloud/auth/oauth2/register','/icloud/auth/oauth2/revoke','/icloud/auth/.well-known/oauth-authorization-server','/.well-known/oauth-authorization-server/icloud/auth']);
+const publicPaths = new Set(['/icloud/auth/passkey/generate-authenticate-options','/icloud/auth/passkey/verify-authentication','/icloud/auth/get-session','/icloud/auth/sign-out','/icloud/auth/oauth2/authorize','/icloud/auth/oauth2/continue','/icloud/auth/oauth2/consent','/icloud/auth/oauth2/token','/icloud/auth/oauth2/register','/icloud/auth/oauth2/revoke','/icloud/auth/.well-known/oauth-authorization-server','/.well-known/oauth-authorization-server/icloud/auth']);
 const clientSchema=z.object({client_id:z.string(),client_secret:z.string()});
-const tokenSchema=z.object({active:z.literal(true),sub:z.string(),iss:z.string(),aud:z.union([z.string(),z.array(z.string())]),scope:z.string(),exp:z.number()});
+const tokenSchema=z.object({active:z.literal(true),sub:z.string(),iss:z.string(),aud:z.union([z.string(),z.array(z.string())]),scope:z.string(),exp:z.number(),account_id:z.string().optional()});
 const cipherSchema=z.object({nonce:z.string(),tag:z.string(),value:z.string()});
 
 export async function createOwnerAuth(options:OwnerAuthOptions) {
@@ -34,6 +38,8 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
  const origins=[publicOrigin,options.privateOrigin];
  const issuer=options.publicBaseURL.replace(/\/$/,'')+'/icloud/auth';
  const checkBootstrap=(headers:Headers|undefined)=>{ if(options.ownerId())throw Error('Enrollment closed'); options.checkBootstrapProof(headers?.get('x-bootstrap-proof')??''); };
+ const requestContext=new AsyncLocalStorage<{query?:string;accountId?:string;refreshToken?:string}>();
+ let connection:ReturnType<typeof createAccountConnection>|undefined;
  const config={
   database:options.database,baseURL:options.publicBaseURL,basePath:'/icloud/auth',rateLimit:authRateLimit,advanced:{ipAddress:{ipAddressHeaders:[]},cookiePrefix:'icloud',defaultCookieAttributes:{path:'/icloud'}},secret:options.secret,trustedOrigins:origins,
   plugins:[passkey({rpID:options.rpID,rpName:'iCloud Plugin',origin:origins,authenticatorSelection:{userVerification:'required',residentKey:'required'},
@@ -53,6 +59,40 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
    resources:[{identifier:options.resource,allowedScopes:options.scopes}],
    clientRegistrationDefaultResources:[options.resource],clientRegistrationRequirePKCE:true,
    clientPrivileges:async({user})=>Boolean(user&&user.id===options.ownerId()),resourcePrivileges:async()=>false,
+   ...(options.accountStore?{
+    postLogin:{page:'/icloud/connect',shouldRedirect:async()=>!requestContext.getStore()?.accountId,
+     consentReferenceId:async({user,session}:{user:{id:string};session:{id:string}})=>{
+      const ctx=requestContext.getStore();
+      const accountId=ctx?.accountId??(ctx?.query?connection?.selected(ctx.query,user.id,session.id)?.id:undefined);
+      if(user.id!==options.ownerId()||!accountId||!options.accountStore!.account(user.id,accountId).credentialStored)throw new APIError('FORBIDDEN',{message:'Account selection required'});
+      return accountId;
+     }},
+    customAccessTokenClaims:async({user,referenceId}:{user?:{id:string}|null;referenceId?:string})=>{
+     if(!user||user.id!==options.ownerId())throw new APIError('FORBIDDEN',{message:'Owner required'});
+     const id=referenceId??options.accountStore!.legacyAccountId(user.id);
+     if(!id)throw new APIError('FORBIDDEN',{message:'Account unavailable'});
+     options.accountStore!.account(user.id,id);
+     return{account_id:id};
+    },
+    // Opaque token issuance does not execute customAccessTokenClaims. Validate
+    // the persisted grant before minting/rotating through the response hook.
+    customTokenResponseFields:async({grantType,user,verificationValue}:{grantType:string;user?:{id:string}|null;verificationValue?:{referenceId?:string}})=>{
+     if(!user||user.id!==options.ownerId())throw new APIError('FORBIDDEN',{message:'Owner required'});
+     let referenceId=verificationValue?.referenceId;
+     if(grantType==='refresh_token'){
+      const presented=requestContext.getStore()?.refreshToken;
+      if(!presented)throw new APIError('BAD_REQUEST',{error:'invalid_grant'});
+      // The provider's configured default stores SHA-256 base64url digests.
+      const stored=createHash('sha256').update(presented).digest('base64url');
+      const row=options.database.query<{userId:string;referenceId:string|null},[string]>('SELECT userId,referenceId FROM oauthRefreshToken WHERE token=?').get(stored);
+      if(!row||row.userId!==user.id)throw new APIError('BAD_REQUEST',{error:'invalid_grant'});
+      referenceId=row.referenceId??undefined;
+     }
+     const id=referenceId??options.accountStore!.legacyAccountId(user.id);
+     if(!id||!options.accountStore!.account(user.id,id).credentialStored)throw new APIError('BAD_REQUEST',{error:'invalid_grant'});
+     return{};
+    },
+   }:{}),
   })]
  };
  await(await getMigrations(config)).runMigrations();
@@ -72,9 +112,44 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
   options.database.query("INSERT INTO plugin_auth_private (id,value) VALUES (?,?)").run(resourceClientKey,seal(JSON.stringify(resourceClient)));
  }
  async function session(headers:Headers, requireOwner=true){const result=await auth.api.getSession({headers});if(!result || (requireOwner&&result.user.id!==options.ownerId()))throw Error('Owner session required');return result;}
+ if(options.accountStore)connection=createAccountConnection({database:options.database,secret:options.secret,origin:publicOrigin,store:options.accountStore,ownerSession:headers=>session(headers),validateCredential:options.validateCredential??(async()=>{throw Error('Credential validation unavailable');}),continueAuthorization:(request,query,accountId)=>requestContext.run({query,accountId},()=>auth.handler(new Request(issuer+'/oauth2/continue',{method:'POST',headers:request.headers,body:JSON.stringify({oauth_query:query,postLogin:true})})))});
  async function route(request:Request,privateRoute:boolean):Promise<Response>{
   const url=new URL(request.url),path=url.pathname,origin=request.headers.get('origin');
   if(origin&&!origins.includes(origin))return new Response('Forbidden',{status:403});
+  if(path.startsWith('/icloud/connect/'))return connection?.handle(request)??new Response('Not found',{status:404});
+  let oauthQuery:string|undefined,consentAccountId:string|undefined,consentSession:{owner:string;id:string}|undefined,consentDenied=false,refreshToken:string|undefined;
+  if(connection&&path==='/icloud/auth/oauth2/token'&&request.method==='POST'){
+   const fields=request.headers.get('content-type')?.startsWith('application/json')?await request.clone().json().catch(()=>null):Object.fromEntries(new URLSearchParams(await request.clone().text()));
+   const parsed=z.object({grant_type:z.literal('refresh_token'),refresh_token:z.string().min(1).max(4096)}).safeParse(fields);
+   if(parsed.success)refreshToken=parsed.data.refresh_token;
+  }
+  if(connection&&(path==='/icloud/auth/oauth2/consent'||path==='/icloud/auth/oauth2/continue')){
+   if(request.method!=='POST'||origin!==publicOrigin)return new Response('Forbidden',{status:403});
+   const parsed=z.object({oauth_query:z.string(),accept:z.boolean().optional(),postLogin:z.boolean().optional()}).safeParse(await request.clone().json().catch(()=>null));
+   if(!parsed.success)return new Response('Invalid authorization request',{status:400});
+   oauthQuery=parsed.data.oauth_query;
+   try{
+    const params=await connection.signed(oauthQuery),current=await session(request.headers);
+    if(params.get('ba_pl')&&params.get('ba_pl')!==current.session.id)return new Response('Invalid authorization session',{status:403});
+    if(parsed.data.postLogin)return new Response('Account selection required',{status:403});
+    if(path.endsWith('/consent')){
+     if(parsed.data.accept!==false){
+      const selected=connection.selected(oauthQuery,current.user.id,current.session.id);
+      if(!params.get('ba_pl')||params.get('ba_pl')!==current.session.id||!selected)return new Response('Account selection required',{status:403});
+      consentAccountId=selected.id;
+     }
+     consentDenied=parsed.data.accept===false;
+     consentSession={owner:current.user.id,id:current.session.id};
+    }
+   }catch{return new Response('Invalid authorization request',{status:403});}
+  }
+  if(connection&&path==='/icloud/auth/oauth2/authorize'){
+   // A signed continuation belongs on /continue. Raw authorization always starts a fresh selection.
+   if(url.searchParams.has('sig')||url.searchParams.has('ba_pl'))return new Response('Invalid authorization continuation',{status:400});
+   const prompts=new Set((url.searchParams.get('prompt')??'').split(' ').filter(Boolean));
+   if(!prompts.has('none'))prompts.add('consent');
+   url.searchParams.set('prompt',[...prompts].join(' '));request=new Request(url,request);
+  }
   if(bootstrapPaths.has(path)){
    if(!privateRoute)return new Response('Not found',{status:404});
    if(origin&&origin!==options.privateOrigin)return new Response('Forbidden',{status:403});
@@ -99,7 +174,11 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
    const existing=await auth.api.getSession({headers:request.headers});
    if(existing&&existing.user.id!==options.ownerId())return new Response('Owner required',{status:403});
   }
-  const response=await auth.handler(request);
+  if(connection&&consentSession&&oauthQuery){
+   if(consentDenied)connection.cancel(oauthQuery,consentSession.owner,consentSession.id);
+   else if(!connection.consume(oauthQuery,consentSession.owner,consentSession.id))return new Response('Authorization already used',{status:403});
+  }
+  const response=await requestContext.run({query:oauthQuery,accountId:consentAccountId,refreshToken},()=>auth.handler(request));
   if(options.allowedScopes&&path.includes('/.well-known/oauth-authorization-server')&&response.ok){
    const body=z.record(z.unknown()).parse(await response.json());
    return Response.json({...body,scopes_supported:[...options.allowedScopes()]},{status:response.status,headers:response.headers});
@@ -112,7 +191,8 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
   if(!response.ok)throw Error('Invalid token');const token=tokenSchema.parse(await response.json());
   if(token.sub!==options.ownerId()||token.iss!==issuer||token.exp<=Date.now()/1000||!(Array.isArray(token.aud)?token.aud:[token.aud]).includes(options.resource))throw Error('Invalid token claims');
   const scopes=new Set(token.scope.split(' '));
-  return{subject:token.sub,scopes};
+  if(options.accountStore){if(!token.account_id)throw Error('Account binding required');options.accountStore.account(token.sub,token.account_id);}
+  return{subject:token.sub,scopes,...(token.account_id?{accountId:token.account_id}:{})};
  }
  return{publicHandler:(request:Request)=>route(request,false),privateHandler:(request:Request)=>route(request,true),verifyBearer,ownerSession:(headers:Headers)=>session(headers),enrollmentSession:(headers:Headers)=>session(headers,false)};
 }

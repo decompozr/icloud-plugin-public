@@ -15,3 +15,14 @@ The Mail test factory supports service/provider fixtures without configuring a r
 owner installation. Colocated discovery/input/authorization tests cover the public
 contract. [Mailbox tools](../../../../../docs/mailbox-tools.md) is the authoritative
 operation catalog; avoid copying schemas here. Production Calendar tools are absent.
+
+Production account-bound registrations validate `accountId` on every message target,
+batch and search cursor before accessing a provider. IDs assert the account of an
+observed reference; they never select an account. Returned references include the
+connection's stable account ID while preserving provider UIDVALIDITY. References
+without account IDs are accepted only for the migrated original account.
+
+`mail_get_profile` accepts strictly empty arguments and requires `mail.read`.
+Its `openai/profile` metadata and output schema identify the connected account with
+stable `id`, display `name`, and `email`. Structured content and text contain the
+same top-level profile object, with no credentials.
