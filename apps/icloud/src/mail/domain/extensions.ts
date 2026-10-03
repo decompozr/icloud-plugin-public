@@ -1,6 +1,6 @@
 import {z} from 'zod';
 import {outboundRequestSchema} from './outbound.js';
-export const targetSchema=z.object({mailbox:z.string().min(1).max(512).refine(v=>!/[\r\n\0]/.test(v)),uid:z.number().int().positive().max(4294967295),uidValidity:z.string().regex(/^[0-9]+$/)}).strict();
+export const targetSchema=z.object({accountId:z.string().min(1).max(256).optional(),mailbox:z.string().min(1).max(512).refine(v=>!/[\r\n\0]/.test(v)),uid:z.number().int().positive().max(4294967295),uidValidity:z.string().regex(/^[0-9]+$/)}).strict();
 export const attachmentRequestSchema=z.object({target:targetSchema,partId:z.string().regex(/^[1-9][0-9]*(\.[1-9][0-9]*)*$/).max(128)}).strict();
 export const draftReadSchema=z.object({target:targetSchema}).strict();
 export const draftEditSchema=outboundRequestSchema.extend({target:targetSchema,revision:z.string().regex(/^[a-f0-9]{64}$/)});

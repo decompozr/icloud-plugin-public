@@ -1,7 +1,8 @@
 # Local owner setup
 
 This is the current application entry path. CP3/CP4 local integration passed independent review. CP5 artifact validation and CP6 actual routing/client checks are tracked separately.
-The native private Tailscale setup route is live. No real owner Passkey or iCloud account has been enrolled automatically.
+The native private Tailscale setup route is live. The existing installation has completed owner enrollment and ChatGPT connection;
+these instructions describe a new installation and do not reset existing state.
 
 1. Build with `bun bin/build`. Copy `apps/icloud/config.example.toml` to an
    owner-controlled directory outside the release; use absolute file paths or
@@ -23,13 +24,15 @@ The native private Tailscale setup route is live. No real owner Passkey or iClou
    read-only directory mount; stale/missing diagnostics fail closed.
 5. Configure `bootstrap_owner_login` to the intended Tailscale owner login.
    Open the private `/icloud/setup` address as that owner and follow the guided checks.
-   Click **Set up Passkey**, then enter the
-   iCloud email and Apple app-specific password in that same private page.
-   The service tests the provider connection before committing single-owner
-   enrollment. The internal bootstrap proof stays server-side; no file copying is required.
+   Click **Set up Passkey**, then finish owner enrollment. No Apple credential is
+   required at setup. The internal bootstrap proof stays server-side; no file copying is required.
    Do not send passwords through chat.
-6. The public OAuth flow uses `/icloud/sign-in` and `/icloud/consent`; private `/icloud/admin` permits
-   owner login and credential rotation/revocation. Public routing never mounts
+6. ChatGPT's plugin **Connect another account** starts public OAuth login at
+   `/icloud/sign-in`, account selection/addition at `/icloud/connect`, then consent
+   at `/icloud/consent`. Enter each iCloud email and Apple app-specific password
+   on the plugin connection page; provider validation precedes encrypted storage.
+   Each connection binds one account. Private `/icloud/admin` permits owner login
+   and account-specific credential rotation/revocation. Public routing never mounts
    setup/icloud/admin handlers. Revoking the local credential does not revoke it at
    Apple; OAuth token revocation is a separate action.
 

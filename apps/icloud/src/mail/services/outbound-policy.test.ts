@@ -2,13 +2,15 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Database} from 'bun:sqlite';
 import {createMailModule} from '../module.js';
+import {withInvocationContext} from '../../modules/context.js';
 import {OperationMonitor} from '../../observability/operations.js';
 import type {AppSettings} from '../../server/settings.js';
 import type {MailSession} from '../domain/mail.js';
 import {outboundResultSchema} from '../domain/outbound.js';
 
 const request={operationId:'12345678-1234-4234-8234-123456789abc',to:['author@example.invalid'],subject:'Fixture',text:'Fixture'};
-const target={mailbox:'INBOX',uid:41,uidValidity:'900'};
+const identity={ownerId:'fixture-owner',accountId:'fixture-account'};
+const target={accountId:identity.accountId,mailbox:'INBOX',uid:41,uidValidity:'900'};
 const settings:AppSettings={allow_writes:true,allow_send:true,host:'127.0.0.1',public_port:4100,private_port:4101,
  public_origin:'https://fixture.invalid',private_origin:'https://fixture.invalid:8443',runtime_mode:'native',
  state_directory:'unused-fixture-state',master_key_file:'unused-fixture-key',installation_marker:'unused-fixture-marker',tailscale_binary:'unused'};
@@ -33,7 +35,10 @@ function fixture(kind:'reply'|'draft',pauseAt:'preparation'|'submission'){
   search:unexpected,summaries:unexpected,metadata:unexpected,download:unexpected,mark:unexpected,flag:unexpected,tag:unexpected,move:unexpected};
  const build=()=>createMailModule(settings,{
   authDatabase:database,masterKey:new Uint8Array(32).fill(7),monitor:new OperationMonitor(()=>{}),
-  store:{ownerId:()=> 'fixture-owner',readSecret:()=>Buffer.from(JSON.stringify({user:'owner@example.invalid',appPassword:'not-a-real-password'})),
+  store:{ownerId:()=>identity.ownerId,legacyAccountId:()=>null,
+   account:(owner,id)=>{assert.equal(owner,identity.ownerId);assert.equal(id,identity.accountId);return{id,user:'owner@example.invalid',label:'Fixture',credentialStored:true};},
+   readAccountSecret:(owner,id)=>{assert.equal(owner,identity.ownerId);assert.equal(id,identity.accountId);return Buffer.from(JSON.stringify({user:'owner@example.invalid',appPassword:'not-a-real-password'}));},
+   listAccounts:unexpected,addAccount:unexpected,rotateAccountSecret:unexpected,revokeAccountSecret:unexpected,readSecret:unexpected,
    checkBootstrapProof:unexpected,enroll:unexpected,rotateSecret:unexpected,revokeSecret:unexpected,close(){}},
   provider:()=>({withSession:run=>run(session),parse:unexpected,send:unexpected}),
   outboundProvider:()=>({
@@ -46,7 +51,7 @@ function fixture(kind:'reply'|'draft',pauseAt:'preparation'|'submission'){
  return{
   blocked,calls,enabled:()=>entry().enabled(),policy:()=>module.admin.capabilities(),
   update:(policy:Record<string,boolean>,confirm=false)=>module.admin.updateCapabilities(policy,confirm),
-  async run(){const result=await entry().run({...request,...(kind==='reply'?{target}:{})});const content=result.content[0];assert.ok(content?.type==='text');return outboundResultSchema.parse(JSON.parse(content.text));},
+  async run(){const result=await withInvocationContext(identity,()=>entry().run({...request,...(kind==='reply'?{target}:{})}));const content=result.content[0];assert.ok(content?.type==='text');return outboundResultSchema.parse(JSON.parse(content.text));},
   async reopen(){await module.registration.dispose();module=build();},
   async close(){blocked.release();await module.registration.dispose();database.close();}
  };

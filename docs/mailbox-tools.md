@@ -190,7 +190,8 @@ and forbids automatic retry. After COPY, subsequent failure must never be
 reported as a clean rejection or successful move; the destination copy may
 already exist. Preserve a confirmed COPYUID destination identity and completed
 copy stage as evidence in the unknown result; this is not a successful move
-receipt. The destination identity is reported as success only after all stages
+receipt. The authenticated account binding applies equally to recovered copied
+targets and successful message references. The destination identity is reported as success only after all stages
 are confirmed. Synthetic protocol/E2E fixtures must cover these stages
 and failures before release; no real-message experiment is authorized by this
 contract.

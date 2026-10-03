@@ -43,6 +43,19 @@ No LaunchAgent is installed or loaded by the repository tooling.
 
 ## Update and rollback
 
+For the planned 0.1.20 installed-service update, use the owned immutable-release
+installer described in [deployment lifecycle](deployment-lifecycle.md). The account
+migration adds an encrypted account registry and fixed original-account link;
+it preserves owner, Passkey and active original grant identity. Retain a stopped
+pre-update backup of both owner/auth databases and their marker, custody and
+configuration before the new application opens state. Older binaries require that
+compatible state and release to be restored together; a release-symlink change
+alone does not roll back the migration. Publication and installation are tracked
+as separate outcomes in [current status](current-status.md).
+
+The checkout-based procedure below is historical guidance for the original
+pre-installer service, not the current installed-service update entrypoint.
+
 Record the deployed revision and preserve your private `.env` outside version
 control. Stop the service, update only this checkout, run `npm ci`, build and
 test, then restart. Review new scopes and tool behavior before granting them.

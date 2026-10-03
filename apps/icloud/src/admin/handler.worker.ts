@@ -2,8 +2,9 @@ import {mailAdminPresentation} from '../mail/admin.js';
 import { createPrivateAdmin } from './handler.js';
 import { SqliteOwnerStore } from '../storage/owner-store.js';
 import { z } from 'zod';
-const input=z.object({databasePath:z.string(),markerPath:z.string(),masterKey:z.string(),bootstrapProof:z.string(),ready:z.boolean()}).parse(JSON.parse(await Bun.stdin.text()) as unknown);
+const input=z.object({databasePath:z.string(),markerPath:z.string(),masterKey:z.string(),bootstrapProof:z.string(),ready:z.boolean(),seedAccount:z.boolean().optional()}).parse(JSON.parse(await Bun.stdin.text()) as unknown);
 const store=SqliteOwnerStore.provision({...input,masterKey:Buffer.from(input.masterKey,'hex')});
+if(input.seedAccount){store.enroll({proof:input.bootstrapProof,ownerId:'owner'});store.addAccount('owner',{user:'owner@example.invalid',label:'Personal',credential:Buffer.from(JSON.stringify({user:'owner@example.invalid',appPassword:'dummy-secret'}))});}
 const session=async(headers:Headers)=>{const id=headers.get('x-fixture-session');if(!id)throw Error();return{user:{id}};};
 let policy:Record<string,boolean>={read:true,write:true,send:false,unsubscribe:false};
 let handler:(request:Request)=>Promise<Response>;

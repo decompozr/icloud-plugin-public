@@ -1,3 +1,4 @@
+import {invocationContext} from '../modules/context.js';
 import {Database} from 'bun:sqlite';
 import {z} from 'zod';
 import {SqliteOperatorPolicy} from './storage/operator-policy.js';
@@ -27,14 +28,35 @@ export function createMailModule(settings:AppSettings,deps:MailModuleDependencie
  const capabilities=()=>operatorPolicy.snapshot();
  const scopes=()=>{const p=capabilities();return p.read?['mail.read',...(p.write?['mail.write']:[]),...(p.send?['mail.send']:[])]:[];};
  const provider=deps.provider??(credential=>new ICloudMailAdapter({user:credential.user,password:credential.appPassword}));
- const credentials=()=>{const owner=deps.store.ownerId();if(!owner)throw new MailOperationError('forbidden','Owner setup required');const bytes=deps.store.readSecret(owner);if(!bytes)throw new MailOperationError('forbidden','Mail credentials revoked');try{return credentialSchema.parse(JSON.parse(Buffer.from(bytes).toString('utf8')));}finally{bytes.fill(0);}};
- const current=()=>{const owner=deps.store.ownerId();if(!owner)throw new MailOperationError('forbidden','Owner setup required');const bytes=deps.store.readSecret(owner);if(!bytes)throw new MailOperationError('forbidden','Mail credentials revoked');try{return provider(credentialSchema.parse(JSON.parse(Buffer.from(bytes).toString('utf8'))));}finally{bytes.fill(0);}};
+ // Only deliberately unscoped legacy fixtures may omit the account-store API.
+ const accountStore:Partial<Pick<OwnerSecretStore,'account'|'legacyAccountId'|'readAccountSecret'>>=deps.store;
+ const selected=()=>{
+  const context=invocationContext(),owner=deps.store.ownerId();
+  if(!owner||context&&context.ownerId!==owner)throw new MailOperationError('forbidden','Owner authorization required');
+  // Production HTTP always supplies a context. Account selection comes only from its verified token.
+  if(context&&(!context.accountId||!accountStore.account||!accountStore.readAccountSecret||!accountStore.legacyAccountId))throw new MailOperationError('forbidden','Account-bound authorization required');
+  const legacy=accountStore.legacyAccountId?.(owner)??null;
+  const id=context?.accountId??legacy??(!accountStore.account?'legacy':null);
+  if(!id)throw new MailOperationError('forbidden','Account authorization required');
+  const metadata=accountStore.account?.(owner,id);
+  if(accountStore.account&&(!metadata||!metadata.credentialStored))throw new MailOperationError('forbidden','Mail account unavailable');
+  return{owner,id,legacy:id===legacy||!accountStore.account,metadata};
+ };
+ const credentials=()=>{const account=selected();const bytes=accountStore.readAccountSecret?accountStore.readAccountSecret(account.owner,account.id):deps.store.readSecret(account.owner);if(!bytes)throw new MailOperationError('forbidden','Mail credentials revoked');try{return credentialSchema.parse(JSON.parse(Buffer.from(bytes).toString('utf8')));}finally{bytes.fill(0);}};
+ const current=()=>provider(credentials());
+ const identity={
+  validate(input:unknown){const account=selected();const visit=(value:unknown):void=>{if(Array.isArray(value)){for(const item of value)visit(item);return;}if(!value||typeof value!=='object')return;const object=value as Record<string,unknown>;if(typeof object.mailbox==='string'&&typeof object.uidValidity==='string'){
+   if(object.accountId!==account.id&&!(object.accountId===undefined&&account.legacy))throw new MailOperationError('stale_identity','Message reference belongs to another account; search again');
+  }for(const child of Object.values(object))visit(child);};visit(input);},
+  annotate(output:unknown):unknown{const account=selected();const visit=(value:unknown):unknown=>{if(Array.isArray(value))return value.map(visit);if(!value||typeof value!=='object')return value;const object=Object.fromEntries(Object.entries(value).map(([key,child])=>[key,visit(child)]));if(typeof object.mailbox==='string'&&typeof object.uidValidity==='string')object.accountId=account.id;return object;};return visit(output);},
+  profile(){const account=selected();const email=account.metadata?.user??credentials().user;return{id:account.id,name:account.metadata?.label??email,email};}
+ };
  const gateway:MailGateway={withSession:run=>current().withSession(run),parse:source=>current().parse(source)};
  const mail=new MailService({allowWrites:settings.allow_writes},gateway,capabilities);
  const unsubscribe=new UnsubscribeService(mail,createUnsubscribeGateway({sendMail:input=>current().send(input)}),{get enabled(){const p=capabilities();return p.read&&p.write&&p.unsubscribe;}});
  const outboundProvider=()=>{const credential=credentials();return deps.outboundProvider?.(credential)??new ICloudOutboundAdapter({user:credential.user,password:credential.appPassword});};
- const ledger=new SqliteOutboundLedger(deps.authDatabase,deps.masterKey,()=>{const owner=deps.store.ownerId();if(!owner)throw new MailOperationError('forbidden','Owner setup required');credentials();return owner;});
- const outbound=new OutboundService({get allowRead(){return capabilities().read;},get allowSend(){const p=capabilities();return p.read&&p.send;},get allowWrites(){const p=capabilities();return p.read&&p.write;}},gateway,{compose:input=>{const p=outboundProvider();if(!p.compose)throw new Error("Compose unavailable");return p.compose(input);},send:input=>outboundProvider().send(input),draft:(input,mailbox)=>outboundProvider().draft(input,mailbox)},ledger);
+ const ledger=new SqliteOutboundLedger(deps.authDatabase,deps.masterKey,()=>{const account=selected();credentials();return account.legacy?account.owner:JSON.stringify([account.owner,account.id]);});
+ const outbound=new OutboundService({get allowRead(){return capabilities().read;},get allowSend(){const p=capabilities();return p.read&&p.send;},get allowWrites(){const p=capabilities();return p.read&&p.write;}},gateway,{compose:input=>{const p=outboundProvider();if(!p.compose)throw new Error("Compose unavailable");return p.compose(input);},send:input=>outboundProvider().send(input),draft:(input,mailbox)=>outboundProvider().draft(input,mailbox)},ledger,()=>{const account=selected();return account.legacy?'':account.id;});
  const config={user:'',password:'',get allowRead(){return capabilities().read;},get allowWrites(){const p=capabilities();return p.read&&p.write;},get allowSend(){const p=capabilities();return p.read&&p.send;},get allowUnsubscribe(){return capabilities().unsubscribe;},transport:'http' as const,host:settings.host,port:settings.public_port,publicUrl:settings.public_origin+'/icloud/mcp',issuer:settings.public_origin+'/icloud/auth',audience:settings.public_origin+'/icloud/mcp',jwksUrl:settings.public_origin+'/unused',get scopes(){return scopes();},allowedSubjects:[]};
- return {registration:{...mailRegistration(mail,config,unsubscribe,outbound,deps.monitor),dispose:async()=>ledger.dispose()},config,admin:{presentation:mailAdminPresentation,capabilities,updateCapabilities:async(next:Record<string,boolean>,confirm:boolean)=>operatorPolicy.update({read:next.read!,write:next.write!,send:next.send!,unsubscribe:next.unsubscribe!},confirm),validateCredential:async(credential:AppleCredential)=>{await provider(credential).withSession(session=>session.list());}}};
+ return {registration:{...mailRegistration(mail,config,unsubscribe,outbound,deps.monitor,identity),dispose:async()=>ledger.dispose()},config,admin:{presentation:mailAdminPresentation,capabilities,updateCapabilities:async(next:Record<string,boolean>,confirm:boolean)=>operatorPolicy.update({read:next.read!,write:next.write!,send:next.send!,unsubscribe:next.unsubscribe!},confirm),validateCredential:async(credential:AppleCredential)=>{await provider(credential).withSession(session=>session.list());}}};
 }

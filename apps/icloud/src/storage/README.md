@@ -38,7 +38,8 @@ key cannot both be replaced by an attacker; rollback of both files is not detect
 
 `SqliteOwnerStore.provision` exclusively creates installation state; `open` requires
 existing state. `OwnerSecretStore` exposes owner lookup, bootstrap proof validation,
-enrollment, opaque secret read/rotate/revoke and close. The implementation depends
+owner-only enrollment, account listing/addition, account-specific opaque secret
+read/rotate/revoke, legacy-account lookup and close. The implementation depends
 on Bun SQLite, authenticated cryptography and protected local files. Callers own
 authentication and provider validation; stored bytes have no Mail schema here.
 
@@ -60,4 +61,11 @@ Colocated owner-store tests and the worker fixture cover provisioning/open behav
 exclusive enrollment, tamper/key failures, owner integrity, rotation/revocation and
 restart persistence. They do not prove rollback resistance or a production backup
 recovery procedure. [Operations](../../../../docs/operations.md) owns deployment and
-custody guidance. This refactor does not change table names, keys or state paths.
+custody guidance. The account migration adds `mail_accounts` and a `legacy_account` pointer while
+retaining installation, owner, state paths and custody. An active original secret
+is re-encrypted with account identity/version binding and receives a stable ID.
+A previously revoked original secret has no recoverable email; its legacy entry
+remains an unusable `legacy-account` tombstone. Add a mailbox and create a new client
+connection instead of rebinding that unknown original identity. Older application
+binaries cannot be assumed to read the migrated account schema; a rollback requires
+compatible state restoration rather than a release-symlink change alone.

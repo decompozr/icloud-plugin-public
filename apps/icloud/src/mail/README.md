@@ -41,7 +41,7 @@ production listener or feature registry outside application composition.
 
 ## Data, security and compatibility
 
-Each request uses the current owner credential and current operator policy. Mail
+Each production request resolves its OAuth-bound account and uses that account's current credential plus current operator policy. Mail
 owns the interpretation of the stored credential as an Apple account address and
 app-specific password. Shared owner storage treats its encrypted bytes as opaque.
 Operator capability settings never grant OAuth consent: both server policy and
@@ -50,8 +50,11 @@ ledger material are retained so moving source files does not reset replay histor
 
 An outbound uncertainty must remain unknown and must not trigger a blind retry.
 Removing stored credentials does not revoke an Apple password or client grant.
-The service currently supports one owner/account; it does not provide a generic
-multi-provider or multi-account registry.
+The service supports multiple iCloud Mail accounts within one owner's installation.
+`mail_get_profile` reports a stable opaque account ID and its email/label. Message
+references carry account identity; nonlegacy connections reject missing or different
+account IDs before provider work. Account identity binds cursors, attachments, drafts and outbound replay keys. It does not provide unrelated-owner
+registration or a generic multi-provider registry.
 
 ## Verification and extension
 

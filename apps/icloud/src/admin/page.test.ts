@@ -23,10 +23,10 @@ test('ChatGPT tutorial separates browser setup and developer mode before creatio
  expect(html).toContain('<strong>Security and login</strong>');
 });
 
-test('enrolled administration presents one-account management without enrollment steps',()=>{
+test('enrolled administration presents per-account management without enrollment steps',()=>{
  const html=setupPage({presentation:mailAdminPresentation,enrolled:true,ready:true,admin:true});
  expect(html).toContain('Connection overview');expect(html).toContain('id="policy-save"');
- expect(html).toContain('does not add another account');expect(html).toContain('Existing OAuth grants remain unchanged');
+ expect(html).toContain('id="accounts"');expect(html).toContain('id="account"');expect(html).toContain('Connect another account');expect(html).not.toContain('id="user"');expect(html).toContain('Existing OAuth grants remain unchanged');
  expect(html).not.toContain('data-step="0"');expect(html).not.toContain('id="register"');
  expect(html).not.toContain('name="password" value=');
  const setup=setupPage({presentation:mailAdminPresentation,enrolled:false,ready:false,admin:false});expect(setup).toContain('onboarding-layer');expect(setup).toContain('/icloud/assets/plugin-icon.png');
@@ -36,3 +36,5 @@ test('shared administration renders registered capability identifiers and escape
  const html=setupPage({enrolled:true,ready:true,admin:true,presentation:{capabilities:[{id:'calendar.read',label:'Read <events>'}],credentialStepLabel:'credentialStatus',credentialSection:()=>'<section id="calendar-credential"></section>'}});
  expect(html).toContain('id="policy-input-calendar.read"');expect(html).toContain('Read &lt;events&gt;');expect(html).toContain('id="calendar-credential"');expect(html).not.toContain('id="policy-input-send"');
 });
+
+ test('initial setup finishes owner enrollment without collecting iCloud secrets',()=>{const html=setupPage({presentation:mailAdminPresentation,enrolled:false,ready:true,admin:false});expect(html.match(/data-progress=/g)).toHaveLength(3);expect(html).toContain('3 Connect ChatGPT');expect(html).not.toContain('id="complete-owner"');expect(html.match(/data-step=/g)).toHaveLength(3);expect(html).not.toContain('id="password"');expect(html).not.toContain('id="credentials"');expect(html).toContain('Connect another account');});
