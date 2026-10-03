@@ -13,5 +13,6 @@ archive generation itself is not authentication or installation.
 [Client artifact](../../../../docs/client-artifact.md) specifies the content and
 export workflow. Colocated package tests verify URL and artifact boundaries.
 Downloading a ZIP does not establish that ChatGPT/Codex imported it, completed
-OAuth or can reach the endpoint. The artifact currently describes Mail capabilities;
-future module-aware client content requires explicit integration.
+OAuth or can reach the endpoint. The artifact includes Mail and optional Calendar workflow skills. Both use the
+same MCP endpoint; including Calendar guidance does not enable the module or grant
+its independent read, write, schedule or share permissions.

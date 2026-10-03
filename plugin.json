@@ -1,11 +1,12 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "icloud-plugin",
-  "version": "0.1.20",
-  "description": "Read and manage your own iCloud mailbox through a locally hosted MCP server.",
+  "version": "0.1.21",
+  "description": "Manage your own iCloud Mail and optional Calendar module through one locally hosted MCP server.",
   "license": "MIT",
   "keywords": [
     "email",
+    "calendar",
     "icloud",
     "productivity"
   ],
@@ -13,8 +14,8 @@
     "com.openai": {
       "interface": {
         "displayName": "iCloud Plugin",
-        "shortDescription": "Manage your iCloud Mail",
-        "longDescription": "Read and manage your own iCloud mailbox through a locally hosted MCP server.",
+        "shortDescription": "iCloud Mail and Calendar",
+        "longDescription": "Manage your own iCloud Mail and optional Calendar module through one locally hosted MCP server.",
         "category": "Productivity",
         "defaultPrompt": "List my recent emails without changing their read status.",
         "logo": "./assets/plugin-icon.png",

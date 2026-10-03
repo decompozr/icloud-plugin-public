@@ -2,7 +2,8 @@
 
 This is the authoritative lifecycle specification. Current CP1–CP5 implementation and acceptance are recorded in the roadmap; the native private setup service is live. Public routing and real client enrollment remain pending. The host is this Mac, runtime direction is Bun, and the
 [accepted setup/auth flow](setup-and-auth.md) governs private setup and client
-access. Calendar remains outside the current Mail scope.
+access. Calendar is an optional registered module with independent permissions; see
+[Calendar acceptance](calendar-production.md) for verified behavior and limitations.
 
 ## Required observable outcomes
 

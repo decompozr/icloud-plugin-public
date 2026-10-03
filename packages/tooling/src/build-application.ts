@@ -18,6 +18,6 @@ await Bun.write(join(output,'assets/plugin-icon.png'),Bun.file(join(app,'assets/
 await rm(join(output,'browser'),{recursive:true,force:true});
 console.log('Built private application modules and browser assets; test files excluded.');
 
-const template=join(output,'plugin-template');await mkdir(join(template,'skills/icloud-mail'),{recursive:true});await mkdir(join(template,'assets'),{recursive:true});
-for(const name of ['plugin.json','LICENSE','THIRD_PARTY_NOTICES.md','skills/icloud-mail/SKILL.md'])await cp(join(repository,name),join(template,name));
+const template=join(output,'plugin-template');await mkdir(join(template,'skills/icloud-mail'),{recursive:true});await mkdir(join(template,'skills/icloud-calendar'),{recursive:true});await mkdir(join(template,'assets'),{recursive:true});
+for(const name of ['plugin.json','LICENSE','THIRD_PARTY_NOTICES.md','skills/icloud-mail/SKILL.md','skills/icloud-calendar/SKILL.md'])await cp(join(repository,name),join(template,name));
 await cp(join(app,'assets/plugin-icon.png'),join(template,'assets/plugin-icon.png'));

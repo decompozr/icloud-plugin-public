@@ -94,6 +94,24 @@ Only `darwin-arm64` is released; there is no 0.1.20 Linux release claim.
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
+## Calendar source-module acceptance complete (2026-10-03 UTC)
+
+The owner accepted a production-ready registered Calendar module, including
+closing the sharing gap and cleaning all experiments. [Production
+coverage](calendar-production.md) tracks operations, permission boundaries and
+Dev/Build/Release/Install/Update/Uninstall acceptance. The registered source passed its independent gate and final build/tests;
+production-path live smoke also passed with its resources cleaned. The user accepted disclosed recipient
+verification limits, and final sharing revocation/cleanup restored four original
+calendars with zero test markers. The accepted source-module goal is complete;
+no deployment occurred.
+
+Integration initially used an older Mail-only source base. Read-only comparison
+identified the current multi-account base; the task branch was fast-forwarded to
+`00415c6`, preserving all Calendar work. Calendar must now use verified owner and
+account context, account-bound operations and credentials, and account-isolated
+journals. Prior installed-release receipts are historical, not a deployment of
+this Calendar work.
+
 ## Historical 0.1.19 production installation (2026-10-03 UTC)
 
 The released `icloud-plugin install` command installed the stable 0.1.19
@@ -117,8 +135,8 @@ are recorded in [deployment lifecycle](deployment-lifecycle.md).
 The source now separates the Mail feature from shared module registration, MCP,
 authentication, owner storage and server infrastructure. Current boundaries and
 extension limits are documented in [architecture](architecture.md) and the
-[source subsystem index](../apps/icloud/src/README.md). Calendar remains unimplemented
-in production. Every source subsystem has local ownership/design documentation;
+[source subsystem index](../apps/icloud/src/README.md). Calendar now has a registered source module; live production-path acceptance
+and deployment are tracked separately in [Calendar coverage](calendar-production.md). Every source subsystem has local ownership/design documentation;
 these documents are part of the implementation, not optional follow-up material.
 
 This refactor does not establish which release is currently running, migrate runtime
@@ -248,7 +266,7 @@ Historical read-only snapshot: native release **0.1.16**, owned PID **9988**. Cu
 | Native build/release/install/update | Yes; native runtime active | Immutable artifacts, installed restart/custody checks and scoped actual updates. LaunchAgent template exists; persistent login/reboot service installation is not completed. |
 | Apple Container mode | Implemented and isolated-tested, not live | Linux UID10001 E2E11/236 and installed auth+MCP1/78 passed. Host proxy path tested; native port publishing previously failed. Real production container/Tailscale/user-account acceptance remains open. |
 | Doctor and setup-plan commands | Repository tools implemented | Read-only doctor tested and run against live service; setup-plan emits validated TOML/plist/scoped route proposals only. It does not provision, load services or change routes. |
-| Calendar | Playground only; not deployed | Synthetic parser/loopback CalDAV fixtures10/55. PROPFIND/REPORT responses are canned: these do not prove search-filter correctness or independent CalDAV interoperability. No production files, MCP tools, scopes or real iCloud calendar calls. |
+| Calendar | Registered source gate passed; not deployed | Independent Calendar46/181; final app243/1087 and tooling10/134, both typechecks/build and disposable artifact lifecycle pass. Registered real-iCloud smoke16invocations passed and cleaned its resources. User accepted recipient verification limits; final sharing revoke/cleanup verified four originals and zero test markers. See [production coverage](calendar-production.md). |
 | Multiple iCloud accounts | Locally verified; native 0.1.20 installed | Owner-only OAuth chooser/add, account-bound grant/refresh/profile and cross-account reference checks pass. Rendered browser and actual ChatGPT Connect another account/profile/reconnection acceptance remain open. |
 | Drive, Contacts, Photos, cross-feature workflows | Not implemented | Deferred roadmap, not current product capabilities. |
 
