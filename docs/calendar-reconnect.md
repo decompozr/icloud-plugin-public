@@ -31,3 +31,9 @@ Backend tests exercise an actual pre-Calendar client registration followed by re
 These are backend tests, not connected ChatGPT acceptance. Final live acceptance requires calling `calendar_list_calendars` through the connected plugin and then a bounded `calendar_query_events` or `calendar_get_event` using an observed calendar/event identity. Preserve original Mail access and test it again after reconnect. An OAuth prompt or metadata success is not acceptance.
 
 Observed 2026-10-03 Toronto: production metadata advertised all four Calendar scopes. This thread's connected plugin exposed Calendar tools, but its actual calendar-list call returned reauthentication required for `calendar.read` plus existing Mail/offline scopes. No permissions were approved, no production changes were deployed, and no event was read. The supplied Library image was unavailable through this executor's exposed materialization tools and was not inspected. The independent consent UI candidate is untouched.
+
+## Candidate verification
+
+The isolated recovery branch passes application typecheck/build and all 243 application tests (1,143 assertions). Its baseline E2E suite has 10 passes and one pre-existing package-version assertion expecting 0.1.20 from a 0.1.21 artifact. The separately supplied consent UI patch already corrects that assertion.
+
+A separate integration checkout applies the supplied consent UI patch cleanly without editing its original candidate. The combined source passes typecheck/build, all 244 application tests (1,152 assertions), and all 11 backend E2E tests (253 assertions). This combined validation is not a merge, deployment, or ChatGPT end-to-end acceptance. The original connected Mail mailbox-list call still succeeds; Calendar listing remains blocked by missing OAuth permission. The directly attached mobile screenshot confirms the old production checkbox layout and does not represent the candidate UI.
