@@ -52,6 +52,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  const publicApp=createHttpApp(config,runtime,auth.verifyBearer,lifecycle);
  publicApp.use(guardHost(settings.public_origin,settings.public_port));
  for(const page of ['sign-in','consent','connect'] as const)publicApp.get('/icloud/'+page,(_req,res)=>{res.set({'cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}).type('html').send(renderAuthPage(page,false,scopeLabels));});
+ publicApp.get('/icloud/assets/inter.ttf',(_req,res)=>res.type('font/ttf').sendFile(join(deps.assetsDirectory,'inter.ttf'),{dotfiles:'allow'}));
  publicApp.get('/icloud/assets/auth-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'auth-browser.js'),{dotfiles:'allow'}));
  publicApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.public_origin,auth.publicHandler,lifecycle));
  const admin=createPrivateAdmin({privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,modules:[calendarModule.admin]});
@@ -65,6 +66,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  privateApp.get('/icloud/setup/health',(_req,res)=>res.type('text/plain').send('icloud-private'));
  privateApp.get('/icloud/assets/plugin-icon.png',(_req,res)=>res.type('png').sendFile(join(deps.assetsDirectory,'plugin-icon.png'),{dotfiles:'allow'}));
  privateApp.get('/icloud/assets/admin-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'admin-browser.js'),{dotfiles:'allow'}));
+ privateApp.get('/icloud/assets/inter.ttf',(_req,res)=>res.type('font/ttf').sendFile(join(deps.assetsDirectory,'inter.ttf'),{dotfiles:'allow'}));
  privateApp.get('/icloud/assets/auth-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'auth-browser.js'),{dotfiles:'allow'}));
  privateApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.private_origin,async request=>{
   const path=new URL(request.url).pathname;
