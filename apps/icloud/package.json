@@ -1,6 +1,6 @@
 {
   "name": "@icloud-plugin/icloud",
-  "version": "0.1.26",
+  "version": "0.1.27",
   "private": true,
   "type": "module",
   "description": "Personal iCloud Mail MCP server with authenticated remote transport",

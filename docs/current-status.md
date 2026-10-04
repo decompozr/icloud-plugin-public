@@ -332,3 +332,18 @@ The user reported reinstalling the custom MCP connection at 22:38 UTC on October
 Earlier grant lineage and proactive refresh observations describe the previous
 connection. Do not transfer those claims to the reinstalled connection; fresh
 read-only acceptance is a separate check in the parent task.
+
+
+## Native release 0.1.27 candidate
+
+Release 0.1.27 integrates the reviewed single-account security fixes and private
+owner administration flow from 8bb6556, preserving its credential/grant/policy
+contracts. The user explicitly approved publication, a controlled native restart
+and only the private 8443 root mapping on October 4 at 23:06 UTC. No supervision
+installation, broader security setting change, connector reconnect or screenshot
+upload is included. The release is native darwin-arm64/Bun 1.4.2; Linux remains
+unvalidated. Publication and live deployment are recorded separately after checks.
+
+The repository currently has no configured GitHub Actions workflows or check runs.
+Local full-suite, artifact, fixture-browser and independent review evidence is the
+release validation; no passing remote CI claim is made.
