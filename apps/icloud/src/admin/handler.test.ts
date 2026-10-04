@@ -126,8 +126,8 @@ test('credential replacement requires generation support and clears temporary st
 test('owner shell routes and enrolled wizard never expose accounts to anonymous navigation',async()=>{
  const f=await fixture(true,true);try{
   for(const path of ['/','/icloud/admin','/icloud/admin/accounts','/icloud/admin/connections','/icloud/admin/system','/icloud/setup?mode=account']){
-   const response=await fetch(f.url+path,{redirect:'manual'});expect(response.status).toBe(303);expect(response.headers.get('location')).toBe('/icloud/sign-in');expect(await response.text()).not.toContain('owner@example.invalid');
-   expect((await fetch(f.url+path,{headers:{'x-fixture-session':'other'},redirect:'manual'})).status).toBe(403);
+   const response=await fetch(f.url+path,{redirect:'manual'});expect(response.status).toBe(303);expect(response.headers.get('location')).toBe(path==='/'?'/icloud/admin':'/icloud/sign-in');expect(await response.text()).not.toContain('owner@example.invalid');
+   expect((await fetch(f.url+path,{headers:{'x-fixture-session':'other'},redirect:'manual'})).status).toBe(path==='/'?303:403);
    const owner=await fetch(f.url+path,{headers:{'x-fixture-session':'owner'}});expect(owner.status).toBe(200);expect(owner.headers.get('cache-control')).toBe('no-store');expect(owner.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
   }
   expect((await fetch(f.url+'/icloud/admin/system-status')).status).toBe(403);

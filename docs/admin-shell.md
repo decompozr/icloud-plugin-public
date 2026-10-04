@@ -11,7 +11,8 @@ release workflow remains one iCloud account and one custom MCP connection.
 | System & diagnostics | `/icloud/admin/system` | On-demand Tailscale prerequisites, exact Serve/Funnel mappings, versions, process and supervision |
 | Setup wizard | `/icloud/setup` | Resume completed prerequisites/owner/account steps; `?mode=account` adds a credential without changing a client grant |
 
-All enrolled HTML destinations require an owner session. Missing sessions redirect
+The enrolled private root redirects to `/icloud/admin`, where owner cookies
+retain their `/icloud` path scope. All enrolled HTML destinations require an owner session. Missing sessions redirect
 to the fixed private sign-in page; other owners are denied. Unenrolled private root
 redirects to initial setup. Anonymous setup status retains its existing prerequisite
 and enrollment fields, without accounts or credentials. Public listeners do not

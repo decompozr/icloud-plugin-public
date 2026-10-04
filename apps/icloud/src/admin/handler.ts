@@ -69,7 +69,9 @@ export function createPrivateAdmin(options:AdminOptions) {
    }
    if(request.method==='GET' && (path==='/icloud/setup'||Object.hasOwn(views,path))) {
     const enrolled=options.store.ownerId()!==null;
-    if(path==='/'&&!enrolled)return new Response(null,{status:303,headers:{...headers,location:'/icloud/setup'}});
+    // Owner cookies remain scoped to /icloud. Enter that protected namespace
+    // before authenticating so root navigation works without broadening cookies.
+    if(path==='/')return new Response(null,{status:303,headers:{...headers,location:enrolled?'/icloud/admin':'/icloud/setup'}});
     if(enrolled||Object.hasOwn(views,path)) {
      let session: {user: {id:string}};
      try { session=await options.ownerAuth.ownerSession(request.headers); }

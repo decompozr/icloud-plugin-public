@@ -12,7 +12,7 @@ const store=SqliteOwnerStore.provision({databasePath:join(dir,'db'),markerPath:j
 const account=store.addAccount('owner',{user:'owner@example.invalid',label:'Personal fixture',credential:Buffer.from(JSON.stringify({user:'owner@example.invalid',appPassword:'fixture-dummy'}))});
 const status={installed:true,authenticated:true,online:true,privateReachable:true};
 const policy={read:true,write:true,send:false,unsubscribe:false};let calendarPolicy={read:true,write:false,schedule:false,share:false};
-const session=async(headers:Headers)=>{if(headers.get('x-fixture-session')!=='owner')throw Error('Fixture denied');return{user:{id:'owner'}};};
+const session=async(headers:Headers)=>{if(headers.get('x-fixture-session')!=='owner'&&!(headers.get('cookie')??'').split(';').some(part=>part.trim()==='fixture-owner=owner'))throw Error('Fixture denied');return{user:{id:'owner'}};};
 let handler:(request:Request)=>Promise<Response>;
 const assets=resolve(import.meta.dir,'../../icloud/dist/assets');
 let evidence=true;
