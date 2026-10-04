@@ -1,3 +1,12 @@
+## Reconnect redirect diagnostic iteration 0.1.26
+
+Closes the authorization302 diagnostic gap by reducing the provider-created
+redirect to one exact allowlisted OAuth error code. Redirect URL/header/query,
+state, code, descriptions and identifiers never enter capture. Tests cover
+actual synthetic302 invalid_scope and secret canary exclusion. The original
+activation marker and30-minute deadline are preserved across this iteration.
+No grants, credentials or network routes change. GitHub publication is paused.
+
 ## Reconnect diagnostic release 0.1.25
 
 Adds a disabled-by-default, owner-only local capture for known discovery,

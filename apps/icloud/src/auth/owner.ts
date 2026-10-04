@@ -11,6 +11,7 @@ import type { Principal } from './verify.js';
 import { authRateLimit } from './rate-limit.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createAccountConnection, type AccountStore } from './connect.js';
+import {reconnectRedirectError} from '../observability/reconnect.js';
 
 export interface OwnerAuthOptions {
  database: Database;
@@ -44,7 +45,12 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
  let connection:ReturnType<typeof createAccountConnection>|undefined;
  const recoverClient=createClientRecovery({database:options.database,origin:options.privateOrigin,declaredScopes:options.scopes,allowedScopes:()=>options.allowedScopes?.()??options.scopes,ownerSession:headers=>session(headers),updateClient:async(headers,clientId,scopes)=>{await auth.api.updateOAuthClient({headers,body:{client_id:clientId,update:{scope:scopes.join(' ')}}});}});
  const config={
-  ...(options.onOAuthError?{hooks:{after:createAuthMiddleware(async ctx=>{try{const result=ctx.context.returned;if(result instanceof APIError)options.onOAuthError?.(result.body?.error);}catch{/* Diagnostics are best effort. */}})}}:{}),
+  ...(options.onOAuthError?{hooks:{after:createAuthMiddleware(async ctx=>{
+   try{
+    const result=ctx.context.returned;
+    if(result instanceof APIError&&result.status!=='FOUND')options.onOAuthError?.(result.body?.error);
+   }catch{/* Diagnostics are best effort; never log raw values or errors. */}
+  })}}:{}),
   database:options.database,baseURL:options.publicBaseURL,basePath:'/icloud/auth',rateLimit:authRateLimit,advanced:{ipAddress:{ipAddressHeaders:[]},cookiePrefix:'icloud',defaultCookieAttributes:{path:'/icloud'}},secret:options.secret,trustedOrigins:origins,
   plugins:[passkey({rpID:options.rpID,rpName:'iCloud Plugin',origin:origins,authenticatorSelection:{userVerification:'required',residentKey:'required'},
    registration:{requireSession:false,
@@ -184,6 +190,10 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
    else if(!connection.consume(oauthQuery,consentSession.owner,consentSession.id))return new Response('Authorization already used',{status:403});
   }
   const response=await requestContext.run({query:oauthQuery,accountId:consentAccountId,refreshToken},()=>auth.handler(request));
+  if(options.onOAuthError&&response.status>=300&&response.status<400&&['/icloud/auth/oauth2/authorize','/icloud/auth/oauth2/continue','/icloud/auth/oauth2/consent'].includes(path)){
+   // Provider response boundary: only the exact error enum leaves this call.
+   try{options.onOAuthError(reconnectRedirectError(response.headers.get('location')));}catch{}
+  }
   if(options.allowedScopes&&path.includes('/.well-known/oauth-authorization-server')&&response.ok){
    const body=z.record(z.unknown()).parse(await response.json());
    const headers=new Headers(response.headers);headers.set('cache-control','no-store');headers.delete('content-length');

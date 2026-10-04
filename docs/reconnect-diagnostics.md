@@ -14,8 +14,13 @@ Arbitrary values become `unavailable` without serialization. Application scope
 rejection and MCP bearer rejection explicitly supply their known enum codes.
 Other errors and redirects record `unavailable`; successful HTTP responses use
 `none`. This is HTTP evidence, not proof that a grant or tool operation succeeded.
-No response body or redirect query is parsed by diagnostics. A redirect-only
-provider error may therefore have no identifiable error code.
+No response body is parsed by diagnostics. For known authorization routes,
+version0.1.26 transiently reduces the provider-created302 Location to only one
+exact allowlisted query error code. It never exposes or retains Location, URL,
+query, state, code, issuer, description or identifiers. Malformed, oversized,
+duplicate, missing or unknown error values produce unavailable. Normal redirects
+and unsupported fragment-delivered errors remain unavailable. Existing capture
+marker timestamps must not be reset during this bounded iteration.
 
 ## Delivery and activation
 

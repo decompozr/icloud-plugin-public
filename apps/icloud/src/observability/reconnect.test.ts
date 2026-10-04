@@ -4,9 +4,14 @@ import {mkdtempSync,writeFileSync,readFileSync,lstatSync,rmSync,chmodSync,utimes
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import type {Request,Response} from 'express';
-import {ReconnectCapture,reconnectErrorCode,RECONNECT_LIMIT,RECONNECT_WINDOW_MS} from './reconnect.js';
+import {ReconnectCapture,reconnectErrorCode,reconnectRedirectError,RECONNECT_LIMIT,RECONNECT_WINDOW_MS} from './reconnect.js';
 
 const canary='secret@example.com_ACCESS_TOKEN_AUTH_CODE_PASSWORD';
+test('authorization redirect extraction returns only an exact error enum and never secrets',()=>{
+ expect(reconnectRedirectError('https://client.invalid/callback?error=invalid_scope&state='+canary+'&code='+canary+'&error_description='+canary)).toBe('invalid_scope');
+ expect(reconnectRedirectError('/error?error=invalid_client&description='+canary)).toBe('invalid_client');
+ for(const value of ['https://client.invalid/callback?code='+canary,'https://client.invalid/callback?error='+canary,'https://client.invalid/callback?error=invalid_scope&error=invalid_client','https://client.invalid/callback#code='+canary+'&error=invalid_scope','x'.repeat(8193),{toString(){throw Error(canary);}},null])expect(reconnectRedirectError(value)).toBe('unavailable');
+});
 function fixture(){
  const directory=mkdtempSync(join(tmpdir(),'reconnect-capture-'));
  const marker=join(directory,'reconnect-diagnostics.enable'),output=join(directory,'reconnect-diagnostics.json');

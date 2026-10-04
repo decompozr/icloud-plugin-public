@@ -4,7 +4,7 @@ import {withInvocationContext,type InvocationContext} from '../modules/context.j
 import type {ModuleRuntime} from '../modules/runtime.js';
 /** Protocol host; authorization and availability derive exclusively from registrations. */
 export function createServer(runtime:ModuleRuntime,publicUrl:string,scopes:ReadonlySet<string>,track:(operation:()=>Promise<CallToolResult>)=>Promise<CallToolResult>=operation=>operation(),context?:InvocationContext,observeRead?:(tool:string)=>((result:CallToolResult)=>void)|undefined){
- const server=new Server({name:'icloud',version:'0.1.25'},{capabilities:{tools:{}}});
+ const server=new Server({name:'icloud',version:'0.1.26'},{capabilities:{tools:{}}});
  server.setRequestHandler(ListToolsRequestSchema,async()=>({tools:runtime.listTools()}));
  server.setRequestHandler(CallToolRequestSchema,async request=>{
   const entry=runtime.tool(request.params.name);
