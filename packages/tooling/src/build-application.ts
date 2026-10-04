@@ -12,6 +12,8 @@ if(!server.success)throw new AggregateError(server.logs,'Application build faile
 const browser=await Bun.build({entrypoints:[join(source,'auth/browser.ts'),join(source,'admin/browser.ts')],root:source,outdir:join(output,'browser'),target:'browser'});
 if(!browser.success)throw new AggregateError(browser.logs,'Browser build failed');
 await mkdir(join(output,'assets'),{recursive:true});
+const sourceMetadata=JSON.parse(await Bun.file(join(app,'package.json')).text()) as {version:string};
+await Bun.write(join(output,'assets/runtime-version.json'),JSON.stringify({version:sourceMetadata.version})+'\n');
 await Bun.write(join(output,'assets/auth-browser.js'),Bun.file(join(output,'browser/auth/browser.js')));
 await Bun.write(join(output,'assets/admin-browser.js'),Bun.file(join(output,'browser/admin/browser.js')));
 await Bun.write(join(output,'assets/plugin-icon.png'),Bun.file(join(app,'assets/plugin-icon.png')));
