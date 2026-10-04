@@ -11,9 +11,11 @@ try{
  for(const file of ['LICENSE','THIRD_PARTY_NOTICES.md','plugin.json'])await cp(join(root,file),join(context,file));
  for(const file of ['package.json','bun.lock','tsconfig.json','tsconfig.build.json','src'])await cp(join(root,'apps/icloud',file),join(context,'apps/icloud',file),{recursive:true});
  await mkdir(join(context,'apps/icloud/assets'),{recursive:true});
- await cp(join(root,'apps/icloud/assets/plugin-icon.png'),join(context,'apps/icloud/assets/plugin-icon.png'));
- await mkdir(join(context,'skills/icloud-mail'),{recursive:true});
- await cp(join(root,'skills/icloud-mail/SKILL.md'),join(context,'skills/icloud-mail/SKILL.md'));
+ for(const name of ['plugin-icon.png','inter.ttf','inter-OFL.txt'])await cp(join(root,'apps/icloud/assets',name),join(context,'apps/icloud/assets',name));
+ for(const skill of ['icloud-mail','icloud-calendar']){
+  await mkdir(join(context,'skills',skill),{recursive:true});
+  await cp(join(root,'skills',skill,'SKILL.md'),join(context,'skills',skill,'SKILL.md'));
+ }
  await cp(join(root,'bin'),join(context,'bin'),{recursive:true});
  await cp(join(root,'packages/tooling'),join(context,'packages/tooling'),{recursive:true,filter:path=>!path.split('/').includes('node_modules')});
  await cp(join(root,'deployment/Containerfile'),join(context,'Containerfile'));

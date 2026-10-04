@@ -1,6 +1,6 @@
 {
   "name": "@icloud-plugin/icloud",
-  "version": "0.1.24",
+  "version": "0.1.27",
   "private": true,
   "type": "module",
   "description": "Personal iCloud Mail MCP server with authenticated remote transport",
@@ -29,7 +29,7 @@
     "jose": "^6.1.0",
     "mailauth": "^7.1.0",
     "mailparser": "^3.7.4",
-    "nodemailer": "^7.0.10",
+    "nodemailer": "10.0.14",
     "zod": "^3.25.0",
     "zod-to-json-schema": "^3.25.2"
   },

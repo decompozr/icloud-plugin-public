@@ -1,3 +1,4 @@
+import type {ReconnectCapture} from '../observability/reconnect.js';
 import type {ReadinessEvidence} from '../admin/evidence.js';
 import express from 'express';
 import {HttpLifecycle} from './lifecycle.js';
@@ -8,9 +9,9 @@ import type { Config } from '../config.js';
 import type { Principal } from '../auth/verify.js';
 import { createVerifier } from '../auth/verify.js';
 import { createServer } from '../mcp/server.js';
-export function createHttpApp(config: Config, runtime:ModuleRuntime, verify = createVerifier(config), lifecycle=new HttpLifecycle(),evidence?:ReadinessEvidence):express.Express {
+export function createHttpApp(config: Config, runtime:ModuleRuntime, verify = createVerifier(config), lifecycle=new HttpLifecycle(),evidence?:ReadinessEvidence,reconnect?:ReconnectCapture):express.Express {
   const app = express();
-  app.disable('x-powered-by');app.use(lifecycle.admission);
+  app.disable('x-powered-by');if(reconnect)app.use(reconnect.middleware);app.use(lifecycle.admission);
   const resource = config.publicUrl;
   const metadataPath = '/.well-known/oauth-protected-resource/icloud/mcp';
   const metadataUrl = `${new URL(resource).origin}${metadataPath}`;
@@ -24,7 +25,7 @@ export function createHttpApp(config: Config, runtime:ModuleRuntime, verify = cr
     const origin = req.get('origin');
     if (origin && origin !== new URL(resource).origin) { res.status(403).json({error:'Invalid origin'}); return; }
     try { const principal=await lifecycle.track(()=>verify(req.get('authorization')));principals.set(req,principal);evidence?.observe(principal);next(); }
-    catch { res.set('WWW-Authenticate',`Bearer resource_metadata="${metadataUrl}", error="invalid_token"`).status(401).json({error:'A valid owner access token is required'}); }
+    catch { reconnect?.noteError('invalid_token');res.set('WWW-Authenticate',`Bearer resource_metadata="${metadataUrl}", error="invalid_token"`).status(401).json({error:'A valid owner access token is required'}); }
   });
   app.post('/icloud/mcp',express.json({limit:'2mb'}), async (req,res)=> {
     const body:unknown=req.body;
