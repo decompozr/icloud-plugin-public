@@ -1,5 +1,43 @@
 # Source architecture and evidence status
 
+> **2026-10-04 closeout:** Experiments are closed. See [Photos capability plan](photos-capability-plan.md) for the authoritative current evidence, accepted local provider architecture, comparison limits and implementation phases. Older checkpoints below are historical.
+
+## Photos research (2026-10-03)
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The earlier basic read milestone below remains valid:
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+### Historical implementation checkpoints (superseded by the result above)
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The authentication-only helper passed six fake-client tests. Actual preflight
+stopped before login because the available Python 3.9.6 does not meet the pinned
+upstream's Python 3.10–3.13 requirement. It created no session state and read no
+Photos metadata. That Python route is historical and superseded by the accepted
+Bun-native implementation goal. The native SRP/auth, scoped cookies, bounded
+Photos HTTP reader and plist decoder now pass **66 tests / 565 assertions**;
+preflight confirms no Python, credentials or network use. Actual terminal account
+authentication and a cloud response are still required. The reader currently
+targets only private `PrimarySync`, at most two pages/twenty assets. A follow-up
+adds capped ordinary-album listing and exact-ID membership; listing explicitly
+reports incomplete coverage because upstream album pagination is unverified.
+Real-account album behavior and person-name search remain open. The goal is not
+complete; see the research document.
+
+`--people-schema` now samples at most two PrimarySync change pages/two hundred
+records, outputting only schema names and counts. It verifies neither person
+names nor photo mappings; missing types are inconclusive. Actual account/2FA
+interaction remains the unchanged external gate after the native, album and
+schema slices. No authenticated handle or live Photos result has been obtained.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Production installation verified (2026-10-03 UTC)
 
 The released `icloud-plugin install` command installed the stable 0.1.19

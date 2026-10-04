@@ -3,6 +3,14 @@
 The project is named **icloud-plugin**. Its current agreed scope is Mail;
 The roadmap continues through Calendar, Drive, Contacts and Photos after Mail; these later capabilities are not implemented.
 
+Photos feasibility experiments are complete. The accepted implementation is a
+Bun API backed by a pinned local osxphotos provider, with a Swift/PhotoKit helper
+only where needed. Existing person labels and true Shared Album reads have been
+verified on the synced Mac library; sharing and deletion are not implemented.
+See the [build plan and evidence](docs/photos-capability-plan.md). Historical
+cloud protocol work remains isolated in [the experiment package](playground/photos/README.md).
+No production Photos capability is deployed.
+
 The goal is to provide precise, basic iCloud mailbox tools for external agents
 in Codex and ChatGPT first, through the intended Tailscale setup on this Mac.
 Dots and other providers are deferred; future support can be added when needed.
