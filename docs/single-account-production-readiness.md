@@ -1,115 +1,219 @@
 # Single-account production readiness — 2026-10-04 UTC
 
-Preparation outcome: source fixes are tested and ready for review. No release,
-PR publication, merge, live install, restart, reconnect, grant change or provider
-mutation was performed. Production rollout and further live acceptance require
-separate approval. Scope is one accepted account using a custom MCP connection.
+Outcome: local preparation and independent final review are complete. No remaining
+blocking regression or demonstrated unauthenticated remote exploit was found in
+the reviewed scope. Conditional medium-severity issues are fixed in source; the
+running diagnostic 0.1.26 remains affected until an approved rollout. No release,
+PR, merge, deployment, restart, reconnect, manual grant/revocation change or user
+content mutation occurred. Ordinary client refresh rotation was observed during
+read-only checks. Scope is one accepted account through a custom MCP connection.
 
-## Baseline and live evidence
+## Baseline and release identity
 
-The main project checkout was `c3d67dc` (older 0.1.23 source). The running Mac
-installation selects `releases/0.1.26-darwin-arm64`, Bun 1.4.2. This local branch
-`production/single-account-readiness` starts at diagnostic commit `b85c33f` from
-the diagnosis checkout; PR14/0.1.24 was superseded. Preparation retains version
-0.1.26: its disposable artifact must not overwrite the installed diagnostic
-release. Assign a new version and rebuild only in the next approved release step.
-All 204 compiled diagnostic artifact files matched the installed output during
-read-only comparison. Final doctor checks still pass, with the selected release
-and configuration hash unchanged.
+The original main checkout was `c3d67dc` (0.1.23). Preparation branch
+`production/single-account-readiness` starts at diagnostic source `b85c33f`; PR 14
+and 0.1.24 were superseded by diagnostics. Initial preparation commit was
+`28b05e7f731ce5601fef12aa1c2a980a5ce7a6b1`; independent review revealed one remaining
+Mail credential-removal gap and an inconsistent service-template label. Those
+necessary corrections are included in the final follow-up commit supplied with
+this report.
 
-Parent-reported custom MCP acceptance at 21:22–21:30 UTC: correct account profile,
-9 mailboxes, inbox search/complete read, 4 calendars and bounded queries. Temporary
-calendar/event CRUD read back the changed title and UTC time; event deletion
-returned not_found and empty sync, calendar deletion had durable succeeded status.
-The original four calendar names/hrefs/ETags remained unchanged, with no remnants.
-These are live provider observations of installed 0.1.26, not this candidate.
+Installed selection remains `releases/0.1.26-darwin-arm64`, Bun 1.4.2. All 204
+compiled diagnostic artifact files matched installed output. The selected release
+and configuration hash were unchanged after preparation. Source and disposable
+artifacts retain baseline version 0.1.26 solely for verification; choose a new
+version and rebuild before any approved distribution or install.
 
-Read-only audit at 21:56 UTC: all 13 doctor checks passed (installed runtime,
-private custody, discovery, anonymous MCP 401, public private-route isolation and
-private health). Both SQLite databases passed integrity_check. Config/state/
-custody and databases were current-user-owned, nonsymlinked and 0600/0700 as
-appropriate. The diagnostic enable marker was already expired; no files were
-removed or retimed. Existing backups include pre-0.1.26; no stopped snapshot,
-restore rehearsal or unattended service acceptance was performed.
+## Substantiated security findings
 
-## Concrete fixes
+1. **Medium — stale credential replacement, fixed.** Installed 0.1.26
+   `admin/handler.ts` awaited provider validation then unconditionally stored the
+   replacement. Overlapping owner revocation or a faster replacement could be
+   overwritten, restoring/replacing credentials contrary to the later operation.
+   Requires authenticated owner access to the private admin origin and concurrent
+   credential operations; anonymous MCP callers cannot invoke it. The fix captures
+   account generation plus handler mutation epoch, compares owner/generation/epoch
+   after validation and returns 409 on change before synchronous storage. Tests
+   cover active/already-revoked accounts, newer replacement and absent generation
+   API. Serialized credential buffers are cleared on storage success/failure.
+   This protects one handler/process; it is not a cross-process transactional CAS.
 
-| Finding | Preparation change and verification |
-|---|---|
-| Credential validation can overwrite a concurrent revoke/replacement | Compare account generation and local mutation epoch after asynchronous validation; return 409 on change. Tests cover active and already-revoked accounts, newer replacement, missing generation support and unchanged newer credential. Temporary serialized credential buffers are zeroed on success/failure. |
-| Mail batch preflight can outlive write permission | Recheck authorization synchronously at dispatch; forbidden stops remaining items. Tests preserve completed/unknown evidence while preventing later submissions. |
-| Existing unsafe custody can be reopened | Startup rejects foreign ownership, group/other access, symlinks or wrong file types for dedicated state/custody directories, key, marker, databases and existing sidecars/bootstrap proof. It never chmods existing paths. Tests widen permissions or substitute symlinks and prove rejection without repair. |
-| UTC query dates normalize to a different date | Roundtrip validation rejects impossible dates and 24:00 before REPORT. Query/availability regressions plus valid leap-day case pass. |
-| Direct Nodemailer 7.0.13 has known advisories | Pin direct runtime and E2E dependency to 10.0.14; use its bundled SMTP string-array types. Frozen production assembly succeeds. Before scan reports 13 advisories; after scan returns an empty advisory object. Transitive Nodemailer 10.0.10/10.0.13 remain locked; the scan reports no known advisories for them. |
-| Container packaging misses current build inputs / private default directories | Include Calendar workflow and font assets in allowlisted context/Containerfile; make state/custody 0700 for UID10001. Reviewed source only; no Linux image/release acceptance claimed. |
-| Entry documentation describes outdated deployment/scope | README/current-status now point here; corrected inconsistent LaunchAgent label in deployment guidance. Historical evidence is retained. Dependency symlinks are ignored as build inputs. |
+2. **Medium — Mail permission changes after admission, fixed.** Installed 0.1.26
+   `mail/services/mail.ts` checked authorization before asynchronous session and
+   metadata preflight. An admitted writer could still submit after owner policy
+   disablement. `perform()` now rechecks synchronously immediately before mutation;
+   forbidden stops later batch items. Tests show zero first writes, preserved
+   confirmed completion and preserved unknown outcomes. Prerequisites are an
+   already-authorized Mail writer plus concurrent owner policy disablement.
 
-## Audit conclusions and limits
+3. **Medium — credential removal during an existing Mail batch, fixed after
+   independent review.** Initial commit 28b05e7 passed only `capabilities()` to the
+   Mail authorization callback. Therefore removing local credentials after session
+   establishment could still allow later batch items. `mail/module.ts:59` now
+   checks `selected()` (owner, token-bound account, current credential presence)
+   before policy. Two production-module regressions prove zero moves after
+   preflight removal and exactly one preserved completed move when removal happens
+   between items. Installed 0.1.26 and the first preparation commit had this gap.
+   It requires an admitted batch and concurrent owner credential removal.
 
-Authentication enforces owner, issuer/resource, expiry, PKCE, registered scope
-ceilings and token account binding. Refresh/revoke/replay and account-isolation
-checks have synthetic fixture coverage. Local provider-credential removal blocks
-provider calls and further refresh while retaining OAuth grant records; Apple
-app-password revocation and OAuth revocation remain distinct owner operations.
-This connection's expiry/refresh is not live verified. Multiple accounts are
-outside the production claim despite synthetic isolation tests.
+4. **Medium, conditional local hardening — unsafe custody reopening, fixed.**
+   Installed 0.1.26 `server/installation.ts` checked only key type/mode using
+   `statSync`, following symlinks; directories, marker, databases and sidecars were
+   unchecked. Misconfigured/tampered local paths could reopen or disclose sensitive
+   state. Startup now uses `lstatSync` to require current ownership, private modes
+   and regular file/directory types for named state/custody paths and sensitive
+   files. Tests prove refusal without silent repair. Live checked paths were safe:
+   config/databases 0600, state/custody 0700, correct owner and no symlinks. Exploit
+   prerequisites are unsafe permissions or local filesystem access/tampering,
+   not an unauthenticated MCP request. Checks do not bind subsequent opens to file
+   descriptors or inspect every ancestor; same-UID/root hostile path replacement
+   is outside this guarantee. Unsafe existing installs deliberately fail startup.
 
-Provider logs/debug are disabled. Operation telemetry emits fixed enums/counts;
-reconnect diagnostics are disabled by default, owner-only, expire after 30 minutes,
-retain at most 256 enum-only records and swallow I/O errors. The expired live
-capture may be removed after separate authorization; no diagnostic content was
-read or retained in this report.
+Bearer expiry/revocation is checked at HTTP admission, with scopes captured for
+the request. Later OAuth token revocation does not cancel admitted work. Provider
+commands already submitted cannot be undone by dispatch guards, including internal
+steps of one move; preserving success/unknown evidence is intentional. Local
+provider-credential removal, Apple app-password revocation and OAuth grant
+revocation are distinct operations.
 
-Calendar inspect_sharing requires provider capability plus complete roster
-evidence. unsupported means unknown; it must not be translated into private or
-unshared. Missing-event HTTP 404 becomes CalendarError(not_found) and the MCP
-error body includes error.code=not_found. No INVALID_ARGUMENT/error_code literal
-exists in this application's source: the observed outer classification belongs
-to client/connector translation. Its correction cannot be verified by local
-fixtures; clients must retain the inner typed error and never treat it as a
-retryable write failure.
+## Dependency findings and actual pathways
 
-Calendar mutations use account-bound durable operation IDs and never replay
-unknown dispatches; read-only reconciliation does not resubmit writes. Concurrent
-operation replay and sync commit rules have fixture coverage. Mail ambiguous
-acknowledgements preserve unknown and stop the batch; outbound receipts/policy
-rechecks have fixture coverage. Generic Mail flag/move batches do not supply
-Calendar-style durable operation IDs; the client must inspect unknown results
-before deciding another action. Live conflict rejection, ambiguous-write
-recovery, recurrence/timezones, invitations, sharing and multi-account workflows
-remain unverified and outside the accepted release claim.
+Installed direct Nodemailer is 7.0.13; candidate runtime/E2E pin 10.0.14. The before
+scan returned 13 advisories; the candidate scan returned an empty advisory object.
+This is a known-advisory snapshot, not proof of absence of vulnerabilities. Both
+installed baseline and candidate also contain nested Nodemailer 10.0.13 for
+mailparser and 10.0.10 for mailauth; inbound parser resolution uses those nested
+copies. The direct upgrade must not be described as closing 13 exposed inbound
+email exploits.
 
-## Checks and supporting evidence
+Independent source review found no demonstrated exploitable advisory pathway in
+the current MCP surface. Application-level residual dependency risk is low:
 
-On Bun 1.4.2/darwin-arm64, final `bun bin/checkpoint` passed application and tooling
-typechecks, production build, 267 application tests/1608 assertions, 10 tooling
-tests/134 assertions and 11 built HTTP/protocol E2E tests/253 assertions. Disposable
-frozen production artifact assembly passed; installed artifact lifecycle test
-passed 1 test / 26 assertions (explicit init, isolated startup/restart/shutdown and
-preserved dummy custody). No real provider credentials were available to those
-fixtures. Initial sandbox-denied listeners were rerun successfully with fixture
-network access. `git diff --check` passed.
+- Reachable address parsing: `GHSA-2x7j-588g-ccc2`, `GHSA-v53p-9fqp-m79j`.
+  MailComposer/SMTP receive validated plain addresses, bounded to 20 recipients
+  of 254 bytes; unbounded crafted address lists are rejected.
+- Recipient-domain bypasses: `GHSA-wmmp-3585-3rmp`, `GHSA-cc9r-2j5m-2m83`.
+  The app does not use a domain allowlist as a security boundary.
+- Controls not exposed by strict schemas/manual mapping: `GHSA-p6gq-j5cr-w38f`
+  (raw file/URL), `GHSA-268h-hp4c-crq3` (List-* comments),
+  `GHSA-wqvq-jvpq-h66f` (jsonTransport), `GHSA-r7g4-qg5f-qqm2` (OAuth token fetch),
+  `GHSA-c7w3-x93f-qmm8` (envelope.size), `GHSA-vvjj-xcjg-gr5g` (transport name),
+  `GHSA-8m3c-c648-2xjj` (legacy resolveContent), `GHSA-8vvx-rff5-p5rq`
+  (nested recipient arrays), `GHSA-6vj9-mwq6-2f5v` (cross-transport DNS/TLS).
+  Transport is fixed to smtp.mail.me.com with password authentication and TLS
+  verification. Other trusted code exposing those options would change this risk.
 
-Task-local supporting files (outside this repository): `runtime-before.json`,
-`runtime-doctor.log`, `runtime-doctor-final.log`, `runtime-after.json`,
-`baseline-runtime-match.json`, `baseline-checkpoint.log`, `final-checkpoint.log`,
-`dependency-audit.json`, `dependency-audit-after.json`, `artifact-build.log`,
-`artifact-lifecycle.log`. `production-artifact/` is an isolated verification
-artifact, not an approved distribution. Logs contain synthetic fixtures only.
+The major upgrade has local SMTP/MIME/attachment/threading regression coverage,
+including 28 independently rerun fixture tests/45 assertions. Its bundled SMTP
+string-array types match runtime results. No live SMTP send was performed.
+Retained @types/nodemailer 7 is not an observed blocker; Nodemailer 10 supplies
+its own declarations. Supporting advisory examples:
+[raw access bypass](https://github.com/advisories/GHSA-p6gq-j5cr-w38f) and
+[address-parser DoS](https://github.com/advisories/GHSA-v53p-9fqp-m79j).
 
-Advisory evidence: the npm bulk advisory endpoint queried the locked production
-dependencies. Examples returned for the former direct package:
-[raw access bypass](https://github.com/advisories/GHSA-p6gq-j5cr-w38f),
-[address-parser denial of service](https://github.com/advisories/GHSA-v53p-9fqp-m79j).
-An empty scan is a point-in-time known-advisory result, not a guarantee of safety.
+## Other fixes and error-contract evidence
 
-## Next approval
+UTC query/availability ranges now reject normalized impossible dates and 24:00
+before REPORT, with a valid leap-day regression. Container build context and
+Containerfile include current font/license and Calendar skill inputs, and create
+private state/custody forUID 10001. Linux image execution remains unverified.
+Both LaunchAgent examples now use `local.icloud-mail-mcp` and pass plutil lint;
+previously the deployment example used a different label than the stop command,
+which could leave the service running during operator replacement. This was a
+low-severity operational documentation defect. No agent was loaded or unloaded.
 
-Approve review/integration and preparation of a newly versioned release first.
-Publishing a PR/release, merge, live deployment/restart, diagnostic-file cleanup,
-security/settings changes or new live provider writes each remain outside this
-request. For deployment approval, present the reviewed exact commit/version and
-artifact hashes, consistent stopped backup and compatible rollback plan; retain
-all current accounts, grants, credentials and routes. Recheck live health and
-accepted single-account reads after the approved rollout. Any expanded capability
-claim needs its own scoped acceptance; do not reconnect merely to obtain it.
+Calendar inspect_sharing requires provider capability plus a complete roster;
+unsupported means unknown, not private/unshared. Missing provider HTTP 404 maps
+to CalendarError(not_found). Two kinds of evidence distinguish the wrappers:
+
+- Installed 0.1.26 code with a synthetic missing-provider error through the MCP SDK
+  returns `isError:true`, body `{"status":"rejected","error":{"code":"not_found"}}`,
+  and no `error_code`/INVALID_ARGUMENT member.
+- A live read-only get of a unique never-created event under an observed calendar
+  returned the same inner not_found plus outer structured
+  `{"error_code":"INVALID_ARGUMENT"}`. No event was created, edited or deleted.
+
+Therefore the outer classification is added after the application's result,
+in the connector/client adaptation path. The exact responsible component is an
+inference; its source was unavailable. Preserve the inner typed domain error;
+no claim is made that the outer adapter has been corrected.
+
+## Live acceptance and renewal
+
+Parent acceptance at 21:22–21:30 UTC established the correct profile,9 mailboxes,
+inbox search/complete read,4 calendars and bounded event query. Authorized
+temporary calendar/event CRUD read back updated title/UTC time and verified
+cleanup; original four names/hrefs/ETags remained unchanged. These observations
+belong to installed 0.1.26, not this candidate.
+
+During this review, read-only profile access succeeded and ordinary client
+renewal occurred at 22:06:54 UTC, before prior access expiry 22:16:10. Metadata
+confirmed refresh rotation/new access for the same client, authorization-code
+lineage, account binding and all existing scopes. Consent created/updated at
+21:16:07 was unchanged. New access expires 23:06:54. Subsequent Mail list returned
+9 mailboxes and Calendar list returned 4 calendars. At 22:16:42 UTC, after the
+original access expiry 22:16:10, an ordinary mailbox read again returned all 9
+mailboxes using the same successor grant/client/account/scopes. This verifies one
+proactive renewal cycle and continued access beyond the original expiry, without
+reconnect, new consent or manual token handling. It does not prove rejection of
+an expired live bearer, reactive refresh first attempted after expiry, indefinite
+renewal or candidate deployment. Expiry/replay/revocation security has synthetic
+integration coverage.
+
+Read-only doctor passed 13 checks; both SQLite integrity checks passed. Diagnostics
+are default-disabled, owner-only,30-minute bounded,256 enum-only records, with
+expired live marker untouched. Provider debug/loggers are disabled. Telemetry
+contains fixed enums/counts. No credential or provider-content logging was added.
+
+## Single-account gates versus excluded scope
+
+For single-account persistent access, the observed proactive renewal and
+post-original-expiry continuation close one normal-client cycle. Synthetic tests
+cover expiry/replay/revocation security; live expired-bearer rejection and reactive
+after-expiry renewal remain unverified security/failure-path evidence, not
+expanded feature capabilities.
+
+Required before production rollout: review/integrate the exact final commit,
+assign a new version, rebuild and identify hashes; obtain deployment/restart
+approval; take a consistent protected stopped snapshot and validate compatible
+rollback. Recheck account profile, accepted Mail/Calendar reads and private/public
+isolation after rollout. Existing historical backups do not replace that snapshot.
+
+For an unattended availability claim, supervision and recovery remain a required
+operational gate. Read-only checks found server PID 34332 alive with about 2 hours 20 minutes
+uptime; neither documented LaunchAgent was installed/registered. Both templates
+lint successfully. These establish current availability/configuration only.
+Reboot, login/logout, sleep/wake or crash-recovery acceptance would require
+separately approved service/supervision or host actions; none were induced.
+Safe future checks are ordinary read-only calls after natural renewal/expiry,
+metadata comparison without token values, periodic anonymous health/isolation
+checks and passive uptime/supervisor inspection. These cannot prove fault recovery
+without observing or intentionally testing the relevant fault.
+
+Deliberately excluded expanded claims: multiple accounts, invitations/sharing,
+recurrence/timezones, live conflict rejection and ambiguous-write recovery. Their
+absence of live acceptance does not block the narrower accepted capability claim.
+Calendar durable operation IDs/reconciliation and Mail unknown-outcome handling
+have fixture coverage; generic Mail mark/move batches have no Calendar-style
+durable operation IDs, so clients must inspect unknown results before another
+operation. No expanded writes were authorized or tested here.
+
+## Final verification and next approval
+
+Bun 1.4.2/darwin-arm64 full affected checkpoint after the review fix passed:
+application/tooling typechecks, production build, 269 application tests/1617
+assertions, 10 tooling tests/134 assertions and 11 built E2E tests/253 assertions.
+Final disposable frozen artifact assembly passed, and isolated lifecycle
+revalidation again passed 1 test/26 assertions. These use dummy state/provider fixtures, never
+real credentials. Initial sandbox listener failures were rerun with allowed
+fixture access. Independent reviewers found no remaining blocking regression.
+
+Task-local evidence includes checkpoint logs, dependency before/after audit,
+installed error fixture/live sanitized error observation, renewal metadata,
+supervision observation, runtime health/integrity and source/artifact comparisons.
+They support this report; this complete text is intended for inline delivery.
+
+Next approval is review/integration and a newly versioned release plan. Publishing
+PR/release, merge, deployment/restart, supervision installation, permission repair,
+diagnostic-file cleanup and expanded live writes remain unauthorized. Preserve
+all current credentials, accounts, grants and routes through any approved rollout.
