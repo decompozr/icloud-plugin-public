@@ -5,6 +5,7 @@ export interface TailscaleStatus { installed: boolean; authenticated: boolean; o
 export interface AppleCredential { user: string; appPassword: string }
 export interface AdminModule {id:string;title:string;fields:readonly {id:string;label:string}[];capabilities():Record<string,boolean>;updateCapabilities(next:Record<string,boolean>,confirm:boolean):Promise<Record<string,boolean>>}
 export interface AdminOptions {
+ evidence?(ownerId:string):import('./evidence.js').EvidenceRow[];
  modules?:readonly AdminModule[];
  privateOrigin: string;
  publicMcpUrl?: string;
@@ -43,7 +44,7 @@ export function createPrivateAdmin(options:AdminOptions) {
    if(request.method==='GET' && path==='/icloud/admin/status') {
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
-    return json({accounts:options.store.listAccounts(session.user.id),capabilities:options.capabilities?.()??null,modules:Object.fromEntries((options.modules??[]).map(module=>[module.id,module.capabilities()]))});
+    return json({accounts:options.store.listAccounts(session.user.id),evidence:options.evidence?.(session.user.id)??[],capabilities:options.capabilities?.()??null,modules:Object.fromEntries((options.modules??[]).map(module=>[module.id,module.capabilities()]))});
    }
    if(request.method==='GET' && path==='/icloud/setup/status') {
     const status=await options.diagnostics(),enrolled=options.store.ownerId()!==null;
