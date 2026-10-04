@@ -1,3 +1,4 @@
+import {initializePhotosSetup} from '../photos/setup-browser.js';
 import { registerOwner } from '../auth/browser.js';
 import { z } from 'zod';
 import { i18n,t,richText,isCopyKey,type CopyKey } from '../i18n/index.js';
@@ -25,7 +26,7 @@ node('connection-next')?.addEventListener('click',()=>{if(status?.ready)step(sta
 document.querySelectorAll<HTMLElement>('[data-back]').forEach(button=>button.addEventListener('click',()=>step(Number(button.dataset.back))));
 node('register')?.addEventListener('click',()=>void run(async()=>{if(!status?.ready||!(status.bootstrapAuthorized||status.passkeyRegistered))throw new CopyError('ownerDenied');try{await registerOwner();}catch{throw new CopyError('passkeyError');}status.passkeyRegistered=true;step(2);},'passkeyLoading'));
 for(const id of ['user','password']){const field=node(id);if(field instanceof HTMLInputElement){field.setAttribute('aria-describedby','error');field.addEventListener('invalid',()=>{field.setAttribute('aria-invalid','true');message(id==='user'?'emailInvalid':'passwordInvalid',true);});field.addEventListener('input',()=>field.removeAttribute('aria-invalid'));}}
-node('credentials')?.addEventListener('submit',event=>{event.preventDefault();void run(async()=>{await post(admin?'/icloud/admin/credential':'/icloud/setup/complete',{user:input('user').value,appPassword:input('password').value});input('password').value='';if(admin){await refreshDashboard();message('saved');}else step(3);},'saving');});
+node('credentials')?.addEventListener('submit',event=>{event.preventDefault();void run(async()=>{await post(admin?'/icloud/admin/credential':'/icloud/setup/complete',{user:input('user').value,appPassword:input('password').value});input('password').value='';if(admin){await refreshDashboard();message('saved');}else {step(3);window.dispatchEvent(new Event('photos-enrolled'));}},'saving');});
 node('revoke')?.addEventListener('click',()=>{node('revoke-confirm')!.hidden=false;node('revoke-yes')?.focus();});
 node('revoke-cancel')?.addEventListener('click',()=>{node('revoke-confirm')!.hidden=true;node('revoke')?.focus();});
 node('revoke-yes')?.addEventListener('click',()=>void run(async()=>{await post('/icloud/admin/revoke',{});node('revoke-confirm')!.hidden=true;input('password').value='';await refreshDashboard();message('revoked');},'revoking'));
@@ -45,3 +46,5 @@ async function savePolicy(confirmEnable:boolean){if(!pendingPolicy)return;await 
 node('policy-save')?.addEventListener('click',()=>{if(!dashboard?.capabilities)return;pendingPolicy=Object.fromEntries(Object.keys(dashboard.capabilities).map(key=>[key,input(`policy-input-${key}`).checked]));if((Object.keys(dashboard.capabilities??{})).some(key=>pendingPolicy![key]&&!dashboard!.capabilities![key])){node('policy-confirm')!.hidden=false;node('policy-confirm-yes')?.focus();}else void run(()=>savePolicy(false),'workingPolicy');});
 node('policy-confirm-yes')?.addEventListener('click',()=>void run(()=>savePolicy(true),'workingPolicy'));
 node('policy-confirm-no')?.addEventListener('click',()=>{pendingPolicy=undefined;node('policy-confirm')!.hidden=true;node('policy-save')?.focus();});
+
+initializePhotosSetup();

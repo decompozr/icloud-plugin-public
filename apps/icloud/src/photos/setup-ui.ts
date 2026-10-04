@@ -1,0 +1,36 @@
+import {open} from 'node:fs/promises';
+import {join,dirname} from 'node:path';
+import {z} from 'zod';
+import {runProcess} from './provider.js';
+import type {ProviderSettings} from './provider.js';
+export const privacyLinks={photos:'x-apple.systempreferences:com.apple.preference.security?Privacy_Photos',files:'x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles',automation:'x-apple.systempreferences:com.apple.preference.security?Privacy_Automation'} as const;
+export type SetupAction=keyof typeof privacyLinks|'authorize';
+export function photosSetup(settings:ProviderSettings){return {
+ async status(){
+  let libraryReadable=false;let libraryStatus='unavailable';
+  try{const file=await open(join(settings.library,'database/Photos.sqlite'),'r');await file.close();libraryReadable=true;libraryStatus='ready';}catch(e){if((e as NodeJS.ErrnoException).code==='EPERM'||(e as NodeJS.ErrnoException).code==='EACCES')libraryStatus='permission_required';}
+  let authorization='unavailable';
+  try{const native=z.object({authorized:z.boolean(),authorization:z.number().int()}).parse(await runProcess([settings.nativeHelper],{command:'health'},10000));authorization=({0:'not_requested',1:'restricted',2:'denied',3:'authorized',4:'limited'} as Record<number,string>)[native.authorization]??'unavailable';}catch{}
+  return {libraryReadable,libraryStatus,authorization,ready:libraryReadable&&authorization==='authorized',automation:'checked_when_editing',changesPerformed:false};
+ },
+ async action(action:SetupAction){
+  let args:string[];
+  if(action==='authorize'){
+   const app=dirname(dirname(dirname(settings.nativeHelper)));
+   if(!app.endsWith('.app')||join(app,'Contents','MacOS','photos-helper')!==settings.nativeHelper)throw Error('Packaged helper required');
+   args=['/usr/bin/open',app,'--args','--authorize'];
+  }else args=['/usr/bin/open',privacyLinks[action]];
+  const child=Bun.spawn(args,{stdout:'ignore',stderr:'ignore'});if(await child.exited!==0)throw Error('Cannot open settings');
+  return {opened:true,ready:false,changesPerformed:false};
+ }
+};}
+export function photosSetupSection(){return `<section class="card" id="photos-setup" aria-labelledby="photos-setup-title">
+<h2 id="photos-setup-title" data-photos-en="Connect Photos" data-photos-zh="連接照片">Connect Photos</h2>
+<p data-photos-en="Complete these permissions on the Mac running this service. Opening settings does not change any photos." data-photos-zh="請在執行此服務的 Mac 上完成權限設定。開啟設定不會修改照片。">Complete these permissions on the Mac running this service. Opening settings does not change any photos.</p>
+<ol>
+<li><strong data-photos-en="Read your library" data-photos-zh="讀取照片庫">Read your library</strong><p data-photos-en="Allow Full Disk Access for the app running this service. If you change it, quit and reopen that app." data-photos-zh="允許執行此服務的 App 使用完整磁碟存取權。變更後請完全退出並重開該 App。">Allow Full Disk Access for the app running this service. If you change it, quit and reopen that app.</p><button type="button" class="secondary" data-photos-action="files" data-photos-en="Open Full Disk Access" data-photos-zh="開啟完整磁碟存取設定">Open Full Disk Access</button></li>
+<li><strong data-photos-en="Allow Photos access" data-photos-zh="允許照片存取">Allow Photos access</strong><p data-photos-en="Choose full access for iCloud Photos Helper. If it is not listed yet, request access first." data-photos-zh="為 iCloud Photos Helper 選擇完整存取。若尚未列出，請先按要求存取。">Choose full access for iCloud Photos Helper. If it is not listed yet, request access first.</p><button type="button" class="primary" data-photos-action="authorize" data-photos-en="Request Photos Access" data-photos-zh="要求照片存取">Request Photos Access</button> <button type="button" class="secondary" data-photos-action="photos" data-photos-en="Open Photos Privacy Settings" data-photos-zh="開啟照片隱私設定">Open Photos Privacy Settings</button></li>
+</ol>
+<details><summary data-photos-en="Metadata editing permissions and manual settings links" data-photos-zh="中繼資料編輯權限與設定捷徑">Metadata editing permissions and manual settings links</summary><p data-photos-en="Photos may also ask for Automation access when you edit titles or keywords. Allow control of Photos. These links open settings on the device viewing this page; the buttons above open them on the service Mac." data-photos-zh="編輯標題或關鍵字時，系統可能另外要求自動化權限，請允許控制 Photos。下方連結會開啟目前裝置的設定；上方按鈕則開啟服務所在 Mac 的設定。">Photos may also ask for Automation access when you edit titles or keywords. Allow control of Photos. These links open settings on the device viewing this page; the buttons above open them on the service Mac.</p><a href="${privacyLinks.photos}">Photos</a> · <a href="${privacyLinks.files}">Full Disk Access</a> · <a href="${privacyLinks.automation}">Automation</a></details>
+<p id="photos-status" role="status" aria-live="polite"></p><button type="button" class="secondary" id="photos-recheck" data-photos-en="Check Permissions Again" data-photos-zh="重新檢查權限">Check Permissions Again</button>
+</section>`;}

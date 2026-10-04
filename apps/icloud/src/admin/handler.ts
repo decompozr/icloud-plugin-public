@@ -5,6 +5,7 @@ export interface TailscaleStatus { installed: boolean; authenticated: boolean; o
 export interface AppleCredential { user: string; appPassword: string }
 export interface AdminOptions {
  privateOrigin: string;
+ photosSetup?:{status():Promise<unknown>;action(action:'photos'|'files'|'automation'|'authorize'):Promise<unknown>};
  publicMcpUrl?: string;
  presentation?:AdminPresentation;
  pluginArchive?():Promise<Uint8Array>;
@@ -30,8 +31,22 @@ async function parseBody(request:Request):Promise<unknown> {
 export function createPrivateAdmin(options:AdminOptions) {
  return async function handle(request:Request):Promise<Response> {
   const path=new URL(request.url).pathname;
-  if(!['/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/setup/complete','/icloud/admin/credential','/icloud/admin/revoke','/icloud/admin/status','/icloud/admin/capabilities','/icloud/admin/plugin.zip'].includes(path))return json({error:'NOT_FOUND'},404);
+  if(!['/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/setup/complete','/icloud/admin/credential','/icloud/admin/revoke','/icloud/admin/status','/icloud/admin/capabilities','/icloud/admin/plugin.zip','/icloud/admin/photos/status','/icloud/admin/photos/action'].includes(path))return json({error:'NOT_FOUND'},404);
   try {
+   if(path.startsWith('/icloud/admin/photos/')){
+    const session=await options.ownerAuth.ownerSession(request.headers);
+    if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
+    if(!options.photosSetup)return json({error:'NOT_AVAILABLE'},404);
+    if(path.endsWith('/status')&&request.method==='GET')return json(await options.photosSetup.status());
+    if(path.endsWith('/action')&&request.method==='POST'){
+     if(request.headers.get('origin')!==options.privateOrigin)return json({error:'ORIGIN_DENIED'},403);
+     if(request.headers.get('content-type')?.split(';')[0]?.trim()!=='application/json')return json({error:'INVALID_INPUT'},400);
+     const body=z.object({action:z.enum(['photos','files','automation','authorize'])}).strict().safeParse(await parseBody(request));
+     if(!body.success)return json({error:'INVALID_INPUT'},400);
+     return json(await options.photosSetup.action(body.data.action));
+    }
+    return json({error:'METHOD_NOT_ALLOWED'},405);
+   }
    if(request.method==='GET' && path==='/icloud/admin/plugin.zip'){
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
@@ -61,7 +76,7 @@ export function createPrivateAdmin(options:AdminOptions) {
      if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     }
     const status=await options.diagnostics();
-    return new Response(setupPage({enrolled,ready:ready(status),admin:path==='/icloud/admin',publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,presentation:options.presentation}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
+    return new Response(setupPage({enrolled,ready:ready(status),admin:path==='/icloud/admin',publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,presentation:options.presentation,photosConfigured:!!options.photosSetup}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
    }
    if(request.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405);
    if(request.headers.get('origin')!==options.privateOrigin)return json({error:'ORIGIN_DENIED'},403);

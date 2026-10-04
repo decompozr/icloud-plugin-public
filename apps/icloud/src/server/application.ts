@@ -1,3 +1,4 @@
+import {photosSetup} from '../photos/setup-ui.js';
 import {LocalPhotosProvider} from '../photos/provider.js';
 import {PhotosService} from '../photos/service.js';
 import {photosRegistration} from '../photos/module.js';
@@ -60,7 +61,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  for(const page of ['sign-in','consent'] as const)publicApp.get('/icloud/'+page,(_req,res)=>{res.set({'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}).type('html').send(renderAuthPage(page,false,scopeLabels));});
  publicApp.get('/icloud/assets/auth-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'auth-browser.js'),{dotfiles:'allow'}));
  publicApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.public_origin,auth.publicHandler,lifecycle));
- const admin=createPrivateAdmin({privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin});
+ const admin=createPrivateAdmin({...(settings.photos?{photosSetup:photosSetup({python:settings.photos.python,library:settings.photos.library,nativeHelper:settings.photos.native_helper})}:{}),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin});
  const privateApp=express();privateApp.disable('x-powered-by');privateApp.use(lifecycle.admission);privateApp.use(guardHost(settings.private_origin,settings.private_port));
  privateApp.use((req,res,next)=>{
   const address=req.socket.remoteAddress?.replace(/^::ffff:/,'');

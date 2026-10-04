@@ -16,7 +16,17 @@ require the system library, and scripting additionally requires the open library
 be that library. Full Disk Access for the host and Photos/Automation permissions
 are distinct. Dependency installation never happens in an MCP request.
 
-PhotoKit authorization is an explicit local operator step:
+When Photos is configured, the owner setup/admin page includes permission status,
+Request Photos Access, Open Photos Privacy Settings, Open Full Disk Access, and
+Check Permissions Again. Buttons open settings on the service Mac, including when
+the owner uses a phone. Direct settings links open on the viewing device. If a
+shortcut is unavailable, use System Settings > Privacy & Security manually.
+Only explicit clicks request access; opening settings never counts as permission
+granted. The owner must approve the macOS prompt. Automation may be requested
+separately when editing metadata. This UI has build and automated test coverage;
+live onboarding and native writes still require verification on the host.
+
+The manual PhotoKit authorization fallback is:
 `open -W "/absolute/private/photos-runtime/iCloud Photos Helper.app" --args --authorize`.
 If macOS denies this, no native write is attempted. Grant Photos access through
 System Settings; do not treat Full Disk Access as PhotoKit authorization.
