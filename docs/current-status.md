@@ -319,3 +319,16 @@ Evidence detail and historical receipts: [roadmap](roadmap.md), [mail contracts]
 The historical 0.1.16 Mail surface contains 14 tools: `mail_list_mailboxes`, `mail_search`, `mail_read`, `mail_mark`, `mail_move`, `mail_flag`, `mail_tag`, `mail_organize`, `mail_batch`, `mail_send`, `mail_reply`, `mail_draft_create`, `mail_unsubscribe_discover`, and `mail_unsubscribe_submit`. Release 0.1.17 adds `mail_attachment_download`, `mail_draft_read`, `mail_draft_edit`, `mail_draft_send`, and `mail_forward`, for 19 installed tools. Availability follows operator policy; invocation additionally requires the corresponding OAuth scopes.
 
 A separate read-only Dot log observation recorded a cloud-backend DNS `ENOTFOUND` at 22:55:22Z and a connected event at 22:57:34Z. These historical events have no established mapping to the user's current task. Current DNS resolution and a separate Bun service-health request returning 200 are different observations; they do not identify the exact Dot failure. No restart or configuration change was made. The OAuth fixture lifecycle results above do not establish global session revocation.
+
+Private administration UI preparation now adds an owner-protected root overview,
+Accounts, Client connections, System/diagnostics and a resumable account-only wizard.
+See [admin shell](admin-shell.md) for routes, uncertainty semantics, fixture browser
+checks and the proposed private root mapping. This candidate is local only; live
+8443 routing, runtime, credentials and supervision are unchanged. The current source
+version still collides with installed 0.1.26 and requires a new release version before
+an authorized deployment.
+
+The user reported reinstalling the custom MCP connection at 22:38 UTC on October 4.
+Earlier grant lineage and proactive refresh observations describe the previous
+connection. Do not transfer those claims to the reinstalled connection; fresh
+read-only acceptance is a separate check in the parent task.

@@ -14,7 +14,7 @@ async function fixture(ready=true,seedAccount=false){
 }
 test('private prerequisites precede credentials and block completion',async()=>{
  const f=await fixture(false);try{
-  const html=await(await fetch(f.url+'/icloud/setup')).text();expect(html).toContain('data-step="0"');expect(html).toContain('data-step="1" hidden');expect(html).toContain('data-step="2" hidden');expect(html.match(/data-step=/g)).toHaveLength(3);expect(html).not.toContain('id="proof"');
+  const html=await(await fetch(f.url+'/icloud/setup')).text();expect(html).toContain('data-step="0"');expect(html).toContain('data-step="1" hidden');expect(html).toContain('data-step="2" hidden');expect(html.match(/data-step=/g)).toHaveLength(4);expect(html).not.toContain('id="proof"');
   expect((await f.post('/icloud/setup/complete',{user:'owner@example.invalid',appPassword:'dummy-secret'})).status).toBe(409);
  }finally{await f.close();}
 });
@@ -32,6 +32,7 @@ test('owner-only setup closes bootstrap without collecting credentials',async()=
 
 test('admin browser navigation redirects missing session to fixed private sign-in; API stays denied',async()=>{
  const f=await fixture();try{
+  await f.post('/icloud/setup/complete',{});
   const navigation=await fetch(f.url+'/icloud/admin?returnURL=https://attacker.invalid',{redirect:'manual'});
   expect(navigation.status).toBe(303);expect(navigation.headers.get('location')).toBe('/icloud/sign-in');
   expect((await fetch(f.url+'/icloud/admin',{headers:{'x-fixture-session':'other'},redirect:'manual'})).status).toBe(403);
@@ -120,4 +121,36 @@ test('credential replacement requires generation support and clears temporary st
   Object.defineProperty(f.store,'accountGeneration',{value:undefined});
   expect((await f.post('credential','unsupported')).status).toBe(409);expect(f.password()).toBe('updated');
  }finally{f.close();}
+});
+
+test('owner shell routes and enrolled wizard never expose accounts to anonymous navigation',async()=>{
+ const f=await fixture(true,true);try{
+  for(const path of ['/','/icloud/admin','/icloud/admin/accounts','/icloud/admin/connections','/icloud/admin/system','/icloud/setup?mode=account']){
+   const response=await fetch(f.url+path,{redirect:'manual'});expect(response.status).toBe(303);expect(response.headers.get('location')).toBe('/icloud/sign-in');expect(await response.text()).not.toContain('owner@example.invalid');
+   expect((await fetch(f.url+path,{headers:{'x-fixture-session':'other'},redirect:'manual'})).status).toBe(403);
+   const owner=await fetch(f.url+path,{headers:{'x-fixture-session':'owner'}});expect(owner.status).toBe(200);expect(owner.headers.get('cache-control')).toBe('no-store');expect(owner.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
+  }
+  expect((await fetch(f.url+'/icloud/admin/system-status')).status).toBe(403);
+  const setup=await(await fetch(f.url+'/icloud/setup/status')).text();expect(setup).not.toContain('owner@example.invalid');expect(setup).not.toContain('accounts');
+ }finally{await f.close();}
+});
+test('private root directs an uninitialized owner to resumable setup',async()=>{
+ const f=await fixture();try{const response=await fetch(f.url+'/',{redirect:'manual'});expect(response.status).toBe(303);expect(response.headers.get('location')).toBe('/icloud/setup');}finally{await f.close();}
+});
+test('account-only addition requires owner, exact origin, validates and never revives a saved account',async()=>{
+ const f=await fixture(true,true);try{
+  const path='/icloud/admin/accounts/add',body={user:'new@example.invalid',label:'Fixture',appPassword:'dummy-fixture'};
+  expect((await f.post(path,body,'other')).status).toBe(403);expect((await f.post(path,body,'owner','https://evil.invalid')).status).toBe(403);
+  expect((await f.post(path,{...body,unexpected:true})).status).toBe(400);expect((await f.post(path,{...body,appPassword:'invalid-dummy'})).status).toBe(422);
+  const created=await f.post(path,body);expect(created.status).toBe(201);const result=await created.json();expect(result.account.user).toBe(body.user);expect(JSON.stringify(result)).not.toContain(body.appPassword);
+  expect((await f.post(path,body)).status).toBe(409);await f.post('/icloud/admin/revoke',{accountId:result.account.id});expect((await f.post(path,body)).status).toBe(409);
+  const status=await(await fetch(f.url+'/icloud/admin/status',{headers:{'x-fixture-session':'owner'}})).json();expect(status.accounts.find((a:{id:string})=>a.id===result.account.id).credentialStored).toBe(false);
+ }finally{await f.close();}
+});
+test('concurrent account additions recheck duplicates after asynchronous provider validation',async()=>{
+ const barrier=validationBarrier(),f=credentialFixture(async credential=>{if(credential.appPassword==='slow')await barrier.validate();});
+ const post=(password:string)=>createRequest(password);
+ const handler=createPrivateAdmin({privateOrigin:'https://private.invalid',store:f.store,ownerAuth:{ownerSession:async()=>({user:{id:'owner'}}),enrollmentSession:async()=>({user:{id:'owner'}})},diagnostics:async()=>({installed:true,authenticated:true,online:true,privateReachable:true}),validateCredential:async credential=>{if(credential.appPassword==='slow')await barrier.validate();}});
+ function createRequest(appPassword:string){return handler(new Request('https://private.invalid/icloud/admin/accounts/add',{method:'POST',headers:{origin:'https://private.invalid','content-type':'application/json'},body:JSON.stringify({user:'new@example.invalid',appPassword})}));}
+ try{const slow=post('slow');await barrier.entered;expect((await post('fast')).status).toBe(201);barrier.release();expect((await slow).status).toBe(409);expect(f.store.listAccounts('owner').filter(a=>a.user==='new@example.invalid')).toHaveLength(1);}finally{barrier.release();f.close();}
 });

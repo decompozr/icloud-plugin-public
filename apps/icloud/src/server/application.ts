@@ -1,4 +1,6 @@
 import {ReconnectCapture} from '../observability/reconnect.js';
+import {runtimeVersions} from './versions.js';
+import {createSystemStatus,type SystemStatus} from '../admin/system-status.js';
 import {ReadinessEvidence} from '../admin/evidence.js';
 import {evidenceState} from '../admin/evidence-state.js';
 import {createCalendarModule,type CalendarModuleDependencies} from '../calendar/module.js';
@@ -29,6 +31,7 @@ export interface ApplicationDependencies{
  store:OwnerSecretStore;masterKey:Uint8Array;authDatabase:Database;assetsDirectory:string;
  outboundProvider?:MailModuleDependencies['outboundProvider'];
  diagnostics?:()=>Promise<TailscaleStatus>;
+ systemStatus?:()=>Promise<SystemStatus>;
  bootstrapProof?:()=>string;
  provider?:MailModuleDependencies['provider'];
 }
@@ -61,7 +64,8 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  publicApp.get('/icloud/assets/inter.ttf',(_req,res)=>res.type('font/ttf').sendFile(join(deps.assetsDirectory,'inter.ttf'),{dotfiles:'allow'}));
  publicApp.get('/icloud/assets/auth-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'auth-browser.js'),{dotfiles:'allow'}));
  publicApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.public_origin,auth.publicHandler,lifecycle));
- const admin=createPrivateAdmin({evidence:owner=>evidence.list(owner),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]});
+ const versions=runtimeVersions(deps.assetsDirectory);
+ const admin=createPrivateAdmin({systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]});
  const privateApp=express();privateApp.disable('x-powered-by');privateApp.use(lifecycle.admission);privateApp.use(guardHost(settings.private_origin,settings.private_port));
  privateApp.use((req,res,next)=>{
   const address=req.socket.remoteAddress?.replace(/^::ffff:/,'');
