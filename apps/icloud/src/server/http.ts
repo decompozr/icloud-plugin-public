@@ -13,7 +13,7 @@ export function createHttpApp(config: Config, runtime:ModuleRuntime, verify = cr
   const resource = config.publicUrl;
   const metadataPath = '/.well-known/oauth-protected-resource/icloud/mcp';
   const metadataUrl = `${new URL(resource).origin}${metadataPath}`;
-  app.get(metadataPath, (_req,res)=>res.json({ resource, authorization_servers:[config.issuer], scopes_supported:runtime.allowedScopes, bearer_methods_supported:['header'] }));
+  app.get(metadataPath, (_req,res)=>res.set('Cache-Control','no-store').json({ resource, authorization_servers:[config.issuer], scopes_supported:runtime.allowedScopes, bearer_methods_supported:['header'] }));
   const principals=new WeakMap<express.Request,Principal>();
   app.use('/icloud/mcp', async (req,res,next)=> {
     // Requests may arrive only through the configured public host or the loopback proxy.

@@ -93,6 +93,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
     return response;
    }catch{return Response.json({error:'SETUP_AUTHORIZATION_REQUIRED'},{status:403});}
   }
+  if(path==='/icloud/admin/oauth-clients')return auth.privateHandler(request);
   if(path.startsWith('/icloud/auth/')){
    if(path.includes('register')||path.includes('registration')){const status=await diagnostics();if(!Object.values(status).every(Boolean))return new Response('Prerequisites required',{status:409});}
    return auth.privateHandler(request);

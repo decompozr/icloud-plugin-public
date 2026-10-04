@@ -1,3 +1,4 @@
+import {createClientRecovery} from './client-recovery.js';
 import { Database } from 'bun:sqlite';
 import { betterAuth } from 'better-auth';
 import { APIError } from 'better-auth/api';
@@ -40,6 +41,7 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
  const checkBootstrap=(headers:Headers|undefined)=>{ if(options.ownerId())throw Error('Enrollment closed'); options.checkBootstrapProof(headers?.get('x-bootstrap-proof')??''); };
  const requestContext=new AsyncLocalStorage<{query?:string;accountId?:string;refreshToken?:string}>();
  let connection:ReturnType<typeof createAccountConnection>|undefined;
+ const recoverClient=createClientRecovery({database:options.database,origin:options.privateOrigin,declaredScopes:options.scopes,allowedScopes:()=>options.allowedScopes?.()??options.scopes,ownerSession:headers=>session(headers),updateClient:async(headers,clientId,scopes)=>{await auth.api.updateOAuthClient({headers,body:{client_id:clientId,update:{scope:scopes.join(' ')}}});}});
  const config={
   database:options.database,baseURL:options.publicBaseURL,basePath:'/icloud/auth',rateLimit:authRateLimit,advanced:{ipAddress:{ipAddressHeaders:[]},cookiePrefix:'icloud',defaultCookieAttributes:{path:'/icloud'}},secret:options.secret,trustedOrigins:origins,
   plugins:[passkey({rpID:options.rpID,rpName:'iCloud Plugin',origin:origins,authenticatorSelection:{userVerification:'required',residentKey:'required'},
@@ -116,6 +118,7 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
  async function route(request:Request,privateRoute:boolean):Promise<Response>{
   const url=new URL(request.url),path=url.pathname,origin=request.headers.get('origin');
   if(origin&&!origins.includes(origin))return new Response('Forbidden',{status:403});
+  if(path==='/icloud/admin/oauth-clients')return privateRoute?recoverClient(request):new Response('Not found',{status:404});
   if(path.startsWith('/icloud/connect/'))return connection?.handle(request)??new Response('Not found',{status:404});
   let oauthQuery:string|undefined,consentAccountId:string|undefined,consentSession:{owner:string;id:string}|undefined,consentDenied=false,refreshToken:string|undefined;
   if(connection&&path==='/icloud/auth/oauth2/token'&&request.method==='POST'){
@@ -181,7 +184,8 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
   const response=await requestContext.run({query:oauthQuery,accountId:consentAccountId,refreshToken},()=>auth.handler(request));
   if(options.allowedScopes&&path.includes('/.well-known/oauth-authorization-server')&&response.ok){
    const body=z.record(z.unknown()).parse(await response.json());
-   return Response.json({...body,scopes_supported:[...options.allowedScopes()]},{status:response.status,headers:response.headers});
+   const headers=new Headers(response.headers);headers.set('cache-control','no-store');headers.delete('content-length');
+   return Response.json({...body,scopes_supported:[...options.allowedScopes()]},{status:response.status,headers});
   }
   return response;
  }
