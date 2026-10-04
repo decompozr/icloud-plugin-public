@@ -18,7 +18,7 @@ function status(res: DavResponse, codes: number[], dispatched = false) {
   throw new CalendarError(code, `Calendar provider returned HTTP ${res.status}`, dispatched, dispatched && res.status >= 400 && res.status < 500);
 }
 function utcWindow(start: string, end: string) {
-  const parse = (value: string) => {check(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.000)?Z$/.test(value) && Number.isFinite(Date.parse(value)), 'invalid_input', 'UTC ISO timestamps required'); return Date.parse(value);};
+  const parse = (value: string) => {check(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.000)?Z$/.test(value) && Number.isFinite(Date.parse(value)), 'invalid_input', 'UTC ISO timestamps required'); const time=Date.parse(value);check(new Date(time).toISOString()===value.replace(/(?:\.000)?Z$/,'.000Z'),'invalid_input','Valid UTC calendar dates required');return time;};
   const a = parse(start), b = parse(end); check(b > a && b - a <= 366 * 86400000, 'invalid_input', 'Finite interval of at most 366 days required');
   return {start: new Date(a).toISOString().replace(/[-:]/g,'').replace('.000',''), end: new Date(b).toISOString().replace(/[-:]/g,'').replace('.000','')};
 }

@@ -1,3 +1,11 @@
+## Single-account production preparation (2026-10-04 UTC)
+
+The installed diagnostic release remains 0.1.26. The current preparation is based
+on diagnostic commit `b85c33f`, after the successful custom MCP acceptance, and
+does not change the service, accounts, credentials, grants or routes. Current
+scope and evidence supersede broad or historical claims below:
+[production audit](single-account-production-readiness.md).
+
 ## Reconnect redirect diagnostic iteration 0.1.26
 
 Closes the authorization302 diagnostic gap by reducing the provider-created

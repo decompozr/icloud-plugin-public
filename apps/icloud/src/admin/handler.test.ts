@@ -3,6 +3,8 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomBytes} from 'node:crypto';
+import {createPrivateAdmin,type AppleCredential} from './handler.js';
+import {SqliteOwnerStore} from '../storage/owner-store.js';
 async function fixture(ready=true,seedAccount=false){
  const dir=mkdtempSync(join(tmpdir(),'icloud-admin-'));
  const proof=randomBytes(32).toString('hex');
@@ -69,3 +71,53 @@ test('dashboard status and capability mutations require owner and explicit eleva
  }finally{await f.close();}
  });
 test('Calendar capability administration is separate from Mail and owner protected',async()=>{const f=await fixture();try{await f.post('/icloud/setup/complete',{});const policy={read:true,write:true,schedule:false,share:false};const endpoint='/icloud/admin/modules/calendar/capabilities';expect((await f.post(endpoint,{policy,confirmEnable:true},'other')).status).toBe(403);expect((await f.post(endpoint,{policy,confirmEnable:false})).status).toBe(409);expect((await f.post(endpoint,{policy,confirmEnable:true})).status).toBe(200);const status=await(await fetch(f.url+'/icloud/admin/status',{headers:{'x-fixture-session':'owner'}})).json();expect(status.modules.calendar).toEqual(policy);expect(status.capabilities.send).toBe(false);}finally{await f.close();}});
+
+function credentialFixture(validateCredential:(credential:AppleCredential)=>Promise<void>){
+ const dir=mkdtempSync(join(tmpdir(),'icloud-admin-race-')),proof=randomBytes(32).toString('hex');
+ const store=SqliteOwnerStore.provision({databasePath:join(dir,'db'),markerPath:join(dir,'marker'),masterKey:randomBytes(32),bootstrapProof:proof});
+ store.enroll({proof,ownerId:'owner'});
+ const account=store.addAccount('owner',{user:'fixture@example.invalid',credential:Buffer.from(JSON.stringify({user:'fixture@example.invalid',appPassword:'original'}))});
+ const session=async()=>({user:{id:'owner'}}),origin='https://private.invalid';
+ const handler=createPrivateAdmin({privateOrigin:origin,store,ownerAuth:{ownerSession:session,enrollmentSession:session},diagnostics:async()=>({installed:true,authenticated:true,online:true,privateReachable:true}),validateCredential});
+ return{store,account,post(path:string,appPassword?:string){return handler(new Request(origin+'/icloud/admin/'+path,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({accountId:account.id,...(appPassword===undefined?{}:{appPassword})})}));},password(){const bytes=store.readAccountSecret('owner',account.id);if(!bytes)return null;try{return JSON.parse(Buffer.from(bytes).toString()).appPassword;}finally{bytes.fill(0);}},close(){store.close();rmSync(dir,{recursive:true,force:true});}};
+}
+function validationBarrier(){
+ let enter!:()=>void,release!:()=>void;
+ const entered=new Promise<void>(resolve=>{enter=resolve;}),pending=new Promise<void>(resolve=>{release=resolve;});
+ return{entered,release,async validate(){enter();await pending;}};
+}
+
+test('credential validation cannot restore credentials after a concurrent local revocation',async()=>{
+ for(const initiallyRevoked of [false,true]){
+  const barrier=validationBarrier(),f=credentialFixture(barrier.validate);
+  try{
+   if(initiallyRevoked)f.store.revokeAccountSecret('owner',f.account.id);
+   const replacement=f.post('credential','stale');await barrier.entered;
+   expect((await f.post('revoke')).status).toBe(200);barrier.release();
+   const response=await replacement;expect(response.status).toBe(409);expect(await response.json()).toEqual({error:'CREDENTIAL_STATE_CHANGED'});
+   expect(f.password()).toBeNull();expect(f.store.account('owner',f.account.id).credentialStored).toBe(false);
+  }finally{barrier.release();f.close();}
+ }
+});
+
+test('a slow credential replacement cannot overwrite a newer validated replacement',async()=>{
+ const barrier=validationBarrier(),f=credentialFixture(async credential=>{if(credential.appPassword==='stale')await barrier.validate();});
+ try{
+  const stale=f.post('credential','stale');await barrier.entered;
+  expect((await f.post('credential','newer')).status).toBe(200);barrier.release();
+  expect((await stale).status).toBe(409);expect(f.password()).toBe('newer');
+ }finally{barrier.release();f.close();}
+});
+
+test('credential replacement requires generation support and clears temporary storage bytes',async()=>{
+ const f=credentialFixture(async()=>{});let bytes:Uint8Array|undefined;
+ const rotate=f.store.rotateAccountSecret.bind(f.store);
+ f.store.rotateAccountSecret=(owner,account,credential)=>{bytes=credential;rotate(owner,account,credential);};
+ try{
+  expect((await f.post('credential','updated')).status).toBe(200);expect(f.password()).toBe('updated');expect(bytes).toBeDefined();expect(bytes!.every(value=>value===0)).toBe(true);
+  f.store.rotateAccountSecret=(_owner,_account,credential)=>{bytes=credential;throw Error('Synthetic storage failure');};
+  expect((await f.post('credential','failed')).status).toBe(403);expect(bytes!.every(value=>value===0)).toBe(true);expect(f.password()).toBe('updated');
+  Object.defineProperty(f.store,'accountGeneration',{value:undefined});
+  expect((await f.post('credential','unsupported')).status).toBe(409);expect(f.password()).toBe('updated');
+ }finally{f.close();}
+});

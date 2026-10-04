@@ -30,6 +30,11 @@ async function parseBody(request:Request):Promise<unknown> {
  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown;
 }
 export function createPrivateAdmin(options:AdminOptions) {
+ // Include local revocations of already-revoked accounts: their persisted
+ // credential generation is undefined before and after removal.
+ const credentialMutations=new Map<string,number>();
+ const mutationKey=(owner:string,account:string)=>JSON.stringify([owner,account]);
+ const noteMutation=(key:string)=>credentialMutations.set(key,(credentialMutations.get(key)??0)+1);
  return async function handle(request:Request):Promise<Response> {
   const path=new URL(request.url).pathname;
   const moduleMatch=/^\/icloud\/admin\/modules\/([a-z]+)\/capabilities$/.exec(path);
@@ -94,13 +99,18 @@ export function createPrivateAdmin(options:AdminOptions) {
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     if(path==='/icloud/admin/revoke') {
      const body=z.object({accountId:z.string().min(1)}).strict().safeParse(await parseBody(request));if(!body.success)return json({error:'INVALID_INPUT'},400);
-     options.store.revokeAccountSecret(session.user.id,body.data.accountId);return json({revoked:'local-provider-credential'});
+     options.store.revokeAccountSecret(session.user.id,body.data.accountId);noteMutation(mutationKey(session.user.id,body.data.accountId));return json({revoked:'local-provider-credential'});
     }
     const parsed=z.object({accountId:z.string().min(1),appPassword:z.string().min(1).max(256)}).strict().safeParse(await parseBody(request));if(!parsed.success)return json({error:'INVALID_INPUT'},400);
     const account=options.store.listAccounts(session.user.id).find(item=>item.id===parsed.data.accountId);if(!account)return json({error:'ACCOUNT_NOT_FOUND'},404);
+    if(!options.store.accountGeneration)return json({error:'CREDENTIAL_STATE_UNAVAILABLE'},409);
+    const generation=options.store.accountGeneration(session.user.id,account.id),key=mutationKey(session.user.id,account.id),mutation=credentialMutations.get(key)??0;
     const credential={user:account.user,appPassword:parsed.data.appPassword};
     try { await options.validateCredential(credential); } catch { return json({error:'PROVIDER_VALIDATION_FAILED'},422); }
-    options.store.rotateAccountSecret(session.user.id,parsed.data.accountId,Buffer.from(JSON.stringify(credential)));return json({updated:true});
+    if(options.store.ownerId()!==session.user.id||options.store.accountGeneration(session.user.id,account.id)!==generation||(credentialMutations.get(key)??0)!==mutation)return json({error:'CREDENTIAL_STATE_CHANGED'},409);
+    const bytes=Buffer.from(JSON.stringify(credential));
+    try{options.store.rotateAccountSecret(session.user.id,account.id,bytes);noteMutation(key);}finally{bytes.fill(0);}
+    return json({updated:true});
    }
    return json({error:'NOT_FOUND'},404);
   } catch { return json({error:'ACCESS_OR_STATE_DENIED'},403); }

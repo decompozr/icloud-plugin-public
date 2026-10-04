@@ -8,7 +8,9 @@ RUN cd apps/icloud && bun install --frozen-lockfile
 RUN cd packages/tooling && bun install --frozen-lockfile
 COPY apps/icloud/src ./apps/icloud/src
 COPY apps/icloud/assets/plugin-icon.png ./apps/icloud/assets/plugin-icon.png
+COPY apps/icloud/assets/inter.ttf apps/icloud/assets/inter-OFL.txt ./apps/icloud/assets/
 COPY skills/icloud-mail/SKILL.md ./skills/icloud-mail/SKILL.md
+COPY skills/icloud-calendar/SKILL.md ./skills/icloud-calendar/SKILL.md
 COPY bin ./bin
 COPY packages/tooling ./packages/tooling
 RUN bun bin/build && bun bin/build-artifact /artifact
@@ -17,7 +19,7 @@ FROM oven/bun:1.4.2 AS runtime
 WORKDIR /opt/icloud
 COPY --from=build /artifact/ ./
 USER root
-RUN mkdir -p /state /custody /config /diagnostics && chown 10001:10001 /state /custody /config /diagnostics
+RUN mkdir -p /state /custody /config /diagnostics && chown 10001:10001 /state /custody /config /diagnostics && chmod 700 /state /custody
 # Public plugin templates may originate in an owner-only checkout.
 RUN find /opt/icloud/apps/icloud/dist/plugin-template -type d -exec chmod 755 {} + && find /opt/icloud/apps/icloud/dist/plugin-template -type f -exec chmod 644 {} +
 USER 10001:10001

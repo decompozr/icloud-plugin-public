@@ -237,8 +237,8 @@ export class ICloudMailAdapter implements MailGateway {
     try {
       const result = await transport.sendMail(this.message(input));
       return { messageId: result.messageId,
-        accepted: result.accepted.map(address => typeof address === 'string' ? address : address.address),
-        rejected: result.rejected.map(address => typeof address === 'string' ? address : address.address) };
+        accepted: [...result.accepted],
+        rejected: [...result.rejected] };
     } catch (error: unknown) { throw providerError(error); }
     finally { transport.close(); }
   }
