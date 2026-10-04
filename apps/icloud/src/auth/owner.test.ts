@@ -41,13 +41,13 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
  const config={accountStore,database:db,publicBaseURL:base,privateOrigin:base,rpID:'127.0.0.1',secret:'fixture-long-only-secret-production-never-123',resource:base+'/icloud/mcp',scopes:['mail.read','mail.write','mail.send','calendar.read','calendar.write','calendar.schedule','calendar.share','offline_access'],allowedScopes:()=>enabledScopes,ownerId:()=>owner,checkBootstrapProof:(value:string)=>{if(value!==proof)throw Error('Denied');}};
  db.exec('CREATE TABLE plugin_auth_private (id TEXT PRIMARY KEY, value TEXT NOT NULL)');
  db.query('INSERT INTO plugin_auth_private VALUES (?,?)').run('resource-client','legacy-encrypted-record');
- let component=await createOwnerAuth(config);
+ let component=await createOwnerAuth({...config,scopes:config.scopes.filter(scope=>!scope.startsWith('calendar.'))});
  expect(db.query<{value:string},[]>("SELECT value FROM plugin_auth_private WHERE id='resource-client'").get()?.value).toBe('legacy-encrypted-record');
  expect(db.query<{count:number},[]>("SELECT count(*) AS count FROM plugin_auth_private WHERE id LIKE 'resource-client-v2:%'").get()?.count).toBe(1);
  handler=component.publicHandler;
  try{
   const metadata=await component.publicHandler(new Request(base+'/.well-known/oauth-authorization-server/icloud/auth'));
-  expect(metadata.status).toBe(200);
+  expect(metadata.status).toBe(200);expect(metadata.headers.get('cache-control')).toBe('no-store');
   const discovery=z.object({issuer:z.string(),authorization_endpoint:z.string(),token_endpoint:z.string(),registration_endpoint:z.string()}).parse(await metadata.json());
   expect(discovery.issuer).toBe(base+'/icloud/auth');
   expect(discovery.authorization_endpoint).toBe(base+'/icloud/auth/oauth2/authorize');
@@ -76,6 +76,8 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   expect((await request('/icloud/auth/passkey/verify-authentication',{response:response(challenge.challenge,base,false)})).status).toBe(200);
   expect((await request('/icloud/auth/passkey/verify-authentication',{response:response(challenge.challenge,base,false)})).status).toBe(400);
   const client=clientSchema.parse(await(await request('/icloud/auth/oauth2/register',{client_name:'Fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read offline_access'})).json());
+  const anonymousResponse=await component.publicHandler(new Request(base+'/icloud/auth/oauth2/register',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({client_name:'Anonymous legacy',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read offline_access'})}));
+  const anonymous=clientSchema.parse(await anonymousResponse.json());
   const verifier=b64(randomBytes(32));
   const authorizationPath='/icloud/auth/oauth2/authorize?'+new URLSearchParams({client_id:client.client_id,redirect_uri:base+'/callback',response_type:'code',scope:'mail.read offline_access',resource:base+'/icloud/mcp',state:'fixture-state',code_challenge:b64(hash(verifier)),code_challenge_method:'S256'});
   const start=await request(authorizationPath);
@@ -104,6 +106,7 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   expect((await component.verifyBearer('Bearer '+tokens.access_token)).subject).toBe(owner);
   expect((await component.verifyBearer('Bearer '+tokens.access_token)).accountId).toBe('original-mailbox');
   expect((await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:consentLocation.search.slice(1)})).status).toBe(403);
+  component=await createOwnerAuth(config);handler=component.publicHandler;
   enabledScopes.push('calendar.read','calendar.write','calendar.schedule','calendar.share');
   const refreshed=await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:tokens.refresh_token,resource:base+'/icloud/mcp'},true);
   expect(refreshed.status).toBe(200);const next=tokensSchema.parse(await refreshed.json());
@@ -111,8 +114,38 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   for(const scope of ['calendar.read','calendar.write','calendar.schedule','calendar.share']){expect((await component.verifyBearer('Bearer '+tokens.access_token)).scopes.has(scope)).toBe(false);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has(scope)).toBe(false);}
   expect((await component.verifyBearer('Bearer '+tokens.access_token)).scopes.has('mail.send')).toBe(false);
   expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('mail.send')).toBe(false);
-  const calendarClient=clientSchema.parse(await(await request('/icloud/auth/oauth2/register',{client_name:'Calendar-only fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'calendar.read offline_access'})).json());
-  const calendarStart=await request(authorizationPath.replace(client.client_id,calendarClient.client_id).replace('mail.read+offline_access','calendar.read+offline_access'));
+  const recoveryPath='/icloud/admin/oauth-clients';
+  expect((await request(recoveryPath)).status).toBe(404);
+  expect((await component.privateHandler(new Request(base+recoveryPath))).status).toBe(403);
+  const recovery=await request(recoveryPath,undefined,false,true);
+  expect(recovery.status).toBe(200);
+  const report=await recovery.json() as {clients:Array<{clientId:string;recovery:string;missingEnabledScopes:string[]}>};
+  expect(report.clients.find(c=>c.clientId===client.client_id)?.missingEnabledScopes).toContain('calendar.read');
+  const snapshots=()=>JSON.stringify(['oauthConsent','oauthAccessToken','oauthRefreshToken'].map(table=>db.query('SELECT * FROM '+table).all()));
+  const beforeScopeUpdate=snapshots();
+  expect((await request(recoveryPath,{clientId:client.client_id,additionalScopes:['calendar.read']},false,true)).status).toBe(400);
+  expect((await request(recoveryPath,{clientId:client.client_id,additionalScopes:['unknown.scope'],confirm:true},false,true)).status).toBe(409);
+  const upgrade=await request(recoveryPath,{clientId:client.client_id,additionalScopes:['calendar.read'],confirm:true},false,true);
+  expect(upgrade.status).toBe(200);
+  expect((await upgrade.json() as {registeredScopes:string[]}).registeredScopes).toEqual(['mail.read','mail.write','mail.send','offline_access','calendar.read']);
+  expect(snapshots()).toBe(beforeScopeUpdate);
+  expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('calendar.read')).toBe(false);
+  // No direct auth database writes: create the old connection through actual consent.
+  const anonymousStart=await request(authorizationPath.replace(client.client_id,anonymous.client_id));
+  const anonymousLocation=new URL(anonymousStart.headers.get('location')!,base);
+  const anonymousSelection=await request('/icloud/connect/select',{accountId:'original-mailbox',oauth_query:anonymousLocation.search.slice(1)});
+  const anonymousConsentLocation=new URL((await anonymousSelection.json() as {url:string}).url,base);
+  expect((await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:anonymousConsentLocation.search.slice(1)})).status).toBe(200);
+  const legacyBefore=snapshots();
+  const legacy=await request(recoveryPath,{clientId:anonymous.client_id,additionalScopes:['calendar.read'],confirm:true},false,true);
+  expect(legacy.status).toBe(409);expect((await legacy.json() as {error:string}).error).toBe('NEW_CLIENT_REGISTRATION_REQUIRED');
+  expect(snapshots()).toBe(legacyBefore);
+  const legacyScopeRequest=await request(authorizationPath.replace(client.client_id,anonymous.client_id).replace('mail.read+offline_access','mail.read+calendar.read+offline_access'));
+  expect(new URL(legacyScopeRequest.headers.get('location')!,base).searchParams.get('error')).toBe('invalid_scope');
+  const savedCookies=new Map(cookies);cookies.clear();
+  const calendarClient=clientSchema.parse(await(await request('/icloud/auth/oauth2/register',{client_name:'Reconnected Mail and Calendar fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read calendar.read offline_access'})).json());
+  for(const [key,value] of savedCookies)cookies.set(key,value);
+  const calendarStart=await request(authorizationPath.replace(client.client_id,calendarClient.client_id).replace('mail.read+offline_access','mail.read+calendar.read+offline_access'));
   const calendarLocation=new URL(calendarStart.headers.get('location')!,base);
   const calendarSelection=z.object({url:z.string()}).parse(await(await request('/icloud/connect/select',{accountId:'original-mailbox',oauth_query:calendarLocation.search.slice(1)})).json());
   const calendarConsentLocation=new URL(calendarSelection.url,base);
@@ -121,7 +154,7 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const calendarExchange=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:calendarClient.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:calendarCallback.searchParams.get('code')!,code_verifier:verifier},true);
   expect(calendarExchange.status).toBe(200);
   const calendarTokens=tokensSchema.parse(await calendarExchange.json()),calendarPrincipal=await component.verifyBearer('Bearer '+calendarTokens.access_token);
-  expect(calendarPrincipal.accountId).toBe('original-mailbox');expect(calendarPrincipal.scopes.has('calendar.read')).toBe(true);expect(calendarPrincipal.scopes.has('mail.read')).toBe(false);
+  expect(calendarPrincipal.accountId).toBe('original-mailbox');expect(calendarPrincipal.scopes.has('calendar.read')).toBe(true);expect(calendarPrincipal.scopes.has('mail.read')).toBe(true);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('mail.read')).toBe(true);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('calendar.read')).toBe(false);
   const sendClient=clientSchema.parse(await(await request('/icloud/auth/oauth2/register',{client_name:'Explicit send fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read mail.send offline_access'})).json());
   const sendPath=authorizationPath.replace(client.client_id,sendClient.client_id).replace('mail.read+offline_access','mail.read+mail.send+offline_access');
   expect((await request(sendPath)).status).toBe(403);
