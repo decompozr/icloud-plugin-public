@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "icloud-plugin",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "description": "Manage your own iCloud Mail and optional Calendar module through one locally hosted MCP server.",
   "license": "MIT",
   "keywords": [
