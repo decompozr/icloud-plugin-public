@@ -58,7 +58,7 @@ test('setup and authentication share styles, branding and accessible Passkey ico
 
  test('shared visual tokens have concrete values without circular references',async()=>{
  const {pageStyles}=await import('../ui/page.js');
- expect(pageStyles).toContain('--ui-background:#f3f6f8');
+ expect(pageStyles).toContain('--ui-background:#FFFFFF');
  for(const [,name,value] of pageStyles.matchAll(/(--ui-[a-z-]+):([^;]+);/g))expect(value).not.toContain(`var(${name})`);
  });
 
