@@ -18,6 +18,7 @@ export function authorizationKey(query:string):string {
  return createHash('sha256').update(new URLSearchParams(entries).toString()).digest('hex');
 }
 export function createAccountConnection(options:{database:Database;secret:string;origin:string;store:AccountStore;ownerSession(headers:Headers):Promise<{user:{id:string};session:{id:string}}>;
+ clientName?(id:string):string|undefined;
  validateCredential(credential:{user:string;appPassword:string}):Promise<void>;
  continueAuthorization(request:Request,query:string,accountId:string):Promise<Response>;
 }) {
@@ -51,7 +52,8 @@ export function createAccountConnection(options:{database:Database;secret:string
    if(read){
     const chosen=cleared?selected(oauth_query,session.user.id,session.session.id):undefined;
     if(cleared&&!chosen)return json({error:'ACCOUNT_SELECTION_REQUIRED'},403);
-    return json({accounts:options.store.listAccounts(session.user.id),...(chosen?{selectedAccount:chosen}:{})});
+    const clientId=params.get('client_id')??'',name=options.clientName?.(clientId)?.trim();
+    return json({client:{id:clientId,...(name?{name}:{})},accounts:options.store.listAccounts(session.user.id),...(chosen?{selectedAccount:chosen}:{})});
    }
    // Consent-stage queries cannot be used to switch accounts underneath displayed consent.
    if(cleared)return json({error:'INVALID_AUTHORIZATION'},403);

@@ -10,10 +10,13 @@ async function signed(state='one',extras:Record<string,string>={}){
 }
 test('connection selections bind immutable request and owner session, validate signatures and consume once',async()=>{
  const db=new Database(':memory:'),accounts=[{id:'first',user:'first@icloud.com',label:'First',credentialStored:true},{id:'second',user:'second@icloud.com',label:'Second',credentialStored:true}];
- const component=createAccountConnection({database:db,secret,origin:'https://icloud.invalid',store:{listAccounts:()=>accounts,legacyAccountId:()=>null,account:(_owner,id)=>{const value=accounts.find(a=>a.id===id);if(!value)throw Error('Absent');return value;},addAccount:()=>{throw Error('Unused');}},ownerSession:async headers=>{if(!headers.get('cookie'))throw Error('Login');return{user:{id:'owner'},session:{id:headers.get('cookie')!}};},validateCredential:async()=>{},continueAuthorization:async(_request,query,id)=>Response.json({url:'/icloud/consent?'+await signed(new URLSearchParams(query).get('state')!,{ba_pl:'session-one',prompt:'consent'}),accountId:id})});
+ const component=createAccountConnection({database:db,secret,origin:'https://icloud.invalid',clientName:id=>id==='client'?'Registered ChatGPT':undefined,store:{listAccounts:()=>accounts,legacyAccountId:()=>null,account:(_owner,id)=>{const value=accounts.find(a=>a.id===id);if(!value)throw Error('Absent');return value;},addAccount:()=>{throw Error('Unused');}},ownerSession:async headers=>{if(!headers.get('cookie'))throw Error('Login');return{user:{id:'owner'},session:{id:headers.get('cookie')!}};},validateCredential:async()=>{},continueAuthorization:async(_request,query,id)=>Response.json({url:'/icloud/consent?'+await signed(new URLSearchParams(query).get('state')!,{ba_pl:'session-one',prompt:'consent'}),accountId:id})});
  const request=(path:string,query:string,body?:object,cookie='session-one',origin='https://icloud.invalid')=>component.handle(new Request('https://icloud.invalid/icloud/connect/'+path+(body?'':'?oauth_query='+encodeURIComponent(query)),{method:body?'POST':'GET',headers:{cookie,origin,'content-type':'application/json'},body:body?JSON.stringify({oauth_query:query,...body}):undefined}));
  try{
   const first=await signed(),second=await signed('two');
+  const metadata=await(await request('status',first)).json();expect(metadata.client).toEqual({id:'client',name:'Registered ChatGPT'});
+  const spoof=await signed('spoof',{client_name:'Untrusted name'});expect((await(await request('status',spoof)).json()).client.name).toBe('Registered ChatGPT');
+  expect((await request('status',first.replace('client_id=client','client_id=attacker'))).status).toBe(400);
   expect((await request('status',first,undefined,'')).status).toBe(401);
   expect((await request('select',first,{accountId:'first'},'session-one','https://evil.invalid')).status).toBe(403);
   expect((await request('select',first.replace('mail.read','mail.write'),{accountId:'first'})).status).toBe(400);
