@@ -1,5 +1,9 @@
 # Source architecture and evidence status
 
+## Photos implementation (2026-10-04)
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 > **2026-10-04 closeout:** Experiments are closed. See [Photos capability plan](photos-capability-plan.md) for the authoritative current evidence, accepted local provider architecture, comparison limits and implementation phases. Older checkpoints below are historical.
 
 ## Photos research (2026-10-03)

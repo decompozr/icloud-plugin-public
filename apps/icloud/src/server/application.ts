@@ -1,3 +1,6 @@
+import {LocalPhotosProvider} from '../photos/provider.js';
+import {PhotosService} from '../photos/service.js';
+import {photosRegistration} from '../photos/module.js';
 import {createMailModule,type MailModuleDependencies} from '../mail/module.js';
 import {ModuleRuntime} from '../modules/runtime.js';
 import {configuredPluginArchive} from '../plugin/package.js';
@@ -37,6 +40,12 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  }
  const mailModule=createMailModule(settings,{...deps,monitor});
  const runtime=new ModuleRuntime().register(mailModule.registration);
+ if(settings.photos){
+  const p=settings.photos;
+  const policy=()=>({read:true,write:p.allow_writes,delete:p.allow_delete});
+  const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
+  runtime.register(photosRegistration(photos,policy));
+ }
  await runtime.start();
  try{
  const config=mailModule.config;

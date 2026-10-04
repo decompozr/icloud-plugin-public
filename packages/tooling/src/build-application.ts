@@ -21,3 +21,8 @@ console.log('Built private application modules and browser assets; test files ex
 const template=join(output,'plugin-template');await mkdir(join(template,'skills/icloud-mail'),{recursive:true});await mkdir(join(template,'assets'),{recursive:true});
 for(const name of ['plugin.json','LICENSE','THIRD_PARTY_NOTICES.md','skills/icloud-mail/SKILL.md'])await cp(join(repository,name),join(template,name));
 await cp(join(app,'assets/plugin-icon.png'),join(template,'assets/plugin-icon.png'));
+
+// Photos sidecars are application assets, not executable TypeScript entries.
+await mkdir(join(output,'photos'),{recursive:true});
+for(const name of ['reader.py','metadata-write.py'])await cp(join(source,'photos',name),join(output,'photos',name));
+await cp(join(source,'photos/native'),join(output,'photos/native'),{recursive:true});

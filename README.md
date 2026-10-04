@@ -9,6 +9,9 @@ only where needed. Existing person labels and true Shared Album reads have been
 verified on the synced Mac library; sharing and deletion are not implemented.
 See the [build plan and evidence](docs/photos-capability-plan.md). Historical
 cloud protocol work remains isolated in [the experiment package](playground/photos/README.md).
+An opt-in [Photos module](apps/icloud/src/photos/README.md) now implements read tools
+and reviewed album, metadata and deletion workflows. Native write acceptance is
+pending macOS Photos authorization; Shared Album upload remains unverified.
 No production Photos capability is deployed.
 
 The goal is to provide precise, basic iCloud mailbox tools for external agents

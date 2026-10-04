@@ -1,0 +1,31 @@
+import {z} from 'zod';
+import {zodToJsonSchema} from 'zod-to-json-schema';
+import type {RuntimeModule,RegisteredTool} from '../modules/runtime.js';
+import {assetId,albumId,mutationSchema,querySchema,PhotosError} from './contracts.js';
+import {PhotosService,type PhotosPolicy} from './service.js';
+export function photosRegistration(service:PhotosService,policy:()=>PhotosPolicy):RuntimeModule{
+ const enabled=(scope:string)=>{const p=policy();return p.read&&(scope==='photos.read'||p.write&&(scope!=='photos.delete'||p.delete));};
+ const tools:RegisteredTool[]=[];
+ function register<T>(name:string,description:string,schema:z.ZodType<T>,scope:string,run:(input:T)=>Promise<unknown>,preview=false){
+  const scopes=scope==='photos.read'?[scope]:scope==='photos.delete'?['photos.read','photos.write',scope]:['photos.read',scope];
+  tools.push({requiredScopes:scopes,enabled:()=>enabled(scope),tool:{name,description,inputSchema:zodToJsonSchema(schema) as RegisteredTool['tool']['inputSchema'],securitySchemes:[{type:'oauth2',scopes}],annotations:{readOnlyHint:scope==='photos.read',destructiveHint:scope==='photos.delete',openWorldHint:scope!=='photos.read',idempotentHint:name.endsWith('_apply')}},run:async(raw)=>{
+   try{const result=await run(schema.parse(raw));if(preview){const p=result as {mimeType:string;data:string};return {content:[{type:'image',mimeType:p.mimeType,data:p.data}]};}return {content:[{type:'text',text:JSON.stringify(result)}]};}
+   catch(e){return {isError:true,content:[{type:'text',text:JSON.stringify({status:'rejected',error:e instanceof PhotosError?e.code:e instanceof z.ZodError?'invalid_input':'photos_failed'})}]};}
+  }});
+ }
+ const empty=z.object({}).strict();
+ register('photos_health','Read local Photos provider health; does not prove iCloud server sync.',empty,'photos.read',a=>service.read('health',a));
+ register('photos_persons','Find existing person labels using normalized partial text. Does not recognize faces.',z.object({query:z.string().max(256).optional()}).strict(),'photos.read',a=>service.read('persons',a));
+ register('photos_query','Query local synced assets by existing person label, album and capture dates. from is inclusive, to exclusive; timestamps require timezone offsets. Page offsets are snapshot-relative.',querySchema,'photos.read',a=>service.read('query',a));
+ register('photos_albums','List ordinary and true Shared Albums separately. Use IDs, not names, for writes.',z.object({offset:z.number().int().min(0).default(0),limit:z.number().int().min(1).max(100).default(50)}).strict(),'photos.read',a=>service.read('albums',a));
+ register('photos_detail','Read one scoped asset and its existing annotations.',z.object({assetId}).strict(),'photos.read',a=>service.read('detail',a));
+ register('photos_preview','Return a cached preview of a selected asset. Does not download original files.',z.object({assetId}).strict(),'photos.read',a=>service.read('preview',a),true);
+ register('photos_compare_album','Compare up to 50 exact source assets with an album. Metadata matches are probable, not proof; missing matches do not establish failed upload.',z.object({assetIds:z.array(assetId).min(1).max(50),albumId}).strict(),'photos.read',a=>service.read('compare',a));
+ register('photos_cleanup_candidates','Suggest exact-file duplicates and screenshots for review. No deletion or expiry inference.',z.object({limit:z.number().int().min(1).max(100).default(50)}).strict(),'photos.read',a=>service.read('cleanup',a));
+ register('photos_prepare','Prepare exact album or metadata changes for review. Shared Album writes depend on native support; creates no photo changes.',mutationSchema.refine(m=>m.action!=='delete_assets','Use photos_delete_prepare'),'photos.write',a=>service.prepare(a));
+ register('photos_apply','Apply a reviewed operation once with explicit confirmation. Unknown outcomes require reconciliation, never blind retry with a new plan.',z.object({operationId:z.string().uuid(),confirm:z.literal(true)}).strict(),'photos.write',a=>service.apply(a.operationId,a.confirm));
+ register('photos_delete_prepare','Prepare deletion of exact selected assets for review, including synced-library consequences. Does not delete.',mutationSchema.refine(m=>m.action==='delete_assets','Deletion only'),'photos.delete',a=>service.prepare(a));
+ register('photos_delete_apply','Execute the reviewed deletion plan after user confirmation. Uses Photos deletion; never empties Recently Deleted.',z.object({operationId:z.string().uuid(),confirm:z.literal(true)}).strict(),'photos.delete',a=>service.apply(a.operationId,a.confirm,true));
+ register('photos_operation','Read saved operation outcome. executing is reported unknown, not retried.',z.object({operationId:z.string().uuid()}).strict(),'photos.read',async a=>service.status(a.operationId));
+ return {id:'photos',scopes:[{name:'photos.read',title:'Read Photos',description:'Read the selected Mac Photos library, existing people labels and albums.',enabled:()=>enabled('photos.read')},{name:'photos.write',title:'Organize Photos',description:'Apply reviewed album and metadata changes to your Photos library.',enabled:()=>enabled('photos.write')},{name:'photos.delete',title:'Delete Photos',description:'Delete specifically reviewed photos from the synced Photos library.',enabled:()=>enabled('photos.delete')}],tools};
+}

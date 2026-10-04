@@ -1,6 +1,8 @@
 # Photos capability: experiment closeout and build plan
 
-Status: experiments closed on 2026-10-04; implementation proposed, not deployed.
+Status: experiments closed on 2026-10-04; read/write module implemented in source, not deployed.
+See apps/icloud/src/photos/README.md for operator setup and current boundaries.
+Native live writes await OS authorization; Shared Album upload support is not established.
 The user accepted local Photos access and an isolated Python dependency after
 initially preferring a cloud-only Bun implementation. This document supersedes
 older cloud-only and no-Python directions in the historical experiment records.
@@ -49,9 +51,11 @@ matches to authorize deletion of originals.
 
 ## Delivery phases and acceptance
 
-### Phase 1: supported read-only provider
+### Phase 1: read foundation for the read/write product
 
-Build one long-lived, bounded osxphotos JSON sidecar behind a typed Bun adapter.
+Use a bounded osxphotos JSON sidecar behind a typed Bun adapter. The initial
+implementation uses a fresh process per request to avoid stale library caches;
+a long-lived worker remains a performance optimization.
 Pin dependency versions; validate every response and use fixed diagnostic errors.
 Expose provider health, library discovery/explicit selection, person list/search,
 asset query/detail, album list/membership and bounded previews. Return opaque,
@@ -141,3 +145,21 @@ files or unrelated worktrees were removed as part of closeout.
 - https://developer.apple.com/documentation/photos/phfetchoptions
 - https://developer.apple.com/documentation/photos/phobject/localidentifier
 - https://support.apple.com/guide/security/search-on-icloudcom-security-sec0057159bf/web
+
+## Implementation checkpoint (2026-10-04)
+
+Source now includes the optional shared-runtime Photos module and explicit config,
+scoped person/date/album queries, cached previews, metadata comparison and cleanup
+review candidates. Ordinary album creation/rename/add/remove, empty-album removal,
+metadata replacement and asset deletion have prepared-plan/apply paths. Delete
+uses a distinct OAuth scope. Durable plans enforce owner binding, expiry, state
+revalidation, single execution and unknown-outcome retention. CLI/setup and build
+asset copying are included; the installed server has not been changed.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Shared Album additions are capability-gated by native collection resolution and
+canPerform checks, not declared supported from read evidence. Full cloud upload
+confirmation, perceptual comparison, automated blur scoring and reliable expiry
+classification are still open. This checkpoint implements write workflows but
+is not acceptance of the entire sharing/cleanup scenario.
