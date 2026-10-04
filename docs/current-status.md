@@ -1,3 +1,14 @@
+## Readiness release 0.1.24
+
+Adds account/client-scoped readiness observations, contextual registration recovery,
+explicit unsaved capability changes and restored account chooser layout. Observations
+come from verified bearer requests and successful allowlisted read tools; Calendar
+completion requires listing plus an event read/query. They invalidate conservatively
+on expiry or relevant metadata, credential and policy changes and clear on restart.
+No grants are widened and no consent or provider operation is started by the UI.
+See [evidence contract](readiness-evidence.md). Publication and installed acceptance
+are recorded separately; fixture screenshots are not live ChatGPT acceptance.
+
 # Source architecture and evidence status
 
 ## Audit corrections integrated with multi-account source (2026-10-03 UTC)

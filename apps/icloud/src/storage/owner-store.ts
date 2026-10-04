@@ -16,6 +16,7 @@ export interface OwnerSecretStore {
   enroll(input: { proof: string; ownerId: string; credential?: Uint8Array }): void;
   listAccounts(ownerId: string): MailAccount[];
   account(ownerId: string, accountId: string): MailAccount;
+  accountGeneration?(ownerId:string,accountId:string):number|undefined;
   legacyAccountId(ownerId: string): string | null;
   addAccount(ownerId: string, input: { user: string; label?: string; credential: Uint8Array }): MailAccount;
   readAccountSecret(ownerId: string, accountId: string): Uint8Array | null;
@@ -167,6 +168,7 @@ export class SqliteOwnerStore implements OwnerSecretStore {
     const row = this.accountRow(ownerId, accountId);
     return { id: row.id, user: row.user, label: row.label, credentialStored: row.secret !== null };
   }
+  accountGeneration(ownerId:string,accountId:string):number|undefined { const row=this.accountRow(ownerId,accountId);return row.secret===null?undefined:row.version; }
   legacyAccountId(ownerId: string): string | null {
     this.assertOwner(ownerId);
     const row = this.db.query('SELECT legacy_account FROM owner_state WHERE singleton=1').get() as { legacy_account: string | null };

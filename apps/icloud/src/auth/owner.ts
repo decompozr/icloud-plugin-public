@@ -29,7 +29,7 @@ export interface OwnerAuthOptions {
 const bootstrapPaths = new Set(['/icloud/auth/passkey/generate-register-options','/icloud/auth/passkey/verify-registration']);
 const publicPaths = new Set(['/icloud/auth/passkey/generate-authenticate-options','/icloud/auth/passkey/verify-authentication','/icloud/auth/get-session','/icloud/auth/sign-out','/icloud/auth/oauth2/authorize','/icloud/auth/oauth2/continue','/icloud/auth/oauth2/consent','/icloud/auth/oauth2/token','/icloud/auth/oauth2/register','/icloud/auth/oauth2/revoke','/icloud/auth/.well-known/oauth-authorization-server','/.well-known/oauth-authorization-server/icloud/auth']);
 const clientSchema=z.object({client_id:z.string(),client_secret:z.string()});
-const tokenSchema=z.object({active:z.literal(true),sub:z.string(),iss:z.string(),aud:z.union([z.string(),z.array(z.string())]),scope:z.string(),exp:z.number(),account_id:z.string().optional()});
+const tokenSchema=z.object({active:z.literal(true),sub:z.string(),iss:z.string(),aud:z.union([z.string(),z.array(z.string())]),scope:z.string(),exp:z.number(),account_id:z.string().optional(),client_id:z.string().optional()});
 const cipherSchema=z.object({nonce:z.string(),tag:z.string(),value:z.string()});
 
 export async function createOwnerAuth(options:OwnerAuthOptions) {
@@ -196,7 +196,7 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
   if(token.sub!==options.ownerId()||token.iss!==issuer||token.exp<=Date.now()/1000||!(Array.isArray(token.aud)?token.aud:[token.aud]).includes(options.resource))throw Error('Invalid token claims');
   const scopes=new Set(token.scope.split(' '));
   if(options.accountStore){if(!token.account_id)throw Error('Account binding required');options.accountStore.account(token.sub,token.account_id);}
-  return{subject:token.sub,scopes,...(token.account_id?{accountId:token.account_id}:{})};
+  return{subject:token.sub,scopes,clientId:token.client_id,expiresAt:token.exp*1000,...(token.account_id?{accountId:token.account_id}:{})};
  }
  return{publicHandler:(request:Request)=>route(request,false),privateHandler:(request:Request)=>route(request,true),verifyBearer,ownerSession:(headers:Headers)=>session(headers),enrollmentSession:(headers:Headers)=>session(headers,false)};
 }
