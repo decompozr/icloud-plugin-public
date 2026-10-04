@@ -53,6 +53,10 @@ export function connectionCredential(data:FormData):{user:string;appPassword:str
  const label=String(data.get('label')??'').trim();
  return {user:String(data.get('user')??''),appPassword:String(data.get('appPassword')??''),...(label?{label}:{})};
 }
+export function accountDisplay(account:{label:string;user:string}):{primary:string;secondary?:string}{
+ const label=account.label.trim(),user=account.user.trim();
+ return !label||label.toLowerCase()===user.toLowerCase()?{primary:user}:{primary:label,secondary:user};
+}
 function mount(){
  const mode=document.body.dataset.authMode;if(!mode)return;
  const status=document.querySelector('[data-auth-status]');
@@ -62,14 +66,16 @@ function mount(){
  primary?.addEventListener('click',()=>{if(mode==='consent'&&!consentReady)return;void run(primary,()=>mode==='sign-in'?signIn():consent(true));});
  const deny=document.querySelector<HTMLButtonElement>('[data-auth-deny]');deny?.addEventListener('click',()=>void run(deny,()=>consent(false)));
  const accountSchema=z.object({id:z.string(),user:z.string(),label:z.string(),credentialStored:z.boolean()});
- const connectionStatus=z.object({accounts:z.array(accountSchema),selectedAccount:accountSchema.optional()});
+ const connectionStatus=z.object({accounts:z.array(accountSchema),selectedAccount:accountSchema.optional(),client:z.object({id:z.string(),name:z.string().optional()})});
  const loadStatus=async()=>connectionStatus.parse(await(await request('/icloud/connect/status?'+new URLSearchParams({oauth_query:signedOAuthQuery(location.search)}))).json());
  const continueToConsent=(value:unknown)=>{const url=redirectResult(value);if(!url)throw new AuthRequestError(authT('incompleteAuthorization'));location.assign(url);};
  function renderAccounts(accounts:Array<z.infer<typeof accountSchema>>){
   const list=document.querySelector('[data-connect-accounts]');list?.replaceChildren();
   for(const account of accounts){
-   const button=document.createElement('button');button.type='button';button.className='secondary';
-   button.textContent=`${account.label} · ${account.user}${account.credentialStored?'':` · ${authT('accountUnavailable')}`}`;
+   const button=document.createElement('button');button.type='button';button.className='secondary account-choice';
+   const display=accountDisplay(account),name=document.createElement('span');name.textContent=display.primary;button.append(name);
+   if(display.secondary){const email=document.createElement('span');email.className='account-address';email.textContent=display.secondary;button.append(email);}
+   if(!account.credentialStored){const unavailable=document.createElement('span');unavailable.className='account-address';unavailable.textContent=authT('accountUnavailable');button.append(unavailable);}
    button.disabled=!account.credentialStored;
    button.addEventListener('click',()=>void run(button,async()=>continueToConsent(await(await request('/icloud/connect/select',{oauth_query:signedOAuthQuery(location.search),accountId:account.id})).json())));
    list?.append(button);
@@ -82,7 +88,10 @@ function mount(){
    if(!account?.credentialStored)throw new AuthRequestError(authT('chooseAccount'));
    consentReady=true;
    const target=document.querySelector('[data-auth-account]');
-   if(target)target.textContent=`${authT('selectedAccount')}: ${account.label} · ${account.user}`;
+   const display=accountDisplay(account);if(target)target.textContent=`${authT('selectedAccount')}: ${display.primary}${display.secondary?' · '+display.secondary:''}`;
+   const client=document.querySelector('[data-auth-client]'),clientId=document.querySelector('[data-auth-client-id]');
+   if(client)client.textContent=result.client.name??authT('unknownClient');
+   if(clientId)clientId.textContent=result.client.id;
    return;
   }
   renderAccounts(result.accounts);
@@ -99,8 +108,7 @@ function mount(){
   });
  });
  if(mode==='consent'){
-  const params=new URLSearchParams(location.search),target=document.querySelector('[data-auth-client]');
-  if(target)target.textContent=params.get('client_id')??authT('unknownClient');
+  const params=new URLSearchParams(location.search);
   const labels=z.record(z.string(),z.union([z.string(),z.record(z.string(),z.string())])).parse(JSON.parse(document.body.dataset.authScopeLabels??'{}'));
   labels.offline_access=authT('scopeOffline');
   const list=document.querySelector('[data-auth-scopes]');for(const scope of(params.get('scope')??'').split(' ').filter(Boolean)){const item=document.createElement('li');item.textContent=consentScopeLabel(labels,scope,document.documentElement.lang);list?.append(item);}

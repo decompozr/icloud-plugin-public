@@ -61,7 +61,7 @@ export function createPrivateAdmin(options:AdminOptions) {
      if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     }
     const status=await options.diagnostics();
-    return new Response(setupPage({enrolled,ready:ready(status),admin:path==='/icloud/admin',publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,presentation:options.presentation,modules:options.modules}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
+    return new Response(setupPage({enrolled,ready:ready(status),admin:path==='/icloud/admin',publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,presentation:options.presentation,modules:options.modules}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
    }
    if(request.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405);
    if(request.headers.get('origin')!==options.privateOrigin)return json({error:'ORIGIN_DENIED'},403);

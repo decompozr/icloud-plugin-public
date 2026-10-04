@@ -4,7 +4,7 @@ export const authEnglish = {
  connectionExpired:'This connection request cannot continue. Return to ChatGPT and choose Connect another account to start a new request.',savedReconnect:'The account is saved. Return to ChatGPT, choose Connect another account, and select this account to finish authorization.',
  titleConnect:'Connect an iCloud account',headingConnect:'Choose an iCloud account',introConnect:'Connect an existing account or add another iCloud account. Each connection uses the account you select.',addAccount:'Add new iCloud account',accountLabel:'Account name (optional)',email:'iCloud email address',password:'Apple app-specific password',passwordHelp:'Use an Apple app-specific password. It is verified and stored securely by this service; it is never sent to ChatGPT.',appleGuide:'Create an app-specific password',saveAccount:'Verify and connect account',cancel:'Cancel connection',selectedAccount:'Selected iCloud account',providerError:'Could not sign in to iCloud Mail. Check the email and app-specific password, then try again.',duplicateAccount:'This account already exists. Select it above, or update its password on the private management page.',accountUnavailable:'The selected account has no stored credentials. Update its password on the private management page.',chooseAccount:'Choose an account before approving access.',
  titleConsent: 'Authorize connection', titleSignIn: 'Owner sign-in',
- headingConsent: 'Authorize mailbox access', headingSignIn: 'Sign in with your passkey',
+ headingConsent: 'Authorize iCloud access', headingSignIn: 'Sign in with your passkey',
  introConsent: 'This client requests the permissions below. Access is granted only after you approve.',
  introSignIn: 'Use the passkey you created during setup.',
  allow: 'Allow connection', usePasskey: 'Use passkey', deny: 'Deny', owner: 'Owner',
@@ -15,12 +15,12 @@ export const authEnglish = {
  incompleteAuthorization: 'The authorization response is incomplete. Reconnect.',
  working: 'Working…',
  actionFailed: 'The request did not complete. Try again. Cancelling the passkey prompt does not grant access.',
- unknownClient: 'Unknown client',
+ unknownClient: 'Unknown client', clientIdentifier: 'Client identifier',
  scopeSend: 'Send new messages and replies from your iCloud mailbox',
  scopeRead: 'Read and search mail', scopeWrite: 'Change message state and organize your mailbox',
  scopeUnsubscribe: 'Submit unsubscribe requests', scopeOffline: 'Continue using this connection when you are offline',
 } as const;
 export type AuthCopyKey = keyof typeof authEnglish;
 i18n.addResourceBundle('en', 'auth', authEnglish, true, true);
-i18n.addResourceBundle('zh-TW', 'auth', { connectionExpired:'此連線要求無法繼續。請返回 ChatGPT，選擇 Connect another account 重新開始。',savedReconnect:'帳號已儲存。請返回 ChatGPT，選擇 Connect another account，再選取此帳號完成授權。',titleConnect:'連接 iCloud 帳號',headingConnect:'選擇 iCloud 帳號',introConnect:'選擇既有帳號或新增另一個 iCloud 帳號。每個連線只使用你選擇的帳號。',addAccount:'新增 iCloud 帳號',accountLabel:'帳號名稱（選填）',email:'iCloud 郵件地址',password:'Apple App 專用密碼',passwordHelp:'請使用 Apple App 專用密碼。服務會驗證並安全儲存，不會傳送到 ChatGPT。',appleGuide:'建立 App 專用密碼',saveAccount:'驗證並連接帳號',cancel:'取消連線',selectedAccount:'選定的 iCloud 帳號',providerError:'無法登入 iCloud 郵件。請確認地址及 App 專用密碼後重試。',duplicateAccount:'此帳號已存在。請從上方選擇，或在私人管理頁面更新密碼。',accountUnavailable:'此帳號沒有已儲存的憑證。請在私人管理頁面更新密碼。',chooseAccount:'授權前請先選擇帳號。', scopeSend: '從你的 iCloud 信箱寄送新郵件及回覆' }, true, true);
+i18n.addResourceBundle('zh-TW', 'auth', { headingConsent:'授權 iCloud 存取',clientIdentifier:'用戶端識別碼', connectionExpired:'此連線要求無法繼續。請返回 ChatGPT，選擇 Connect another account 重新開始。',savedReconnect:'帳號已儲存。請返回 ChatGPT，選擇 Connect another account，再選取此帳號完成授權。',titleConnect:'連接 iCloud 帳號',headingConnect:'選擇 iCloud 帳號',introConnect:'選擇既有帳號或新增另一個 iCloud 帳號。每個連線只使用你選擇的帳號。',addAccount:'新增 iCloud 帳號',accountLabel:'帳號名稱（選填）',email:'iCloud 郵件地址',password:'Apple App 專用密碼',passwordHelp:'請使用 Apple App 專用密碼。服務會驗證並安全儲存，不會傳送到 ChatGPT。',appleGuide:'建立 App 專用密碼',saveAccount:'驗證並連接帳號',cancel:'取消連線',selectedAccount:'選定的 iCloud 帳號',providerError:'無法登入 iCloud 郵件。請確認地址及 App 專用密碼後重試。',duplicateAccount:'此帳號已存在。請從上方選擇，或在私人管理頁面更新密碼。',accountUnavailable:'此帳號沒有已儲存的憑證。請在私人管理頁面更新密碼。',chooseAccount:'授權前請先選擇帳號。', scopeSend: '從你的 iCloud 信箱寄送新郵件及回覆' }, true, true);
 export function authT(key: AuthCopyKey): string { return i18n.t(key, { ns: 'auth' }); }

@@ -112,3 +112,11 @@ test('adding an account with no optional name omits the label and preserves tran
  try{for(const locale of ['en','zh-TW']){await i18n.changeLanguage(locale);expect(authT('savedReconnect')).toContain('Connect another account');expect(authT('connectionExpired')).toContain('Connect another account');}}
  finally{await i18n.changeLanguage('en');}
  });
+
+test('account display deduplicates email labels and retains distinct names',async()=>{
+ const {accountDisplay}=await import('./browser.js');
+ expect(accountDisplay({label:' Owner@icloud.com ',user:'owner@icloud.com'})).toEqual({primary:'owner@icloud.com'});
+ expect(accountDisplay({label:'Personal',user:'owner@icloud.com'})).toEqual({primary:'Personal',secondary:'owner@icloud.com'});
+ expect(accountDisplay({label:' ',user:'owner@icloud.com'})).toEqual({primary:'owner@icloud.com'});
+ const html=renderAuthPage('consent');expect(html).toContain('Authorize iCloud access');expect(html).toContain('data-auth-client-id');expect(html).not.toContain('Authorize mailbox access');
+});
