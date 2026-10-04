@@ -1,3 +1,13 @@
+## Reconnect diagnostic release 0.1.25
+
+Adds a disabled-by-default, owner-only local capture for known discovery,
+registration, authorization, token and MCP routes. Records only UTC timestamp,
+fixed stage/route, HTTP status and allowlisted error code; no credentials,
+headers, queries, bodies, identities or provider content. The empty private
+enable marker grants a 30-minute window and retention is capped at256 records.
+No grants or network routes change. See [activation and privacy contract](reconnect-diagnostics.md).
+Publication and production activation remain separately verified outcomes.
+
 ## Readiness release 0.1.24
 
 Adds account/client-scoped readiness observations, contextual registration recovery,

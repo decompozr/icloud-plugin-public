@@ -1,3 +1,4 @@
+import {ReconnectCapture} from '../observability/reconnect.js';
 import {ReadinessEvidence} from '../admin/evidence.js';
 import {evidenceState} from '../admin/evidence-state.js';
 import {createCalendarModule,type CalendarModuleDependencies} from '../calendar/module.js';
@@ -33,6 +34,7 @@ export interface ApplicationDependencies{
 }
 export async function createApplication(settings:AppSettings,deps:ApplicationDependencies):Promise<{publicApp:express.Express;privateApp:express.Express;auth:Awaited<ReturnType<typeof createOwnerAuth>>;monitor:OperationMonitor;lifecycle:HttpLifecycle;runtime:ModuleRuntime}>{
  const monitor=deps.monitor??new OperationMonitor(),lifecycle=deps.lifecycle??new HttpLifecycle();
+ const reconnect=new ReconnectCapture(settings.state_directory);
  const establishedOwner=deps.store.ownerId();
  if(establishedOwner){
   // Never silently rebuild owner authentication after lost/corrupt auth state.
@@ -47,13 +49,13 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  const config=mailModule.config;
  const scopeLabels=Object.fromEntries(runtime.scopeDescriptors.map(scope=>[scope.name,{default:scope.description,...scope.descriptionLocales}]));
  const diagnostics=deps.diagnostics??(()=>prerequisites(settings));
- const auth=await createOwnerAuth({database:deps.authDatabase,publicBaseURL:settings.public_origin,privateOrigin:settings.private_origin,rpID:new URL(settings.public_origin).hostname,secret:createHash('sha256').update(deps.masterKey).update('owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,allowedScopes:()=>runtime.allowedScopes,ownerId:()=>deps.store.ownerId(),checkBootstrapProof:proof=>deps.store.checkBootstrapProof(proof),accountStore:deps.store,validateCredential:mailModule.admin.validateCredential});
+ const auth=await createOwnerAuth({database:deps.authDatabase,onOAuthError:reconnect.noteError,publicBaseURL:settings.public_origin,privateOrigin:settings.private_origin,rpID:new URL(settings.public_origin).hostname,secret:createHash('sha256').update(deps.masterKey).update('owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,allowedScopes:()=>runtime.allowedScopes,ownerId:()=>deps.store.ownerId(),checkBootstrapProof:proof=>deps.store.checkBootstrapProof(proof),accountStore:deps.store,validateCredential:mailModule.admin.validateCredential});
  const bootstrap=createBootstrapAccess({login:settings.bootstrap_owner_login,origin:settings.private_origin,isEnrolled:()=>deps.store.ownerId()!==null});
  const internalProof=deps.bootstrapProof??(()=>readFileSync(join(dirname(settings.master_key_file),'bootstrap-proof'),'utf8'));
  const setupState=async(request:Request)=>{let passkeyRegistered=false;try{const session=await auth.enrollmentSession(request.headers);passkeyRegistered=bootstrap.resumed(request,session.user.id);}catch{}return{bootstrapAuthorized:bootstrap.allowed(request),passkeyRegistered};};
  let policyEpoch=0;
  const evidence=new ReadinessEvidence(evidenceState(deps.authDatabase,deps.store,()=>runtime.allowedScopes,()=>policyEpoch));
- const publicApp=createHttpApp(config,runtime,auth.verifyBearer,lifecycle,evidence);
+ const publicApp=createHttpApp(config,runtime,auth.verifyBearer,lifecycle,evidence,reconnect);
  publicApp.use(guardHost(settings.public_origin,settings.public_port));
  for(const page of ['sign-in','consent','connect'] as const)publicApp.get('/icloud/'+page,(_req,res)=>{res.set({'cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}).type('html').send(renderAuthPage(page,false,scopeLabels));});
  publicApp.get('/icloud/assets/inter.ttf',(_req,res)=>res.type('font/ttf').sendFile(join(deps.assetsDirectory,'inter.ttf'),{dotfiles:'allow'}));
