@@ -2,7 +2,8 @@
 
 Status: experiments closed on 2026-10-04; read/write module implemented in source, not deployed.
 See apps/icloud/src/photos/README.md for operator setup and current boundaries.
-Native live writes await OS authorization; Shared Album upload support is not established.
+PhotoKit authorization and an ordinary empty-album create/rename/delete lifecycle
+are live-verified. Shared Album upload support is not yet established.
 The user accepted local Photos access and an isolated Python dependency after
 initially preferring a cloud-only Bun implementation. This document supersedes
 older cloud-only and no-Python directions in the historical experiment records.
@@ -89,6 +90,20 @@ Investigate supported ways to add selected assets to a true Shared Album.
 Do not assume normal PhotoKit album writes or osxphotos reads imply this ability.
 If only a user-assisted Photos flow is supported, expose it honestly.
 
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The official posting interface takes `PHPickerResult` values, which have no public
+constructor. A supported candidate is a photo picker preselected with the exact
+asset identifiers, followed by the posting interface with a default destination.
+`playground/photos/SharedAlbumReviewProbe.swift` typechecks this API path, rejects
+changed picker selections and reports destination changes. It is a compile-only
+probe, not a deployed tool or a successful upload. Preselected picker results have
+empty item providers per the SDK; live posting must verify they are accepted.
+The posting callback also does not establish cross-device cloud synchronization.
+
+References: [Apple posting controller](https://developer.apple.com/documentation/photosui/phsharedalbumpostingviewcontroller),
+[Apple preselected identifiers](https://developer.apple.com/documentation/photosui/phpickerconfiguration-swift.struct/preselectedassetidentifiers).
+
 Acceptance gate: with an explicitly selected test asset and destination, show the
 proposed write, perform the authorized operation, then read back membership and
 verify upload outcome. Persist operation identity; reconcile an unknown outcome
@@ -163,3 +178,24 @@ canPerform checks, not declared supported from read evidence. Full cloud upload
 confirmation, perceptual comparison, automated blur scoring and reliable expiry
 classification are still open. This checkpoint implements write workflows but
 is not acceptance of the entire sharing/cleanup scenario.
+
+## Live authorization and write follow-up (2026-10-04)
+
+The owner granted Full Access to iCloud Photos Helper. Launching the bundled
+binary directly incorrectly observed not-determined; launching the app through
+Launch Services observed authorized (3). The runtime and setup status now use
+that app launch path, with private temporary request/response files and no retry.
+Application checks passed 167 tests / 677 assertions and the production build.
+
+The real PhotosService prepare/apply pipeline created a uniquely named empty
+test album, renamed it and deleted only that empty album. All three returned
+`applied`, `localReadbackVerified: true`, `serverSyncVerified: false`. The scoped
+album ID was derived from the creation result; no name-based deletion was used.
+No existing photos, metadata or shared-album membership were changed. Private
+operation evidence remains in `/tmp/icloud-photos-live-check/evidence.json` and
+its SQLite ledger; neither is shipped in the repository.
+
+Asset add/remove, metadata changes and asset deletion still lack live mutation
+evidence. Shared posting remains a user-assisted API candidate requiring a live
+picker/posting experiment, membership readback and synchronization verification.
+The installed service has not been changed.
