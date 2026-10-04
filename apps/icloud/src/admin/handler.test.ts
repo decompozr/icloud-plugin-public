@@ -68,7 +68,7 @@ test('dashboard status and capability mutations require owner and explicit eleva
  expect((await f.post('/icloud/admin/credential',{accountId:account.id,appPassword:'rotated'})).status).toBe(200);
  expect((await f.post('/icloud/admin/revoke',{accountId:account.id},'other')).status).toBe(403);
  expect((await f.post('/icloud/admin/revoke',{accountId:account.id})).status).toBe(200);
- const after=await(await get()).json();expect(after.accounts[0]).toEqual({...account,credentialStored:false});
+ const after=await(await get()).json();expect(after.accounts[0]).toMatchObject({id:account.id,user:account.user,credentialStored:false,credentialRevision:3,services:{mail:{availability:'unknown',enabled:false,reason:'credential_revoked'}}});
  }finally{await f.close();}
  });
 test('Calendar capability administration is separate from Mail and owner protected',async()=>{const f=await fixture();try{await f.post('/icloud/setup/complete',{});const policy={read:true,write:true,schedule:false,share:false};const endpoint='/icloud/admin/modules/calendar/capabilities';expect((await f.post(endpoint,{policy,confirmEnable:true},'other')).status).toBe(403);expect((await f.post(endpoint,{policy,confirmEnable:false})).status).toBe(409);expect((await f.post(endpoint,{policy,confirmEnable:true})).status).toBe(200);const status=await(await fetch(f.url+'/icloud/admin/status',{headers:{'x-fixture-session':'owner'}})).json();expect(status.modules.calendar).toEqual(policy);expect(status.capabilities.send).toBe(false);}finally{await f.close();}});

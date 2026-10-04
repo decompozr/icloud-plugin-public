@@ -1,3 +1,5 @@
+import type {InvocationContext} from './context.js';
+import type {AccountAccess} from '../accounts/access.js';
 import type {Tool,CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 export interface ScopeDescriptor {name:string;title:string;description:string;descriptionLocales?:Readonly<Record<string,string>>;enabled:()=>boolean}
 export interface RegisteredTool {
@@ -8,6 +10,8 @@ export interface RegisteredTool {
 export interface RuntimeModule {id:string;scopes:readonly ScopeDescriptor[];tools:readonly RegisteredTool[];start?:()=>Promise<void>;dispose?:()=>Promise<void>}
 /** Static application composition. Registration is complete before startup. */
 export class ModuleRuntime {
+ constructor(readonly accounts?:AccountAccess){}
+ private readonly toolModules=new Map<string,string>();
  private readonly modules:RuntimeModule[]=[];
  private readonly tools=new Map<string,RegisteredTool>();
  private readonly scopes=new Map<string,ScopeDescriptor>();
@@ -25,13 +29,22 @@ export class ModuleRuntime {
    if(entry.requiredScopes.length===0||entry.requiredScopes.some(scope=>scope!=='offline_access'&&!names.has(scope)))throw Error('Tool scope must be owned by its module');
    toolNames.add(entry.tool.name);
   }
-  this.modules.push(module);for(const scope of module.scopes)this.scopes.set(scope.name,scope);for(const entry of module.tools)this.tools.set(entry.tool.name,entry);return this;
+  this.modules.push(module);for(const scope of module.scopes)this.scopes.set(scope.name,scope);for(const entry of module.tools){
+   const routed=this.accounts?{...entry,tool:{...entry.tool,description:(entry.tool.description??'')+' Use icloud_accounts to choose an authorized account. Pass account_id explicitly when intent identifies an account; otherwise the configured eligible default or sole eligible account is used. Ambiguity requires asking the user.',inputSchema:{...entry.tool.inputSchema,properties:{...entry.tool.inputSchema.properties,account_id:{type:'string',minLength:1,maxLength:256,description:'Stable authorized account ID from icloud_accounts. Never silently substitute another account.'}}}}}:entry;
+   this.tools.set(entry.tool.name,routed);this.toolModules.set(entry.tool.name,module.id);
+  }return this;
  }
  get scopeDescriptors():readonly ScopeDescriptor[]{return [...this.scopes.values()];}
  get declaredScopes():string[]{return [...this.scopes.keys(),'offline_access'];}
  get allowedScopes():string[]{return [...this.scopes.values()].filter(s=>s.enabled()).map(s=>s.name).concat('offline_access');}
- listTools():Tool[]{return [...this.tools.values()].filter(entry=>this.available(entry)).map(entry=>entry.tool);}
- tool(name:string):RegisteredTool|undefined{const entry=this.tools.get(name);return entry&&this.available(entry)?entry:undefined;}
+ listTools(context?:InvocationContext):Tool[]{return [...this.tools.values()].filter(entry=>this.available(entry)&&this.accountAvailable(entry,context)).map(entry=>entry.tool);}
+ tool(name:string,context?:InvocationContext):RegisteredTool|undefined{const entry=this.tools.get(name);return entry&&this.available(entry)&&this.accountAvailable(entry,context)?entry:undefined;}
+ private accountAvailable(entry:RegisteredTool,context?:InvocationContext){return !this.accounts||this.accounts.eligible(context,this.toolModules.get(entry.tool.name)!).length>0;}
+ route(entry:RegisteredTool,input:Record<string,unknown>,context?:InvocationContext){
+  if(!this.accounts)return {input,context};
+  const {account_id,...args}=input;
+  return {input:args,context:this.accounts.select(context,this.toolModules.get(entry.tool.name)!,account_id)};
+ }
  private available(entry:RegisteredTool){return entry.enabled()&&entry.requiredScopes.every(scope=>scope==='offline_access'||this.scopes.get(scope)?.enabled());}
  async invoke(entry:RegisteredTool,input:unknown,scopes?:ReadonlySet<string>):Promise<CallToolResult>{
   if(this.state==='disposing'||this.state==='disposed')throw Error('Runtime draining');

@@ -33,7 +33,7 @@ export function createHttpApp(config: Config, runtime:ModuleRuntime, verify = cr
     if(!parsed.success){res.status(400).json({error:'Invalid MCP request'});return;}
     const principal=principals.get(req);
     if(!principal){res.status(401).end();return;}
-    const server = createServer(runtime,config.publicUrl,principal.scopes,operation=>lifecycle.track(operation),{ownerId:principal.subject,accountId:principal.accountId},tool=>evidence?.start(principal,tool));
+    const server = createServer(runtime,config.publicUrl,principal.scopes,operation=>lifecycle.track(operation),{ownerId:principal.subject,accountId:principal.accountId,accountIds:principal.accountIds},(tool,selected)=>evidence?.start({...principal,accountId:selected?.accountId??principal.accountId},tool));
     const transport = new StreamableHTTPServerTransport({sessionIdGenerator:undefined,enableJsonResponse:true});
     res.on('close',()=> { void transport.close(); void server.close(); });
     try { await server.connect(transport); await transport.handleRequest(req,res,parsed.data); }

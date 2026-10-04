@@ -69,3 +69,13 @@ remains an unusable `legacy-account` tombstone. Add a mailbox and create a new c
 connection instead of rebinding that unknown original identity. Older application
 binaries cannot be assumed to read the migrated account schema; a rollback requires
 compatible state restoration rather than a release-symlink change alone.
+
+## Per-account services
+
+`account_services` stores version-bound availability, reason, timestamp and enabled
+state; `account_service_defaults` stores owner-selected defaults. Probe and toggle
+writes use credential revision checks. Rotation replaces evidence atomically with
+the credential and preserves prior disabled preferences; failed validation never
+calls rotation. Revocation invalidates evidence. Legacy accounts without service
+rows expose historical Mail availability (`legacy_mail`) and no verified Calendar
+availability. See [capability migration](../../../../docs/account-capabilities.md).

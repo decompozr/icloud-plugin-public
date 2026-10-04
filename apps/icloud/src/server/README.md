@@ -3,7 +3,9 @@
 The server runs the selected feature modules behind public MCP/OAuth and private
 owner-management listeners. `application.ts` is the composition boundary: it wires
 shared owner authentication, storage, module registration, diagnostics and admin
-integration. Concrete feature imports belong here, not in the shared MCP host.
+integration. It registers Mail and Calendar, supplies their independent read-only
+credential probes, and constructs account access for caller-limited union/routing.
+Concrete feature imports belong here, not in the shared MCP host.
 
 `http.ts` owns HTTP transport, protected-resource discovery and authenticated MCP
 requests. `bridge.ts` adapts Fetch handlers and validates configured hosts.

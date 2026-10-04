@@ -3,6 +3,8 @@ import {runtimeVersions} from './versions.js';
 import {createSystemStatus,type SystemStatus} from '../admin/system-status.js';
 import {ReadinessEvidence} from '../admin/evidence.js';
 import {evidenceState} from '../admin/evidence-state.js';
+import {createCredentialProbe} from '../accounts/capabilities.js';
+import {AccountAccess} from '../accounts/access.js';
 import {createCalendarModule,type CalendarModuleDependencies} from '../calendar/module.js';
 import {createMailModule,type MailModuleDependencies} from '../mail/module.js';
 import {ModuleRuntime} from '../modules/runtime.js';
@@ -46,13 +48,15 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  }
  const mailModule=createMailModule(settings,{...deps,monitor});
  const calendarModule=createCalendarModule(settings,{...deps,monitor,provider:deps.calendarProvider});
- const runtime=new ModuleRuntime().register(mailModule.registration).register(calendarModule.registration);
+ const services=[{id:'mail',title:'Mail',probe:mailModule.admin.validateCredential},{id:'calendar',title:'Calendar',probe:calendarModule.probe}];
+ const validateCredential=createCredentialProbe(services);
+ const runtime=new ModuleRuntime(new AccountAccess(deps.store,services)).register(mailModule.registration).register(calendarModule.registration);
  await runtime.start();
  try{
  const config=mailModule.config;
  const scopeLabels=Object.fromEntries(runtime.scopeDescriptors.map(scope=>[scope.name,{default:scope.description,...scope.descriptionLocales}]));
  const diagnostics=deps.diagnostics??(()=>prerequisites(settings));
- const auth=await createOwnerAuth({database:deps.authDatabase,onOAuthError:reconnect.noteError,publicBaseURL:settings.public_origin,privateOrigin:settings.private_origin,rpID:new URL(settings.public_origin).hostname,secret:createHash('sha256').update(deps.masterKey).update('owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,allowedScopes:()=>runtime.allowedScopes,ownerId:()=>deps.store.ownerId(),checkBootstrapProof:proof=>deps.store.checkBootstrapProof(proof),accountStore:deps.store,validateCredential:mailModule.admin.validateCredential});
+ const auth=await createOwnerAuth({services,database:deps.authDatabase,onOAuthError:reconnect.noteError,publicBaseURL:settings.public_origin,privateOrigin:settings.private_origin,rpID:new URL(settings.public_origin).hostname,secret:createHash('sha256').update(deps.masterKey).update('owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,allowedScopes:()=>runtime.allowedScopes,ownerId:()=>deps.store.ownerId(),checkBootstrapProof:proof=>deps.store.checkBootstrapProof(proof),accountStore:deps.store,validateCredential});
  const bootstrap=createBootstrapAccess({login:settings.bootstrap_owner_login,origin:settings.private_origin,isEnrolled:()=>deps.store.ownerId()!==null});
  const internalProof=deps.bootstrapProof??(()=>readFileSync(join(dirname(settings.master_key_file),'bootstrap-proof'),'utf8'));
  const setupState=async(request:Request)=>{let passkeyRegistered=false;try{const session=await auth.enrollmentSession(request.headers);passkeyRegistered=bootstrap.resumed(request,session.user.id);}catch{}return{bootstrapAuthorized:bootstrap.allowed(request),passkeyRegistered};};
@@ -65,7 +69,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  publicApp.get('/icloud/assets/auth-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'auth-browser.js'),{dotfiles:'allow'}));
  publicApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.public_origin,auth.publicHandler,lifecycle));
  const versions=runtimeVersions(deps.assetsDirectory);
- const admin=createPrivateAdmin({systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]});
+ const admin=createPrivateAdmin({onAccountServicesChanged:()=>{policyEpoch++;},systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,validateCredential,services,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]});
  const privateApp=express();privateApp.disable('x-powered-by');privateApp.use(lifecycle.admission);privateApp.use(guardHost(settings.private_origin,settings.private_port));
  privateApp.use((req,res,next)=>{
   const address=req.socket.remoteAddress?.replace(/^::ffff:/,'');

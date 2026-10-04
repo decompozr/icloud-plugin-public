@@ -1,13 +1,15 @@
 # iCloud application source
 
-The application composes shared infrastructure with feature modules. Mail owns its
-complete behavior under `mail/`; the host consumes registered capabilities. The
+The application composes shared infrastructure with feature modules. Mail and Calendar own
+their feature behavior under `mail/` and `calendar/`; the host consumes registered capabilities. The
 central [architecture](../../../docs/architecture.md) explains composition and the
 [workspace guide](../../../docs/workspace.md) explains package/build ownership.
 
 | Subsystem | Owned responsibility and entry documentation |
 | --- | --- |
 | [modules](modules/README.md) | Registration contracts and module lifecycle |
+| [accounts](accounts/README.md) | Independent service evidence, safe metadata and grant-limited routing |
+| [calendar](calendar/README.md) | Calendar use cases, CalDAV provider, tools and feature state |
 | [mail](mail/README.md) | Mail use cases, providers, tools and feature state |
 | [server](server/README.md) | Listeners, transport, settings and composition |
 | [mcp](mcp/README.md) | Generic MCP host and registered-tool dispatch |
@@ -22,4 +24,4 @@ central [architecture](../../../docs/architecture.md) explains composition and t
 `index.ts` owns process startup/teardown. Source documentation is part of each
 subsystem's implementation: behavior changes must update the owning README and
 contract links. Tests live beside their modules; protocol/process scenarios live
-in [apps/e2e](../../e2e/README.md). Calendar is not a production subsystem.
+in [apps/e2e](../../e2e/README.md). Live provider acceptance remains separate from source registration.

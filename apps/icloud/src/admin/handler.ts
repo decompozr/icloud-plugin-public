@@ -1,3 +1,5 @@
+import {CredentialProbeError,type ProbeEvidence,type RegisteredService} from '../accounts/capabilities.js';
+import {OwnerStorageError} from '../storage/owner-store.js';
 import { z } from 'zod';
 import type { OwnerSecretStore } from '../storage/owner-store.js';
 import type {SystemStatus} from './system-status.js';
@@ -6,9 +8,11 @@ export interface TailscaleStatus { installed: boolean; authenticated: boolean; o
 export interface AppleCredential { user: string; appPassword: string }
 export interface AdminModule {id:string;title:string;fields:readonly {id:string;label:string}[];capabilities():Record<string,boolean>;updateCapabilities(next:Record<string,boolean>,confirm:boolean):Promise<Record<string,boolean>>}
 export interface AdminOptions {
+ onAccountServicesChanged?():void;
  systemStatus?():Promise<SystemStatus>;
  evidence?(ownerId:string):import('./evidence.js').EvidenceRow[];
  modules?:readonly AdminModule[];
+ services?:readonly Pick<RegisteredService,'id'|'title'>[];
  privateOrigin: string;
  publicMcpUrl?: string;
  presentation?:AdminPresentation;
@@ -18,7 +22,7 @@ export interface AdminOptions {
  store: OwnerSecretStore;
  ownerAuth: { ownerSession(headers: Headers): Promise<{user: {id: string}}>; enrollmentSession(headers: Headers): Promise<{user: {id: string}}> };
  diagnostics(): Promise<TailscaleStatus>;
- validateCredential(credential: AppleCredential): Promise<void>;
+ validateCredential(credential: AppleCredential): Promise<ProbeEvidence|void>;
  setupState?(request:Request):Promise<{bootstrapAuthorized:boolean;passkeyRegistered:boolean}>;
 }
 const ready = (status:TailscaleStatus) => status.installed && status.authenticated && status.online && status.privateReachable;
@@ -41,7 +45,7 @@ export function createPrivateAdmin(options:AdminOptions) {
   const url=new URL(request.url),path=url.pathname;
   const views:Record<string,'overview'|'accounts'|'connections'|'system'>={'/':'overview','/icloud/admin':'overview','/icloud/admin/accounts':'accounts','/icloud/admin/connections':'connections','/icloud/admin/system':'system'};
   const moduleMatch=/^\/icloud\/admin\/modules\/([a-z]+)\/capabilities$/.exec(path);
-  if(!moduleMatch&&!Object.hasOwn(views,path)&&!['/icloud/admin/system-status','/icloud/admin/accounts/add','/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/setup/complete','/icloud/admin/credential','/icloud/admin/revoke','/icloud/admin/status','/icloud/admin/capabilities','/icloud/admin/plugin.zip'].includes(path))return json({error:'NOT_FOUND'},404);
+  if(!moduleMatch&&!Object.hasOwn(views,path)&&!['/icloud/admin/account-service','/icloud/admin/service-default','/icloud/admin/probe','/icloud/admin/system-status','/icloud/admin/accounts/add','/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/setup/complete','/icloud/admin/credential','/icloud/admin/revoke','/icloud/admin/status','/icloud/admin/capabilities','/icloud/admin/plugin.zip'].includes(path))return json({error:'NOT_FOUND'},404);
   try {
    if(request.method==='GET' && path==='/icloud/admin/plugin.zip'){
     const session=await options.ownerAuth.ownerSession(request.headers);
@@ -58,7 +62,7 @@ export function createPrivateAdmin(options:AdminOptions) {
    if(request.method==='GET' && path==='/icloud/admin/status') {
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
-    return json({accounts:options.store.listAccounts(session.user.id),evidence:options.evidence?.(session.user.id)??[],capabilities:options.capabilities?.()??null,modules:Object.fromEntries((options.modules??[]).map(module=>[module.id,module.capabilities()]))});
+    return json({services:options.services??[],defaults:options.store.serviceDefaults(session.user.id),accounts:options.store.listAccounts(session.user.id),evidence:options.evidence?.(session.user.id)??[],capabilities:options.capabilities?.()??null,modules:Object.fromEntries((options.modules??[]).map(module=>[module.id,module.capabilities()]))});
    }
    if(request.method==='GET' && path==='/icloud/setup/status') {
     const status=await options.diagnostics(),enrolled=options.store.ownerId()!==null;
@@ -102,11 +106,12 @@ export function createPrivateAdmin(options:AdminOptions) {
     // credential endpoint. Never resurrect them via the add-account wizard.
     if(exists())return json({error:'ACCOUNT_EXISTS'},409);
     const credential={user,appPassword:parsed.data.appPassword};
-    try{await options.validateCredential(credential);}catch{return json({error:'PROVIDER_VALIDATION_FAILED'},422);}
+    let services:ProbeEvidence|void;
+    try{services=await options.validateCredential(credential);}catch(error){return json({error:'PROVIDER_VALIDATION_FAILED',...(error instanceof CredentialProbeError?{services:error.services}:{})},422);}
     if(options.store.ownerId()!==session.user.id)return json({error:'OWNER_REQUIRED'},403);
     if(exists())return json({error:'ACCOUNT_EXISTS'},409);
     const bytes=Buffer.from(JSON.stringify(credential));
-    try{return json({account:options.store.addAccount(session.user.id,{user,label:parsed.data.label,credential:bytes})},201);}finally{bytes.fill(0);}
+    try{return json({account:options.store.addAccount(session.user.id,{user,label:parsed.data.label,credential:bytes,...(services?{services}:{})})},201);}finally{bytes.fill(0);}
    }
    if(path==='/icloud/admin/capabilities'||moduleMatch) {
     const target=moduleMatch?options.modules?.find(module=>module.id===moduleMatch[1]):options;
@@ -121,6 +126,32 @@ export function createPrivateAdmin(options:AdminOptions) {
     if(Object.entries(parsed.data.policy).some(([key,value])=>value&&!current[key as keyof typeof current])&&!parsed.data.confirmEnable)return json({error:'CONFIRMATION_REQUIRED'},409);
     return json({capabilities:await target.updateCapabilities(parsed.data.policy,parsed.data.confirmEnable)});
    }
+   if(['/icloud/admin/account-service','/icloud/admin/service-default','/icloud/admin/probe'].includes(path)) {
+    const session=await options.ownerAuth.ownerSession(request.headers);
+    if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
+    const raw=await parseBody(request);
+    if(path.endsWith('/service-default')){
+     const body=z.object({service:z.string(),accountId:z.string().nullable()}).strict().parse(raw);
+     if(!options.services?.some(service=>service.id===body.service))return json({error:'INVALID_INPUT'},400);
+     options.store.setServiceDefault(session.user.id,body.service,body.accountId);return json({updated:true});
+    }
+    if(path.endsWith('/account-service')){
+     const body=z.object({accountId:z.string(),service:z.string(),enabled:z.boolean(),credentialRevision:z.number().int().positive()}).strict().parse(raw);
+     if(!options.services?.some(service=>service.id===body.service))return json({error:'INVALID_INPUT'},400);
+     options.store.setAccountService(session.user.id,body.accountId,body.service,body.enabled,body.credentialRevision);options.onAccountServicesChanged?.();return json({updated:true});
+    }
+    const body=z.object({accountId:z.string()}).strict().parse(raw),account=options.store.account(session.user.id,body.accountId);
+    if(account.credentialRevision===undefined)return json({error:'INVALID_INPUT'},400);
+    const bytes=options.store.readAccountSecret(session.user.id,account.id);if(!bytes)return json({error:'CREDENTIAL_REQUIRED'},409);
+    try{
+     const credential=z.object({user:z.string().email(),appPassword:z.string().min(1)}).strict().parse(JSON.parse(Buffer.from(bytes).toString('utf8')));
+     let evidence:ProbeEvidence|void;
+     try{evidence=await options.validateCredential(credential);}catch(error){if(!(error instanceof CredentialProbeError))throw error;evidence=error.services;}
+     if(!evidence)throw Error('Probe unavailable');
+     options.store.recordAccountProbe(session.user.id,account.id,account.credentialRevision,evidence);options.onAccountServicesChanged?.();
+     return json({updated:true});
+    }finally{bytes.fill(0);}
+   }
    if(path==='/icloud/admin/credential'||path==='/icloud/admin/revoke') {
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
@@ -133,13 +164,14 @@ export function createPrivateAdmin(options:AdminOptions) {
     if(!options.store.accountGeneration)return json({error:'CREDENTIAL_STATE_UNAVAILABLE'},409);
     const generation=options.store.accountGeneration(session.user.id,account.id),key=mutationKey(session.user.id,account.id),mutation=credentialMutations.get(key)??0;
     const credential={user:account.user,appPassword:parsed.data.appPassword};
-    try { await options.validateCredential(credential); } catch { return json({error:'PROVIDER_VALIDATION_FAILED'},422); }
+    let services:ProbeEvidence|void;
+    try { services=await options.validateCredential(credential); } catch(error) { return json({error:'PROVIDER_VALIDATION_FAILED',...(error instanceof CredentialProbeError?{services:error.services}:{})},422); }
     if(options.store.ownerId()!==session.user.id||options.store.accountGeneration(session.user.id,account.id)!==generation||(credentialMutations.get(key)??0)!==mutation)return json({error:'CREDENTIAL_STATE_CHANGED'},409);
     const bytes=Buffer.from(JSON.stringify(credential));
-    try{options.store.rotateAccountSecret(session.user.id,account.id,bytes);noteMutation(key);}finally{bytes.fill(0);}
+    try{if(services&&account.credentialRevision===undefined)throw Error('Revision unavailable');options.store.rotateAccountSecret(session.user.id,parsed.data.accountId,bytes,services?{expectedRevision:account.credentialRevision!,services}:undefined);noteMutation(key);}finally{bytes.fill(0);}
     return json({updated:true});
    }
    return json({error:'NOT_FOUND'},404);
-  } catch { return json({error:'ACCESS_OR_STATE_DENIED'},403); }
+  } catch(error) { return json({error:error instanceof OwnerStorageError&&error.code==='STALE_REVISION'?'STALE_REVISION':'ACCESS_OR_STATE_DENIED'},error instanceof OwnerStorageError&&error.code==='STALE_REVISION'?409:403); }
  };
 }

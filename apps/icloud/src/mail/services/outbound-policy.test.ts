@@ -35,7 +35,7 @@ function fixture(kind:'reply'|'draft',pauseAt:'preparation'|'submission'){
   search:unexpected,summaries:unexpected,metadata:unexpected,download:unexpected,mark:unexpected,flag:unexpected,tag:unexpected,move:unexpected};
  const build=()=>createMailModule(settings,{
   authDatabase:database,masterKey:new Uint8Array(32).fill(7),monitor:new OperationMonitor(()=>{}),
-  store:{ownerId:()=>identity.ownerId,legacyAccountId:()=>null,
+  store:{setAccountService:()=>{},recordAccountProbe:()=>{},serviceDefaults:()=>({}),setServiceDefault:()=>{},ownerId:()=>identity.ownerId,legacyAccountId:()=>null,
    account:(owner,id)=>{assert.equal(owner,identity.ownerId);assert.equal(id,identity.accountId);return{id,user:'owner@example.invalid',label:'Fixture',credentialStored:true};},
    readAccountSecret:(owner,id)=>{assert.equal(owner,identity.ownerId);assert.equal(id,identity.accountId);return Buffer.from(JSON.stringify({user:'owner@example.invalid',appPassword:'not-a-real-password'}));},
    listAccounts:unexpected,addAccount:unexpected,rotateAccountSecret:unexpected,revokeAccountSecret:unexpected,readSecret:unexpected,

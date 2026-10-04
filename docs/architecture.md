@@ -2,8 +2,9 @@
 
 This document describes the source architecture, not the currently deployed
 release. The application is one Bun service with a shared host and registered
-feature modules. Mail is the production feature. Calendar has feasibility work
-only; no production Calendar tools, scopes or provider are implied.
+feature modules. Mail and Calendar are registered source modules. Their availability is detected
+per account, independently of operator action policy and OAuth scopes. Source
+integration does not imply deployment or live-client acceptance.
 
 ## Feature ownership and shared infrastructure
 
@@ -23,7 +24,8 @@ operation tracking are shared infrastructure. See the complete
 ```text
 application composition
   ├─ owner auth / opaque owner storage / private admin
-  ├─ module runtime ← Mail module
+  ├─ account probes / consent snapshots / capability routing
+  ├─ module runtime ← Mail and Calendar modules
   │                    ├─ tool contributions → services → domain ports
   │                    └─ policy + ledger       ↑ iCloud adapters
   └─ shared MCP host → registered tools
@@ -34,7 +36,8 @@ application composition
 Registration is explicit and static within the running application. Each module
 owns its namespace, declares scopes and tools, and can supply lifecycle hooks.
 The registry validates contributions before serving them. The host advertises
-currently enabled contributions and checks required scopes before dispatch.
+the union of enabled, available contributions across only the caller-authorized
+accounts, intersected with operator policy, and checks required scopes before dispatch.
 Modules own policy readers and invocation behavior; enabling a server capability
 never expands a client's existing consent. The exact TypeScript registration
 contract is maintained with [module runtime documentation](../apps/icloud/src/modules/README.md).
@@ -50,17 +53,19 @@ write. Operation monitoring and listener draining preserve accepted work.
 The owner store owns exclusive enrollment, persistent bootstrap closure and opaque
 encrypted credential bytes. Mail interprets those bytes and owns its operator
 policy and outbound ledger. These responsibilities are separate even when SQLite
-connections are shared. The refactor retains existing file/table names and key
-contexts; it is not a database migration or reset. The owner authentication DB
+connections are shared. Capability storage adds version-bound service evidence and default-account tables
+while preserving existing records and encryption contexts; no state is reset. The owner authentication DB
 also persists Passkeys, sessions and OAuth grants. Caller-owned database handles
 are closed by the application lifecycle, not by feature code borrowing them.
 
 Public MCP/OAuth and private setup/admin use distinct listeners. Forwarded host
 headers cannot choose private handlers. Private enrollment requires trusted
-bootstrap access and owner Passkey enrollment. Public OAuth selection/addition
-validates Mail credentials and binds each grant to one stable account; a new feature's setup and credential
-requirements need an explicit integration contract rather than assumptions that
-all iCloud services use IMAP credentials.
+bootstrap access and owner Passkey enrollment. Public OAuth addition probes all registered services independently and requires at
+least one success. Selection binds consent to immutable explicit account IDs; old
+single-account grants retain their original boundary. Registered service metadata
+never grants action privileges. The runtime validates `account_id` against the
+grant and current eligibility before installing request-local selected identity;
+ambiguous selection requires a choice. See [account capabilities](account-capabilities.md).
 
 Opaque access tokens are checked through provider introspection with owner,
 issuer, audience and scope checks. Key custody remains outside client artifacts
@@ -74,12 +79,12 @@ Feature ownership prevents adding Calendar from changing Mail internals or the
 shared MCP dispatch implementation. It does not require a dynamic plugin loader,
 general dependency injection container or a universal provider model. Each feature
 can have different domain rules and storage needs while sharing authentication
-and transport. Multiple accounts and hot module installation are not implemented.
+and transport. Multiple accounts are explicitly consented; hot module installation is not implemented.
 
-A future Calendar module would declare its own namespace, scopes, tools, CalDAV
-adapter and persistence needs, then be selected by the composition root. This is
-an extension direction, not a shipped Calendar feature. The
-[Calendar feasibility report](calendar-feasibility.md) remains bounded research.
+The Calendar module declares its namespace, scopes, tools, CalDAV adapter and
+persistence under `src/calendar`. The composition root registers it alongside Mail.
+[Calendar production](calendar-production.md) records its contracts and limits; the
+[feasibility report](calendar-feasibility.md) retains historical research.
 
 ## Documentation and acceptance
 

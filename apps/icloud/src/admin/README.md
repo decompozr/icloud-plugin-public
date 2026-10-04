@@ -15,11 +15,13 @@ come from composition rather than Mail storage imports. The handler verifies tha
 submitted policy keys match the current policy and requires explicit confirmation
 for elevation. Enabling capabilities never changes existing OAuth grants.
 
-Owner setup ends after Passkey enrollment. Mail credentials are added through the
+Owner setup ends after Passkey enrollment. iCloud credentials are added through the
 public OAuth account chooser after owner login. Private management lists accounts
 and targets rotation/revocation by stable account ID. This remains one owner's
-installation, rather than unrelated-owner registration or a multi-feature provider
-registry. Calendar enrollment still needs an explicit integration.
+installation. Registered Mail/Calendar probes and metadata are injected by
+composition. Account checklists separate provider availability from owner-enabled
+state; unknown services are disabled with a reason. Private actions support service
+toggles, recheck and per-service account defaults.
 
 ## Data flow and security
 
@@ -30,7 +32,9 @@ session; POST operations require exact private Origin, JSON content type and bou
 validated bodies. The handler must only be mounted on the private listener.
 
 Status returns whether a credential exists, never its contents. Credential rotation
-replaces only the named account secret. Local removal does not delete mail, revoke the
+replaces only the named account secret after at least one registered probe succeeds.
+Credential revision guards reject stale results; failed validation preserves the
+old secret and evidence. Rechecks retain disabled preferences. Local removal does not delete mail, revoke the
 Apple password or revoke OAuth grants. Plugin export is owner-only and contains no
 server secrets. The configured public MCP URL is connection guidance, not a
 readiness check or permission to activate routing.
@@ -44,3 +48,7 @@ Apple login or a physical Passkey ceremony. Browser visual/accessibility checks
 remain separate from handler tests. See [setup/auth](../../../../docs/setup-and-auth.md),
 [design language](../../../../docs/design-language.md) and
 [client artifact](../../../../docs/client-artifact.md).
+
+Service toggles and rechecks notify composition to advance the readiness epoch.
+Successful read evidence cannot survive off/on or an intervening recheck. Observations
+for multi-account grants are attributed to the selected account after routing.

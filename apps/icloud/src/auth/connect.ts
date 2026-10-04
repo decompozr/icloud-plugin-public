@@ -1,3 +1,4 @@
+import {CredentialProbeError,type ProbeEvidence,type RegisteredService} from '../accounts/capabilities.js';
 import type { Database } from 'bun:sqlite';
 import { createHash } from 'node:crypto';
 import { verifyOAuthQueryParams } from '@better-auth/oauth-provider';
@@ -7,7 +8,7 @@ import { z } from 'zod';
 export type AccountStore = Pick<OwnerSecretStore, 'listAccounts' | 'account' | 'legacyAccountId' | 'addAccount'>;
 const querySchema=z.string().min(1).max(16384);
 const bodySchema=z.object({oauth_query:querySchema});
-const selectSchema=bodySchema.extend({accountId:z.string().min(1).max(256)}).strict();
+const selectSchema=z.union([bodySchema.extend({accountId:z.string().min(1).max(256)}).strict(),bodySchema.extend({accountIds:z.array(z.string().min(1).max(256)).min(1).max(32)}).strict()]);
 const addSchema=bodySchema.extend({user:z.string().email().max(320),appPassword:z.string().min(1).max(256),label:z.string().trim().min(1).max(120).optional()}).strict();
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff'}});
 
@@ -17,19 +18,38 @@ export function authorizationKey(query:string):string {
  const entries=[...params].sort(([a,b],[c,d])=>a<c?-1:a>c?1:b<d?-1:b>d?1:0);
  return createHash('sha256').update(new URLSearchParams(entries).toString()).digest('hex');
 }
-export function createAccountConnection(options:{database:Database;secret:string;origin:string;store:AccountStore;ownerSession(headers:Headers):Promise<{user:{id:string};session:{id:string}}>;
+export function createAccountConnection(options:{services?:readonly Pick<RegisteredService,'id'|'title'>[];database:Database;secret:string;origin:string;store:AccountStore;ownerSession(headers:Headers):Promise<{user:{id:string};session:{id:string}}>;
  clientName?(id:string):string|undefined;
- validateCredential(credential:{user:string;appPassword:string}):Promise<void>;
+ validateCredential(credential:{user:string;appPassword:string}):Promise<ProbeEvidence|void>;
  continueAuthorization(request:Request,query:string,accountId:string):Promise<Response>;
 }) {
  const db=options.database;
  const validationAttempts=new Map<string,{start:number;count:number;active:number}>();
+ db.exec('CREATE TABLE IF NOT EXISTS plugin_account_grants(id TEXT PRIMARY KEY, owner TEXT NOT NULL, accounts TEXT NOT NULL)');
  db.exec('CREATE TABLE IF NOT EXISTS plugin_account_selection (request TEXT NOT NULL, owner TEXT NOT NULL, session TEXT NOT NULL, account TEXT NOT NULL, expires INTEGER NOT NULL, consumed INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(request,owner,session))');
  async function signed(query:string){querySchema.parse(query);if(!await verifyOAuthQueryParams(query,options.secret))throw Error('INVALID_AUTHORIZATION');return new URLSearchParams(query);}
+ function resolve(reference:string,owner:string){
+  let ids:string[];
+  if(reference.startsWith('accounts:')){
+   const row=db.query<{accounts:string},[string,string]>('SELECT accounts FROM plugin_account_grants WHERE id=? AND owner=?').get(reference,owner);
+   if(!row)throw Error('Unknown account grant');
+   ids=z.array(z.string()).min(1).max(32).parse(JSON.parse(row.accounts));
+  }else ids=[reference];
+  return ids.map(id=>options.store.account(owner,id));
+ }
+ function snapshot(owner:string,ids:string[]){
+  if(new Set(ids).size!==ids.length)throw Error('Duplicate account');
+  const accounts=ids.map(id=>options.store.account(owner,id));
+  if(accounts.some(account=>!account.credentialStored))throw Error('Credential required');
+  if(ids.length===1)return ids[0]!;
+  const reference='accounts:'+crypto.randomUUID();
+  db.query('INSERT INTO plugin_account_grants VALUES(?,?,?)').run(reference,owner,JSON.stringify(ids));
+  return reference;
+ }
  function selected(query:string,owner:string,session:string){
   const row=db.query<{account:string},[string,string,string,number]>('SELECT account FROM plugin_account_selection WHERE request=? AND owner=? AND session=? AND expires>? AND consumed=0').get(authorizationKey(query),owner,session,Date.now());
   if(!row)return undefined;
-  try{const account=options.store.account(owner,row.account);return account.credentialStored?account:undefined;}catch{return undefined;}
+  try{const accounts=resolve(row.account,owner);return accounts.every(account=>account.credentialStored)?{id:row.account,accounts}:undefined;}catch{return undefined;}
  }
  function consume(query:string,owner:string,session:string){return db.query('UPDATE plugin_account_selection SET consumed=1 WHERE request=? AND owner=? AND session=? AND consumed=0').run(authorizationKey(query),owner,session).changes===1;}
  function cancel(query:string,owner:string,session:string){
@@ -53,43 +73,44 @@ export function createAccountConnection(options:{database:Database;secret:string
     const chosen=cleared?selected(oauth_query,session.user.id,session.session.id):undefined;
     if(cleared&&!chosen)return json({error:'ACCOUNT_SELECTION_REQUIRED'},403);
     const clientId=params.get('client_id')??'',name=options.clientName?.(clientId)?.trim();
-    return json({client:{id:clientId,...(name?{name}:{})},accounts:options.store.listAccounts(session.user.id),...(chosen?{selectedAccount:chosen}:{})});
+    return json({client:{id:clientId,...(name?{name}:{})},services:options.services??[],accounts:chosen?chosen.accounts:options.store.listAccounts(session.user.id),...(chosen?{selectedAccounts:chosen.accounts,...(chosen.accounts.length===1?{selectedAccount:chosen.accounts[0]}:{})}:{})});
    }
    // Consent-stage queries cannot be used to switch accounts underneath displayed consent.
    if(cleared)return json({error:'INVALID_AUTHORIZATION'},403);
    if(selected(oauth_query,session.user.id,session.session.id))return json({error:'ACCOUNT_ALREADY_SELECTED'},409);
-   let account;
+   let reference:string;
    if(path.endsWith('/add')){
     const value=addSchema.parse(raw),credential={user:value.user,appPassword:value.appPassword};
-    if(options.store.listAccounts(session.user.id).some(a=>a.credentialStored&&a.user.trim().toLowerCase()===value.user.trim().toLowerCase()))return json({error:'ACCOUNT_EXISTS'},409);
+    const existing=options.store.listAccounts(session.user.id).find(a=>a.user.trim().toLowerCase()===value.user.trim().toLowerCase());
+    if(existing?.credentialStored)return json({error:'ACCOUNT_EXISTS'},409);
     let limit=validationAttempts.get(session.user.id);
     if(!limit||Date.now()-limit.start>=600000){limit={start:Date.now(),count:0,active:0};validationAttempts.set(session.user.id,limit);}
     if(limit.count>=10||limit.active>=2)return json({error:'RATE_LIMITED'},429);
     limit.count++;limit.active++;
-    try{await options.validateCredential(credential);}catch{return json({error:'PROVIDER_VALIDATION_FAILED'},422);}finally{limit.active--;}
+    let services:ProbeEvidence|void;
+    try{services=await options.validateCredential(credential);}catch(error){return json({error:'PROVIDER_VALIDATION_FAILED',...(error instanceof CredentialProbeError?{services:error.services}:{})},422);}finally{limit.active--;}
     const bytes=Buffer.from(JSON.stringify(credential));
-    try{account=options.store.addAccount(session.user.id,{user:value.user,label:value.label,credential:bytes});}finally{bytes.fill(0);}
-   }else{const value=selectSchema.parse(raw);account=options.store.account(session.user.id,value.accountId);}
-   if(!account.credentialStored)return json({error:'CREDENTIAL_REQUIRED'},409);
+    try{reference=options.store.addAccount(session.user.id,{user:value.user,label:value.label,credential:bytes,...(services?{services,expectedRevision:existing?.credentialRevision}:{})}).id;}finally{bytes.fill(0);}
+   }else{const value=selectSchema.parse(raw);const ids='accountIds'in value?value.accountIds:[value.accountId];if(ids.some(id=>!options.store.account(session.user.id,id).credentialStored))return json({error:'CREDENTIAL_REQUIRED'},409);reference=snapshot(session.user.id,ids);}
    db.query('DELETE FROM plugin_account_selection WHERE expires<=?').run(Date.now());
-   const claimed=db.query('INSERT OR IGNORE INTO plugin_account_selection(request,owner,session,account,expires,consumed) VALUES(?,?,?,?,?,0)').run(authorizationKey(oauth_query),session.user.id,session.session.id,account.id,Number(params.get('exp'))*1000);
+   const claimed=db.query('INSERT OR IGNORE INTO plugin_account_selection(request,owner,session,account,expires,consumed) VALUES(?,?,?,?,?,0)').run(authorizationKey(oauth_query),session.user.id,session.session.id,reference,Number(params.get('exp'))*1000);
    if(claimed.changes!==1)return json({error:'ACCOUNT_ALREADY_SELECTED'},409);
    let response:Response;
    try{
-    response=await options.continueAuthorization(request,oauth_query,account.id);
+    response=await options.continueAuthorization(request,oauth_query,reference);
     if(!response.ok)return json({error:'CONNECT_RESTART_REQUIRED'},409);
     const result=z.object({url:z.string()}).parse(await response.clone().json());
     const destination=new URL(result.url,options.origin);
     if(destination.origin!==options.origin||destination.pathname!=='/icloud/consent')throw Error('Consent required');
     const consentQuery=destination.search.slice(1),consentParams=await signed(consentQuery);
     if(consentParams.get('ba_pl')!==session.session.id)throw Error('Session binding required');
-    const consentClaim=db.query('INSERT OR IGNORE INTO plugin_account_selection(request,owner,session,account,expires,consumed) VALUES(?,?,?,?,?,0)').run(authorizationKey(consentQuery),session.user.id,session.session.id,account.id,Math.min(Number(params.get('exp')),Number(consentParams.get('exp')))*1000);
+    const consentClaim=db.query('INSERT OR IGNORE INTO plugin_account_selection(request,owner,session,account,expires,consumed) VALUES(?,?,?,?,?,0)').run(authorizationKey(consentQuery),session.user.id,session.session.id,reference,Math.min(Number(params.get('exp')),Number(consentParams.get('exp')))*1000);
     if(consentClaim.changes!==1)throw Error('Consent already issued');
    }catch{return json({error:'CONNECT_RESTART_REQUIRED'},409);}
    return response;
   }catch(error){return json({error:error instanceof Error&&error.message==='INVALID_AUTHORIZATION'?'INVALID_AUTHORIZATION':'INVALID_ACCOUNT_REQUEST'},400);}
  }
- return{handle,selected,consume,cancel,signed};
+ return{handle,selected,consume,cancel,signed,resolve};
 }
 
 async function boundedBody(request:Request):Promise<unknown>{

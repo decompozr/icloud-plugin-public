@@ -1,3 +1,4 @@
+import {serviceEligible} from '../accounts/capabilities.js';
 import {invocationContext} from '../modules/context.js';
 import {Database} from 'bun:sqlite';
 import {z} from 'zod';
@@ -25,7 +26,7 @@ export interface MailModuleDependencies {
 const credentialSchema=z.object({user:z.string().email(),appPassword:z.string().min(1)}).strict();
 export function createMailModule(settings:AppSettings,deps:MailModuleDependencies){
  const operatorPolicy=new SqliteOperatorPolicy(deps.authDatabase,{read:true,write:settings.allow_writes,send:settings.allow_send,unsubscribe:settings.allow_writes});
- const capabilities=()=>operatorPolicy.snapshot();
+ const capabilities=()=>{const policy=operatorPolicy.snapshot(),context=invocationContext();if(context?.accountId){const metadata=deps.store.account?.(context.ownerId,context.accountId);if(metadata?.services&&!serviceEligible(metadata,'mail'))return {read:false,write:false,send:false,unsubscribe:false};}return policy;};
  const scopes=()=>{const p=capabilities();return p.read?['mail.read',...(p.write?['mail.write']:[]),...(p.send?['mail.send']:[])]:[];};
  const provider=deps.provider??(credential=>new ICloudMailAdapter({user:credential.user,password:credential.appPassword}));
  // Only deliberately unscoped legacy fixtures may omit the account-store API.
@@ -33,13 +34,13 @@ export function createMailModule(settings:AppSettings,deps:MailModuleDependencie
  const selected=()=>{
   const context=invocationContext(),owner=deps.store.ownerId();
   if(!owner||context&&context.ownerId!==owner)throw new MailOperationError('forbidden','Owner authorization required');
-  // Production HTTP always supplies a context. Account selection comes only from its verified token.
+  // Production HTTP always supplies a context. The runtime validates account selection against the verified token grant.
   if(context&&(!context.accountId||!accountStore.account||!accountStore.readAccountSecret||!accountStore.legacyAccountId))throw new MailOperationError('forbidden','Account-bound authorization required');
   const legacy=accountStore.legacyAccountId?.(owner)??null;
   const id=context?.accountId??legacy??(!accountStore.account?'legacy':null);
   if(!id)throw new MailOperationError('forbidden','Account authorization required');
   const metadata=accountStore.account?.(owner,id);
-  if(accountStore.account&&(!metadata||!metadata.credentialStored))throw new MailOperationError('forbidden','Mail account unavailable');
+  if(accountStore.account&&(!metadata||!metadata.credentialStored||(metadata.services&&!serviceEligible(metadata,'mail'))))throw new MailOperationError('forbidden','Mail account unavailable');
   return{owner,id,legacy:id===legacy||!accountStore.account,metadata};
  };
  const credentials=()=>{const account=selected();const bytes=accountStore.readAccountSecret?accountStore.readAccountSecret(account.owner,account.id):deps.store.readSecret(account.owner);if(!bytes)throw new MailOperationError('forbidden','Mail credentials revoked');try{return credentialSchema.parse(JSON.parse(Buffer.from(bytes).toString('utf8')));}finally{bytes.fill(0);}};

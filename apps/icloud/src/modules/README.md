@@ -1,7 +1,7 @@
 # Feature module runtime
 
 `runtime.ts` is the application registry for independently owned feature
-contributions. Its use case is composing Mail today and another feature later
+contributions. Its use case is composing Mail and Calendar
 without editing the shared MCP host or Mail internals. The composition root
 constructs modules and calls `register` before `start`; this is static composition,
 not runtime package discovery, installation or hot replacement.
@@ -23,8 +23,9 @@ exception. Namespaces are ownership boundaries, not a security sandbox: register
 code is trusted application code.
 
 `declaredScopes` feeds auth registration; `allowedScopes` evaluates current policy.
-`listTools()` and `tool(name)` expose only contributions whose tool and required
-scope policies are enabled. Client consent is checked separately by the MCP host.
+`listTools(context)` and `tool(name, context)` expose only contributions whose tool
+and required scope policies are enabled and which have at least one eligible
+account in the caller's verified grant. Client consent is checked separately by the MCP host.
 Disabling a feature capability therefore affects discovery and subsequent dispatch
 without granting or rewriting any OAuth scopes.
 
@@ -53,16 +54,18 @@ than a global migration engine.
 Colocated registry/host tests exercise non-Mail contributions through real HTTP/MCP,
 namespace conflicts, policy changes, unauthorized dispatch, lifecycle failure cleanup
 and waiting for active callbacks during disposal. See
-[architecture](../../../../docs/architecture.md). A synthetic Calendar
-contribution proves extension mechanics only; no production Calendar module or
-CalDAV behavior is delivered. Admin setup and generated client content still need
-explicit feature integration when another feature is implemented.
+[architecture](../../../../docs/architecture.md). Synthetic registry tests prove extension mechanics; separate Calendar module tests
+cover its production contracts. Account capability tests verify authorized union,
+routing, policy changes and safe metadata without live providers.
 
 ## Request identity
 
-`context.ts` carries an immutable verified `{ownerId, accountId}` through
+`context.ts` carries immutable verified `{ownerId, accountIds, accountId?}` through
 `AsyncLocalStorage` for one protocol invocation. The HTTP host supplies the bearer
-principal; tool arguments cannot select or mutate this context. Concurrent clients
+grant IDs; the runtime validates tool `account_id` against those IDs and current
+service eligibility before deriving a selected context. It strips the routing field
+before module input validation. The shared `icloud_accounts` tool lists only that
+grant's safe account metadata. Concurrent clients
 share registrations and resources while keeping their account identities separate.
 Production Mail invocations require an account binding. Unscoped test/stdio callers
 may use the explicitly migrated legacy account for compatibility.

@@ -38,6 +38,39 @@ are recorded separately; fixture screenshots are not live ChatGPT acceptance.
 
 # Source architecture and evidence status
 
+## Account capabilities rebased onto current main (2026-10-04 UTC)
+
+The account capability branch now builds on main `62d2fae` / 0.1.27. It preserves
+the current private administration shell, credential race protections, client
+recovery and diagnostics. Calendar is already on main; the feature delta is
+independent account-service evidence, explicit authorized union and account routing.
+Readiness tracks the selected account and invalidates evidence across service
+changes. Independent review confirmed the off/on evidence fix.
+
+Final integration checkpoint: 301 application tests / 1,948 assertions, 10 tooling
+tests / 134 assertions, 11 built E2E tests / 277 assertions; typechecks and build
+passed. Chrome fixture UI verified service persistence, keyboard use and 375px
+multi-account consent. Commit/push is authorized; merge, deployment and live client
+acceptance are outside this checkpoint. See [account capabilities](account-capabilities.md).
+
+## Initial account capability implementation (2026-10-04 UTC; superseded by integration above)
+
+The isolated `account-capability-detection` worktree integrates the staged Calendar
+snapshot `1b8e0ac` and adds independent Mail/Calendar probes, revision-bound evidence,
+private service controls/defaults, explicit multi-account consent, grant-limited
+MCP union, safe account catalog and validated account routing. Legacy grants retain
+their account boundaries; failed/stale rotation and cross-account references fail
+safely. Changes remain uncommitted and undeployed.
+
+Application/tooling typechecks and build passed, as did 248 application tests
+(1,148 assertions), 10 tooling tests (134 assertions) and 11 built E2E tests
+(271 assertions). Independent authorization review found no confirmed blockers.
+Local native Chrome checks covered desktop and 375 × 667 fixture UI plus keyboard
+and invalid-consent behavior. [Account capabilities](account-capabilities.md)
+records detailed acceptance, the corrected E2E provider-fixture gap and limits.
+Real provider/client refresh and phone conversation visibility remain unverified.
+Older dated checkpoints below retain their historical scope.
+
 ## Audit corrections integrated with multi-account source (2026-10-03 UTC)
 
 The source now preserves unknown outcomes when STORE acknowledgement is missing,

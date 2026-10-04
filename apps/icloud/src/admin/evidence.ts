@@ -10,6 +10,7 @@ export class ReadinessEvidence {
  private key(p:Principal,service:string){return JSON.stringify([p.subject,p.accountId,p.clientId,service]);}
  private identity(p:Principal){return !!p.accountId&&!!p.clientId&&!!p.expiresAt&&p.expiresAt>this.now();}
  observe(p:Principal){
+  if(!p.accountId&&p.accountIds){for(const accountId of p.accountIds)this.observe({...p,accountId,accountIds:undefined});return;}
   if(!this.identity(p))return;
   for(const service of ['mail','calendar']){if(!p.scopes.has(service+'.read'))continue;const stamp=this.stamp(p,service);if(!stamp)continue;const key=this.key(p,service),old=this.rows.get(key);const now=this.now();
    this.rows.set(key,{ownerId:p.subject,accountId:p.accountId!,clientId:p.clientId!,service,stamp,authorizedAt:new Date(now).toISOString(),expiresAt:new Date(Math.min(p.expiresAt!,now+86400000)).toISOString(),reads:old?.stamp===stamp&&Date.parse(old.expiresAt)>now?old.reads:{}});

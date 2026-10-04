@@ -19,10 +19,15 @@ installation. The admin workflow can resume eligible staged enrollment.
 Public sign-in, account selection/addition and consent issue scoped OAuth access
 through code/PKCE and optional refresh flows. With an account store, every fresh
 authorization reaches `/icloud/connect`, including authenticated sessions. Signed
-OAuth continuations bind the chosen account to explicit consent and grants; bearer
-introspection returns `accountId`, and refresh preserves it. The chooser validates
-new Apple credentials before encrypted storage; clients receive no Apple password.
-Existing grants migrate only to the immutable original account identity. Bearer verification uses authenticated introspection and checks
+OAuth continuations bind the explicit selected account set to immutable consent
+snapshots; bearer introspection returns `accountIds` and a singular `accountId`
+only for one-account grants. Refresh resolves the stored reference and never
+enumerates other owner accounts. The chooser independently probes registered
+services before encrypted storage; any success suffices, all-failed creation is
+rejected. Clients receive no Apple password.
+Existing single-account grants retain their original account identity.
+`plugin_account_grants` stores immutable multi-account references; linking another
+account cannot broaden an existing grant. Bearer verification uses authenticated introspection and checks
 active token, owner, expiry, issuer and resource audience. Scope declarations and
 current allowed scopes come from application/module composition; authentication
 does not impose a Mail-specific minimum scope. The MCP host enforces each tool's

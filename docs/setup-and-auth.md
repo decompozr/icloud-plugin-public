@@ -3,9 +3,11 @@
 This is the accepted behavior contract. The existing single-account installation
 has completed owner enrollment and ChatGPT authorization. The multi-account
 connection change below passed application/tooling typechecks, production/browser
-builds, unit tests and built HTTP E2E. See [the current evidence](current-status.md#multi-account-source-checkpoint-2026-10-03).
-It is not deployed; rendered-browser and live ChatGPT acceptance remain separate
-checkpoints and do not follow from the existing deployment.
+builds, unit tests and built HTTP E2E. The later independent-service and explicit multi-account consent implementation
+is described in [account capabilities](account-capabilities.md). See
+[the current evidence](current-status.md).
+It is not deployed. Local rendered fixture checks passed; live ChatGPT acceptance
+remains separate and does not follow from the existing deployment.
 The service supports native Mac/Bun and Apple Container/Linux-Bun. Tailscale stays on the host; the current private setup uses native mode. The tested container path uses separate mounted state/custody and a host-loopback proxy; broader host lifecycle acceptance remains open. The [project decisions](project.md) and [mailbox scope](mailbox-tools.md)
 continue to apply.
 
@@ -32,8 +34,8 @@ section below defines the current browser flow; real owner actions remain manual
 The chosen design exposes reachable MCP and OAuth endpoints for the intended
 cloud clients. ChatGPT and Codex connect using OAuth; the owner signs in to the
 authorization flow with a Passkey. Clients receive plugin access tokens, never
-the Apple mail credentials. The service uses its stored mail credentials to
-perform authenticated, permitted mailbox operations.
+the Apple app-specific credentials. The service uses stored credentials to
+perform authenticated, permitted operations on eligible services.
 
 Public reachability does not permit anonymous mailbox operations. OAuth token
 validation and server-side capability checks remain required. Passkeys identify
@@ -139,13 +141,21 @@ add registration for unrelated owners or multi-tenant hosting.
    account**, including when the owner already has a login session.
 4. Adding an account collects its email, Apple app-specific password and optional
    display label, explains how to create that password, validates the provider
-   connection, then encrypts the credential server-side. Failed validation retains
+   connection independently for every registered service, then encrypts the credential
+   server-side if any service succeeds. All-failed validation retains
    the chooser and creates no account or client grant.
-5. Selection continues to explicit OAuth consent. Canceling creates no grant.
-   Each approved grant binds exactly one selected iCloud account; access-token
-   use, refresh and repeat consent must preserve that binding.
-6. A profile tool returns that account's stable opaque ID, email and display label
-   so a client can distinguish multiple connections. Passwords remain server-side.
+5. Check one or more accounts and continue to explicit OAuth consent displaying
+   the selected accounts and registered-service status. Canceling creates no grant.
+   Each approved grant binds that immutable selection; token use and refresh
+   preserve it. Existing single-account grants never gain other accounts.
+6. `icloud_accounts` returns only authorized accounts with stable IDs, labels and
+   service states. Service tools take `account_id`; without it, routing uses an
+   authorized eligible default or sole eligible account, otherwise requires a
+   choice. An explicit unavailable account fails without switching accounts.
+   Passwords remain server-side.
+7. Private administration displays independent availability and enabled checkmarks,
+   disabled reasons, recheck and service defaults. Unknown Mail does not prevent
+   verified Calendar use. Service enablement never expands OAuth action scopes.
 
 Existing installations migrate the original credential to one stable account.
 An already-revoked original secret cannot supply its former email; its immutable

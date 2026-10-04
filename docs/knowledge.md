@@ -1,5 +1,35 @@
 # Engineering knowledge from the experiments
 
+## Main integration and readiness evidence (2026-10-04 UTC)
+
+Before publishing old worktree changes, inspect current remote main. Calendar and
+private administration had already advanced to 0.1.27; only the account capability
+delta should be replayed. Preserve current credential race and recovery protections.
+Readiness evidence needs a monotonic invalidation epoch: hashing boolean service
+state alone permits old evidence to reappear after off/on. Record multi-account
+reads against the validated routed account, not the unresolved bearer grant.
+
+## Account capabilities and authorization (2026-10-04 UTC)
+
+A generic IMAP failure cannot distinguish absent Mail, bad authentication and
+transport failure. Probe each registered service independently; accept credentials
+only after a real provider success, and preserve unknown evidence honestly.
+Fixture success proves the application contract, not live Apple interoperability.
+Bind evidence to credential revision and preserve disabled preferences across
+recheck/rotation so delayed responses cannot revive revoked access.
+
+Capability union must use an immutable explicitly consented account set, never all
+accounts belonging to the owner. Adding accounts does not broaden old grants.
+Resolve defaults only within authorized eligible accounts; reject an explicit
+unavailable ID without fallback. Keep account identity on message/event references
+and enforce it before provider work. Availability, enablement, operator policy and
+OAuth scopes are independent gates.
+
+When composition adds a provider, every application-level fixture must stub it too.
+The OAuth E2E fixture originally stubbed only Mail and attempted CalDAV with dummy
+credentials. It now supplies Calendar and forbids non-loopback fetch. Preserve this
+guard as more services are registered. See [implementation evidence](account-capabilities.md).
+
 ## Calendar integration decision (2026-10-03 UTC)
 
 Final disposition: the registered source module passed independent review,

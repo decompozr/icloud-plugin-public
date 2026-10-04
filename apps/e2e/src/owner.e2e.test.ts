@@ -35,7 +35,7 @@ test('built owner application completes private enrollment, OAuth MCP, rotation,
  const settings:AppSettings={public_origin:publicOrigin,private_origin:privateOrigin,public_port:publicPort,private_port:privatePort,host:'127.0.0.1',runtime_mode:'native',state_directory:directory,master_key_file:join(directory,'key'),installation_marker:options.markerPath,allow_send:false,allow_writes:true,tailscale_binary:'unused',bootstrap_owner_login:'owner@fixture.invalid'};
  let ready=false;const usedCredentials:string[]=[];let writes=0;
  const session:MailSession={supportsMove:true,list:async()=>[{path:'INBOX',name:'INBOX',selectable:true}],select:async()=>({uidValidity:'1',uidNext:2,supportsKeywords:false,release(){}}),search:async()=>[1],summaries:async()=>[{uid:1,subject:'Fixture',from:[],flags:[]}],metadata:async()=>({attachments:[],flags:[]}),download:async()=>{throw Error('Unused');},mark:async()=>{writes++;return true;},flag:async()=>false,tag:async()=>false,move:async()=>false};
- const dependencies=()=>({bootstrapProof:()=>proof,store,masterKey,authDatabase:db,assetsDirectory:join(directory,'.assets'),diagnostics:async()=>({installed:ready,authenticated:ready,online:ready,privateReachable:ready}),provider:(credential:{user:string;appPassword:string}):MailGateway&{send(input:MailMessageInput):Promise<SendResult>}=>({withSession:async run=>{usedCredentials.push(credential.appPassword);if(credential.appPassword==='rejected-fixture')throw Error('Provider rejects fixture');return run(session);},parse:async()=>({to:[],text:'fixture'}),send:async()=>{throw Error('Unused');}})});
+ const dependencies=()=>({calendarProvider:(credential:{user:string;appPassword:string})=>({execute:async(command:{operation:string})=>{if(credential.appPassword==='rejected-fixture')throw Error('Calendar fixture rejection');return {operation:'list_calendars' as const,calendars:[]};}}),bootstrapProof:()=>proof,store,masterKey,authDatabase:db,assetsDirectory:join(directory,'.assets'),diagnostics:async()=>({installed:ready,authenticated:ready,online:ready,privateReachable:ready}),provider:(credential:{user:string;appPassword:string}):MailGateway&{send(input:MailMessageInput):Promise<SendResult>}=>({withSession:async run=>{usedCredentials.push(credential.appPassword);if(credential.appPassword==='rejected-fixture'||credential.user==='calendar@example.invalid')throw Error('Provider rejects fixture');return run(session);},parse:async()=>({to:[],text:'fixture'}),send:async()=>{throw Error('Unused');}})});
  let listeners:Server[]=[];
  const start=async()=>{const app=await createApplication(settings,dependencies());for(const [http,port] of [[app.publicApp,publicPort],[app.privateApp,privatePort]] as const){const listener=http.listen(port,'127.0.0.1');await new Promise<void>(r=>listener.once('listening',r));listeners.push(listener);}};
  const stop=async()=>{for(const listener of listeners)await close(listener);listeners=[];};
@@ -47,6 +47,9 @@ test('built owner application completes private enrollment, OAuth MCP, rotation,
  };
  const clients:Client[]=[];
  const connect=async(token:string)=>{const c=new Client({name:'owner-e2e',version:'1'});clients.push(c);await c.connect(new StreamableHTTPClientTransport(new URL(publicOrigin+'/icloud/mcp'),{requestInit:{headers:{authorization:'Bearer '+token}}}));return c;};
+ const actualFetch=globalThis.fetch;let externalAttempts=0;
+ const fixtureFetch=(async(input:Parameters<typeof fetch>[0],init?:Parameters<typeof fetch>[1])=>{const url=new URL(input instanceof Request?input.url:String(input));if(url.hostname!=='127.0.0.1'){externalAttempts++;throw Error('External network forbidden in application fixture');}return actualFetch(input,init);}) as typeof fetch;
+ fixtureFetch.preconnect=actualFetch.preconnect;globalThis.fetch=fixtureFetch;
  await start();
  try{
   const legacy=await request('/setup',undefined,true);expect(legacy.status).toBe(308);expect(legacy.headers.get('location')).toBe('/icloud/setup');
@@ -143,6 +146,34 @@ test('built owner application completes private enrollment, OAuth MCP, rotation,
   const refreshedClientB=await connect(refreshedB.access_token);
   expect(result(await refreshedClientB.callTool({name:'mail_get_profile',arguments:{}})).id).toBe(accountB.id);
   await refreshedClientB.callTool({name:'mail_list_mailboxes',arguments:{}});expect(usedCredentials.at(-1)).toBe('second-fixture');
+  // Calendar-only credentials pass real account creation through the built application.
+  const calendarStart=await request(authPath.replace('e2e-state','calendar-account'));
+  const calendarChooser=new URL(calendarStart.headers.get('location')!,publicOrigin);
+  const calendarAdded=await request('/icloud/connect/add',{oauth_query:calendarChooser.search.slice(1),user:'calendar@example.invalid',appPassword:'calendar-fixture',label:'Calendar only'});
+  expect(calendarAdded.status).toBe(200);
+  const accountC=store.listAccounts(owner!).find(account=>account.user==='calendar@example.invalid')!;
+  expect(accountC.services?.calendar?.availability).toBe('available');expect(accountC.services?.mail?.availability).toBe('unknown');expect(accountC.services?.mail?.enabled).toBe(false);
+  expect((await request('/icloud/admin/modules/calendar/capabilities',{policy:{read:true,write:false,schedule:false,share:false},confirmEnable:true},true)).status).toBe(200);
+  const combined=z.object({client_id:z.string()}).parse(await(await request('/icloud/auth/oauth2/register',{client_name:'Combined fixture',application_type:'native',redirect_uris:[publicOrigin+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read calendar.read offline_access'})).json());
+  const combinedStart=await request(authPath.replace(registered.client_id,combined.client_id).replace('mail.read+offline_access','mail.read+calendar.read+offline_access').replace('e2e-state','combined'));
+  const combinedChooser=new URL(combinedStart.headers.get('location')!,publicOrigin);
+  const combinedSelection=z.object({url:z.string()}).parse(await(await request('/icloud/connect/select',{oauth_query:combinedChooser.search.slice(1),accountIds:[accountA.id,accountC.id]})).json());
+  const combinedConsent=new URL(combinedSelection.url,publicOrigin);
+  const combinedCallback=new URL(z.object({url:z.string()}).parse(await(await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:combinedConsent.search.slice(1)})).json()).url);
+  const combinedTokens=tokens.parse(await(await request('/icloud/auth/oauth2/token',{...tokenBody,client_id:combined.client_id,code:combinedCallback.searchParams.get('code')!},false,true)).json());
+  const combinedMcp=await connect(combinedTokens.access_token);
+  const combinedCatalog=JSON.stringify(result(await combinedMcp.callTool({name:'icloud_accounts',arguments:{}})));
+  expect(combinedCatalog).toContain(accountA.id);expect(combinedCatalog).toContain(accountC.id);expect(combinedCatalog).not.toContain(accountB.id);
+  expect((await combinedMcp.listTools()).tools.some(tool=>tool.name==='mail_list_mailboxes')).toBe(true);
+  expect((await combinedMcp.callTool({name:'mail_list_mailboxes',arguments:{account_id:accountC.id}})).isError).toBe(true);
+  expect((await combinedMcp.callTool({name:'calendar_list_calendars',arguments:{account_id:accountC.id}})).isError).not.toBe(true);
+  expect((await request('/icloud/admin/account-service',{accountId:accountA.id,service:'mail',enabled:false,credentialRevision:accountA.credentialRevision},true)).status).toBe(200);
+  expect((await combinedMcp.listTools()).tools.some(tool=>tool.name.startsWith('mail_'))).toBe(false);
+  expect((await mcp.callTool({name:'mail_list_mailboxes',arguments:{}})).isError).toBe(true);
+  expect((await combinedMcp.callTool({name:'mail_list_mailboxes',arguments:{account_id:accountB.id}})).isError).toBe(true);
+  expect((await mcpB.listTools()).tools.some(tool=>tool.name==='mail_list_mailboxes')).toBe(true);
+  expect((await request('/icloud/admin/account-service',{accountId:accountA.id,service:'mail',enabled:true,credentialRevision:accountA.credentialRevision},true)).status).toBe(200);
+  await combinedMcp.close();
   await mcpB.close();await refreshedClientB.close();
   expect((await request('/icloud/admin/plugin.zip',undefined,true)).status).toBe(403); // HTTP-only auth fixture cannot produce a public HTTPS package.
   expect((await request('/icloud/admin/plugin.zip')).status).toBe(404);
@@ -159,7 +190,7 @@ test('built owner application completes private enrollment, OAuth MCP, rotation,
   await mcp.callTool({name:'mail_list_mailboxes',arguments:{}});expect(usedCredentials.at(-1)).toBe('rotated-fixture');
   await mcp.close();await stop();store.close();db.close();
   store=SqliteOwnerStore.open(options);db=new Database(join(directory,'auth.sqlite'));await start();
-  expect(store.ownerId()).toBe(owner);expect(store.listAccounts(owner!).map(account=>account.id)).toEqual([accountA.id,accountB.id]);expect((await request('/icloud/setup/status',undefined,true)).status).toBe(200);
+  expect(store.ownerId()).toBe(owner);expect(store.listAccounts(owner!).map(account=>account.id)).toEqual([accountA.id,accountB.id,accountC.id]);expect((await request('/icloud/setup/status',undefined,true)).status).toBe(200);
   expect((await request('/icloud/auth/passkey/generate-register-options',undefined,true)).status).toBe(403);
   const restarted=await connect(issued.access_token);expect(result(await restarted.callTool({name:'mail_get_profile',arguments:{}})).id).toBe(accountA.id);expect((await restarted.callTool({name:'mail_list_mailboxes',arguments:{}})).isError).not.toBe(true);expect(usedCredentials.at(-1)).toBe('rotated-fixture');
   expect((await request('/icloud/admin/revoke',{accountId:accountA.id},true)).status).toBe(200);
@@ -168,5 +199,5 @@ test('built owner application completes private enrollment, OAuth MCP, rotation,
   expect((await request('/icloud/auth/oauth2/revoke',{client_id:registered.client_id,token:issued.access_token,token_type_hint:'access_token'},false,true)).status).toBe(200);
   expect((await fetch(publicOrigin+'/icloud/mcp',{method:'POST',headers:{authorization:'Bearer '+issued.access_token,'content-type':'application/json'},body:'{}'})).status).toBe(401);
   expect((await request('/icloud/auth/oauth2/token',tokenBody,false,true)).status).toBe(400);
- }finally{for(const client of clients)await client.close();await stop();store.close();db.close();rmSync(directory,{recursive:true,force:true});}
+ }finally{globalThis.fetch=actualFetch;expect(externalAttempts).toBe(0);for(const client of clients)await client.close();await stop();store.close();db.close();rmSync(directory,{recursive:true,force:true});}
 },30000);

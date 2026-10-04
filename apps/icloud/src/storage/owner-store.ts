@@ -1,15 +1,16 @@
+import {capabilitySchema,serviceEvidenceSchema,type AccountCapability,type ProbeEvidence} from '../accounts/capabilities.js';
 import { Database } from 'bun:sqlite';
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { existsSync, readFileSync, renameSync, writeFileSync, rmSync, openSync, fsyncSync, closeSync } from 'node:fs';
 import { z } from 'zod';
 import { dirname } from 'node:path';
 
-export type StorageErrorCode = 'STATE_UNAVAILABLE' | 'BOOTSTRAP_DENIED' | 'OWNER_DENIED' | 'SECRET_UNAVAILABLE' | 'INVALID_INPUT';
+export type StorageErrorCode = 'STATE_UNAVAILABLE' | 'BOOTSTRAP_DENIED' | 'OWNER_DENIED' | 'SECRET_UNAVAILABLE' | 'INVALID_INPUT' | 'STALE_REVISION';
 export class OwnerStorageError extends Error {
   constructor(readonly code: StorageErrorCode) { super(code); this.name = 'OwnerStorageError'; }
 }
 export interface OwnerStoreOptions { databasePath: string; markerPath: string; masterKey: Uint8Array }
-export interface MailAccount { id: string; user: string; label: string; credentialStored: boolean }
+export interface MailAccount { id: string; user: string; label: string; credentialStored: boolean; credentialRevision?: number; services?: Record<string,AccountCapability> }
 export interface OwnerSecretStore {
   ownerId(): string | null;
   checkBootstrapProof(proof: string): void;
@@ -18,9 +19,13 @@ export interface OwnerSecretStore {
   account(ownerId: string, accountId: string): MailAccount;
   accountGeneration?(ownerId:string,accountId:string):number|undefined;
   legacyAccountId(ownerId: string): string | null;
-  addAccount(ownerId: string, input: { user: string; label?: string; credential: Uint8Array }): MailAccount;
+  addAccount(ownerId: string, input: { user: string; label?: string; credential: Uint8Array; services?: ProbeEvidence; expectedRevision?:number }): MailAccount;
   readAccountSecret(ownerId: string, accountId: string): Uint8Array | null;
-  rotateAccountSecret(ownerId: string, accountId: string, credential: Uint8Array): void;
+  rotateAccountSecret(ownerId: string, accountId: string, credential: Uint8Array, validation?: {expectedRevision:number;services:ProbeEvidence}): void;
+  setAccountService(ownerId:string,accountId:string,service:string,enabled:boolean,expectedRevision:number):void;
+  recordAccountProbe(ownerId:string,accountId:string,expectedRevision:number,services:ProbeEvidence):void;
+  serviceDefaults(ownerId:string):Record<string,string>;
+  setServiceDefault(ownerId:string,service:string,accountId:string|null):void;
   revokeAccountSecret(ownerId: string, accountId: string): void;
   readSecret(ownerId: string): Uint8Array | null;
   rotateSecret(ownerId: string, credential: Uint8Array): void;
@@ -102,6 +107,7 @@ export class SqliteOwnerStore implements OwnerSecretStore {
   private migrate(): void {
     this.db.transaction(() => {
       const row = this.state();
+      this.db.exec('CREATE TABLE IF NOT EXISTS account_services(account TEXT NOT NULL, service TEXT NOT NULL, version INTEGER NOT NULL, evidence TEXT NOT NULL, PRIMARY KEY(account,service)); CREATE TABLE IF NOT EXISTS account_service_defaults(owner TEXT NOT NULL, service TEXT NOT NULL, account TEXT NOT NULL, PRIMARY KEY(owner,service))');
       const columns = this.db.query('PRAGMA table_info(owner_state)').all() as { name: string }[];
       if (columns.some(column => column.name === 'legacy_account')) {
         // A migrated database must retain the registry and its fixed legacy link.
@@ -166,7 +172,13 @@ export class SqliteOwnerStore implements OwnerSecretStore {
   }
   account(ownerId: string, accountId: string): MailAccount {
     const row = this.accountRow(ownerId, accountId);
-    return { id: row.id, user: row.user, label: row.label, credentialStored: row.secret !== null };
+    const services:Record<string,AccountCapability>={};
+    const evidence=this.db.query('SELECT service,version,evidence FROM account_services WHERE account=?').all(row.id) as {service:string;version:number;evidence:string}[];
+    for(const item of evidence)if(item.version===row.version)services[item.service]=capabilitySchema.parse(JSON.parse(item.evidence));
+    // Existing Mail-only stores retain historical Mail access, explicitly labelled as un-reprobed.
+    // New production accounts always supply independent probe evidence at creation.
+    if(!evidence.length)services.mail={availability:row.secret?'available':'unknown',enabled:row.secret!==null,reason:row.secret?'legacy_mail':'credential_revoked',checkedAt:null};
+    return { id: row.id, user: row.user, label: row.label, credentialStored: row.secret !== null, credentialRevision:row.version, services };
   }
   accountGeneration(ownerId:string,accountId:string):number|undefined { const row=this.accountRow(ownerId,accountId);return row.secret===null?undefined:row.version; }
   legacyAccountId(ownerId: string): string | null {
@@ -174,7 +186,7 @@ export class SqliteOwnerStore implements OwnerSecretStore {
     const row = this.db.query('SELECT legacy_account FROM owner_state WHERE singleton=1').get() as { legacy_account: string | null };
     return row.legacy_account;
   }
-  addAccount(ownerId: string, input: { user: string; label?: string; credential: Uint8Array }): MailAccount {
+  addAccount(ownerId: string, input: { user: string; label?: string; credential: Uint8Array; services?: ProbeEvidence; expectedRevision?:number }): MailAccount {
     const user = input.user.trim().toLowerCase(), label = input.label?.trim() || user;
     if (!user || user.length > 320 || label.length > 320 || !input.credential.byteLength) fail('INVALID_INPUT');
     try {
@@ -183,22 +195,53 @@ export class SqliteOwnerStore implements OwnerSecretStore {
         const existing = this.db.query('SELECT id,secret FROM mail_accounts WHERE owner=? AND user=?').get(ownerId, user) as { id: string; secret: string | null } | null;
         if (existing) {
           if (existing.secret !== null) fail('INVALID_INPUT');
-          this.rotateAccountSecret(ownerId, existing.id, input.credential);
+          if(input.services&&(input.expectedRevision===undefined||input.expectedRevision!==this.accountRow(ownerId,existing.id).version))fail('STALE_REVISION');
+          this.rotateAccountSecret(ownerId, existing.id, input.credential, input.services?{expectedRevision:this.accountRow(ownerId,existing.id).version,services:input.services}:undefined);
           return this.account(ownerId, existing.id);
         }
         const id = crypto.randomUUID();
         this.db.query('INSERT INTO mail_accounts VALUES(?,?,?,?,?,1)').run(id, ownerId, user, label, this.seal(ownerId, id, 1, input.credential));
+        if(input.services)this.writeEvidence(id,1,input.services);
         return this.account(ownerId, id);
       }).immediate();
     } catch (error) { if (error instanceof OwnerStorageError) throw error; return fail('STATE_UNAVAILABLE'); }
+  }
+  private writeEvidence(accountId:string,version:number,services:ProbeEvidence,previous:Record<string,AccountCapability>={}) {
+    const parsed=z.record(z.string().regex(/^[a-z][a-z0-9]*$/),serviceEvidenceSchema).parse(services);
+    for(const [id,evidence] of Object.entries(parsed)) {
+      const enabled=evidence.availability==='available'&&(previous[id]?.enabled??true);
+      this.db.query('INSERT OR REPLACE INTO account_services VALUES(?,?,?,?)').run(accountId,id,version,JSON.stringify({...evidence,enabled}));
+    }
+  }
+  recordAccountProbe(ownerId:string,accountId:string,expectedRevision:number,services:ProbeEvidence):void {
+    this.db.transaction(()=>{const row=this.accountRow(ownerId,accountId);if(row.version!==expectedRevision||row.secret===null)fail('STALE_REVISION');this.writeEvidence(accountId,row.version,services,this.account(ownerId,accountId).services);}).immediate();
+  }
+  setAccountService(ownerId:string,accountId:string,service:string,enabled:boolean,expectedRevision:number):void {
+    this.db.transaction(()=>{
+      const row=this.accountRow(ownerId,accountId);if(row.version!==expectedRevision)fail('STALE_REVISION');
+      const state=this.account(ownerId,accountId).services?.[service];
+      if(!state||(enabled&&(row.secret===null||state.availability!=='available')))fail('INVALID_INPUT');
+      this.db.query('INSERT OR REPLACE INTO account_services VALUES(?,?,?,?)').run(accountId,service,row.version,JSON.stringify({...state,enabled}));
+    }).immediate();
+  }
+  serviceDefaults(ownerId:string):Record<string,string> {
+    this.assertOwner(ownerId);const rows=this.db.query('SELECT service,account FROM account_service_defaults WHERE owner=?').all(ownerId) as {service:string;account:string}[];
+    return Object.fromEntries(rows.map(row=>[row.service,row.account]));
+  }
+  setServiceDefault(ownerId:string,service:string,accountId:string|null):void {
+    this.assertOwner(ownerId);if(!/^[a-z][a-z0-9]*$/.test(service))fail('INVALID_INPUT');
+    if(accountId===null){this.db.query('DELETE FROM account_service_defaults WHERE owner=? AND service=?').run(ownerId,service);return;}
+    const account=this.account(ownerId,accountId),state=account.services?.[service];
+    if(!account.credentialStored||!state?.enabled||state.availability!=='available')fail('INVALID_INPUT');
+    this.db.query('INSERT OR REPLACE INTO account_service_defaults VALUES(?,?,?)').run(ownerId,service,accountId);
   }
   readAccountSecret(ownerId: string, accountId: string): Uint8Array | null {
     const row = this.accountRow(ownerId, accountId);
     return row.secret === null ? null : this.unseal(row.secret, `credential:v2:${ownerId}:${row.id}:${row.version}`);
   }
-  rotateAccountSecret(ownerId: string, accountId: string, credential: Uint8Array): void {
+  rotateAccountSecret(ownerId: string, accountId: string, credential: Uint8Array, validation?:{expectedRevision:number;services:ProbeEvidence}): void {
     if (!credential.byteLength) fail('INVALID_INPUT');
-    this.mutate(ownerId, accountId, credential);
+    this.mutate(ownerId, accountId, credential, validation);
   }
   revokeAccountSecret(ownerId: string, accountId: string): void { this.mutate(ownerId, accountId, null); }
   readSecret(ownerId: string): Uint8Array | null {
@@ -215,10 +258,20 @@ export class SqliteOwnerStore implements OwnerSecretStore {
     const id = this.legacyAccountId(ownerId);
     if (id !== null) this.revokeAccountSecret(ownerId, id);
   }
-  private mutate(ownerId: string, accountId: string, credential: Uint8Array | null) {
+  private mutate(ownerId: string, accountId: string, credential: Uint8Array | null, validation?:{expectedRevision:number;services:ProbeEvidence}) {
     try {
       this.db.transaction(() => {
         const row = this.accountRow(ownerId, accountId), version = row.version + 1;
+        if(validation&&row.version!==validation.expectedRevision)fail('STALE_REVISION');
+        const previous=this.account(ownerId,accountId).services??{};
+        if(validation)this.writeEvidence(accountId,version,validation.services,previous);
+        else if(credential===null){
+          const revoked=Object.fromEntries(Object.keys(previous).map(id=>[id,{availability:'unknown' as const,reason:'credential_revoked' as const,checkedAt:null}]));
+          this.writeEvidence(accountId,version,revoked,previous);
+        }else{
+          // Legacy/internal credential replacement invalidates earlier probes.
+          this.writeEvidence(accountId,version,Object.fromEntries(Object.keys(previous).map(id=>[id,{availability:'unknown' as const,reason:'not_checked' as const,checkedAt:null}])),previous);
+        }
         this.db.query('UPDATE mail_accounts SET secret=?,version=? WHERE owner=? AND id=?').run(credential === null ? null : this.seal(ownerId, accountId, version, credential), version, ownerId, accountId);
       }).immediate();
     } catch (error) { if (error instanceof OwnerStorageError) throw error; fail('STATE_UNAVAILABLE'); }

@@ -178,10 +178,30 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   expect((await component.verifyBearer('Bearer '+next.access_token)).accountId).toBe('original-mailbox');
   const secondRefresh=tokensSchema.parse(await(await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:sendClient.client_id,refresh_token:sendTokens.refresh_token,resource:base+'/icloud/mcp'},true)).json());
   expect((await component.verifyBearer('Bearer '+secondRefresh.access_token)).accountId).toBe('second-mailbox');
+  // New multi-account consent is an immutable grant snapshot; it cannot widen older connections.
+  const multiStart=await request(authorizationPath.replace('fixture-state','multi-state'));
+  const multiLocation=new URL(multiStart.headers.get('location')!,base);
+  expect((await request('/icloud/connect/select',{accountIds:['original-mailbox','absent'],oauth_query:multiLocation.search.slice(1)})).status).toBe(400);
+  const multiSelection=z.object({url:z.string()}).parse(await(await request('/icloud/connect/select',{accountIds:['original-mailbox','second-mailbox'],oauth_query:multiLocation.search.slice(1)})).json());
+  const multiConsent=new URL(multiSelection.url,base);
+  const selectedAccounts=await(await request('/icloud/connect/status?oauth_query='+encodeURIComponent(multiConsent.search.slice(1)))).json();
+  expect(selectedAccounts.selectedAccounts.map((account:{id:string})=>account.id)).toEqual(['original-mailbox','second-mailbox']);
+  accounts.push({id:'unrelated-mailbox',user:'unrelated@icloud.com',label:'Unrelated',credentialStored:true});
+  const immutable=await(await request('/icloud/connect/status?oauth_query='+encodeURIComponent(multiConsent.search.slice(1)))).json();
+  expect(JSON.stringify(immutable)).not.toContain('unrelated-mailbox');
+  expect((await request('/icloud/connect/select',{accountIds:['unrelated-mailbox'],oauth_query:multiConsent.search.slice(1)})).status).toBe(403);
+  const multiCallback=new URL(z.object({url:z.string()}).parse(await(await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:multiConsent.search.slice(1)})).json()).url);
+  const multiTokens=tokensSchema.parse(await(await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:client.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:multiCallback.searchParams.get('code')!,code_verifier:verifier},true)).json());
+  const multiPrincipal=await component.verifyBearer('Bearer '+multiTokens.access_token);
+  expect(multiPrincipal.accountIds).toEqual(['original-mailbox','second-mailbox']);expect(multiPrincipal.accountId).toBeUndefined();expect(multiPrincipal.scopes.has('mail.send')).toBe(false);
+  expect((await component.verifyBearer('Bearer '+next.access_token)).accountIds).toEqual(['original-mailbox']);
+  const multiRefresh=tokensSchema.parse(await(await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:multiTokens.refresh_token,resource:base+'/icloud/mcp'},true)).json());
+  expect((await component.verifyBearer('Bearer '+multiRefresh.access_token)).accountIds).toEqual(['original-mailbox','second-mailbox']);
   // Approving another client's send grant does not upgrade the original grant.
   expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('mail.send')).toBe(false);
   db.close();db=new Database(databasePath);component=await createOwnerAuth({...config,database:db});handler=component.publicHandler;
   expect((await component.verifyBearer('Bearer '+next.access_token)).subject).toBe(owner);
+  expect((await component.verifyBearer('Bearer '+multiRefresh.access_token)).accountIds).toEqual(['original-mailbox','second-mailbox']);
   expect((await component.ownerSession(cookieHeaders())).user.id).toBe(owner);
   expect((await request('/icloud/auth/oauth2/revoke',{client_id:client.client_id,token:next.access_token,token_type_hint:'access_token'},true)).status).toBe(200);
   await expect(component.verifyBearer('Bearer '+next.access_token)).rejects.toThrow();

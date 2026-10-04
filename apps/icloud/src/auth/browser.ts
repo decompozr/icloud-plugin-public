@@ -1,3 +1,4 @@
+import {accountSchema,serviceSchema,renderServiceChecklist,type ServiceView} from '../accounts/presentation.js';
 import {consentScopeLabel} from './scope-labels.js';
 import { authT } from './i18n.js';
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
@@ -65,30 +66,35 @@ function mount(){
  const primary=document.querySelector<HTMLButtonElement>('[data-auth-primary]');if(mode==='consent'&&primary)primary.disabled=true;let consentReady=mode!=='consent';
  primary?.addEventListener('click',()=>{if(mode==='consent'&&!consentReady)return;void run(primary,()=>mode==='sign-in'?signIn():consent(true));});
  const deny=document.querySelector<HTMLButtonElement>('[data-auth-deny]');deny?.addEventListener('click',()=>void run(deny,()=>consent(false)));
- const accountSchema=z.object({id:z.string(),user:z.string(),label:z.string(),credentialStored:z.boolean()});
- const connectionStatus=z.object({accounts:z.array(accountSchema),selectedAccount:accountSchema.optional(),client:z.object({id:z.string(),name:z.string().optional()})});
+ const connectionStatus=z.object({accounts:z.array(accountSchema),selectedAccount:accountSchema.optional(),selectedAccounts:z.array(accountSchema).optional(),services:z.array(serviceSchema).default([]),client:z.object({id:z.string(),name:z.string().optional()})});
  const loadStatus=async()=>connectionStatus.parse(await(await request('/icloud/connect/status?'+new URLSearchParams({oauth_query:signedOAuthQuery(location.search)}))).json());
  const continueToConsent=(value:unknown)=>{const url=redirectResult(value);if(!url)throw new AuthRequestError(authT('incompleteAuthorization'));location.assign(url);};
+ let registeredServices:ServiceView[]=[];
  function renderAccounts(accounts:Array<z.infer<typeof accountSchema>>){
   const list=document.querySelector('[data-connect-accounts]');list?.replaceChildren();
+  const choices=document.createElement('fieldset'),legend=document.createElement('legend');legend.textContent=authT('chooseAccounts');choices.append(legend);
   for(const account of accounts){
-   const button=document.createElement('button');button.type='button';button.className='secondary account-choice';
-   const display=accountDisplay(account),name=document.createElement('span');name.textContent=display.primary;button.append(name);
-   if(display.secondary){const email=document.createElement('span');email.className='account-address';email.textContent=display.secondary;button.append(email);}
-   if(!account.credentialStored){const unavailable=document.createElement('span');unavailable.className='account-address';unavailable.textContent=authT('accountUnavailable');button.append(unavailable);}
-   button.disabled=!account.credentialStored;
-   button.addEventListener('click',()=>void run(button,async()=>continueToConsent(await(await request('/icloud/connect/select',{oauth_query:signedOAuthQuery(location.search),accountId:account.id})).json())));
-   list?.append(button);
+   const card=document.createElement('div');card.className='account-choice';
+   const label=document.createElement('label'),field=document.createElement('input');field.type='checkbox';field.value=account.id;field.name='authorizedAccounts';field.disabled=!account.credentialStored;
+   const display=accountDisplay(account);label.append(field,document.createTextNode(`${display.primary}${display.secondary?' · '+display.secondary:''}${account.credentialStored?'':` · ${authT('accountUnavailable')}`} `));card.append(label,renderServiceChecklist(account,registeredServices));choices.append(card);
   }
+  const button=document.createElement('button');button.type='button';button.className='primary';button.textContent=authT('continueSelected');button.disabled=true;
+  choices.addEventListener('change',()=>{button.disabled=busy||!choices.querySelector('input[name=authorizedAccounts]:checked');});
+  button.addEventListener('click',()=>void run(button,async()=>{
+   const accountIds=[...choices.querySelectorAll<HTMLInputElement>('input[name=authorizedAccounts]:checked')].map(field=>field.value);
+   if(!accountIds.length)throw new AuthRequestError(authT('chooseAccount'));
+   continueToConsent(await(await request('/icloud/connect/select',{oauth_query:signedOAuthQuery(location.search),accountIds})).json());
+  }));
+  list?.append(choices,button);
  }
  if(mode==='connect'||mode==='consent')void run(primary??document.createElement('button'),async()=>{
-  const result=await loadStatus();
+  const result=await loadStatus();registeredServices=result.services;
   if(mode==='consent'){
-   const account=result.selectedAccount;
-   if(!account?.credentialStored)throw new AuthRequestError(authT('chooseAccount'));
+   const accounts=result.selectedAccounts??(result.selectedAccount?[result.selectedAccount]:[]);
+   if(!accounts.length||accounts.some(account=>!account.credentialStored))throw new AuthRequestError(authT('chooseAccount'));
    consentReady=true;
-   const target=document.querySelector('[data-auth-account]');
-   const display=accountDisplay(account);if(target)target.textContent=`${authT('selectedAccount')}: ${display.primary}${display.secondary?' · '+display.secondary:''}`;
+   const target=document.querySelector('[data-auth-account]');target?.replaceChildren();
+   for(const account of accounts){const display=accountDisplay(account),name=document.createElement('p');name.textContent=`${authT('selectedAccount')}: ${display.primary}${display.secondary?' · '+display.secondary:''}`;target?.append(name,renderServiceChecklist(account,registeredServices));}
    const client=document.querySelector('[data-auth-client]'),clientId=document.querySelector('[data-auth-client-id]');
    if(client)client.textContent=result.client.name??authT('unknownClient');
    if(clientId)clientId.textContent=result.client.id;

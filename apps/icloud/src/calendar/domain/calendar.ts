@@ -5,7 +5,7 @@ export type CalendarErrorCode = 'invalid_input' | 'not_found' | 'forbidden' | 'c
 export class CalendarError extends Error {
   constructor(public readonly code: CalendarErrorCode, message: string, public readonly dispatched = false, public readonly definitive = false) {super(message); this.name = 'CalendarError';}
 }
-export type EventIdentity = {calendarHref: string; href: string; uid: string; etag: string; scheduleTag?: string};
+export type EventIdentity = {accountId?:string;calendarHref: string; href: string; uid: string; etag: string; scheduleTag?: string};
 export type CalendarEvent = EventIdentity & {ical: string; summary: string; scheduled: boolean};
 export type CalendarCollection = {href: string; name: string; etag?: string};
 export type CalendarSnapshot = {token: string; resources: Record<string, {etag: string; data: string}>};

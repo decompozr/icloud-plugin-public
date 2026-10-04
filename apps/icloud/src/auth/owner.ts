@@ -1,4 +1,5 @@
 import {createClientRecovery} from './client-recovery.js';
+import type {ProbeEvidence,RegisteredService} from '../accounts/capabilities.js';
 import { Database } from 'bun:sqlite';
 import { betterAuth } from 'better-auth';
 import { APIError,createAuthMiddleware } from 'better-auth/api';
@@ -14,6 +15,7 @@ import { createAccountConnection, type AccountStore } from './connect.js';
 import {reconnectRedirectError} from '../observability/reconnect.js';
 
 export interface OwnerAuthOptions {
+ services?:readonly Pick<RegisteredService,'id'|'title'>[];
  database: Database;
  onOAuthError?(code:unknown):void;
  publicBaseURL: string;
@@ -26,12 +28,12 @@ export interface OwnerAuthOptions {
  ownerId(): string | null | undefined;
  checkBootstrapProof(proof: string): void;
  accountStore?: AccountStore;
- validateCredential?(credential:{user:string;appPassword:string}):Promise<void>;
+ validateCredential?(credential:{user:string;appPassword:string}):Promise<ProbeEvidence|void>;
 }
 const bootstrapPaths = new Set(['/icloud/auth/passkey/generate-register-options','/icloud/auth/passkey/verify-registration']);
 const publicPaths = new Set(['/icloud/auth/passkey/generate-authenticate-options','/icloud/auth/passkey/verify-authentication','/icloud/auth/get-session','/icloud/auth/sign-out','/icloud/auth/oauth2/authorize','/icloud/auth/oauth2/continue','/icloud/auth/oauth2/consent','/icloud/auth/oauth2/token','/icloud/auth/oauth2/register','/icloud/auth/oauth2/revoke','/icloud/auth/.well-known/oauth-authorization-server','/.well-known/oauth-authorization-server/icloud/auth']);
 const clientSchema=z.object({client_id:z.string(),client_secret:z.string()});
-const tokenSchema=z.object({active:z.literal(true),sub:z.string(),iss:z.string(),aud:z.union([z.string(),z.array(z.string())]),scope:z.string(),exp:z.number(),account_id:z.string().optional(),client_id:z.string().optional()});
+const tokenSchema=z.object({active:z.literal(true),sub:z.string(),iss:z.string(),aud:z.union([z.string(),z.array(z.string())]),scope:z.string(),exp:z.number(),account_id:z.string().optional(),client_id:z.string().optional(),account_ids:z.array(z.string()).min(1).max(32).optional()});
 const cipherSchema=z.object({nonce:z.string(),tag:z.string(),value:z.string()});
 
 export async function createOwnerAuth(options:OwnerAuthOptions) {
@@ -74,15 +76,15 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
      consentReferenceId:async({user,session}:{user:{id:string};session:{id:string}})=>{
       const ctx=requestContext.getStore();
       const accountId=ctx?.accountId??(ctx?.query?connection?.selected(ctx.query,user.id,session.id)?.id:undefined);
-      if(user.id!==options.ownerId()||!accountId||!options.accountStore!.account(user.id,accountId).credentialStored)throw new APIError('FORBIDDEN',{message:'Account selection required'});
+      if(user.id!==options.ownerId()||!accountId||!connection?.resolve(accountId,user.id).every(account=>account.credentialStored))throw new APIError('FORBIDDEN',{message:'Account selection required'});
       return accountId;
      }},
     customAccessTokenClaims:async({user,referenceId}:{user?:{id:string}|null;referenceId?:string})=>{
      if(!user||user.id!==options.ownerId())throw new APIError('FORBIDDEN',{message:'Owner required'});
      const id=referenceId??options.accountStore!.legacyAccountId(user.id);
      if(!id)throw new APIError('FORBIDDEN',{message:'Account unavailable'});
-     options.accountStore!.account(user.id,id);
-     return{account_id:id};
+     const accounts=connection!.resolve(id,user.id);
+     return{account_ids:accounts.map(account=>account.id),...(accounts.length===1?{account_id:accounts[0]!.id}:{})};
     },
     // Opaque token issuance does not execute customAccessTokenClaims. Validate
     // the persisted grant before minting/rotating through the response hook.
@@ -99,7 +101,7 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
       referenceId=row.referenceId??undefined;
      }
      const id=referenceId??options.accountStore!.legacyAccountId(user.id);
-     if(!id||!options.accountStore!.account(user.id,id).credentialStored)throw new APIError('BAD_REQUEST',{error:'invalid_grant'});
+     if(!id||!connection?.resolve(id,user.id).some(account=>account.credentialStored))throw new APIError('BAD_REQUEST',{error:'invalid_grant'});
      return{};
     },
    }:{}),
@@ -122,7 +124,7 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
   options.database.query("INSERT INTO plugin_auth_private (id,value) VALUES (?,?)").run(resourceClientKey,seal(JSON.stringify(resourceClient)));
  }
  async function session(headers:Headers, requireOwner=true){const result=await auth.api.getSession({headers});if(!result || (requireOwner&&result.user.id!==options.ownerId()))throw Error('Owner session required');return result;}
- if(options.accountStore)connection=createAccountConnection({database:options.database,secret:options.secret,origin:publicOrigin,store:options.accountStore,clientName:id=>options.database.query<{name:string|null},[string]>('SELECT name FROM oauthClient WHERE clientId=?').get(id)?.name??undefined,ownerSession:headers=>session(headers),validateCredential:options.validateCredential??(async()=>{throw Error('Credential validation unavailable');}),continueAuthorization:(request,query,accountId)=>requestContext.run({query,accountId},()=>auth.handler(new Request(issuer+'/oauth2/continue',{method:'POST',headers:request.headers,body:JSON.stringify({oauth_query:query,postLogin:true})})))});
+ if(options.accountStore)connection=createAccountConnection({services:options.services,database:options.database,secret:options.secret,origin:publicOrigin,store:options.accountStore,clientName:id=>options.database.query<{name:string|null},[string]>('SELECT name FROM oauthClient WHERE clientId=?').get(id)?.name??undefined,ownerSession:headers=>session(headers),validateCredential:options.validateCredential??(async()=>{throw Error('Credential validation unavailable');}),continueAuthorization:(request,query,accountId)=>requestContext.run({query,accountId},()=>auth.handler(new Request(issuer+'/oauth2/continue',{method:'POST',headers:request.headers,body:JSON.stringify({oauth_query:query,postLogin:true})})))});
  async function route(request:Request,privateRoute:boolean):Promise<Response>{
   const url=new URL(request.url),path=url.pathname,origin=request.headers.get('origin');
   if(origin&&!origins.includes(origin))return new Response('Forbidden',{status:403});
@@ -207,8 +209,9 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
   if(!response.ok)throw Error('Invalid token');const token=tokenSchema.parse(await response.json());
   if(token.sub!==options.ownerId()||token.iss!==issuer||token.exp<=Date.now()/1000||!(Array.isArray(token.aud)?token.aud:[token.aud]).includes(options.resource))throw Error('Invalid token claims');
   const scopes=new Set(token.scope.split(' '));
-  if(options.accountStore){if(!token.account_id)throw Error('Account binding required');options.accountStore.account(token.sub,token.account_id);}
-  return{subject:token.sub,scopes,clientId:token.client_id,expiresAt:token.exp*1000,...(token.account_id?{accountId:token.account_id}:{})};
+  const accountIds=token.account_ids??(token.account_id?[token.account_id]:undefined);
+  if(options.accountStore){if(!accountIds?.length)throw Error('Account binding required');for(const id of accountIds)options.accountStore.account(token.sub,id);}
+  return{subject:token.sub,scopes,clientId:token.client_id,expiresAt:token.exp*1000,...(accountIds?{accountIds:Object.freeze([...accountIds])}:{}),...(accountIds?.length===1?{accountId:accountIds[0]}:{})};
  }
  return{publicHandler:(request:Request)=>route(request,false),privateHandler:(request:Request)=>route(request,true),verifyBearer,ownerSession:(headers:Headers)=>session(headers),enrollmentSession:(headers:Headers)=>session(headers,false)};
 }

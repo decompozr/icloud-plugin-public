@@ -4,7 +4,7 @@ export const operationId=z.string().uuid();
 const date=z.object({value:z.string().min(10).max(40),tzid:z.string().max(128).optional()}).strict();
 const timePolicy=z.object({date:z.literal('utc').optional(),floating:z.literal('utc').optional()}).strict();
 const fields=z.object({summary:z.string().max(1000).optional(),description:text.nullable().optional(),location:text.nullable().optional(),url:href.nullable().optional(),categories:z.array(z.string().max(128)).max(100).optional(),status:z.enum(['TENTATIVE','CONFIRMED','CANCELLED']).optional(),transparency:z.enum(['OPAQUE','TRANSPARENT']).optional(),start:date.optional(),end:date.optional(),alarms:z.array(z.object({minutesBefore:z.number().int().min(0).max(525600),description:z.string().max(1000)}).strict()).max(10).optional()}).strict();
-const identity=z.object({calendarHref:href,href,uid:z.string().min(1).max(512),etag,scheduleTag:z.string().max(512).optional()}).strict();
+const identity=z.object({accountId:z.string().min(1).max(256).optional().describe('Account identity returned with the event; preserve it when reusing an event reference.'),calendarHref:href,href,uid:z.string().min(1).max(512),etag,scheduleTag:z.string().max(512).optional()}).strict();
 const create={timezone:z.string().min(1).max(32768).optional(),calendarHref:href,uid:z.string().min(1).max(512).optional(),fields:fields.extend({start:date,end:date}),recurrence:z.object({frequency:z.enum(['DAILY','WEEKLY','MONTHLY']),count:z.number().int().min(1).max(1000),byDay:z.array(z.string().regex(/^[+-]?[0-9]{0,2}(MO|TU|WE|TH|FR|SA|SU)$/)).max(31).optional()}).strict().optional(),timePolicy:timePolicy.optional()};
 // Adapter accepts only a bounded standalone VTIMEZONE; arbitrary event components are rejected.
 export const commandSchemas={

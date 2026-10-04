@@ -1,3 +1,4 @@
+import {serviceEligible} from '../accounts/capabilities.js';
 import type {Database} from 'bun:sqlite';
 import type {OwnerSecretStore} from '../storage/owner-store.js';
 import type {Principal} from '../auth/verify.js';
@@ -7,8 +8,9 @@ export function evidenceState(db:Database,store:OwnerSecretStore,allowed:()=>rea
  const whitelist=['id','clientId','userId','referenceId','scopes','expiresAt','revoked','disabled','sessionId','refreshId','createdAt','updatedAt'];
  return(p:Principal,service:string):string|undefined=>{try{
   if(!p.accountId||!p.clientId||store.ownerId()!==p.subject||!allowed().includes(service+'.read'))return;
+  const account=store.account(p.subject,p.accountId);if(account.services&&!serviceEligible(account,service))return;
   const generation=store.accountGeneration?.(p.subject,p.accountId);if(generation===undefined)return;
-  const state:unknown[]=[generation,epoch(),[...allowed()].sort()];
+  const state:unknown[]=[account.services?.[service],generation,epoch(),[...allowed()].sort()];
   for(const table of ['oauthClient','oauthConsent','oauthAccessToken','oauthRefreshToken','session']){
    const columns=(db.query('PRAGMA table_info('+table+')').all() as {name:string}[]).map(c=>c.name),safe=whitelist.filter(c=>columns.includes(c));
    const filter=table==='session'?'userId':'clientId';if(!columns.includes(filter)||!safe.includes('id'))return;

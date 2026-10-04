@@ -5,10 +5,11 @@ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 function canonical(value:unknown):string {if(value===null||typeof value!=='object')return JSON.stringify(value);if(Array.isArray(value))return '['+value.map(canonical).join(',')+']';return '{'+Object.entries(value).filter(([,v])=>v!==undefined).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>JSON.stringify(k)+':'+canonical(v)).join(',')+'}';}
 export class CalendarService {
  private get identity(){return {ownerId:this.options.ownerId,accountId:this.options.accountId};}
- constructor(private options:{ownerId:string;accountId:string;gateway:CalendarGateway;ledger:CalendarLedger;access:()=>CalendarPolicy}){if(!options.ownerId||!options.accountId)throw new CalendarError('forbidden','Verified owner and account are required');this.options={...options};}
+ constructor(private options:{ownerId:string;accountId:string;requireAccountIdentity?:boolean;gateway:CalendarGateway;ledger:CalendarLedger;access:()=>CalendarPolicy}){if(!options.ownerId||!options.accountId)throw new CalendarError('forbidden','Verified owner and account are required');this.options={...options};}
  private allowed(command:CalendarCommand,scheduled=false){const p=this.options.access();if(!p.read||(isCalendarMutation(command)&&!p.write)||((scheduled||command.operation==='invite'||command.operation==='respond')&&!p.schedule)||((command.operation==='share'||command.operation==='inspect_sharing')&&(!p.share||!p.write)))throw new CalendarError('forbidden','Calendar operation is disabled');}
  operationStatus(operationId:string):Pick<CalendarOperation,'operationId'|'state'|'error'|'updatedAt'>|undefined {this.allowed({operation:'list_calendars'});if(!uuid.test(operationId))throw new CalendarError('invalid_input','operationId must be a UUID');const row=this.options.ledger.operation(this.identity,operationId);return row?{operationId:row.operationId,state:row.state,error:row.error,updatedAt:row.updatedAt}:undefined;}
  async execute(command:CalendarCommand,operationId?:string):Promise<CalendarResult> {
+  if('identity'in command&&((command.identity.accountId!==undefined&&command.identity.accountId!==this.options.accountId)||(this.options.requireAccountIdentity&&command.identity.accountId!==this.options.accountId)))throw new CalendarError('forbidden','Event reference belongs to another account or needs a fresh account-bound read');
   this.allowed(command);
   if(!isCalendarMutation(command)) {
    if(command.operation!=='sync')return this.options.gateway.execute(command,()=>this.allowed(command));

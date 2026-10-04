@@ -26,13 +26,14 @@ test('observations isolate client/account, expire, invalidate, reject errors and
 });
 test('nonsecret snapshot invalidates revocation, consent/client changes, policy epoch and credential generation',()=>{
  const db=new Database(':memory:');for(const table of ['oauthClient','oauthConsent','oauthAccessToken','oauthRefreshToken','session']){db.exec(`CREATE TABLE ${table}(id TEXT,clientId TEXT,userId TEXT,referenceId TEXT,scopes TEXT,expiresAt TEXT,revoked INTEGER,disabled INTEGER,token TEXT)`);db.query(`INSERT INTO ${table} VALUES('id','client','owner','account','calendar.read','2099-01-01T00:00:00Z',0,0,'must-not-retain')`).run();}
- let generation:number|undefined=1,epoch=0,enabled=true;
- const store={ownerId:()=> 'owner',accountGeneration:()=>generation} as unknown as OwnerSecretStore;
+ let generation:number|undefined=1,epoch=0,enabled=true,serviceEnabled=true;
+ const store={ownerId:()=> 'owner',accountGeneration:()=>generation,account:()=>({credentialStored:true,services:{calendar:{availability:'available',enabled:serviceEnabled,reason:'verified',checkedAt:null}}})} as unknown as OwnerSecretStore;
  const state=evidenceState(db,store,()=>enabled?['calendar.read']:[],()=>epoch),p=principal(Date.now());
  let before=state(p,'calendar');expect(before).toBeDefined();
  db.exec("UPDATE oauthAccessToken SET token='different-secret'");expect(state(p,'calendar')).toBe(before);
  for(const change of ["UPDATE oauthAccessToken SET revoked=1","DELETE FROM oauthConsent","UPDATE oauthClient SET disabled=1","DELETE FROM session"]){db.exec(change);expect(state(p,'calendar')).not.toBe(before);before=state(p,'calendar');}
  generation++;expect(state(p,'calendar')).not.toBe(before);before=state(p,'calendar');epoch++;expect(state(p,'calendar')).not.toBe(before);
+ serviceEnabled=false;expect(state(p,'calendar')).toBeUndefined();serviceEnabled=true;
  enabled=false;expect(state(p,'calendar')).toBeUndefined();enabled=true;generation=undefined;expect(state(p,'calendar')).toBeUndefined();db.close();
 });
 test('actual MCP tool execution records only allowed completed reads; discovery and challenge do not',async()=>{
@@ -45,4 +46,19 @@ test('actual MCP tool execution records only allowed completed reads; discovery 
   if(authorized){expect(evidence.list('owner')[0]!.reads.calendar_query_events).toBeDefined();fail=true;const before=JSON.stringify(evidence.list('owner'));await client.callTool({name:'calendar_query_events',arguments:{}});expect(JSON.stringify(evidence.list('owner'))).toBe(before);}else expect(evidence.list('owner')).toEqual([]);
   await client.close();await server.close();
  }expect(calls).toBe(2);await runtime.dispose();
+});
+
+test('multi-account authorization evidence records reads only for the routed account',()=>{
+ const now=Date.now(),p={...principal(now),accountId:undefined,accountIds:['a','b']},evidence=new ReadinessEvidence(()=> 'state');
+ evidence.observe(p);expect(evidence.list('owner').map(row=>row.accountId)).toEqual(['a','b']);
+ evidence.start({...p,accountId:'b'},'calendar_query_events')?.(ok);
+ expect(evidence.list('owner').find(row=>row.accountId==='a')!.reads).toEqual({});
+ expect(evidence.list('owner').find(row=>row.accountId==='b')!.reads.calendar_query_events).toBeDefined();
+});
+
+test('service off-on epoch invalidates old reads and in-flight completions even without intermediate observation',()=>{
+ let epoch=0,enabled=true;const evidence=new ReadinessEvidence(()=>enabled?String(epoch):undefined),p=principal(Date.now());
+ evidence.observe(p);evidence.start(p,'calendar_query_events')?.(ok);const finish=evidence.start(p,'calendar_query_events');
+ enabled=false;epoch++;enabled=true;epoch++;finish?.(ok);
+ expect(evidence.list('owner')).toEqual([]);evidence.observe(p);expect(evidence.list('owner')[0]!.reads).toEqual({});
 });
