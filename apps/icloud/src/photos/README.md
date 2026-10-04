@@ -26,11 +26,7 @@ granted. The owner must approve the macOS prompt. Automation may be requested
 separately when editing metadata. This UI has build and automated test coverage;
 live onboarding and native writes still require verification on the host.
 
-The manual PhotoKit authorization fallback is:
-`open -W "/absolute/private/photos-runtime/iCloud Photos Helper.app" --args --authorize`.
-If macOS denies this, no native write is attempted. Grant Photos access through
-System Settings; do not treat Full Disk Access as PhotoKit authorization.
-The helper is packaged as a locally signed Mac app with a usage description and stable bundle identifier. Runtime configuration points to its Contents/MacOS/photos-helper executable.
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 

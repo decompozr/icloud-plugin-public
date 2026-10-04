@@ -1,7 +1,7 @@
 import {open} from 'node:fs/promises';
 import {join,dirname} from 'node:path';
 import {z} from 'zod';
-import {runProcess} from './provider.js';
+import {runNative} from './provider.js';
 import type {ProviderSettings} from './provider.js';
 export const privacyLinks={photos:'x-apple.systempreferences:com.apple.preference.security?Privacy_Photos',files:'x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles',automation:'x-apple.systempreferences:com.apple.preference.security?Privacy_Automation'} as const;
 export type SetupAction=keyof typeof privacyLinks|'authorize';
@@ -10,7 +10,7 @@ export function photosSetup(settings:ProviderSettings){return {
   let libraryReadable=false;let libraryStatus='unavailable';
   try{const file=await open(join(settings.library,'database/Photos.sqlite'),'r');await file.close();libraryReadable=true;libraryStatus='ready';}catch(e){if((e as NodeJS.ErrnoException).code==='EPERM'||(e as NodeJS.ErrnoException).code==='EACCES')libraryStatus='permission_required';}
   let authorization='unavailable';
-  try{const native=z.object({authorized:z.boolean(),authorization:z.number().int()}).parse(await runProcess([settings.nativeHelper],{command:'health'},10000));authorization=({0:'not_requested',1:'restricted',2:'denied',3:'authorized',4:'limited'} as Record<number,string>)[native.authorization]??'unavailable';}catch{}
+  try{const native=z.object({authorized:z.boolean(),authorization:z.number().int()}).parse(await runNative(settings.nativeHelper,{command:'health'},10000));authorization=({0:'not_requested',1:'restricted',2:'denied',3:'authorized',4:'limited'} as Record<number,string>)[native.authorization]??'unavailable';}catch{}
   return {libraryReadable,libraryStatus,authorization,ready:libraryReadable&&authorization==='authorized',automation:'checked_when_editing',changesPerformed:false};
  },
  async action(action:SetupAction){

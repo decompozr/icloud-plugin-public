@@ -1,4 +1,6 @@
 import {existsSync} from 'node:fs';
+import {mkdtemp,writeFile,readFile,stat,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {join,dirname,isAbsolute} from 'node:path';
 import {z} from 'zod';
@@ -8,6 +10,35 @@ const base=existsSync(join(moduleDirectory,'reader.py'))?moduleDirectory:join(mo
 const envelope=z.discriminatedUnion('ok',[z.object({ok:z.literal(true),result:z.unknown()}).strict(),z.object({ok:z.literal(false),error:z.string().regex(/^[a-z_]{1,80}$/)}).strict()]);
 const snapshot=z.object({libraryScope:z.string().regex(/^[a-f0-9]{16}$/),mutation:mutationSchema,assets:z.array(assetSchema).max(50),album:albumSchema.optional(),members:z.array(z.string()).max(100000).optional()}).strict();
 export interface ProviderSettings {python:string;library:string;nativeHelper:string;sidecarDirectory?:string;timeoutMs?:number}
+/** Launch Services preserves the app's Photos consent identity. Never retry a launch. */
+export async function runNative(helper:string,input:unknown,timeoutMs=60000):Promise<unknown>{
+ const app=dirname(dirname(dirname(helper)));
+ if(!isAbsolute(helper)||!app.endsWith('.app')||join(app,'Contents','MacOS','photos-helper')!==helper)throw new PhotosError('packaged_helper_required');
+ const encoded=JSON.stringify(input);if(Buffer.byteLength(encoded)>65536)throw new PhotosError('request_too_large');
+ const directory=await mkdtemp(join(tmpdir(),'icloud-photos-native-'));
+ let child:Bun.Subprocess|undefined;
+ const deadline=Date.now()+timeoutMs;
+ try{
+  const source=join(directory,'input.json'),target=join(directory,'output.json');
+  await writeFile(source,encoded,{mode:0o600});await writeFile(target,'',{mode:0o600});
+  const args=['/usr/bin/open','-n','-g','-i',source,'-o',target,'--stderr','/dev/null',app];
+  if((input as {command?:string})?.command==='authorize')args.push('--args','--authorize');
+  child=Bun.spawn(args,{stdout:'ignore',stderr:'ignore'});
+  // open -W can fail to track short-lived apps. The response, not launcher exit,
+  // establishes completion. A timeout after a write remains an unknown outcome.
+  while(Date.now()<deadline){
+   if((await stat(target)).size>12*1024*1024)throw new PhotosError('provider_output_limit');
+   const output=await readFile(target,'utf8');
+   if(output.endsWith('\n')){
+    let value;try{value=envelope.parse(JSON.parse(output));}catch{throw new PhotosError('invalid_provider_response');}
+    if(!value.ok)throw new PhotosError(value.error);return value.result;
+   }
+   if(child.exitCode!==null&&child.exitCode!==0)throw new PhotosError('provider_failed');
+   await new Promise(resolve=>setTimeout(resolve,25));
+  }
+  throw new PhotosError('provider_timeout');
+ }finally{if(child&&child.exitCode===null)child.kill();await rm(directory,{recursive:true,force:true});}
+}
 /** No shell, stdout/stderr bounds, fixed errors, and no automatic retry. */
 export async function runProcess(argv:string[],input:unknown,timeoutMs=60000):Promise<unknown>{
  const encoded=JSON.stringify(input);if(Buffer.byteLength(encoded)>65536)throw new PhotosError('request_too_large');
@@ -38,7 +69,7 @@ export class LocalPhotosProvider implements PhotosProvider {
   if(command==='cleanup')return z.object({source:z.literal('local_synced_snapshot'),reviewOnly:z.literal(true),total:z.number().int(),candidates:z.array(z.object({reason:z.enum(['same_fingerprint','screenshot']),assetIds:z.array(z.string()).max(1000)}).strict()).max(100),complete:z.boolean()}).strict().parse(value);
   if(command==='health'){
    const health=z.object({provider:z.literal('osxphotos'),version:z.literal('0.77.2'),libraryScope:z.string(),systemLibrary:z.boolean(),source:z.literal('local_synced_snapshot'),serverSyncVerified:z.literal(false)}).strict().parse(value);
-   let native:unknown;try{native=z.object({authorization:z.number().int(),authorized:z.boolean()}).strict().parse(await runProcess([this.settings.nativeHelper],{command:'health'},this.settings.timeoutMs));}catch{native={authorized:false,error:'native_helper_unavailable'};}
+   let native:unknown;try{native=z.object({authorization:z.number().int(),authorized:z.boolean()}).strict().parse(await runNative(this.settings.nativeHelper,{command:'health'},this.settings.timeoutMs));}catch{native={authorized:false,error:'native_helper_unavailable'};}
    return {...health,native,sharedAlbumWriteVerified:false};
   }
   throw new PhotosError('unsupported_command');
@@ -49,7 +80,7 @@ export class LocalPhotosProvider implements PhotosProvider {
   // Metadata uses Photos scripting; checking property preconditions happens there.
   return state;
  }
- private native(command:string,mutation:Mutation){return runProcess([this.settings.nativeHelper],{command,mutation},this.settings.timeoutMs);}
+ private native(command:string,mutation:Mutation){return runNative(this.settings.nativeHelper,{command,mutation},this.settings.timeoutMs);}
  async apply(mutation:Mutation,expected:unknown){
   const current=snapshot.parse(await this.reader('inspect',mutation));
   if(JSON.stringify(current)!==JSON.stringify(expected))throw new PhotosError('stale_plan');

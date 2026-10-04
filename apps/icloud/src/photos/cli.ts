@@ -3,7 +3,7 @@ import {Database} from 'bun:sqlite';
 import {readFileSync,mkdirSync,lstatSync,openSync,closeSync,constants} from 'node:fs';
 import {resolve,join} from 'node:path';
 import {z} from 'zod';
-import {LocalPhotosProvider,runProcess} from './provider.js';
+import {LocalPhotosProvider,runNative} from './provider.js';
 import {PhotosService} from './service.js';
 import {photosRegistration} from './module.js';
 export async function cli(args:string[]){
@@ -11,7 +11,7 @@ export async function cli(args:string[]){
  const config=z.object({python:z.string(),library:z.string(),nativeHelper:z.string(),stateDirectory:z.string(),allowWrites:z.boolean().default(false),allowDelete:z.boolean().default(false)}).strict().parse(JSON.parse(readFileSync(args[0]!,'utf8')));
  for(const key of ['python','library','nativeHelper','stateDirectory'] as const)config[key]=resolve(config[key]);
  const request=z.object({tool:z.string(),input:z.unknown().default({})}).strict().parse(JSON.parse(readFileSync(args[1]!,'utf8')));
- if(request.tool==='authorize'){console.log(JSON.stringify(await runProcess([config.nativeHelper],{command:'authorize'},60000)));return;}
+ if(request.tool==='authorize'){console.log(JSON.stringify(await runNative(config.nativeHelper,{command:'authorize'},60000)));return;}
  mkdirSync(config.stateDirectory,{recursive:true,mode:0o700});const stat=lstatSync(config.stateDirectory);
  if(!stat.isDirectory()||stat.isSymbolicLink()||(stat.mode&0o777)!==0o700||stat.uid!==process.getuid?.())throw Error('Private 0700 state directory required');
  const path=join(config.stateDirectory,'photos-operations.sqlite');
