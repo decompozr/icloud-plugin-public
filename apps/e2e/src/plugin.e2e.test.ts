@@ -21,6 +21,6 @@ test('built private HTTP download authenticates owner and packages only installe
  const bytes=Buffer.from(await response.arrayBuffer());expect(bytes.toString()).not.toContain('PRIVATE-CREDENTIAL-CANARY');expect(bytes.toString()).not.toContain('fixture-owner');
  const path=join(dir,'plugin.zip');await writeFile(path,bytes);const check=Bun.spawn(['unzip','-t',path],{stdout:'pipe'});expect(await check.exited).toBe(0);
  const read=Bun.spawn(['unzip','-p',path,'icloud-plugin/mcp.json'],{stdout:'pipe'});const config=await new Response(read.stdout).text();expect(config).toContain('https://public.example.invalid/icloud/mcp');expect(config).not.toContain('attacker.invalid');
- const manifest=Bun.spawn(['unzip','-p',path,'icloud-plugin/plugin.json'],{stdout:'pipe'});const manifestText=await new Response(manifest.stdout).text();expect(manifestText).toContain('\"version\": \"0.1.30\"');
+ const manifest=Bun.spawn(['unzip','-p',path,'icloud-plugin/plugin.json'],{stdout:'pipe'});const manifestText=await new Response(manifest.stdout).text();const installedVersion=await Bun.file(join(runtime,'assets/runtime-version.json')).json();expect(JSON.parse(manifestText).version).toBe(installedVersion.version);
  }finally{server.stop(true);store.close();key.fill(0);await rm(dir,{recursive:true,force:true});}
 });
