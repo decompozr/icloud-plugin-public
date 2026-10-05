@@ -485,3 +485,36 @@ or release acceptance. The candidate stays held until owner-visible setup,
 permissions, reviewed live writes/sharing and installed scenario gates pass.
 Do not overwrite the existing 0.1.28 release or infer deployment permission from
 the candidate version. Check remote version availability again before publication.
+
+
+### Held artifact and owner-action blocker audit (2026-10-04)
+
+The immutable local server candidate is
+`apps/icloud/build/photos/server-candidate-0.1.29`, built from source `f9da54f`.
+Artifact inspection verified version/platform/Bun; a smoke check imported its
+compiled Photos service/registration, exercised the saved decision summary with
+synthetic IDs and verified writes remain disabled by read-only policy. Required
+Python/native sources, runtime version and client skill are present; sidecars
+match source byte-for-byte and test/fixture files are excluded. Private source/hash
+evidence is `/tmp/photos-flow-handoff/candidate-0.1.29.json`. This smoke check
+changes no Photos library and is not the installed owner scenario.
+
+The existing installed 0.1.28 passed all thirteen GET/file-metadata doctor checks
+without registration, tokens, credential reads, tool invocation or service changes.
+Its current symlink remains on 0.1.28; no Photos release was published or installed.
+
+The same native owner-action gate has persisted through candidate startup,
+metadata hardening and artifact preparation. Current candidate health is still
+0/false and the exact setup process is live. Automated native observation cannot
+see the window; owner visibility/Full Access and service-target questions have no
+recorded answer. Safe independent source/build/packaging work for this slice is
+complete; the next mandatory native review/posting and reviewed disposable-data
+write acceptance cannot proceed without owner input. Goal status is blocked by
+that gate, not complete. Retain the original helper, candidate runtime/process,
+held artifact and private recovery/evidence files for this explicit dependency.
+
+Resume with the owner's visibility/authorization and service-target response.
+Read back actual permissions, then open exact previews and obtain specific
+asset/destination or disposable-test-data decisions. Only then complete live
+posting/writes, cloud evidence, clean delivery/review gates and the installed
+end-to-end owner scenario. Do not auto-upload, auto-delete or retry unknown writes.
