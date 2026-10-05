@@ -5,15 +5,18 @@ import {CustodyError,accountCustodyIdentitySchema,installationIdentitySchema,typ
 import type {OwnerSecretStore} from './owner-store.js';
 
 const number=z.number().int().positive().safe(),uuid=z.string().uuid();
-const stateSchema=z.object({format:z.union([z.literal(1),z.literal(2)]),installationId:installationIdentitySchema,
+const stateSchema=z.object({format:z.union([z.literal(1),z.literal(2),z.literal(3)]),installationId:installationIdentitySchema,
  ownerId:z.string().min(1).max(2048),accountId:uuid,user:z.string().min(1),revision:number,epoch:number,
- authority:z.enum(['sqlite','keychain','none']),phase:z.enum(['sqlite_authoritative','copy_intent','keychain_verified','keychain_authoritative','revoked','recovery_required','rotation_intent','rotation_verified']),
+ authority:z.enum(['sqlite','keychain','none']),phase:z.enum(['sqlite_authoritative','copy_intent','keychain_verified','keychain_authoritative','revoked','recovery_required','rotation_intent','rotation_verified','addition_intent','addition_verified']),
+ additionRevision:number.optional(),additionDigest:z.string().regex(/^[a-f0-9]{64}$/).optional(),
  rotationDigest:z.string().regex(/^[a-f0-9]{64}$/).optional(),
  operationId:uuid.nullable(),activeGeneration:number.nullable(),stagedGeneration:number.nullable(),nextGeneration:number,mac:z.string().regex(/^[a-f0-9]{64}$/),
 }).strict().superRefine((v,c)=>{
  const pending=v.phase==='copy_intent'||v.phase==='keychain_verified';
  const rotation=v.phase==='rotation_intent'||v.phase==='rotation_verified';
- const valid=rotation?v.format===2&&v.authority==='keychain'&&v.activeGeneration!==null&&v.stagedGeneration!==null&&v.operationId!==null&&v.rotationDigest!==undefined&&Number.isSafeInteger(v.revision+1)
+ const addition=v.phase==='addition_intent'||v.phase==='addition_verified';
+ const valid=addition?v.format===3&&v.authority==='none'&&v.activeGeneration===null&&v.stagedGeneration!==null&&v.operationId!==null&&v.additionRevision!==undefined&&(v.additionRevision===v.revision||v.additionRevision===v.revision+1)&&v.additionDigest!==undefined&&v.rotationDigest===undefined
+  :v.additionRevision!==undefined||v.additionDigest!==undefined?false:rotation?v.format>=2&&v.authority==='keychain'&&v.activeGeneration!==null&&v.stagedGeneration!==null&&v.operationId!==null&&v.rotationDigest!==undefined&&Number.isSafeInteger(v.revision+1)
   :v.rotationDigest!==undefined?false:v.phase==='recovery_required'
   ?v.authority==='keychain'&&v.activeGeneration!==null&&v.stagedGeneration===null
   :pending?v.authority==='sqlite'&&v.activeGeneration===null&&v.stagedGeneration!==null&&v.operationId!==null
@@ -29,7 +32,7 @@ const registrySchema=z.object({id:uuid,user:z.string().min(1),secret:z.string().
 function fail(code:'invalid_input'|'denied'|'missing'|'conflict'|'recovery_required'|'revoked'):never {throw new CustodyError(code);}
 const sign=(key:Uint8Array,context:string,payload:unknown)=>createHmac('sha256',key).update(context+'\0').update(JSON.stringify(payload)).digest('hex');
 const payload=(s:AccountAuthorityState)=>({format:s.format,installationId:s.installationId,ownerId:s.ownerId,accountId:s.accountId,user:s.user,
- revision:s.revision,epoch:s.epoch,authority:s.authority,phase:s.phase,operationId:s.operationId,activeGeneration:s.activeGeneration,stagedGeneration:s.stagedGeneration,nextGeneration:s.nextGeneration,...(s.rotationDigest===undefined?{}:{rotationDigest:s.rotationDigest})});
+ revision:s.revision,epoch:s.epoch,authority:s.authority,phase:s.phase,operationId:s.operationId,activeGeneration:s.activeGeneration,stagedGeneration:s.stagedGeneration,nextGeneration:s.nextGeneration,...(s.rotationDigest===undefined?{}:{rotationDigest:s.rotationDigest}),...(s.additionRevision===undefined?{}:{additionRevision:s.additionRevision}),...(s.additionDigest===undefined?{}:{additionDigest:s.additionDigest})});
 const cleanupPayload=(s:AccountCleanupItem)=>({installationId:s.installationId,ownerId:s.ownerId,accountId:s.accountId,revision:s.revision,generation:s.generation,operationId:s.operationId});
 const equal=(a:string,b:string)=>timingSafeEqual(Buffer.from(a,'hex'),Buffer.from(b,'hex'));
 
@@ -49,7 +52,7 @@ export class AccountAuthorityJournal {
    store.binding();
    const meta=options.database.query('SELECT singleton,format,installation FROM account_custody_meta').all();
    if(meta.length!==1)fail('recovery_required');
-   const header=z.object({singleton:z.literal(1),format:z.union([z.literal(1),z.literal(2)]),installation:installationIdentitySchema}).strict().parse(meta[0]);
+   const header=z.object({singleton:z.literal(1),format:z.union([z.literal(1),z.literal(2),z.literal(3)]),installation:installationIdentitySchema}).strict().parse(meta[0]);
    if(header.installation!==options.installationId)fail('recovery_required');
    const registry=new Set<string>();
    for(const raw of options.database.query('SELECT owner,id FROM mail_accounts').all()){
@@ -116,7 +119,7 @@ export class AccountAuthorityJournal {
   try{return store.guard(()=>{
    store.binding();
    const meta=db.query('SELECT format,installation FROM account_custody_meta WHERE singleton=1').get() as {format:number;installation:string}|null;
-   if(!meta||(meta.format!==1&&meta.format!==2)||meta.installation!==installationId)fail('recovery_required');
+   if(!meta||(meta.format!==1&&meta.format!==2&&meta.format!==3)||meta.installation!==installationId)fail('recovery_required');
    db.query('SELECT record FROM account_custody_state LIMIT 1').get();db.query('SELECT record FROM account_custody_cleanup LIMIT 1').get();
    return store;
   });}catch(error){store.close();throw error;}
@@ -133,7 +136,7 @@ export class AccountAuthorityJournal {
   if(!row)fail('missing');
   const state=stateSchema.parse(JSON.parse(row.record));
   const meta=this.db.query('SELECT format,installation FROM account_custody_meta WHERE singleton=1').get() as {format:number;installation:string}|null;
-  if(!meta||meta.installation!==this.installationId||(meta.format!==1&&meta.format!==2)||state.format>meta.format)fail('recovery_required');
+  if(!meta||meta.installation!==this.installationId||(meta.format!==1&&meta.format!==2&&meta.format!==3)||state.format>meta.format)fail('recovery_required');
   if(state.installationId!==this.installationId||state.ownerId!==ownerId||state.accountId!==accountId||!equal(state.mac,sign(this.key,'icloud-account-custody-state-v1',payload(state))))fail('recovery_required');
   return Object.freeze(state);
  }
@@ -228,14 +231,14 @@ export class AccountAuthorityJournal {
    if(state.phase==='revoked')fail('conflict');
    if(!Number.isSafeInteger(state.revision+1))fail('recovery_required');
    if(state.activeGeneration!==null)this.queue(state,state.activeGeneration,operationId);
-   if(state.stagedGeneration!==null)this.queue(state,state.stagedGeneration,operationId,state.rotationDigest===undefined?state.revision:state.revision+1);
+   if(state.stagedGeneration!==null)this.queue(state,state.stagedGeneration,operationId,this.stagedRevision(state));
    const changed=this.db.query('UPDATE mail_accounts SET secret=NULL,version=? WHERE owner=? AND id=? AND version=?').run(state.revision+1,ownerId,accountId,state.revision);
    if(changed.changes!==1)fail('conflict');
    const sessions=this.db.query('SELECT generation FROM provider_sessions WHERE owner=? AND account=?').all(ownerId,accountId) as {generation:number}[];
    if(sessions.some(row=>!Number.isSafeInteger(row.generation)||row.generation<1||!Number.isSafeInteger(row.generation+1)))fail('recovery_required');
    const invalidated=this.db.query('UPDATE provider_sessions SET secret=NULL,generation=generation+1 WHERE owner=? AND account=?').run(ownerId,accountId);
    if(invalidated.changes!==sessions.length)fail('conflict');
-   return this.next(state,{revision:state.revision+1,authority:'none',phase:'revoked',operationId,activeGeneration:null,stagedGeneration:null,rotationDigest:undefined});
+   return this.next(state,{revision:state.revision+1,authority:'none',phase:'revoked',operationId,activeGeneration:null,stagedGeneration:null,rotationDigest:undefined,additionRevision:undefined,additionDigest:undefined});
   }).immediate());
  }
  /** Format-2 intent pins the replacement bytes with original-key HMAC.
@@ -253,9 +256,9 @@ export class AccountAuthorityJournal {
    if(state.phase!=='keychain_authoritative'||!Number.isSafeInteger(state.revision+1)||!Number.isSafeInteger(state.nextGeneration+1))fail('conflict');
    const draft={...state,format:2 as const,phase:'rotation_intent' as const,operationId,stagedGeneration:state.nextGeneration,nextGeneration:state.nextGeneration+1};
    const digest=this.replacementDigest(draft,bytes);
-   const updated=this.db.query('UPDATE account_custody_meta SET format=2 WHERE singleton=1 AND installation=? AND format IN (1,2)').run(this.installationId);
+   const updated=this.db.query('UPDATE account_custody_meta SET format=CASE WHEN format<2 THEN 2 ELSE format END WHERE singleton=1 AND installation=? AND format IN (1,2,3)').run(this.installationId);
    if(updated.changes!==1)fail('recovery_required');
-   return this.next(state,{format:2,phase:'rotation_intent',operationId,stagedGeneration:draft.stagedGeneration,nextGeneration:draft.nextGeneration,rotationDigest:digest});
+   return this.next(state,{format:state.format===3?3:2,phase:'rotation_intent',operationId,stagedGeneration:draft.stagedGeneration,nextGeneration:draft.nextGeneration,rotationDigest:digest});
   }).immediate());
  }
  rotationTarget(ownerId:string,accountId:string,epoch:number,operationId:string,bytes:Uint8Array):AccountCustodyIdentity {
@@ -297,6 +300,69 @@ export class AccountAuthorityJournal {
    return this.next(state,{phase:'keychain_authoritative',stagedGeneration:null,rotationDigest:undefined});
   }).immediate());
  }
+ private stagedRevision(state:AccountAuthorityState):number {return state.additionRevision??(state.rotationDigest===undefined?state.revision:state.revision+1);}
+ private additionPasswordDigest(state:AccountAuthorityState,bytes:Uint8Array):string {
+  if(!bytes.byteLength||bytes.byteLength>65536)fail('invalid_input');
+  return createHmac('sha256',this.key).update('icloud-account-addition-v3\0').update(JSON.stringify([this.installationId,state.ownerId,state.accountId,state.additionRevision,state.stagedGeneration,state.operationId])).update(bytes).digest('hex');
+ }
+ /** Reserve a new identity, or explicitly CAS reconnect a revoked identity.
+  * Existing duplicates never create another UUID. Caller validates the provider.
+  */
+ beginAddition(ownerId:string,input:{user:string;label?:string;operationId:string;password:Uint8Array;reconnect?:{accountId:string;epoch:number}}):AccountAuthorityState {
+  return this.guard(()=>this.db.transaction(()=>{
+   this.binding(ownerId);const user=input.user.trim().toLowerCase(),label=input.label?.trim()||user;
+   if(!z.string().email().max(320).safeParse(user).success||label.length>320||!uuid.safeParse(input.operationId).success)fail('invalid_input');
+   const existing=this.db.query('SELECT id FROM mail_accounts WHERE owner=? AND user=?').get(ownerId,user) as {id:string}|null;
+   let state:AccountAuthorityState,revision:number;
+   if(existing){
+    state=this.current(ownerId,existing.id);
+    if(!input.reconnect||input.reconnect.accountId!==existing.id)fail('conflict');this.expect(state,input.reconnect.epoch);
+    if(state.phase!=='revoked'||!Number.isSafeInteger(state.revision+1))fail('conflict');revision=state.revision+1;
+   }else{
+    if(input.reconnect)fail('conflict');const id=crypto.randomUUID();
+    if(this.db.query('INSERT INTO mail_accounts VALUES(?,?,?,?,NULL,1)').run(id,ownerId,user,label).changes!==1)fail('conflict');
+    state=this.initialAccount(ownerId,id);revision=1;
+   }
+   if(!Number.isSafeInteger(state.nextGeneration+1))fail('recovery_required');
+   const draft={...state,additionRevision:revision,stagedGeneration:state.nextGeneration,operationId:input.operationId};
+   const digest=this.additionPasswordDigest(draft,input.password);
+   if(this.db.query('UPDATE account_custody_meta SET format=3 WHERE singleton=1 AND installation=? AND format IN (1,2,3)').run(this.installationId).changes!==1)fail('recovery_required');
+   return this.next(state,{format:3,phase:'addition_intent',operationId:input.operationId,stagedGeneration:state.nextGeneration,nextGeneration:state.nextGeneration+1,additionRevision:revision,additionDigest:digest});
+  }).immediate());
+ }
+ additionTarget(ownerId:string,accountId:string,epoch:number,operationId:string,bytes:Uint8Array):AccountCustodyIdentity {
+  return this.guard(()=>this.db.transaction(()=>{
+   const state=this.current(ownerId,accountId);this.expect(state,epoch,operationId);
+   if((state.phase!=='addition_intent'&&state.phase!=='addition_verified')||state.stagedGeneration===null||state.additionRevision===undefined||state.additionDigest===undefined||!equal(state.additionDigest,this.additionPasswordDigest(state,bytes)))fail('conflict');
+   return Object.freeze({installationId:this.installationId,ownerId,accountId,revision:state.additionRevision,generation:state.stagedGeneration});
+  })());
+ }
+ /** Caller supplies fresh exact-item readback before these transitions. */
+ markAdditionVerified(ownerId:string,accountId:string,epoch:number,operationId:string,bytes:Uint8Array):AccountAuthorityState {
+  return this.guard(()=>this.db.transaction(()=>{
+   this.additionTarget(ownerId,accountId,epoch,operationId,bytes);const state=this.current(ownerId,accountId);
+   if(state.phase!=='addition_intent')fail('conflict');return this.next(state,{phase:'addition_verified'});
+  }).immediate());
+ }
+ commitAddition(ownerId:string,accountId:string,epoch:number,operationId:string,bytes:Uint8Array):AccountAuthorityState {
+  return this.guard(()=>this.db.transaction(()=>{
+   this.additionTarget(ownerId,accountId,epoch,operationId,bytes);const state=this.current(ownerId,accountId);
+   if(state.phase!=='addition_verified'||state.additionRevision===undefined)fail('conflict');
+   if(this.db.query('UPDATE mail_accounts SET version=? WHERE owner=? AND id=? AND version=? AND secret IS NULL').run(state.additionRevision,ownerId,accountId,state.revision).changes!==1)fail('conflict');
+   const sessions=this.db.query('SELECT generation FROM provider_sessions WHERE owner=? AND account=?').all(ownerId,accountId) as {generation:number}[];
+   if(sessions.some(row=>!Number.isSafeInteger(row.generation)||row.generation<1||!Number.isSafeInteger(row.generation+1)))fail('recovery_required');
+   if(this.db.query('UPDATE provider_sessions SET secret=NULL,generation=generation+1 WHERE owner=? AND account=?').run(ownerId,accountId).changes!==sessions.length)fail('conflict');
+   return this.next(state,{revision:state.additionRevision,authority:'keychain',phase:'keychain_authoritative',activeGeneration:state.stagedGeneration,stagedGeneration:null,additionRevision:undefined,additionDigest:undefined});
+  }).immediate());
+ }
+ cancelAddition(ownerId:string,accountId:string,epoch:number,operationId:string):AccountAuthorityState {
+  return this.guard(()=>this.db.transaction(()=>{
+   const state=this.current(ownerId,accountId);this.expect(state,epoch,operationId);
+   if((state.phase!=='addition_intent'&&state.phase!=='addition_verified')||state.stagedGeneration===null||state.additionRevision===undefined)fail('conflict');
+   this.queue(state,state.stagedGeneration,operationId,state.additionRevision);
+   return this.next(state,{phase:'revoked',stagedGeneration:null,additionRevision:undefined,additionDigest:undefined});
+  }).immediate());
+ }
  markUnavailable(ownerId:string,accountId:string,expectedEpoch:number):AccountAuthorityState {
   return this.guard(()=>this.db.transaction(()=>{
    const state=this.current(ownerId,accountId);this.expect(state,expectedEpoch);
@@ -323,7 +389,7 @@ export class AccountAuthorityJournal {
   return rows.map(row=>{
    const item=cleanupSchema.parse(JSON.parse(row.record));
    if(item.installationId!==this.installationId||item.ownerId!==ownerId||item.accountId!==accountId||item.revision!==row.revision||item.generation!==row.generation||!equal(item.mac,sign(this.key,'icloud-account-custody-cleanup-v1',cleanupPayload(item))))fail('recovery_required');
-   if(current.revision===item.revision&&current.activeGeneration===item.generation||(current.rotationDigest===undefined?current.revision:current.revision+1)===item.revision&&current.stagedGeneration===item.generation)fail('recovery_required');
+   if(current.revision===item.revision&&current.activeGeneration===item.generation||(this.stagedRevision(current))===item.revision&&current.stagedGeneration===item.generation)fail('recovery_required');
    return Object.freeze(item);
   });
  }

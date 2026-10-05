@@ -310,3 +310,50 @@ test('rotation commit rollback preserves old pointer, revision, sessions and int
   f.db.query('UPDATE account_custody_meta SET format=1').run();expect(()=>f.journal.read('owner',f.a)).toThrow('recovery_required');
  }finally{bytes.fill(0);f.cleanup();}
 });
+
+test('format-3 addition reserves stable registry identity but publishes no pointer until verified commit',()=>{
+ const f=fixture(),bytes=Buffer.from('synthetic-new');try{
+  const op=randomUUID(),state=f.journal.beginAddition('owner',{user:' C@Example.Test ',label:'Account C',operationId:op,password:bytes});
+  expect(state.format).toBe(3);expect(state.user).toBe('c@example.test');expect(state.authority).toBe('none');expect(state.revision).toBe(1);
+  expect(f.owner.account('owner',state.accountId)).toEqual({id:state.accountId,user:'c@example.test',label:'Account C',credentialStored:false});
+  expect(()=>f.journal.readTarget('owner',state.accountId,state.epoch)).toThrow('recovery_required');
+  const target=f.journal.additionTarget('owner',state.accountId,state.epoch,op,bytes);expect(target.revision).toBe(1);expect(target.generation).toBe(1);
+  expect(()=>f.journal.commitAddition('owner',state.accountId,state.epoch,op,bytes)).toThrow('conflict');
+  const checked=f.journal.markAdditionVerified('owner',state.accountId,state.epoch,op,bytes),active=f.journal.commitAddition('owner',state.accountId,checked.epoch,op,bytes);
+  expect(active.accountId).toBe(state.accountId);expect(active.revision).toBe(1);expect(f.journal.readTarget('owner',state.accountId,active.epoch)).toEqual(target);
+  expect(()=>f.journal.beginAddition('owner',{user:state.user,operationId:randomUUID(),password:bytes})).toThrow('conflict');
+  expect(f.owner.listAccounts('owner')).toHaveLength(3);expect(AccountAuthorityJournal.validateExistingRecords({database:f.db,installationId:f.installationId,masterKey:f.options.masterKey,ownerId:'owner'}).records).toBe(3);
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('reconnection requires revoked identity CAS and preserves UUID and label with new revision',()=>{
+ const f=fixture(),bytes=Buffer.from('synthetic-reconnect');try{
+  const revoked=f.journal.revoke('owner',f.a,1,randomUUID()),metadata=f.owner.account('owner',f.a),op=randomUUID();
+  expect(()=>f.journal.beginAddition('owner',{user:metadata.user,operationId:op,password:bytes})).toThrow('conflict');
+  const state=f.journal.beginAddition('owner',{user:metadata.user,label:'ignored existing label',operationId:op,password:bytes,reconnect:{accountId:f.a,epoch:revoked.epoch}});
+  expect(state.accountId).toBe(f.a);expect(state.revision).toBe(2);expect(state.additionRevision).toBe(3);
+  expect(()=>f.journal.additionTarget('owner',f.a,state.epoch,op,Buffer.from('different'))).toThrow('conflict');
+  const checked=f.journal.markAdditionVerified('owner',f.a,state.epoch,op,bytes),active=f.journal.commitAddition('owner',f.a,checked.epoch,op,bytes);
+  expect(active.revision).toBe(3);expect(f.owner.account('owner',f.a)).toEqual(metadata);expect(f.owner.listAccounts('owner')).toHaveLength(2);expect(f.owner.readProviderSession('owner',f.a,'photos_web')).toBeNull();
+  const rotation=f.journal.beginRotation('owner',f.a,active.epoch,randomUUID(),bytes);expect(rotation.format).toBe(3);expect((f.db.query('SELECT format FROM account_custody_meta').get() as {format:number}).format).toBe(3);
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('addition cancellation and revocation queue exact selectors, retain identity and fence late verification',()=>{
+ const f=fixture(),bytes=Buffer.from('synthetic-new');try{
+  const op=randomUUID(),state=f.journal.beginAddition('owner',{user:'c@example.test',operationId:op,password:bytes}),cancelled=f.journal.cancelAddition('owner',state.accountId,state.epoch,op);
+  expect(cancelled.phase).toBe('revoked');expect(f.journal.listCleanup('owner',state.accountId).map(row=>[row.revision,row.generation])).toEqual([[1,1]]);
+  expect(()=>f.journal.markAdditionVerified('owner',state.accountId,state.epoch,op,bytes)).toThrow('conflict');
+  const next=f.journal.beginAddition('owner',{user:state.user,operationId:randomUUID(),password:bytes,reconnect:{accountId:state.accountId,epoch:cancelled.epoch}});
+  expect(next.accountId).toBe(state.accountId);expect(next.stagedGeneration).toBe(2);expect(next.additionRevision).toBe(2);
+  const revoked=f.journal.revoke('owner',state.accountId,next.epoch,randomUUID());expect(revoked.phase).toBe('revoked');expect(revoked.additionDigest).toBeUndefined();
+  expect(f.journal.listCleanup('owner',state.accountId).map(row=>[row.revision,row.generation])).toEqual([[1,1],[2,2]]);
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('lost addition result reopens same intent; failed insert/header update rolls back all registry changes',()=>{
+ const f=fixture(),bytes=Buffer.from('synthetic-new');let reopened:AccountAuthorityJournal|undefined;try{
+  const op=randomUUID(),state=f.journal.beginAddition('owner',{user:'c@example.test',operationId:op,password:bytes});
+  reopened=AccountAuthorityJournal.open(f.db,f.installationId,f.options.masterKey,f.owner);expect(reopened.read('owner',state.accountId)).toEqual(state);
+  expect(()=>reopened!.beginAddition('owner',{user:state.user,operationId:op,password:bytes})).toThrow('conflict');expect(f.owner.listAccounts('owner')).toHaveLength(3);
+  f.db.exec('CREATE TRIGGER ignore_addition_header BEFORE UPDATE ON account_custody_meta BEGIN SELECT RAISE(IGNORE); END');
+  expect(()=>f.journal.beginAddition('owner',{user:'d@example.test',operationId:randomUUID(),password:bytes})).toThrow('recovery_required');expect(f.owner.listAccounts('owner')).toHaveLength(3);expect(f.db.query('SELECT account FROM account_custody_state').all()).toHaveLength(3);
+ }finally{reopened?.close();bytes.fill(0);f.cleanup();}
+});

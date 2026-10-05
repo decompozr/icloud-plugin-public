@@ -269,3 +269,35 @@ test('rotation snapshots caller bytes across asynchronous reads and fences cance
   const cancelled=f.journal.read('owner',f.a);expect(cancelled.revision).toBe(1);expect(cancelled.activeGeneration).toBe(1);expect(f.journal.listCleanup('owner',f.a).map(row=>[row.revision,row.generation])).toEqual([[2,2]]);expect(f.native.reads.every(zero)).toBe(true);
  }finally{bytes.fill(0);f.cleanup();}
 });
+
+import {AccountPasswordAddition} from './account-password-addition.js';
+test('addition lost native write resumes same UUID, verifies before availability, and rejects changed password',async()=>{
+ const f=fixture(),bytes=Buffer.from('new-password');try{
+  const addition=new AccountPasswordAddition(f.journal,f.native,{assertHeld(){}}),op=randomUUID(),state=addition.begin('owner',{user:'c@example.test',operationId:op,password:bytes});
+  expect(()=>f.journal.readTarget('owner',state.accountId,state.epoch)).toThrow('recovery_required');
+  f.native.afterAdd=()=>{throw new CustodyError('outcome_unknown');};
+  await expect(addition.advance('owner',state.accountId,state.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow('outcome_unknown');f.native.afterAdd=undefined;
+  await expect(addition.advance('owner',state.accountId,state.epoch,op,Buffer.from('different'),{interaction:'prohibited'})).rejects.toThrow('conflict');
+  const checked=await addition.advance('owner',state.accountId,state.epoch,op,bytes,{interaction:'prohibited'}),active=await addition.advance('owner',state.accountId,checked.epoch,op,bytes,{interaction:'prohibited'});
+  expect(active.accountId).toBe(state.accountId);expect(active.revision).toBe(1);expect(f.native.added).toBe(1);expect(f.owner.listAccounts('owner')).toHaveLength(3);expect(bytes.toString()).toBe('new-password');expect([...f.native.reads,...f.native.writes].every(zero)).toBe(true);
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('addition cancellation during native create retains orphan cleanup and cannot publish availability',async()=>{
+ const f=fixture(),bytes=Buffer.from('new-password');try{
+  const addition=new AccountPasswordAddition(f.journal,f.native,{assertHeld(){}}),op=randomUUID(),state=addition.begin('owner',{user:'c@example.test',operationId:op,password:bytes});
+  f.native.afterAdd=()=>{f.journal.cancelAddition('owner',state.accountId,state.epoch,op);};
+  await expect(addition.advance('owner',state.accountId,state.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow('conflict');
+  const cancelled=f.journal.read('owner',state.accountId);expect(cancelled.phase).toBe('revoked');expect(f.journal.listCleanup('owner',state.accountId)).toHaveLength(1);expect(()=>f.journal.readTarget('owner',state.accountId,cancelled.epoch)).toThrow('revoked');expect(f.native.writes.every(zero)).toBe(true);
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('addition verified-item loss cannot recreate; invalid input and maintenance errors remain bounded',async()=>{
+ const f=fixture(),bytes=Buffer.from('new-password');try{
+  const addition=new AccountPasswordAddition(f.journal,f.native,{assertHeld(){}}),op=randomUUID();
+  expect(()=>addition.begin('owner',{user:'c@example.test',operationId:op,password:Buffer.from([255])})).toThrow('invalid_input');expect(f.owner.listAccounts('owner')).toHaveLength(2);
+  const state=addition.begin('owner',{user:'c@example.test',operationId:op,password:bytes});await addition.advance('owner',state.accountId,state.epoch,op,bytes,{interaction:'prohibited'});
+  const checked=await addition.advance('owner',state.accountId,state.epoch,op,bytes,{interaction:'prohibited'}),target=f.journal.additionTarget('owner',state.accountId,checked.epoch,op,bytes);f.native.items.delete(accountPasswordSelector(target).account);
+  await expect(addition.advance('owner',state.accountId,checked.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow('missing');expect(f.native.added).toBe(1);expect(f.journal.read('owner',state.accountId)).toEqual(checked);
+  const denied=new AccountPasswordAddition(f.journal,f.native,{assertHeld(){throw Error('private-detail');}});
+  await expect(denied.advance('owner',state.accountId,checked.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow(/^recovery_required$/);
+ }finally{bytes.fill(0);f.cleanup();}
+});

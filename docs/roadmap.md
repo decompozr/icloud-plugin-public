@@ -80,6 +80,17 @@ private per-call copies prevent caller buffer changes during awaited requests.
 Synthetic tests cover reopen, cancellation/revocation races, loss/conflict and
 input ownership; no live native backend or runtime integration is selected.
 
+The inactive format-3 account addition/reconnection journal and injected-port
+coordinator reserve a stable registry UUID with no readable pointer, pin password
+bytes by original-key HMAC and publish authority only after separate fresh native
+verification and commit. Existing duplicates conflict; reconnect requires the
+revoked UUID/epoch and preserves its label with a new revision. Cancellation and
+revocation retain exact staging cleanup without generation reuse. Header upgrades
+make older journal implementations refuse opening new intent; rotation preserves
+format-3 headers. Provider validation, authenticated stopped operation, custody-
+aware account availability and native/runtime routes remain unintegrated. All
+acceptance here uses synthetic state and an injected memory backend.
+
 Operational stopped recovery, account add/rotation adapters and
 settings/compatibility/backend
 integration remain pending; K1 is not complete and runtime custody is unchanged.
