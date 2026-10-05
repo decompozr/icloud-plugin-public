@@ -5,7 +5,7 @@
 This section is authoritative for remaining work. Earlier plans and checkpoints
 below are historical evidence and are superseded wherever they require a native
 catalog reviewer or equate source/build/deployment with remote product acceptance.
-The full goal remains open. The installed service is 0.1.36, built from main merge 70f6726; its preserved operation
+The full goal remains open. The installed service is 0.1.37, built from main merge 22acfe4; its preserved operation
 Helper excludes both the catalog reviewer and posting UI research. Generic
 authorization fixtures, reviewer removal/deployment and actual remote read acceptance
 are verified; native write permission and full sharing/cleanup acceptance remain pending.
@@ -97,6 +97,93 @@ custody and account/client grant rows must remain intact. Do not install an opti
 provider environment or initiate Apple login implicitly. Owner setup/login remains
 an explicit private Admin action. Preserve 0.1.36 rollback and keep full Shared
 Album operation acceptance open after this deployment.
+
+### Shared provider readback contract slice — 2026-10-05
+
+Before connecting mutations, implement account-bound remote inventory and exact
+album detail contracts from Apple's public Shared Streams client. Inventory uses
+webgetalbumslist; detail uses webgetalbumview with exact albumguids. Retain server
+album GUID, owner DSID and change tag, distinguish ownership from participation,
+and preserve modern/encrypted collection indicators. An absent modern indicator
+is a legacy candidate, not proof that mutation is supported. Bound responses and
+reject missing/mismatched/duplicate identities, malformed models and wrong account
+before accepting readback. Keep internal until encrypted-session transport and
+durable main-MCP recovery are integrated; no credentials or server proof inferred.
+
+### Authentication checkpoint installed acceptance — 2026-10-05
+
+PR #34 merged release 0.1.37 at 22acfe4. Clean verified remote-main source built
+the installed artifact; payload readback matches. Thirteen read-only doctor checks
+pass. Both databases pass integrity; all existing owner rows, account credentials,
+client grants, configuration and master custody remain unchanged. The empty
+provider_sessions table is new; only the authorization resource's updatedAt changed.
+Stopped 0.1.36 state/custody and its release remain available for rollback. The
+operation Helper was not rebuilt and its executable hash remains unchanged.
+
+Actual main-MCP health succeeds after restart: osxphotos 0.77.2 reads the selected
+system library, native authorization remains 0/not-requested, and shared write/
+server-sync verification remain false. Public cloud-setup routes return 404;
+private routes without owner authentication return 403. The owner's private System
+page is the login destination. No optional environment was installed there and no
+Apple login, invitation, photo write or Shared Album creation occurred. Actual
+authenticated UI/session acceptance remains pending owner action.
+
+### Authentication integration boundary — 2026-10-05
+
+There is one existing account and one MCP connection. Mail/Calendar app-specific
+credentials, Mac-local Photos library authorization and a Photos web session are
+different authorization mechanisms for that account. The provider-session table
+is empty; the runtime has no established web session to reuse. The current web
+provider needs an explicit Apple Account sign-in/2FA, not another account, another
+MCP or a new app-specific password. This additional sign-in is a provider choice,
+not a requirement for existing local Photos reads or a proven Apple-wide boundary.
+Do not treat deploying a password form as owner acceptance of that architecture.
+Explain the credential distinction and evaluate supported existing-authorization
+paths before requiring the owner to enter a primary password. Do not extract Mac
+or browser credentials to simulate single sign-on. Keep full Shared Album scope
+open; preserve local reads and integrate authorization into the same account's
+capability setup rather than presenting a second account connection.
+
+### Existing native authorization path recheck — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The SDK also exposes PhotosUI Shared Album creation and customization controllers,
+in addition to posting. Their public methods configure/present user-operated
+sheets and receive completion; no headless create/customize/post method is exposed.
+These can reuse native account authorization with human interaction, but do not
+meet the required remote MCP/no-computer-control workflow. Do not launch a hidden
+sheet or simulate clicks. The Photos scripting dictionary defines ordinary album/
+folder creation and has no Shared Album, invitation or access-policy types.
+Pinned osxphotos 0.77.2 inventories shared albums; its Photos scripting dependency
+creates ordinary albums. None establishes complete headless Shared Album management.
+
+The dictionary exporter could not run under the current command-line-tools
+selection; selecting the installed Xcode for that process then reported an
+unaccepted license. No license/global setting was changed. The application's
+bundled Photos.sdef and existing SDK headers were read directly as source evidence.
+This is source inspection, not a live successful operation or proof no future
+provider can support the requirement. Continue the internal API-only provider and
+durable operation integration; defer requesting real owner login until the bounded
+MCP test lifecycle is concrete and reviewable. Existing local Photos use needs no
+primary-password entry. The private /icloud/sign-in page was also read: it asks
+for the existing owner's passkey and contains no password field. Do not confuse
+Admin passkey authentication with Apple web-session authentication.
+
+### Shared provider readback source acceptance — 2026-10-05
+
+Internal remote inventory/detail now preserve exact server GUID, owner DSID and
+change tag, classify owner/participant and modern/encrypted indicators, and reject
+wrong/missing/duplicate/deleted exact identities. Responses are bounded; provider
+diagnostics and unrecognized secret fields are excluded. A legacy candidate does
+not establish edit support, a server response does not prove an operation caused
+the change, and cross-device presence remains separately unverified.
+
+Self-checks: ten protocol tests / 62 assertions, 381 application tests / 2,469
+assertions, eleven built HTTP/MCP tests / 259 assertions, TypeScript and production
+build pass. These contracts remain internal and use synthetic responses. They are
+not connected to the installed encrypted-session transport or public MCP tools,
+and no Apple authentication or Shared Album read/write was performed in this slice.
 
 ### Account-session custody integration slice — 2026-10-05
 
