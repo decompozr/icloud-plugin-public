@@ -419,6 +419,7 @@ import {SqliteOutboundLedger} from '../mail/storage/outbound-ledger.js';
 import {createPrivateAdmin} from '../admin/handler.js';
 import {createAccountConnection} from '../auth/connect.js';
 import {makeSignature} from 'better-auth/crypto';
+import {AccountCredentialMaintenance,CredentialValidationError} from './account-credential-maintenance.js';
 async function mailCustodyFixture(){
  const f=await rotationFixture(),auth=new Database(':memory:'),{reader,sourceReads}=readerFixture(f);let calls=0,marks=0,sends=0,late:(()=>void)|undefined,afterSend:(()=>void)|undefined;
  const session:MailSession={supportsMove:true,list:async()=>{calls++;late?.();return[{path:'INBOX',name:'Inbox',selectable:true}];},select:async()=>({uidValidity:'123',uidNext:2,supportsKeywords:true,release(){}}),search:async()=>[1],summaries:async()=>[],metadata:async()=>{late?.();return{attachments:[]};},download:async()=>({contentType:'message/rfc822',chunks:(async function*(){yield Buffer.from('synthetic');})(),cancel(){}}),mark:async()=>{marks++;return true;},flag:async()=>true,tag:async()=>true,move:async()=>false};
@@ -495,5 +496,59 @@ test('OAuth selection retains native account UUID/session binding and fences lat
    else{expect(component.selected(query,'owner','session')?.id).toBe(f.a);expect(component.selected(query,'owner','other-session')).toBeUndefined();const consentQuery=new URL((await selected.json()).url,origin).search.slice(1);expect(component.selected(consentQuery,'owner','session')?.id).toBe(f.a);expect(component.consume(consentQuery,'owner','session')).toBe(true);expect(component.selected(consentQuery,'owner','session')).toBeUndefined();}
    expect(sourceReads()).toBe(0);expect(f.native.readOptions).toHaveLength(before);
   }finally{db.close();f.cleanup();}
+ }
+});
+test('credential maintenance provider rejection and validation races cannot create rotation intents',async()=>{
+ for(const mode of ['provider','revoke','lease','owner']){
+  const f=await rotationFixture(),password=Buffer.from('replacement');let held=true,owner='owner';
+  try{
+   const before=f.journal.read('owner',f.a),added=f.native.added;
+   const adapter=new AccountCredentialMaintenance(f.journal,{ownerId:()=>owner,listAccounts:f.owner.listAccounts.bind(f.owner)},f.native,{assertHeld(){if(!held)throw new CustodyError('denied');}},async()=>{if(mode==='provider')throw Error('secret-provider-detail');if(mode==='revoke')f.journal.revoke('owner',f.a,before.epoch,randomUUID());if(mode==='lease')held=false;if(mode==='owner')owner='changed';});
+   await expect(adapter.beginRotation('owner',f.a,before.epoch,randomUUID(),password)).rejects.toThrow(mode==='provider'?'provider_validation_failed':mode==='revoke'?'conflict':'denied');
+   expect(f.native.added).toBe(added);expect(password.toString()).toBe('replacement');expect(f.journal.read('owner',f.a).phase).toBe(mode==='revoke'?'revoked':'keychain_authoritative');
+  }finally{password.fill(0);f.cleanup();}
+ }
+});
+test('validated maintenance privately snapshots passwords and reconnect metadata, then advances explicit steps',async()=>{
+ const f=await rotationFixture(),password=Buffer.from('validated-password');let validated=0,release!:()=>void,entered!:()=>void;
+ const pending=new Promise<void>(resolve=>{release=resolve;}),started=new Promise<void>(resolve=>{entered=resolve;});
+ try{
+  const adapter=new AccountCredentialMaintenance(f.journal,f.owner,f.native,{assertHeld(){}},async credential=>{validated++;expect(Object.isFrozen(credential)).toBe(true);expect(credential.appPassword).toBe('validated-password');entered();await pending;});
+  const state=f.journal.read('owner',f.a),op=randomUUID(),begin=adapter.beginRotation('owner',f.a,state.epoch,op,password);await started;password.fill(0);release();
+  const intent=await begin,exact=Buffer.from('validated-password');try{
+   await expect(adapter.advance('rotation','owner',f.a,intent.epoch,op,Buffer.from('different'),{interaction:'prohibited'})).rejects.toThrow('conflict');
+   let current=intent;for(let step=0;step<3;step++)current=await adapter.advance('rotation','owner',f.a,current.epoch,op,exact,{interaction:'prohibited'});
+   expect(current.phase).toBe('keychain_authoritative');expect(current.revision).toBe(state.revision+1);expect(validated).toBe(1);
+   const revoked=adapter.revoke('owner',f.a,current.epoch,randomUUID());expect(revoked.phase).toBe('revoked');expect(f.journal.listCleanup('owner',f.a).length).toBeGreaterThan(0);
+   const input={user:' A@EXAMPLE.TEST ',operationId:randomUUID(),password:exact,reconnect:{accountId:f.a,epoch:revoked.epoch}};
+   const adding=adapter.beginAddition('owner',input);input.reconnect.accountId=f.b;input.reconnect.epoch=0;input.user='other@example.test';
+   const addition=await adding;expect(addition.accountId).toBe(f.a);expect(addition.user).toBe('a@example.test');expect(validated).toBe(2);
+   let added=addition;for(let step=0;step<3;step++)added=await adapter.advance('addition','owner',f.a,added.epoch,addition.operationId!,exact,{interaction:'prohibited'});
+   expect(added.phase).toBe('keychain_authoritative');expect(added.accountId).toBe(f.a);expect(f.owner.listAccounts('owner')).toHaveLength(2);
+  }finally{exact.fill(0);}
+ }finally{release();password.fill(0);f.cleanup();}
+});
+test('maintenance rejects duplicates and malformed passwords before provider validation',async()=>{
+ const f=await rotationFixture();let validations=0;
+ try{
+  const adapter=new AccountCredentialMaintenance(f.journal,f.owner,f.native,{assertHeld(){}},async()=>{validations++;});
+  await expect(adapter.beginAddition('owner',{user:'a@example.test',operationId:randomUUID(),password:Buffer.from('synthetic')})).rejects.toThrow('conflict');
+  await expect(adapter.beginRotation('owner',f.a,f.active.epoch,randomUUID(),Buffer.from([0xff]))).rejects.toThrow('invalid_input');expect(validations).toBe(0);
+  const rejecting=new AccountCredentialMaintenance(f.journal,f.owner,f.native,{assertHeld(){}},async()=>{throw Error('secret');});
+  await expect(rejecting.beginAddition('owner',{user:'new@example.test',operationId:randomUUID(),password:Buffer.from('synthetic')})).rejects.toBeInstanceOf(CredentialValidationError);expect(f.owner.listAccounts('owner')).toHaveLength(2);
+ }finally{f.cleanup();}
+});
+test('maintenance owner loss during native read fences missing-item add, verification and commit',async()=>{
+ for(const kind of ['addition','rotation'] as const)for(const steps of [0,1,2]){
+  const f=await rotationFixture(),password=Buffer.from('validated');let owner='owner';
+  try{
+   const adapter=new AccountCredentialMaintenance(f.journal,{ownerId:()=>owner,listAccounts:f.owner.listAccounts.bind(f.owner)},f.native,{assertHeld(){}},async()=>{}),op=randomUUID();
+   let state=kind==='rotation'?await adapter.beginRotation('owner',f.a,f.active.epoch,op,password):await adapter.beginAddition('owner',{user:'new@example.test',operationId:op,password});
+   for(let i=0;i<steps;i++)state=await adapter.advance(kind,'owner',state.accountId,state.epoch,op,password,{interaction:'prohibited'});
+   const before=f.journal.read('owner',state.accountId),adds=f.native.added;
+   f.native.beforeRead=()=>{owner='changed';};
+   await expect(adapter.advance(kind,'owner',state.accountId,state.epoch,op,password,{interaction:'prohibited'})).rejects.toThrow('denied');
+   expect(f.journal.read('owner',state.accountId)).toEqual(before);expect(f.native.added).toBe(adds);expect(f.native.reads.every(zero)).toBe(true);
+  }finally{password.fill(0);f.cleanup();}
  }
 });

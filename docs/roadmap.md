@@ -166,6 +166,20 @@ sealed caller proof. Snapshot checks do not establish atomicity between provider
 token issuance and concurrent custody mutation; operational exclusion/acceptance
 remains required. Production application composition still supplies no reader.
 
+An inactive AccountCredentialMaintenance adapter now composes provider validation
+with addition/reconnect, rotation and revocation journals. It holds the supplied
+stopped-maintenance guard across validation, rechecks owner/epoch before intent,
+privately snapshots borrowed password/operation metadata, and redacts provider
+rejections. Known duplicates and malformed inputs cannot initiate provider work
+or an intent. Each native coordinator guard includes the per-call owner binding,
+so owner loss during a read cannot add, verify or commit a staged item. Native advancement remains one explicit reconciled step per call with
+exact password resupply; revocation records a local tombstone and exact cleanup
+dependencies rather than deleting items or revoking Apple credentials. Synthetic
+actual-journal fixtures exercise rejected/late validation, lease/owner loss,
+rotation, reconnect identity, input mutation and staged advancement. Caller
+authentication, real stopped-operation orchestration, K0/K2 and HTTP/command
+integration remain required; no runtime route selects this adapter.
+
 Operational stopped recovery, account add/rotation adapters and
 settings/compatibility/backend
 integration remain pending; K1 is not complete and runtime custody is unchanged.
