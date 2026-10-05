@@ -132,6 +132,63 @@ test('wrong open library rejects metadata before writes and permits a newly revi
  }finally{t.db.close();}
 });
 
+function remoteFixture(){
+ const t=setup();let nativeCalls=0;
+ t.provider.openCatalog=async()=>{nativeCalls++;throw Error('Native review must not open');};
+ t.provider.openReview=async()=>{nativeCalls++;throw Error('Native posting must not open');};
+ t.provider.read=async(command,input)=>{
+  if(command==='compare')return {album:{id:sharedIntent.albumId,title:'Fixture',kind:'shared',count:0},results:[{assetId:id,status:'not_found',candidates:[]}]};
+  if(command==='cleanup')return {total:1,nextOffset:null,candidates:[{reason:'screenshot',assetIds:[id]}]};
+  if(command==='detail')return {id:(input as {assetId:string}).assetId,filename:'fixture.png',date:null,mediaType:'photo',livePhoto:false,title:'',description:'',keywords:[],favorite:false,persons:[],width:100,height:100,shared:false};
+  throw Error('Unexpected read');
+ };
+ return {...t,nativeCalls:()=>nativeCalls};
+}
+test('remote review saves exact decisions across restart without native UI or photo writes',async()=>{
+ const t=remoteFixture();try{
+  const review=await t.service.prepareCatalog({kind:'comparison',assetIds:[id],albumId:sharedIntent.albumId});
+  expect(review.status).toBe('remote_review_pending');expect(review.result.sources[0]?.detail.id).toBe(id);
+  expect((await t.service.catalogStatus(review.reviewId)).status).toBe('remote_review_pending');
+  const input={reviewId:review.reviewId,confirm:true,decisions:[{assetId:id,decision:'share_review'}]};
+  expect(t.service.recordCatalog(input).result.writeApproved).toBe(false);
+  const next=new PhotosService(t.db,t.provider,t.policy,()=> 'owner');
+  expect((await next.catalogStatus(review.reviewId)).status).toBe('selection_reviewed');
+  expect(next.recordCatalog(input).result.decisions).toEqual(input.decisions);
+  expect(next.reviewSummary({kind:'comparison',assetIds:[id],albumId:sharedIntent.albumId}).counts.share_review).toBe(1);
+  expect(t.nativeCalls()).toBe(0);expect(t.calls()).toBe(0);
+ }finally{t.db.close();}
+});
+test('remote review rejects cross-owner, missing, duplicate, substituted and wrong-purpose decisions',async()=>{
+ const t=remoteFixture();try{
+  const r=await t.service.prepareCatalog({kind:'cleanup',limit:1});
+  const base={reviewId:r.reviewId,confirm:true};
+  for(const decisions of [[],[{assetId:id,decision:'share_review'}],[{assetId:id,decision:'keep'},{assetId:id,decision:'keep'}],[{assetId:'asset:1234567890abcdef:33333333-3333-3333-3333-333333333333',decision:'keep'}]])expect(()=>t.service.recordCatalog({...base,decisions})).toThrow();
+  expect(()=>t.service.recordCatalog({...base,confirm:false,decisions:[{assetId:id,decision:'keep'}]})).toThrow();
+  const other=new PhotosService(t.db,t.provider,t.policy,()=> 'other');expect(()=>other.recordCatalog({...base,decisions:[{assetId:id,decision:'keep'}]})).toThrow('review_not_found');
+  t.service.recordCatalog({...base,decisions:[{assetId:id,decision:'undecided'}]});
+  expect(()=>t.service.recordCatalog({...base,decisions:[{assetId:id,decision:'delete_review'}]})).toThrow('review_already_finalized');
+  expect(t.nativeCalls()).toBe(0);expect(t.calls()).toBe(0);
+ }finally{t.db.close();}
+});
+test('remote review rechecks owner after reads before persisting a snapshot',async()=>{
+ const t=remoteFixture();let owner='owner';const service=new PhotosService(t.db,t.provider,t.policy,()=>owner);try{
+  const original=t.provider.read;t.provider.read=async(c,i)=>{const v=await original(c,i);if(c==='detail')owner='other';return v;};
+  await expect(service.prepareCatalog({kind:'cleanup',limit:1})).rejects.toThrow('owner_changed');
+  expect((t.db.query('SELECT count(*) AS n FROM photos_reviews').get() as {n:number}).n).toBe(0);
+ }finally{t.db.close();}
+});
+test('remote MCP tools never launch native review or posting, including legacy prepared plans',async()=>{
+ const t=remoteFixture();try{
+  const module=photosRegistration(t.service,t.policy);expect(module.tools.some(t=>t.tool.name==='photos_open_review')).toBe(false);
+  const run=(name:string,input:unknown)=>module.tools.find(t=>t.tool.name===name)!.run(input);
+  expect((await run('photos_prepare',sharedIntent)).isError).toBe(true);
+  const legacy=await t.service.prepare(sharedIntent);expect((await run('photos_apply',{operationId:legacy.operationId,confirm:true})).isError).toBe(true);
+  expect(t.service.status(legacy.operationId).status).toBe('prepared');expect(t.nativeCalls()).toBe(0);
+  const opened=await run('photos_review_prepare',{kind:'cleanup',limit:1});expect(opened.isError).not.toBe(true);
+  expect(module.tools.find(t=>t.tool.name==='photos_review_record')!.tool.annotations!.readOnlyHint).toBe(false);
+ }finally{t.db.close();}
+});
+
 test('unknown native mutation blocks different writes across restart while reads and outcomes remain available',async()=>{
  const t=setup();let attempts=0;
  t.provider.apply=async()=>{attempts++;throw new PhotosError('provider_timeout');};
@@ -158,5 +215,15 @@ test('unknown sharing interlock releases after native cancellation reconciliatio
   outcome={status:'cancelled_before_posting'};
   expect((await t.service.operationStatus(first.operationId)).status).toBe('cancelled');
   expect((await t.service.apply(alternate.operationId,true)).status).toBe('applied');
+ }finally{t.db.close();}
+});
+test('large cleanup groups support exact remote subsets without silently dropping remaining sources',async()=>{
+ const t=remoteFixture();const ids=Array.from({length:14},(_,i)=>`asset:1234567890abcdef:${String(i+1).padStart(8,'0')}-1111-1111-1111-111111111111`);const original=t.provider.read;
+ t.provider.read=async(c,i)=>c==='cleanup'?{total:1,nextOffset:null,candidates:[{reason:'same_fingerprint',assetIds:ids}]}:original(c,i);
+ try{
+  const first=await t.service.prepareCatalog({kind:'cleanup',limit:1});expect(first.result.assetIds.length).toBe(12);expect((first.result.coverage as {omittedAssets:number}).omittedAssets).toBe(2);
+  const remaining=await t.service.prepareCatalog({kind:'cleanup',limit:1,assetIds:ids.slice(12)});expect(remaining.result.assetIds).toEqual(ids.slice(12));
+  await expect(t.service.prepareCatalog({kind:'cleanup',limit:1,assetIds:[id]})).rejects.toThrow('invalid_review_sources');
+  expect(t.nativeCalls()).toBe(0);
  }finally{t.db.close();}
 });
