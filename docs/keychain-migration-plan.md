@@ -130,6 +130,14 @@ helper/Bun protocol, setup approval, noninteractive failure behavior, signing/up
 continuity and supported login/lock contexts. Existing synthetic file-Keychain
 results do not prove production signing or untested OS lifecycle behavior.
 
+**Revised K0 protocol checkpoint:** the [official Bun/helper process experiment](../playground/keychain/helper-protocol.md)
+passed thirteen synthetic requests for exact bytes, scoped selectors, response
+binding, create-only/missing behavior and noninteractive reads. No native API or
+Keychain operation occurred. Next implement bounded stream collection, process
+timeouts and unknown-mutation behavior in the Bun-side adapter with synthetic
+failure cases. Native helper/API/signing, cross-user exposure and OS lifecycle
+acceptance remain separate unpassed gates; product runtime stays unselected.
+
 ### Shared storage contract: K1
 
 Propose distinct `MasterKeyCustody` and `AccountPasswordCustody` ports behind the
@@ -587,16 +595,15 @@ phase before proceeding. No dates or production signer availability are assumed.
 | K3 | Depends on K2; migrate each account password and add/rotate/revoke flows with tombstones, readiness/session invalidation and reconciliation. | Stable account grants/routing and CAS race tests; no stale credentials/session resurrection or fallback; both connected and revoked accounts covered. |
 | K4 | Depends on K2/K3; integrate lifecycle packaging/doctor/LaunchAgent, update/rollback/reinstall, retained uninstall and opt-in full removal. | Whole-outcome acceptance below, independent review and an explicitly authorized operator rollout. Passing fixture checks do not claim live acceptance. |
 
-**Next ready slice: revised K0 standard-helper contract.** Reconcile the closed
-Keychain evidence against a small official-Bun/native-helper design. Specify exact
-selectors, local transport, secret buffer ownership, runtime UI suppression and
-administrative setup policy. Validate protocol behavior with injected synthetic
-ports before implementation of a native backend. Record each actual native or
-lifecycle check still missing; do not repeat the closed basic experiment or require
-same-user app-only denial. Real Keychain operations, production signing and
-installation require applicable authorization before dependent checks. Continue
-through knowledge and plan reconciliation before selecting the backend; no real
-credential migration or K0-pass claim follows from protocol fixtures alone.
+**Next ready slice: bounded Bun-side helper adapter.** The candidate scoped binary
+framing has synthetic process evidence, reconciled in knowledge and this plan.
+Implement collection limits while bytes arrive, request/response validation,
+timeout/termination, buffer ownership and redacted process failures. Test lost
+mutation replies as unknown, never automatically replay add/delete. Use a separate
+synthetic process and injected custody ports; do not select a production backend.
+The next native step still requires selecting/qualifying Keychain API/access policy,
+helper signing and actual UI/update/lifecycle behavior under applicable authority.
+No K0-pass or real migration claim follows from process protocol checks alone.
 
 ## Whole-outcome acceptance and feedback
 

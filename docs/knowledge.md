@@ -36,6 +36,18 @@ separately from source commits. Do not grow inactive integration work to replace
 missing native acceptance. No live secrets, real Keychain operations, installs,
 production signers or releases are authorized by this decision.
 
+Before implementing the standard helper adapter, the [official Bun protocol
+experiment](../playground/keychain/helper-protocol.md) exchanged thirteen requests
+with a separate synthetic memory-helper process. It preserved exact master and
+password bytes, fixed selectors/request binding, create-only behavior and absence
+without fallback; malformed frame decoding and interactive reads were rejected.
+No secrets were placed in process arguments or inherited environment. This is
+process transport evidence, not native Keychain or cross-user/signing acceptance.
+Production stream collection must be bounded as bytes arrive, with termination
+and unknown-mutation handling. The native backend remains unselected; K0 is not
+passed. The experiment and standalone TypeScript check passed, with no real
+Keychain operations or new toolchain.
+
 ### Historical stronger-boundary findings
 
 K0 follow-up: the [stock Bun runtime boundary experiment](../playground/keychain/runtime-boundary.md)
