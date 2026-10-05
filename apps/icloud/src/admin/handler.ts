@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type {PhotosCloudAdmin} from '../photos/cloud-setup.js';
+import {PhotosError} from '../photos/contracts.js';
 import type { OwnerSecretStore } from '../storage/owner-store.js';
 import type {SystemStatus} from './system-status.js';
 import { setupPage,type AdminPresentation } from './page.js';
@@ -6,6 +8,7 @@ export interface TailscaleStatus { installed: boolean; authenticated: boolean; o
 export interface AppleCredential { user: string; appPassword: string }
 export interface AdminModule {id:string;title:string;fields:readonly {id:string;label:string}[];capabilities():Record<string,boolean>;updateCapabilities(next:Record<string,boolean>,confirm:boolean):Promise<Record<string,boolean>>}
 export interface AdminOptions {
+ photosCloud?:PhotosCloudAdmin;
  systemStatus?():Promise<SystemStatus>;
  evidence?(ownerId:string):import('./evidence.js').EvidenceRow[];
  modules?:readonly AdminModule[];
@@ -45,8 +48,27 @@ export function createPrivateAdmin(options:AdminOptions) {
   const url=new URL(request.url),path=url.pathname;
   const views:Record<string,'overview'|'accounts'|'connections'|'system'>={'/':'overview','/icloud/admin':'overview','/icloud/admin/accounts':'accounts','/icloud/admin/connections':'connections','/icloud/admin/system':'system'};
   const moduleMatch=/^\/icloud\/admin\/modules\/([a-z]+)\/capabilities$/.exec(path);
-  if(!moduleMatch&&!Object.hasOwn(views,path)&&!['/icloud/admin/system-status','/icloud/admin/accounts/add','/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/setup/complete','/icloud/admin/credential','/icloud/admin/revoke','/icloud/admin/status','/icloud/admin/capabilities','/icloud/admin/plugin.zip','/icloud/admin/photos/status','/icloud/admin/photos/action'].includes(path))return json({error:'NOT_FOUND'},404);
+  const cloudAction=/^\/icloud\/admin\/photos\/cloud\/(status|setup|login|verify|send-code|recheck|revoke)$/.exec(path)?.[1];
+  if(!cloudAction&&!moduleMatch&&!Object.hasOwn(views,path)&&!['/icloud/admin/system-status','/icloud/admin/accounts/add','/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/setup/complete','/icloud/admin/credential','/icloud/admin/revoke','/icloud/admin/status','/icloud/admin/capabilities','/icloud/admin/plugin.zip','/icloud/admin/photos/status','/icloud/admin/photos/action'].includes(path))return json({error:'NOT_FOUND'},404);
   try {
+   if(cloudAction){
+    const session=await options.ownerAuth.ownerSession(request.headers);
+    if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
+    if(!options.photosCloud)return json({error:'NOT_AVAILABLE'},404);
+    try{
+     if(cloudAction==='status'&&request.method==='GET'){
+      const id=url.searchParams.get('accountId');if(id&&!z.string().uuid().safeParse(id).success)return json({error:'INVALID_INPUT'},400);
+      return json(await options.photosCloud.status(id??undefined));
+     }
+     if(cloudAction==='status'||request.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405);
+     if(request.headers.get('origin')!==options.privateOrigin)return json({error:'ORIGIN_DENIED'},403);
+     if(request.headers.get('content-type')?.split(';')[0]?.trim()!=='application/json')return json({error:'INVALID_INPUT'},400);
+     const schemas={setup:z.object({}).strict(),login:z.object({accountId:z.string().uuid(),password:z.string().min(1).max(1024)}).strict(),verify:z.object({accountId:z.string().uuid(),code:z.string().regex(/^[0-9]{6}$/)}).strict(),'send-code':z.object({accountId:z.string().uuid()}).strict(),recheck:z.object({accountId:z.string().uuid()}).strict(),revoke:z.object({accountId:z.string().uuid(),confirm:z.literal(true)}).strict()};
+     const parsed=schemas[cloudAction as keyof typeof schemas].safeParse(await parseBody(request));if(!parsed.success)return json({error:'INVALID_INPUT'},400);
+     if(cloudAction==='setup')return json(await options.photosCloud.setup());
+     return json(await options.photosCloud.action({...parsed.data as {accountId:string},action:cloudAction==='send-code'?'send_code':cloudAction as 'login'|'verify'|'recheck'|'revoke'}));
+    }catch(e){return json({error:e instanceof PhotosError?e.code:'cloud_setup_failed'},409);}
+   }
    if(path.startsWith('/icloud/admin/photos/')){
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
@@ -97,7 +119,7 @@ export function createPrivateAdmin(options:AdminOptions) {
      if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     }
     const status=await options.diagnostics();
-    return new Response(setupPage({photosConfigured:!!options.photosSetup,enrolled,ready:options.setupReady??ready(status),admin:Object.hasOwn(views,path),view:views[path]??'setup',...(url.searchParams.get('mode')==='account'?{mode:'account' as const}:{}),publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,localOwner:options.localOwner,connectionCommands:options.connectionCommands,presentation:options.presentation,modules:options.modules}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
+    return new Response(setupPage({photosCloudConfigured:!!options.photosCloud,photosConfigured:!!options.photosSetup,enrolled,ready:options.setupReady??ready(status),admin:Object.hasOwn(views,path),view:views[path]??'setup',...(url.searchParams.get('mode')==='account'?{mode:'account' as const}:{}),publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,localOwner:options.localOwner,connectionCommands:options.connectionCommands,presentation:options.presentation,modules:options.modules}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
    }
    if(request.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405);
    if(request.headers.get('origin')!==options.privateOrigin)return json({error:'ORIGIN_DENIED'},403);

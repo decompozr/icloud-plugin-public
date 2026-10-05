@@ -1,0 +1,4 @@
+pyicloud==2.7.0
+# The 2.7.0 service import transitively imports Notes' renderer. The wheel
+# declares rich only as a CLI extra, although the library import needs it.
+rich==15.0.0
