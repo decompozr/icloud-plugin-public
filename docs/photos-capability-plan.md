@@ -5,7 +5,7 @@
 This section is authoritative for remaining work. Earlier plans and checkpoints
 below are historical evidence and are superseded wherever they require a native
 catalog reviewer or equate source/build/deployment with remote product acceptance.
-The full goal remains open. The installed service is 0.1.34, built from main merge b669e7c; its operation
+The full goal remains open. The installed service is 0.1.35, built from main merge c0699ac; its preserved operation
 Helper excludes both the catalog reviewer and posting UI research. Generic
 authorization fixtures and reviewer removal/deployment are verified; actual remote
 client acceptance and the rebuilt operation Helper's consent remain pending.
@@ -60,6 +60,31 @@ installed milestone must preserve the operation Helper identity, expose this act
 and verify owner confirmation -> SAME connection Refresh/new consent -> tools/read.
 The full product goal and remaining roadmap phases stay open.
 
+### Same-connection upgrade installed evidence — 2026-10-05
+
+Runtime 0.1.35 is deployed from verified clean main c0699ac (PR 25). All 13
+read-only deployment checks pass. The private served Admin bundle matches installed
+bytes; public client administration returns 404, anonymous private API returns 403,
+and private Connections redirects unauthenticated viewers to owner sign-in.
+Both databases pass integrity; existing clients, consent and token rows, owner state,
+configuration and custody bytes are preserved. Only a new empty registration-scope
+audit table is added. Provider resource update time and rate-limit state are the
+observed transient differences. Installation did not approve a registration update.
+
+The operation Helper remains the existing 0.1.34 identity and binary. Native
+readback reports authorization 0/not-requested; osxphotos reports a readable system
+library. The legacy posting command rejects through Launch Services before UI or
+mutation. Three task-owned operation Helper compile candidates were removed after
+installed readback and source preservation; installed/rollback versions, private
+journals and active worktree remain retained recovery dependencies.
+
+Next owner action: open private Admin Connections, review and confirm the new
+available permissions on the existing ChatGPT client, then Refresh and explicitly
+consent on the SAME MCP connection. Verify actual tools and a Photos read afterward.
+Do not delete/recreate the connection or add a temporary MCP for this production
+upgrade. Native write permission, supported remote sharing, exact cleanup decisions
+and all remaining end-to-end phases remain open.
+
 ### Goal and accepted product boundary
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
@@ -81,7 +106,7 @@ tool discovery and successful remote use are separate observations.
 
 ### Current evidence and gaps
 
-- Installed 0.1.34 registers Photos in the shared MCP and advertises read/write.
+- Installed 0.1.35 registers Photos in the shared MCP and advertises read/write.
   Library reads are verified. Previous Helper Full Access was verified, but the
   rebuilt operation Helper reports not-requested (0), not inherited consent. Deletion is
   configured off. Mail/Calendar configuration and existing grants were preserved.
@@ -91,8 +116,9 @@ tool discovery and successful remote use are separate observations.
   not proof that the owner's remote ChatGPT connection can invoke Photos tools.
 - The owner screenshot has Mail/Calendar only. Live nonsecret metadata confirms
   existing ChatGPT registration ceilings contain no Photos. Re-consenting an old
-  ceiling cannot add Photos. The same-connection owner-controlled registration upgrade and its actual
-  Photos consent/tool refresh still need implementation and owner-visible acceptance.
+  ceiling cannot add Photos. The same-connection owner-controlled registration upgrade is implemented and
+  installed. Owner confirmation, new Photos consent/tool refresh and real read
+  still need owner-visible acceptance.
 - The Swift catalog reviewer and launch paths are removed in source and the
   active installed Helper. Build/signature checks and deployment readback pass.
   The superseded candidate was removed. Old releases/helper remain rollback state;
