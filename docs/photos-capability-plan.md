@@ -1,5 +1,23 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Bounded read latency experiment and recovery correction — 2026-10-05
+
+Deployed 0.1.41 main-MCP health established shared_album_read_timeout before an
+HTTP response. The request route matches the retained public client's DSID routing;
+network-disabled preparation confirms cookies. Authentication and complete Shared
+Album management remain distinct and unproven by a saved session.
+
+Candidate 0.1.42 allows one read to wait up to 50 seconds inside a 60-second actor
+and protocol deadline. Writes retain their 20-second HTTP/30-second actor budgets;
+no implicit authentication or automatic retry is added. This is a bounded latency
+experiment, not a claim that latency is the root cause. Exact readback/count calls
+use the same bound. Crash reconciliation now waits through the complete write plus
+three sequential readbacks and a recovery margin (240 seconds); the prior 90-second
+grace could expire while a readback was still active. Regression coverage preserves
+the interlock during that window. Continue actual reads through the existing main
+MCP and preserve operation identity. No photo or album write is authorized by these
+checks; the previously approved empty test still requires a successful remote read.
+
 ## Transport timeout investigation after port correction — 2026-10-05
 
 Release 0.1.40 is deployed from main 18d23e6. The advertised default-port preflight

@@ -58,7 +58,8 @@ def run(request, session_factory=None):
                 'Content-Type': 'text/plain;charset=UTF-8',
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15',
                 'Origin': 'https://www.icloud.com', 'Referer': 'https://www.icloud.com/'},
-                allow_redirects=False, verify=True, timeout=(5, 20), stream=True) as response:
+                allow_redirects=False, verify=True,
+                timeout=(5, 50 if endpoint.startswith('webget') else 20), stream=True) as response:
             chunks = []
             size = 0
             for chunk in response.iter_content(8192):

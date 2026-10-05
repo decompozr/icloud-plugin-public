@@ -77,6 +77,9 @@ test('crash reconciliation waits for actor deadline and cannot blindly resume di
   f.db.query("UPDATE photos_shared_operations SET status='executing',started=? WHERE id=?").run(Date.now(),p.operationId);
   await expect(f.create().reconcile(p.operationId)).rejects.toThrow('still_executing');
   f.db.query('UPDATE photos_shared_operations SET started=? WHERE id=?').run(Date.now()-91000,p.operationId);
+  await expect(f.create().reconcile(p.operationId)).rejects.toThrow('still_executing');
+  expect(f.writes()).toBe(1);
+  f.db.query('UPDATE photos_shared_operations SET started=? WHERE id=?').run(Date.now()-241000,p.operationId);
   expect((await f.create().reconcile(p.operationId)).status).toBe('reconciled');expect(f.writes()).toBe(1);
  }finally{f.db.close();}
 });

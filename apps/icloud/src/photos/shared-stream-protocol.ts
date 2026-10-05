@@ -1,5 +1,10 @@
 import {z} from 'zod';
 
+export const SHARED_READ_TIMEOUT_MS=60000;
+export const SHARED_WRITE_TIMEOUT_MS=30000;
+// One write plus inventory, exact metadata and count readback, with recovery margin.
+export const SHARED_RECOVERY_GRACE_MS=SHARED_WRITE_TIMEOUT_MS+3*SHARED_READ_TIMEOUT_MS+30000;
+
 // Undocumented Shared Streams endpoint catalog and read contracts observed in
 // Apple's public Photos client. Lifecycle write payloads are experimental
 // candidates derived from album models, not verified request builders.
@@ -83,7 +88,7 @@ export async function readSharedStreamAlbums(session:SharedStreamSession,account
  const url=sharedStreamURL(session,accountId,exact?'webgetalbumview':'webgetalbumslist');
  let stage:SharedStreamReadError['diagnostic']['stage']='transport',httpStatus:number|undefined;
  try{
-  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(30000),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(exact?{albumguids:[exact]}:{})});
+  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(SHARED_READ_TIMEOUT_MS),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(exact?{albumguids:[exact]}:{})});
   stage='http';httpStatus=response.status;
   if(!response.ok)throw new Error('read_failed');
   stage='decode';const decoded=JSON.parse(await boundedBody(response,1024*1024));
@@ -114,7 +119,7 @@ export async function readSharedStreamAlbums(session:SharedStreamSession,account
 export async function readSharedStreamCount(session:SharedStreamSession,accountId:string,albumGuid:string){
  const exact=guid.parse(albumGuid).toUpperCase(),url=sharedStreamURL(session,accountId,'webgetassetcount');
  try{
-  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(30000),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({albumguid:exact})});
+  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(SHARED_READ_TIMEOUT_MS),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({albumguid:exact})});
   if(!response.ok)throw new Error('read_failed');
   return z.object({albumassetcount:z.number().int().nonnegative()}).parse(JSON.parse(await boundedBody(response))).albumassetcount;
  }catch{throw new Error('shared_album_count_failed');}
@@ -127,7 +132,7 @@ export async function executeSharedStreamMutation(session:SharedStreamSession,ac
  const albumGuid=mutation.albumGuid.toUpperCase();
  const unknown=():SharedStreamResult=>({status:'outcome_unknown',error:'shared_album_write_outcome_unknown',albumGuid});
  try{
-  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(30000),
+  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(SHARED_WRITE_TIMEOUT_MS),
    headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(request.payload)});
   if(!response.ok)return unknown();
   const body=await boundedBody(response);
