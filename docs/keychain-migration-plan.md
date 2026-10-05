@@ -221,6 +221,13 @@ custody retains authority without fallback. Synthetic tests cover competing writ
 stale results, tamper/mixed snapshots and process death before/after commit.
 Caller authentication, leases, fresh native verification/deletion and asynchronous
 read revalidation are still required; no runtime account adapter imports this component.
+The inactive [password-copy coordinator](../apps/icloud/src/storage/account-password-migration.ts)
+now drives exact noninteractive readback, create-only provisioning, verification
+and fresh-read cutover through injected ports. Lost create replies never cause
+blind mutation retries; missing/changed verified items prevent cutover. It checks
+maintenance/epoch after awaits and clears owned byte buffers. Caller authentication,
+actual stopped leases and K0/K2 acceptance remain prerequisites; no native port or
+runtime entry point is wired. Synthetic memory-port tests are not Keychain proof.
 Read-only master interruption inspection now distinguishes the committed manifest
 from one authenticated next staging record, retaining all evidence and locks.
 It never proves a writer stopped, grants a lease, reconstructs a missing manifest

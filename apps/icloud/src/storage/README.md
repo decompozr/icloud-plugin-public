@@ -173,6 +173,39 @@ format/binding checks only. Account/native mutation methods remain unwired.
 The [server gate](../server/README.md) rejects native selection and unsupported
 account custody before current consumers can mistake native pointers for revoke.
 
+`AccountPasswordMigration` now coordinates inactive password-copy steps using
+injected custody ports. Its caller must authenticate the owner, satisfy K0 and
+original-master K2 acceptance, and hold exclusive stopped maintenance throughout.
+The supplied `assertHeld` callback must fail on lease loss; it does not implement
+an operational lease or prove stopped service. No runtime/admin/setup path imports
+this coordinator, and no native backend is provided.
+
+Before intent allocation it validates the existing strict `{user, appPassword}`
+shape, exact registry user and lossless UTF-8/Unicode representation. Opaque,
+foreign or oversized values require remediation without changing the baseline.
+Each `advance` performs one resumable step: exact noninteractive read; initial
+absence permits create-only provisioning and retains copy intent; fresh matching
+read marks verified; another fresh matching read permits atomic journal cutover.
+Duplicate/conflicting items never authorize replacement. A lost create reply is
+resolved by readback on the next call. Verified-item absence never recreates it.
+Epoch/operation and maintenance are rechecked after asynchronous operations;
+revocation, rotation, cancellation and lease loss fence stale results. Reserved
+item cleanup remains journal evidence for an external stopped coordinator, not
+automatic deletion. Runtime availability restoration is outside this copy flow.
+
+Caller-owned raw/password/read buffers are wiped on success/failure; decoded JS
+strings cannot be reliably erased. The port contract requires create-only adds,
+borrowed add buffers and caller-owned read buffers. Ten synthetic tests cover
+preservation, reopen, lost replies, exact selectors/conflicts, late mutations,
+unavailability, buffer lifetimes and unsupported bytes. Memory ports do not prove
+native item durability, real UI suppression or signed caller isolation.
+The final combined storage/startup suite passed 74 tests/520 assertions, with
+typecheck and private application build passing. Independent review reran the
+final ten coordinator tests/96 assertions; an earlier related-storage run passed
+61 tests/451 assertions before the last two cases were added. The reviewer found
+no confirmed blocker in the inactive scope. These are local synthetic checks,
+not live migration, deployment or K0/K2 acceptance.
+
 These are K1 slices, not the K1 exit gate. Pending pieces include stopped
 operational stopped lock/staging resolution, add/rotation adapters, settings/format and installer
 compatibility gates, stable custody

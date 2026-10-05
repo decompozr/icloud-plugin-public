@@ -32,7 +32,11 @@ export interface MasterKeyCustody {
 export interface AccountPasswordCustody {
  read(identity:AccountCustodyIdentity,options:RuntimeCustodyRead):Promise<Uint8Array>;
 }
-/** Separate administrative view; identity/consent/revision validation belongs to its caller. */
+/** Separate administrative view; identity/consent/revision validation belongs to its caller.
+ * Adds are create-only: duplicate selectors report conflict, never replace a value.
+ * Input buffers are borrowed for the awaited call; implementations must not retain
+ * them. Reads return caller-owned buffers for best-effort wiping.
+ */
 export interface CustodyProvisioning {
  addMaster(installationId:string,bytes:Uint8Array,options:{interaction:'setup'|'prohibited'}):Promise<void>;
  addPassword(identity:AccountCustodyIdentity,bytes:Uint8Array,options:{interaction:'setup'|'prohibited'}):Promise<void>;
