@@ -7,14 +7,65 @@ import json
 import logging
 import re
 import sys
+import os
+import subprocess
+import tempfile
+import signal
 from urllib.parse import urlsplit
 
 ENDPOINTS = {'webgetalbumslist', 'webgetalbumview', 'webgetassetcount',
              'createalbum', 'updatealbum', 'deletealbum'}
 
 
-def run(request, session_factory=None):
-    from requests import Session
+def config_value(value):
+    if '\r' in value or '\n' in value or '\x00' in value:
+        raise ValueError('header')
+    return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+
+def http2_read(url, payload, cookie, runner=None):
+    """One read-only system transport; secrets enter stdin, never argv or logs."""
+    with tempfile.TemporaryDirectory(prefix='icloud-photos-http2-') as directory:
+        body_path = os.path.join(directory, 'response')
+        fd = os.open(body_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        os.close(fd)
+        config = '\n'.join([
+            'url = ' + config_value(url), 'request = "POST"',
+            'header = "Content-Type: text/plain;charset=UTF-8"',
+            'header = "Origin: https://www.icloud.com"',
+            'header = "Referer: https://www.icloud.com/"',
+            'header = ' + config_value('Cookie: ' + cookie),
+            'user-agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"',
+            'data-binary = ' + config_value(payload),
+        ]) + '\n'
+        completed = (runner or subprocess.run)([
+            '/usr/bin/curl', '--disable', '--config', '-', '--http2',
+            '--silent', '--compressed', '--proxy', '', '--noproxy', '*',
+            '--proto', '=https', '--connect-timeout', '5', '--max-time', '50',
+            '--max-filesize', '1048576', '--output', body_path,
+            '--write-out', '%{http_code}\n%{http_version}',
+        ], input=config.encode(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            timeout=55, env={'PATH': '/usr/bin:/bin', 'LANG': 'C'})
+        if completed.returncode:
+            codes = {28: 'shared_album_read_timeout', 60: 'shared_album_tls_failed',
+                     6: 'shared_album_connection_failed', 7: 'shared_album_connection_failed'}
+            raise TransportFailure(codes.get(completed.returncode, 'shared_album_transport_failed'))
+        status, protocol = completed.stdout.decode('ascii').split('\n')
+        if not re.fullmatch(r'[1-5][0-9]{2}', status) or protocol not in ['1.0', '1.1', '2', '3']:
+            raise ValueError('response')
+        if os.stat(body_path).st_size > 1024 * 1024:
+            raise ValueError('response_limit')
+        with open(body_path, 'rb') as body:
+            return {'status': int(status), 'body': body.read().decode('utf-8'), 'httpVersion': protocol}
+
+
+class TransportFailure(Exception):
+    def __init__(self, code):
+        self.code = code
+
+
+def run(request, session_factory=None, curl_runner=None):
+    from requests import Session, Request
     from requests.cookies import create_cookie
     state = request['state']
     username = request['username'].strip().lower()
@@ -37,6 +88,9 @@ def run(request, session_factory=None):
     endpoint = request['endpoint']
     if endpoint not in ENDPOINTS:
         raise ValueError('endpoint')
+    transport = request.get('transport', 'requests')
+    if transport not in ['requests', 'system_http2'] or transport == 'system_http2' and not endpoint.startswith('webget'):
+        raise ValueError('transport')
     payload = request['body']
     if not isinstance(payload, str) or len(payload.encode()) > 8192 or not isinstance(json.loads(payload), dict):
         raise ValueError('payload')
@@ -54,6 +108,9 @@ def run(request, session_factory=None):
                     domain.endswith(('.icloud.com', '.icloud.com.cn', '.apple.com'))):
                 continue
             session.cookies.set_cookie(create_cookie(**cookie))
+        if transport == 'system_http2':
+            prepared = session.prepare_request(Request('POST', url))
+            return http2_read(url, payload, prepared.headers.get('Cookie', ''), curl_runner)
         with session.post(url, data=payload.encode(), headers={
                 'Content-Type': 'text/plain;charset=UTF-8',
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15',
@@ -75,6 +132,8 @@ def run(request, session_factory=None):
 
 def failure_code(error):
     from requests.exceptions import ConnectTimeout, ReadTimeout, SSLError, ConnectionError
+    if isinstance(error, TransportFailure): return error.code
+    if isinstance(error, subprocess.TimeoutExpired): return 'shared_album_read_timeout'
     if isinstance(error, ConnectTimeout): return 'shared_album_connection_timeout'
     if isinstance(error, ReadTimeout): return 'shared_album_read_timeout'
     if isinstance(error, SSLError): return 'shared_album_tls_failed'
@@ -83,6 +142,11 @@ def failure_code(error):
 
 
 if __name__ == '__main__':
+    # Turn actor cancellation into stack unwinding so subprocess.run stops its
+    # read-only child and TemporaryDirectory removes private response files.
+    def interrupt_actor(_signal, _frame):
+        raise InterruptedError()
+    signal.signal(signal.SIGTERM, interrupt_actor)
     logging.disable(logging.CRITICAL)
     try:
         raw = sys.stdin.buffer.read(65537)
