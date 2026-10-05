@@ -144,8 +144,32 @@ Keychain or deployment acceptance.
 Independent review identified the persistent-journaling precondition; after its
 correction, the reviewer reran all 46 tests and typecheck with no confirmed blocker.
 
+`inspectRecovery` now provides read-only master interruption evidence. It verifies
+the committed manifest with the original key and independent authority/generation
+expectations, validates a single staging record as the exact next signed transition,
+and binds any retained lock to the selected operation. Unknown/duplicate/corrupt
+staging, incomplete locks and a missing manifest fail closed without deletion or
+reconstruction. An uncommitted Keychain cutover remains file-authoritative. Even a
+valid inspection of a live lock returns `external_stop_then_reconcile`, never a
+lease or proof of process death. It does not implement lock release/adoption or
+authorize promoting staging: the future exclusive stopped-maintenance coordinator
+must reinspect and freshly validate the original key, bound state and native items.
+
+Account `cancelCopy` atomically returns only a pending copy to SQLite authority,
+queues its exact staging identity, retains the generation high-water mark and
+preserves semantic revision/session state. `restoreAvailable` clears an unavailable
+native state only with the exact retained selector and epoch CAS; its caller must
+freshly revalidate native custody. It cannot replace the item, accept a different
+generation or restore a revoked account. These metadata methods do not validate
+Apple credentials, release native buffers or execute cleanup. Seven additional
+tests and expanded process-death checks cover this reconciliation slice; the
+combined suite passes 53 synthetic storage tests and typecheck.
+Independent delta review reran the 53 tests and typecheck, found no confirmed
+blocker, and confirmed that inspection neither proves stopped service nor creates
+operational recovery authority.
+
 These are K1 slices, not the K1 exit gate. Pending pieces include stopped
-lock/staging reconciliation, add/rotation adapters, settings/format and installer
+operational stopped lock/staging resolution, add/rotation adapters, settings/format and installer
 compatibility gates, stable custody
 paths and actual backend wiring. No journal is provisioned in the installation;
 runtime remains file-based. No native item, provider action, live credential or

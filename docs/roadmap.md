@@ -43,7 +43,10 @@ with original-key HMAC, atomic fsynced writes, phase/generation CAS and exclusiv
 leases. The inactive account SQLite journal now adds HMAC-bound pointers/cleanup,
 epoch CAS, atomic ciphertext cutover and revision/session-aware revocation. Synthetic
 process-death/concurrency tests cover storage only; neither journal calls Keychain.
-Stopped recovery, account add/rotation adapters and settings/compatibility/backend
+Read-only master interruption inspection retains committed authority and all lock/
+staging evidence; account cancellation/exact-selector availability recovery now use
+CAS without revising credentials or sessions. Operational stopped recovery,
+account add/rotation adapters and settings/compatibility/backend
 integration remain pending; K1 is not complete and runtime custody is unchanged.
 No production identity is presumed available; sealed
 Bun packaging and authenticated peer-channel feasibility are unverified. Open

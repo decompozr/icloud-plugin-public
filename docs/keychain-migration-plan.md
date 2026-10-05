@@ -203,7 +203,14 @@ custody retains authority without fallback. Synthetic tests cover competing writ
 stale results, tamper/mixed snapshots and process death before/after commit.
 Caller authentication, leases, fresh native verification/deletion and asynchronous
 read revalidation are still required; no runtime adapter imports this component.
-Stopped recovery, account add/rotation adapters, settings/format gates, custody
+Read-only master interruption inspection now distinguishes the committed manifest
+from one authenticated next staging record, retaining all evidence and locks.
+It never proves a writer stopped, grants a lease, reconstructs a missing manifest
+or promotes an uncommitted cutover. Account cancellation preserves SQLite authority
+and queues exact staging cleanup; native availability restoration requires the
+retained exact selector and epoch after fresh caller validation. Neither restores
+revoked access or changes credential revision/session state.
+Operational stopped recovery, account add/rotation adapters, settings/format gates, custody
 paths and backend integration are still required for K1 completion.
 No all-consumer or Keychain validation is implied by advancing a fixture phase.
 

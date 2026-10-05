@@ -220,3 +220,48 @@ for(const checkpoint of ['before_commit','after_commit']){
   }finally{f.cleanup();}
  });
 }
+for(const phase of ['copy_intent','keychain_verified']){
+ test(`cancelling ${phase} retains SQLite authority, identity, sessions and exact cleanup without generation reuse`,()=>{
+  const f=fixture();try{
+   let state=f.journal.read('owner',f.a);const operationId=randomUUID(),session=f.owner.providerSessionState('owner',f.a,'photos_web');
+   state=f.journal.beginCopy('owner',f.a,state.epoch,operationId);
+   if(phase==='keychain_verified')state=f.journal.markVerified('owner',f.a,state.epoch,operationId);
+   expect(()=>f.journal.cancelCopy('owner',f.a,state.epoch,randomUUID())).toThrow('conflict');
+   const cancelled=f.journal.cancelCopy('owner',f.a,state.epoch,operationId);
+   expect(cancelled).toMatchObject({authority:'sqlite',phase:'sqlite_authoritative',revision:1,stagedGeneration:null,nextGeneration:2});
+   expect(f.owner.readAccountSecret('owner',f.a)).not.toBeNull();expect(f.owner.providerSessionState('owner',f.a,'photos_web')).toEqual(session);
+   expect(f.journal.listCleanup('owner',f.a)[0]).toMatchObject({revision:1,generation:1,operationId});
+   expect(()=>f.journal.markVerified('owner',f.a,state.epoch,operationId)).toThrow('conflict');
+   expect(()=>f.journal.activate('owner',f.a,state.epoch,operationId)).toThrow('conflict');
+   const again=f.journal.beginCopy('owner',f.a,cancelled.epoch,randomUUID());expect(again.stagedGeneration).toBe(2);
+  }finally{f.cleanup();}
+ });
+}
+test('cancellation fails atomically if cleanup cannot be queued; committed native authority cannot cancel',()=>{
+ const f=fixture();try{
+  const {state,operationId}=verified(f);
+  f.db.exec('CREATE TRIGGER ignore_cancel_cleanup BEFORE INSERT ON account_custody_cleanup BEGIN SELECT RAISE(IGNORE); END');
+  expect(()=>f.journal.cancelCopy('owner',f.a,state.epoch,operationId)).toThrow('conflict');expect(f.journal.read('owner',f.a)).toEqual(state);
+  f.db.exec('DROP TRIGGER ignore_cancel_cleanup');
+  const active=f.journal.activate('owner',f.a,state.epoch,operationId);
+  expect(()=>f.journal.cancelCopy('owner',f.a,active.epoch,operationId)).toThrow('conflict');expect(f.journal.read('owner',f.a)).toEqual(active);
+ }finally{f.cleanup();}
+});
+test('unavailable recovery requires exact fresh identity and epoch, retaining native authority and blocking late recovery after revoke',()=>{
+ const f=fixture();try{
+  const {state,operationId}=verified(f),active=f.journal.activate('owner',f.a,state.epoch,operationId);
+  const identity=f.journal.readTarget('owner',f.a,active.epoch),session=f.owner.providerSessionState('owner',f.a,'photos_web');
+  const unavailable=f.journal.markUnavailable('owner',f.a,active.epoch);
+  expect(()=>f.journal.restoreAvailable('owner',f.a,unavailable.epoch,{...identity,generation:0})).toThrow(/^invalid_input$/);
+  for(const changed of [{installationId:randomUUID()},{ownerId:'foreign'},{accountId:f.b},{revision:2},{generation:2}])expect(()=>f.journal.restoreAvailable('owner',f.a,unavailable.epoch,{...identity,...changed})).toThrow('conflict');
+  expect(()=>f.journal.restoreAvailable('owner',f.a,active.epoch,identity)).toThrow('conflict');
+  const recovered=f.journal.restoreAvailable('owner',f.a,unavailable.epoch,identity);
+  expect(f.journal.readTarget('owner',f.a,recovered.epoch)).toEqual(identity);expect(recovered.revision).toBe(1);
+  expect(f.owner.readAccountSecret('owner',f.a)).toBeNull();expect(f.owner.providerSessionState('owner',f.a,'photos_web')).toEqual(session);
+  expect(()=>f.journal.restoreAvailable('owner',f.a,unavailable.epoch,identity)).toThrow('conflict');
+  const nextUnavailable=f.journal.markUnavailable('owner',f.a,recovered.epoch);
+  const revoked=f.journal.revoke('owner',f.a,nextUnavailable.epoch,randomUUID());
+  expect(()=>f.journal.restoreAvailable('owner',f.a,nextUnavailable.epoch,identity)).toThrow('conflict');
+  expect(()=>f.journal.restoreAvailable('owner',f.a,revoked.epoch,identity)).toThrow('conflict');
+ }finally{f.cleanup();}
+});

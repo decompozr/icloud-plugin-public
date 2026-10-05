@@ -1,5 +1,5 @@
 import {test,expect} from 'bun:test';
-import {chmodSync,existsSync,mkdtempSync,mkdirSync,readFileSync,readdirSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
+import {chmodSync,copyFileSync,existsSync,mkdtempSync,mkdirSync,readFileSync,readdirSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomBytes,randomUUID} from 'node:crypto';
@@ -142,6 +142,12 @@ for(const checkpoint of ['temp_fsynced','renamed','directory_fsynced'] as const)
    expect(actual.generation).toBe(checkpoint==='temp_fsynced'?1:2);
    expect(()=>reopened.acquire(f.operationId)).toThrow(checkpoint==='temp_fsynced'?'recovery_required':'conflict');
    expect(existsSync(reopened.lockPath)).toBe(true);
+   const before=readFileSync(reopened.path),files=readdirSync(f.directory).sort();
+   const inspection=reopened.inspectRecovery(f.key,f.operationId);
+   expect(inspection.committed).toEqual(actual);expect(inspection.nextAction).toBe('external_stop_then_reconcile');
+   expect(inspection.staged!==null).toBe(checkpoint==='temp_fsynced');
+   expect(readFileSync(reopened.path)).toEqual(before);expect(readdirSync(f.directory).sort()).toEqual(files);
+   expect(()=>reopened.acquire(f.operationId)).toThrow(checkpoint==='temp_fsynced'?'recovery_required':'conflict');
   }finally{f.cleanup();}
  });
 }
@@ -157,5 +163,62 @@ test('missing/corrupt manifest, wrong modes and symlinks fail closed without rep
   rmSync(f.journal.path);symlinkSync(join(f.directory,'does-not-exist'),f.journal.path);
   const broken=f.journal.acquire(f.operationId);try{expect(()=>f.journal.provision(broken,f.key)).toThrow('conflict');}finally{broken.release();}
   const linked=join(f.directory,'linked-directory');symlinkSync(f.directory,linked);expect(()=>new MasterAuthorityJournal(linked,f.installationId)).toThrow('recovery_required');
+ }finally{f.cleanup();}
+});
+test('recovery inspection is read-only and never converts a live lock into a lease',()=>{
+ const f=fixture();try{
+  const baseline=provision(f);
+  expect(f.journal.inspectRecovery(f.key,f.operationId)).toMatchObject({committed:baseline,lock:null,staged:null,nextAction:'ordinary_acquire'});
+  const lease=f.journal.acquire(f.operationId);
+  try{
+   const other=new MasterAuthorityJournal(f.directory,f.installationId),before=readFileSync(f.journal.path);
+   expect(other.inspectRecovery(f.key,f.operationId).nextAction).toBe('external_stop_then_reconcile');
+   expect(()=>other.acquire(f.operationId)).toThrow('conflict');
+   expect(()=>other.inspectRecovery(f.key,randomUUID())).toThrow('conflict');
+   expect(()=>other.inspectRecovery(randomBytes(32),f.operationId)).toThrow('recovery_required');
+   expect(readFileSync(f.journal.path)).toEqual(before);
+   f.journal.advance(lease,f.key,1,'recovery_required');
+   expect(other.inspectRecovery(f.key,f.operationId).nextAction).toBe('protected_recovery');
+  }finally{lease.release();}
+ }finally{f.cleanup();}
+});
+test('uncommitted Keychain cutover is evidence requiring fresh validation, never authoritative promotion',()=>{
+ const f=fixture();try{
+  provision(f);let interrupt=false;
+  const journal=new MasterAuthorityJournal(f.directory,f.installationId,point=>{if(interrupt&&point==='temp_fsynced')throw Error('synthetic-interruption');});
+  const lease=journal.acquire(f.operationId);
+  try{
+   journal.advance(lease,f.key,1,'copy_intent');journal.advance(lease,f.key,2,'keychain_verified');interrupt=true;
+   expect(()=>journal.advance(lease,f.key,3,'keychain_authoritative')).toThrow('outcome_unknown');
+   const before=readFileSync(journal.path),inspection=journal.inspectRecovery(f.key,f.operationId,{requiredAuthority:'file',minimumGeneration:3});
+   expect(inspection.committed.authority).toBe('file');expect(inspection.staged!.record.authority).toBe('keychain');
+   expect(inspection.staged!.record.generation).toBe(4);expect(readFileSync(journal.path)).toEqual(before);
+   expect(()=>journal.inspectRecovery(f.key,f.operationId,{requiredAuthority:'keychain'})).toThrow('recovery_required');
+   // A valid staging record cannot replace lost authoritative metadata.
+   rmSync(journal.path);expect(()=>journal.inspectRecovery(f.key,f.operationId)).toThrow('missing');
+   expect(existsSync(join(f.directory,inspection.staged!.name))).toBe(true);
+  }finally{lease.release();}
+ }finally{f.cleanup();}
+});
+test('unknown, duplicate, corrupt, unowned or unbound staging and incomplete locks preserve evidence',()=>{
+ const f=fixture();try{
+  provision(f);
+  const journal=new MasterAuthorityJournal(f.directory,f.installationId,point=>{if(point==='temp_fsynced')throw Error('synthetic-interruption');});
+  const lease=journal.acquire(f.operationId);
+  try{
+   expect(()=>journal.advance(lease,f.key,1,'copy_intent')).toThrow('outcome_unknown');
+   const name=readdirSync(f.directory).find(name=>name.endsWith('.pending'))!,path=join(f.directory,name),original=readFileSync(path);
+   const duplicate=join(f.directory,`.master-authority.${f.operationId}.${randomUUID()}.pending`);copyFileSync(path,duplicate);
+   expect(()=>journal.inspectRecovery(f.key,f.operationId)).toThrow('recovery_required');expect(existsSync(duplicate)).toBe(true);rmSync(duplicate);
+   const bad=JSON.parse(original.toString());bad.generation=8;writeFileSync(path,JSON.stringify(bad));
+   expect(()=>journal.inspectRecovery(f.key,f.operationId)).toThrow('recovery_required');expect(readFileSync(path,'utf8')).toBe(JSON.stringify(bad));
+   writeFileSync(path,original);chmodSync(path,0o644);expect(()=>journal.inspectRecovery(f.key,f.operationId)).toThrow('recovery_required');chmodSync(path,0o600);
+   const foreign=join(f.directory,'foreign-staging');writeFileSync(foreign,original,{mode:0o600});rmSync(path);symlinkSync(foreign,path);
+   expect(()=>journal.inspectRecovery(f.key,f.operationId)).toThrow('recovery_required');expect(readFileSync(foreign)).toEqual(original);
+   rmSync(path);writeFileSync(path,original,{mode:0o600});
+  }finally{lease.release();}
+  expect(()=>journal.inspectRecovery(f.key,f.operationId)).toThrow('recovery_required');
+  mkdirSync(journal.lockPath,{mode:0o700});expect(()=>journal.inspectRecovery(f.key,f.operationId)).toThrow('recovery_required');
+  expect(readdirSync(journal.lockPath)).toEqual([]);
  }finally{f.cleanup();}
 });

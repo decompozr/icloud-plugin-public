@@ -24,6 +24,13 @@ export type AuthorityCheckpoint='temp_fsynced'|'renamed'|'directory_fsynced';
 /** Test fault seam; production callers do not supply a hook. */
 type FaultHook=(checkpoint:AuthorityCheckpoint)=>void;
 export interface AuthorityExpectation {readonly requiredAuthority?:'file'|'keychain';readonly minimumGeneration?:number}
+export interface MasterRecoveryInspection {
+ readonly committed:MasterAuthorityRecord;
+ readonly operationId:string;
+ readonly lock:Readonly<{inode:number;device:number}>|null;
+ readonly staged:Readonly<{name:string;record:MasterAuthorityRecord}>|null;
+ readonly nextAction:'ordinary_acquire'|'external_stop_then_reconcile'|'protected_recovery';
+}
 const fail=(code:'invalid_input'|'conflict'|'missing'|'recovery_required'|'outcome_unknown'):never=>{throw new CustodyError(code);};
 const privateInfo=(path:string,directory:boolean)=>{
  const info=lstatSync(path);
@@ -77,6 +84,61 @@ export class MasterAuthorityJournal {
   const record=this.discover(expectation),expected=mac(key,payload(record));
   if(!timingSafeEqual(Buffer.from(expected,'hex'),Buffer.from(record.mac,'hex')))fail('recovery_required');
   return record;
+ }
+ /**
+  * Read-only recovery evidence, not a lease or proof that a writer is dead.
+  * A future exclusive stopped-maintenance coordinator must reinspect before
+  * resolving locks/staging. Never promotes staging, changes authority or deletes.
+  */
+ inspectRecovery(key:Uint8Array,operationId:string,expectation:AuthorityExpectation={}):MasterRecoveryInspection {
+  try{
+   if(!z.string().uuid().safeParse(operationId).success)fail('invalid_input');
+   const committed=this.verify(key,expectation);
+   if(committed.operationId!==null&&committed.operationId!==operationId)fail('conflict');
+   const names=readdirSync(this.directory).filter(name=>name.startsWith('.master-authority.')&&name.endsWith('.pending')).sort();
+   if(names.length>1)fail('recovery_required');
+   let lock:MasterRecoveryInspection['lock']=null;
+   try{
+    const info=privateInfo(this.lockPath,true);
+    // Unknown lock contents/incomplete locks require protected operator recovery.
+    if(JSON.stringify(readdirSync(this.lockPath).sort())!==JSON.stringify(['operation.json']))fail('recovery_required');
+    const fd=openSync(join(this.lockPath,'operation.json'),constants.O_RDONLY|constants.O_NOFOLLOW);
+    try{
+     const stat=fstatSync(fd);
+     if(!stat.isFile()||stat.uid!==process.getuid?.()||(stat.mode&0o077)!==0||stat.size>4096)fail('recovery_required');
+     const record=z.object({format:z.literal(1),installationId:installationIdentitySchema,operationId:z.string().uuid()}).strict().parse(JSON.parse(readFileSync(fd,'utf8')));
+     if(record.installationId!==this.installationId||record.operationId!==operationId)fail('conflict');
+    }finally{closeSync(fd);}
+    lock=Object.freeze({inode:info.ino,device:info.dev});
+   }catch(error){
+    if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;
+    // A present directory with missing operation metadata is not an absent lock.
+    try{lstatSync(this.lockPath);fail('recovery_required');}catch(probe){if((probe as NodeJS.ErrnoException).code!=='ENOENT')throw probe;}
+   }
+   let staged:MasterRecoveryInspection['staged']=null;
+   if(names.length){
+    if(lock===null)fail('recovery_required');
+    const name=names[0]!,match=/^\.master-authority\.([a-f0-9-]{36})\.([a-f0-9-]{36})\.pending$/.exec(name);
+    if(!match||match[1]!==operationId||!z.string().uuid().safeParse(match[2]).success)fail('recovery_required');
+    const fd=openSync(join(this.directory,name),constants.O_RDONLY|constants.O_NOFOLLOW);
+    let record:MasterAuthorityRecord;
+    try{
+     const stat=fstatSync(fd);
+     if(!stat.isFile()||stat.uid!==process.getuid?.()||(stat.mode&0o077)!==0||stat.size>4096)fail('recovery_required');
+     record=recordSchema.parse(JSON.parse(readFileSync(fd,'utf8')));
+    }finally{closeSync(fd);}
+    if(record.installationId!==this.installationId||record.operationId!==operationId||record.generation!==committed.generation+1||!transitions[committed.phase].includes(record.phase))fail('recovery_required');
+    const authority=record.phase==='keychain_authoritative'?'keychain':committed.authority;
+    if(record.authority!==authority||!timingSafeEqual(Buffer.from(record.mac,'hex'),Buffer.from(mac(key,payload(record)),'hex')))fail('recovery_required');
+    staged=Object.freeze({name,record:Object.freeze(record)});
+   }
+   // A live cooperative writer may have changed the snapshot during inspection.
+   // This check is not filesystem isolation against malicious same-user races.
+   if(JSON.stringify(this.verify(key,expectation))!==JSON.stringify(committed)||JSON.stringify(readdirSync(this.directory).filter(name=>name.startsWith('.master-authority.')&&name.endsWith('.pending')).sort())!==JSON.stringify(names))fail('conflict');
+   if(lock!==null){const stat=privateInfo(this.lockPath,true);if(stat.ino!==lock.inode||stat.dev!==lock.device)fail('conflict');}
+   else{try{lstatSync(this.lockPath);fail('conflict');}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}}
+   return Object.freeze({committed,operationId,lock,staged,nextAction:committed.phase==='recovery_required'?'protected_recovery':lock===null?'ordinary_acquire':'external_stop_then_reconcile'});
+  }catch(error){if(error instanceof CustodyError)throw error;return fail('recovery_required');}
  }
  /** Exclusive setup/update/migration/removal coordination. Never steals an existing lock. */
  acquire(operationId:string):AuthorityLease {

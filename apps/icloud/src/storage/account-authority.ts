@@ -139,6 +139,15 @@ export class AccountAuthorityJournal {
    if(state.phase!=='copy_intent')fail('conflict');return this.next(state,{phase:'keychain_verified'});
   }).immediate());
  }
+ /** Cancel only an uncommitted copy; retain exact item cleanup and generation. */
+ cancelCopy(ownerId:string,accountId:string,epoch:number,operationId:string):AccountAuthorityState {
+  return this.guard(()=>this.db.transaction(()=>{
+   const state=this.current(ownerId,accountId);this.expect(state,epoch,operationId);
+   if((state.phase!=='copy_intent'&&state.phase!=='keychain_verified')||state.stagedGeneration===null)fail('conflict');
+   this.queue(state,state.stagedGeneration,operationId);
+   return this.next(state,{phase:'sqlite_authoritative',operationId:null,stagedGeneration:null});
+  }).immediate());
+ }
  /** Caller must freshly validate the exact staged item before this transaction. */
  activate(ownerId:string,accountId:string,epoch:number,operationId:string):AccountAuthorityState {
   return this.guard(()=>this.db.transaction(()=>{
@@ -198,6 +207,17 @@ export class AccountAuthorityJournal {
    if(state.phase!=='keychain_authoritative')fail('conflict');
    // Retain pointer/revision; locked/denied/missing is not revocation or fallback.
    return this.next(state,{phase:'recovery_required'});
+  }).immediate());
+ }
+ /** Caller freshly revalidates exact native custody before clearing unavailability. */
+ restoreAvailable(ownerId:string,accountId:string,expectedEpoch:number,validatedIdentity:AccountCustodyIdentity):AccountAuthorityState {
+  return this.guard(()=>this.db.transaction(()=>{
+   const parsed=accountCustodyIdentitySchema.safeParse(validatedIdentity);
+   if(!parsed.success)fail('invalid_input');
+   const identity=parsed.data,state=this.current(ownerId,accountId);
+   this.expect(state,expectedEpoch);
+   if(state.phase!=='recovery_required'||state.authority!=='keychain'||identity.installationId!==this.installationId||identity.ownerId!==ownerId||identity.accountId!==accountId||identity.revision!==state.revision||identity.generation!==state.activeGeneration)fail('conflict');
+   return this.next(state,{phase:'keychain_authoritative'});
   }).immediate());
  }
  private cleanup(ownerId:string,accountId:string):AccountCleanupItem[] {
