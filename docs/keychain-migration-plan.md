@@ -271,7 +271,18 @@ established file before native requests. Current format-1 startup explicitly
 rejects format-2 metadata even under file authority; no format-2/native runtime
 adoption is enabled. Legacy format-1 administrative primitives remain fixture
 contracts; actual operations must establish format-2 first. This is not a recovery
-backup or full durability/rollback proof. Baseline capture,
+backup or full durability/rollback proof. An inactive
+[initial capture coordinator](../apps/icloud/src/storage/master-baseline-capture.ts)
+now requires the same installation's maintenance and authority leases and an
+independent minimum authority generation. Explicit
+authenticated selection declares consumer presence and the required auth slot;
+all retained registry accounts (including revoked entries) supply current
+Mail/Calendar namespaces. Independently approved historical identities cover
+retained namespaces outside that registry without reviving accounts/sessions.
+Each consumer validates before its counts are captured, full presence checks
+apply, and durable baseline establishment follows with fresh state checks.
+Format-2 history forbids recapture. Safe handle opening and operator selection/
+authentication command,
 protected backup/restore, same-count/historical rollback protection, operational
 maintenance, live auth/session compatibility and actual native acceptance remain
 pending; composition/persistence are not the K2 exit gate.

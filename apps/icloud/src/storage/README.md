@@ -316,12 +316,27 @@ missing authority never provisions itself. Unresolved authority staging remains
 read-only recovery evidence and is never promoted or adopted automatically.
 Guarded FD teardown preserves redacted recovery/uncertain errors.
 
+`captureAndEstablishMasterBaseline` now composes initial capture and establishment
+using existing supplied DB handles and the original borrowed key. It requires
+both the same installation's verified maintenance lease and authority lease;
+only pristine format-1 file authority at the independently required generation
+floor can capture. Operator-authenticated selection
+declares owner/format, required auth slot and consumer table presence. It validates
+the owner/marker, inventories every registry account including revoked entries,
+derives current Mail/Calendar namespaces, validates every declared consumer to
+obtain counts, then applies complete schema/presence checks before persistence.
+Unknown retained account namespaces require separately approved historical
+identity evidence; accepting that evidence does not create an account or revive
+a session. Format-2 intent/established history rejects new capture even if the
+baseline file vanished. No plaintext credentials enter the metadata.
+
 Administrative format-2 metadata is not accepted by the current format-1 runtime,
 even while master custody is still file-authoritative. The startup format gate
 rejects it before key/DB access; native startup also remains disabled. Format-1
 journal/coordinator primitives remain legacy fixture contracts, not an authorized
 production migration path. Operational callers must establish format-2 baseline
-first. Real stopped exclusion, baseline capture, protected backup/restore, installer
+first. The operator authentication/selection command, safe path/handle opening,
+exclusion of older/noncooperating writers, protected backup/restore, installer
 compatibility and native acceptance remain pending. HMAC/generation floors do not
 protect rollback of the manifest, baseline, DBs and independent policy together.
 Process/power loss, disk-full and actual filesystem durability acceptance remain

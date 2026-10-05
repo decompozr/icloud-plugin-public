@@ -1,5 +1,5 @@
 import {constants,mkdirSync,lstatSync,fstatSync,openSync,writeFileSync,readFileSync,fsyncSync,closeSync,unlinkSync,rmdirSync} from 'node:fs';
-import {join} from 'node:path';
+import {join,resolve} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {CustodyError} from '../storage/custody-contract.js';
 
@@ -42,6 +42,7 @@ export class InstallationAccess {
  }
  /** Suitable only after all older/noncooperating writers were independently stopped. */
  readonly assertStoppedMaintenance=():void=>{if(this.purpose!=='maintenance')throw new CustodyError('conflict');this.assert();};
+ assertStoppedMaintenanceFor(directory:string):void{if(resolve(directory)!==resolve(this.directory))throw new CustodyError('conflict');this.assertStoppedMaintenance();}
  release():void {
   this.assert();
   try{
