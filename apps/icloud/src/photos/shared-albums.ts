@@ -30,6 +30,7 @@ export function initializeSharedAlbumLedger(db:Database){db.exec(`CREATE TABLE I
 type HealthRead={id:string;identity:string;started:number;result?:unknown;promise:Promise<void>};
 const activeOperations=new WeakMap<Database,Set<string>>();
 const healthReads=new WeakMap<Database,Map<string,HealthRead>>();
+const albumReads=new WeakMap<Database,Map<string,HealthRead>>();
 
 /** Account-bound experimental lifecycle with durable dispatch and server readback. */
 export class SharedAlbumService {
@@ -42,8 +43,23 @@ export class SharedAlbumService {
  private row(id:string){const row=this.options.db.query('SELECT * FROM photos_shared_operations WHERE id=? AND owner=? AND account=?').get(id,this.options.owner,this.options.accountId) as Row|null;if(!row)throw new PhotosError('operation_not_found');return row;}
  async albums(albumId?:string){
   this.check();const session=this.options.session();
-  const result=await readSharedStreamAlbums(session,this.options.accountId,albumId?this.guid(albumId):undefined);this.check();
+  const result=await readSharedStreamAlbums(session,this.options.accountId,albumId?this.guid(albumId):undefined,!albumId);this.check();
   return {...result,accountId:this.options.accountId,experimental:true,managementReady:false,albums:result.albums.map(a=>({...a,id:this.id(a.albumGuid)}))};
+ }
+ albumsBackground(albumId?:string,readId?:string,refresh=false){
+  this.check();const session=this.options.session(),key=JSON.stringify([this.options.owner,this.options.accountId,albumId??null]),identity=JSON.stringify([session.generation,session.accountRevision]);
+  if(albumId)this.guid(albumId);
+  let reads=albumReads.get(this.options.db);if(!reads){reads=new Map();albumReads.set(this.options.db,reads);}
+  let read=reads.get(key);
+  if(readId&&(!read||read.id!==readId||read.identity!==identity))throw new PhotosError('shared_album_read_not_found');
+  if(readId&&refresh)throw new PhotosError('shared_album_read_arguments_invalid');
+  if(!read||read.identity!==identity||(refresh&&read.result!==undefined)){
+   if(!read&&reads.size>=64)throw new PhotosError('shared_album_read_capacity');
+   read={id:randomUUID(),identity,started:Date.now(),promise:Promise.resolve()};reads.set(key,read);const current=read;
+   current.promise=this.albums(albumId).then(result=>{current.result={status:'complete',...result};},()=>{current.result={status:'failed',error:'shared_album_read_failed'};});
+  }
+  if(Date.now()-read.started>300000&&read.result!==undefined)read.result={status:'expired',automaticRetry:false};
+  return {readId:read.id,startedAt:read.started,automaticRetry:false,...(read.result as object??{status:'read_pending',deadlineMs:albumId?60000:180000})};
  }
  async health(){
   this.check();
@@ -228,7 +244,8 @@ export class SharedAlbumService {
   if(!claimed.changes)throw new PhotosError('shared_upload_already_dispatched');
   const receipt=await session.uploadBytes!({albumGuid:row.albumGuid,privatePath:source.privatePath,bytes:source.bytes,sha256:source.sha256});
   this.check(true);
-  this.options.db.query("UPDATE photos_shared_uploads SET stage='publishing' WHERE operationId=? AND stage='uploading'").run(row.id);
+  const publishing=this.options.db.query("UPDATE photos_shared_uploads SET stage='publishing' WHERE operationId=? AND stage='uploading'").run(row.id);
+  if(!publishing.changes)throw new PhotosError('shared_upload_publication_not_claimed');
   const acknowledged=await publishSharedUpload(session,this.options.accountId,{albumGuid:row.albumGuid,assetGuid:upload.assetGuid,batchGuid:upload.batchGuid,submittedAt:upload.submittedAt,timeZone:upload.timeZone,filename:source.filename},receipt,source.bytes);
   this.options.db.query("UPDATE photos_shared_uploads SET stage='submitted',jobId=? WHERE operationId=? AND stage='publishing'").run(acknowledged.jobId,row.id);
  }
@@ -250,6 +267,19 @@ export class SharedAlbumService {
   const observed=await this.desiredState(this.options.session(),row);this.check();
   if(observed.matches)this.options.db.query("UPDATE photos_shared_operations SET status='reconciled',result=? WHERE id=? AND owner=? AND account=? AND status='outcome_unknown'").run(JSON.stringify({...observed,serverReadbackVerified:true,operationCausedChangeVerified:false,crossDeviceObserved:false}),id,this.options.owner,this.options.accountId);
   if(observed.matches)await this.cleanupUpload(id);
+  else if(JSON.parse(row.intent).action==='upload_shared_asset'){
+   const upload=this.uploadRow(id);
+   // Publication always requires a durable transition out of these stages.
+   // Absence alone cannot resolve publishing/submitted operations.
+   if(['staged','uploading'].includes(upload.stage)){
+    const result={...observed,publicationDispatched:false,publicationStageVerified:true,
+     binaryTransferOutcome:upload.stage==='uploading'?'unknown':'not_started',
+     remoteStagedResourceMayRemain:upload.stage==='uploading',serverMembershipVerifiedAbsent:true,
+     operationCausedChangeVerified:false,crossDeviceObserved:false,automaticRetry:false,lastDispatchStage:upload.stage};
+    const settled=this.options.db.query("UPDATE photos_shared_operations SET status='not_published',result=? WHERE id=? AND owner=? AND account=? AND status='outcome_unknown'").run(JSON.stringify(result),id,this.options.owner,this.options.accountId);
+    if(settled.changes)await this.cleanupUpload(id);
+   }
+  }
   return this.status(id);
  }
 }

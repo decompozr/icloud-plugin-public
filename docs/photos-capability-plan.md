@@ -1,5 +1,26 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Recovery disposition and slow inventory follow-up — 2026-10-05
+
+Candidate recovery now distinguishes never-published uploads from uncertain
+publication. After the actor/grace period, complete membership absence plus a
+retained staged/uploading phase proves publication was never dispatched. It records
+not_published while explicitly retaining unknown binary-transfer outcome and possible
+remote staged resource; no automatic resend occurs. Publishing/submitted phases
+cannot be settled by absence alone. The durable publication transition must succeed
+before dispatch. Local staged bytes are cleaned only after this terminal disposition.
+
+The shared album inventory tool now returns an account-bound retained readId promptly
+and uses the verified long inventory read budget. Polling reuses that job; an explicit
+refresh after completion starts a new one. Revoked/stale/foreign IDs fail closed.
+This fixes the prior direct inventory call's shorter client-facing wait. Jobs remain
+process-local and are not silently restarted after loss.
+
+Focused self-check: 16 lifecycle tests / 174 assertions and typecheck passed. Runtime
+is still 0.1.50; these follow-up fixes require release/deployment. No live mutation
+occurred and the existing conversation still has no shared lifecycle tools loaded.
+
+
 ## Installed 0.1.50 lifecycle candidate — 2026-10-05
 
 PR 48 merged; installed 0.1.50 from clean remote-main commit 61d6a96. Final release
