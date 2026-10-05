@@ -10,6 +10,28 @@ Helper excludes both the catalog reviewer and posting UI research. Generic
 authorization fixtures, reviewer removal/deployment and actual remote read acceptance
 are verified; native write permission and full sharing/cleanup acceptance remain pending.
 
+### Full Shared Album management requirement — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Implementation order: establish a verified non-UI provider protocol and account
+binding; define typed shared-album operations and exact prepare/confirm/apply with
+persistent recovery; integrate scopes, tools and owner diagnostics through the
+shared capability flow; validate complete CRUD/content/participant/permission
+behavior with fixtures; then run the owner-authorized disposable Shared Album
+lifecycle through real MCP and verify remote readback/cloud evidence. Record exact
+created identity and cleanup only that test artifact after reconciliation. Do not
+silently retry an unknown creation/post/invite/delete outcome. Existing local
+reads remain usable while the shared provider is developed.
+
+Acceptance must prove each management operation against a real true Shared Album
+through this MCP, preserve account/grant boundaries, separately report local and
+server/cross-device evidence, and preserve existing family assets/albums. A mock,
+UI-only controller, ordinary album lifecycle or fail-closed placeholder does not
+complete this requirement. Provider protocol/authentication remains unresolved;
+research available SDK and provider implementations before writing a production
+adapter. No browser/native computer control or Photos database edits are allowed.
+
 ### MCP-only operation boundary and test-album disposition — 2026-10-05
 
 The owner explicitly requires Photos operations through this project's main MCP
