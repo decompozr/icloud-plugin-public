@@ -9,6 +9,10 @@ actor = importlib.util.module_from_spec(spec); spec.loader.exec_module(actor)
 
 
 class TransportTests(unittest.TestCase):
+    def test_failure_diagnostics_expose_only_fixed_categories(self):
+        from requests.exceptions import ConnectTimeout, ReadTimeout, SSLError, ConnectionError
+        for kind, code in [(ConnectTimeout,'shared_album_connection_timeout'),(ReadTimeout,'shared_album_read_timeout'),(SSLError,'shared_album_tls_failed'),(ConnectionError,'shared_album_connection_failed'),(ValueError,'shared_album_transport_failed')]:
+            self.assertEqual(actor.failure_code(kind('secret-token')), code)
     def request(self):
         return {'username': 'owner@example.test', 'dsid': '123456789', 'serviceOrigin': 'https://p37-sharedstreams.icloud.com', 'endpoint': 'webgetalbumslist', 'body': '{}', 'state': {
             'schemaVersion': 1, 'username': 'owner@example.test',

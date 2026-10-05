@@ -72,6 +72,15 @@ def run(request, session_factory=None):
         session.close()
 
 
+def failure_code(error):
+    from requests.exceptions import ConnectTimeout, ReadTimeout, SSLError, ConnectionError
+    if isinstance(error, ConnectTimeout): return 'shared_album_connection_timeout'
+    if isinstance(error, ReadTimeout): return 'shared_album_read_timeout'
+    if isinstance(error, SSLError): return 'shared_album_tls_failed'
+    if isinstance(error, ConnectionError): return 'shared_album_connection_failed'
+    return 'shared_album_transport_failed'
+
+
 if __name__ == '__main__':
     logging.disable(logging.CRITICAL)
     try:
@@ -79,5 +88,5 @@ if __name__ == '__main__':
         if len(raw) > 65536:
             raise ValueError('input_limit')
         print(json.dumps({'ok': True, 'result': run(json.loads(raw))}))
-    except Exception:
-        print(json.dumps({'ok': False, 'error': 'shared_album_transport_failed'}))
+    except Exception as error:
+        print(json.dumps({'ok': False, 'error': failure_code(error)}))

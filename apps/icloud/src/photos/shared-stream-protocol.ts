@@ -74,7 +74,7 @@ const inventory=z.object({albums:z.array(serverAlbum).max(10000),rootctag:z.stri
 
 /** Fixed diagnostics only: never include response text, identifiers or cookies. */
 export class SharedStreamReadError extends Error {
- constructor(readonly diagnostic:{stage:'transport'|'http'|'decode'|'schema'|'identity';httpStatus?:number}){super('shared_album_readback_failed');}
+ constructor(readonly diagnostic:{stage:'transport'|'http'|'decode'|'schema'|'identity';httpStatus?:number;cause?:string}){super('shared_album_readback_failed');}
 }
 
 /** Remote observations only; legacy_candidate never grants mutation authority. */
@@ -103,7 +103,11 @@ export async function readSharedStreamAlbums(session:SharedStreamSession,account
   });
   if(exact&&albums.length!==1)throw new Error('exact_album_missing');
   return {source:'remote_shared_streams' as const,albums,rootChangeTag:parsed.rootctag??null,serverResponseObserved:true as const,operationCausedChangeVerified:false as const,crossDeviceObserved:false as const};
- }catch{throw new SharedStreamReadError({stage,...(httpStatus===undefined?{}:{httpStatus})});}
+ }catch(error){
+  const code=error&&typeof error==='object'&&'code' in error?error.code:undefined;
+  const safeCause=typeof code==='string'&&['shared_album_connection_timeout','shared_album_read_timeout','shared_album_tls_failed','shared_album_connection_failed','shared_album_transport_failed','provider_timeout','provider_unavailable','request_too_large','invalid_provider_response'].includes(code)?code:undefined;
+  throw new SharedStreamReadError({stage,...(httpStatus===undefined?{}:{httpStatus}),...(safeCause?{cause:safeCause}:{})});
+ }
 }
 
 /** Independent count read; metadata/list presence alone cannot prove emptiness. */

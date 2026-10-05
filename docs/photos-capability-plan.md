@@ -1,5 +1,17 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Transport timeout investigation after port correction — 2026-10-05
+
+Release 0.1.40 is deployed from main 18d23e6. The advertised default-port preflight
+now passes, and account-bound request preparation contains the expected web-auth
+cookie without Authorization headers. A connection-only diagnostic verified TLS
+reachability to the account's advertised service without any photo API request or
+credential transmission. Main-MCP inventory still fails before an HTTP response.
+Candidate 0.1.41 distinguishes fixed connection/read-timeout/TLS/connection-failure
+categories without recording exception text, URLs, cookies or raw provider bodies.
+No Shared Album write has been attempted. The same authenticated session, installed
+Helper, Photos scopes and rollback remain preserved. Remote acceptance is open.
+
 ## Advertised HTTPS port mismatch resolved in source — 2026-10-05
 
 The deployed 0.1.39 main-MCP diagnostic localized failure to transport, before an
