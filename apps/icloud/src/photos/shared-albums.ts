@@ -35,12 +35,13 @@ export class SharedAlbumService {
  }
  async health(){
   this.check();
-  const access=this.options.session().webAccessState;
+  const diagnosticSession=this.options.session(),access=diagnosticSession.webAccessState;
+  const photosService=diagnosticSession.photosServiceState?diagnosticSession.photosServiceState().catch(()=>({status:'unavailable'})):Promise.resolve({status:'not_configured'});
   const webAccess=access?access().then(value=>({status:'observed',...value}),()=>({status:'unavailable'})):Promise.resolve({status:'not_configured'});
   try{
    const result=await this.albums();
-   return {webAccess:await webAccess,status:'remote_inventory_verified',accountId:this.options.accountId,authenticated:true,total:result.albums.length,legacyCandidates:result.albums.filter(a=>a.protocol==='legacy_candidate').length,modernOrEncrypted:result.albums.filter(a=>a.protocol==='modern_or_encrypted').length,serverResponseObserved:true,...(result.serverHTTPVersion?{serverHTTPVersion:result.serverHTTPVersion}:{}),managementReady:false,experimental:true};
-  }catch(error){return {webAccess:await webAccess,status:'unavailable',error:error instanceof PhotosError?error.code:'shared_album_readback_failed',...(error instanceof SharedStreamReadError?{diagnostic:error.diagnostic}:{}),serverResponseObserved:error instanceof SharedStreamReadError&&error.diagnostic.httpStatus!==undefined,managementReady:false,experimental:true};}
+   return {photosService:await photosService,webAccess:await webAccess,status:'remote_inventory_verified',accountId:this.options.accountId,authenticated:true,total:result.albums.length,legacyCandidates:result.albums.filter(a=>a.protocol==='legacy_candidate').length,modernOrEncrypted:result.albums.filter(a=>a.protocol==='modern_or_encrypted').length,serverResponseObserved:true,...(result.serverHTTPVersion?{serverHTTPVersion:result.serverHTTPVersion}:{}),managementReady:false,experimental:true};
+  }catch(error){return {photosService:await photosService,webAccess:await webAccess,status:'unavailable',error:error instanceof PhotosError?error.code:'shared_album_readback_failed',...(error instanceof SharedStreamReadError?{diagnostic:error.diagnostic}:{}),serverResponseObserved:error instanceof SharedStreamReadError&&error.diagnostic.httpStatus!==undefined,managementReady:false,experimental:true};}
  }
  private async snapshot(session:Session,intent:Intent,guid:string){
   const sessionIdentity={generation:session.generation,accountRevision:session.accountRevision};

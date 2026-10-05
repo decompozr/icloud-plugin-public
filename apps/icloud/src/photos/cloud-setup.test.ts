@@ -117,3 +117,17 @@ test('web access diagnostic projects booleans only and rejects revoked in-flight
   await expect(session.webAccessState!()).rejects.toThrow('cloud_session_changed');expect(calls).toBe(4);
  }finally{f.cleanup();}
 });
+
+test('normal Photos diagnostic reveals count only and never accepts malformed zones as success',async()=>{
+ let reply={status:200,body:JSON.stringify({zones:[{zoneID:{zoneName:'private-fixture'},syncToken:'secret'}]})};
+ const f=fixture(async input=>input.action==='check'?{dependencyReady:true}:authenticated,async input=>{expect(input.endpoint).toBe('photosZonesList');return reply;});
+ try{
+  await f.service.action({action:'login',accountId:f.account.id,password:'fixture'});
+  const session=f.service.sharedSession(f.account.id);
+  expect(await session.photosServiceState!()).toEqual({status:'zones_observed',httpStatus:200,zoneCount:1});
+  reply={status:200,body:'{"zones":[{}]}'};expect((await session.photosServiceState!()).status).toBe('unrecognized');
+  reply={status:401,body:'secret'};expect(await session.photosServiceState!()).toEqual({status:'http_error',httpStatus:401});
+  f.store.revokeProviderSession('owner',f.account.id,'photos_web',f.store.providerSessionState('owner',f.account.id,'photos_web'));
+  await expect(session.photosServiceState!()).rejects.toThrow('cloud_session_changed');
+ }finally{f.cleanup();}
+});

@@ -76,6 +76,19 @@ export class PhotosCloudSetup implements PhotosCloudAdmin {
    const responseKind=recognizedFields.some(key=>['error','errorCode','errorReason'].includes(key))||body.success===false?'provider_error' as const:typeof body.isICDRSDisabled==='boolean'||typeof body.isDeviceConsentedForPCS==='boolean'?'flags' as const:'unrecognized' as const;
    return {responseKind,recognizedFields,isICDRSDisabled:typeof body.isICDRSDisabled==='boolean'?body.isICDRSDisabled:null,isDeviceConsentedForPCS:typeof body.isDeviceConsentedForPCS==='boolean'?body.isDeviceConsentedForPCS:null};
   };
+  session.photosServiceState=async()=>{
+   unchanged();
+   const directory=dirname(fileURLToPath(import.meta.url));
+   const script=join(existsSync(join(directory,'shared-stream-request.py'))?directory:join(directory,'photos'),'shared-stream-request.py');
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint:'photosZonesList',body:'{}',transport:'system_http2'};
+   const raw=await (this.options.requestActor?this.options.requestActor(input):runProcess([this.options.python,script],input,SHARED_READ_TIMEOUT_MS));
+   unchanged();
+   const result=z.object({status:z.number().int().min(200).max(599),body:z.string().max(1024*1024)}).parse(raw);
+   if(result.status!==200)return {status:'http_error',httpStatus:result.status};
+   const decoded=JSON.parse(result.body);
+   const parsed=z.object({zones:z.array(z.object({zoneID:z.object({zoneName:z.string()})})).max(10000)}).safeParse(decoded);
+   return parsed.success?{status:'zones_observed',httpStatus:result.status,zoneCount:parsed.data.zones.length}:{status:'unrecognized',httpStatus:result.status};
+  };
   sharedStreamURL(session,accountId,'webgetalbumslist');return session;
  }
  async status(accountId?:string){

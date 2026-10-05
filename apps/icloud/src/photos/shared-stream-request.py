@@ -14,7 +14,7 @@ import signal
 from urllib.parse import urlsplit, urlencode
 from uuid import UUID
 
-ENDPOINTS = {'requestWebAccessState', 'webgetalbumslist', 'webgetalbumview', 'webgetassetcount',
+ENDPOINTS = {'photosZonesList', 'requestWebAccessState', 'webgetalbumslist', 'webgetalbumview', 'webgetassetcount',
              'createalbum', 'updatealbum', 'deletealbum'}
 
 
@@ -89,7 +89,7 @@ def run(request, session_factory=None, curl_runner=None):
     endpoint = request['endpoint']
     if endpoint not in ENDPOINTS:
         raise ValueError('endpoint')
-    is_read = endpoint.startswith('webget') or endpoint == 'requestWebAccessState'
+    is_read = endpoint.startswith('webget') or endpoint in ['requestWebAccessState', 'photosZonesList']
     transport = request.get('transport', 'requests')
     if transport not in ['requests', 'system_http2'] or transport == 'system_http2' and not is_read:
         raise ValueError('transport')
@@ -104,6 +104,15 @@ def run(request, session_factory=None, curl_runner=None):
         url = f'https://setup.icloud.com{suffix}/setup/ws/1/requestWebAccessState'
         if payload != '{}':
             raise ValueError('payload')
+    if endpoint == 'photosZonesList':
+        cloud = urlsplit(state.get('data', {}).get('webservices', {}).get('ckdatabasews', {}).get('url', ''))
+        if (cloud.scheme != 'https' or cloud.username or cloud.password or cloud.port not in [None, 443] or
+                cloud.path not in ['', '/'] or cloud.query or cloud.fragment or
+                not re.fullmatch(r'p[0-9]+-ckdatabasews\.icloud\.com(?:\.cn)?', cloud.hostname or '')):
+            raise ValueError('service')
+        if payload != '{}':
+            raise ValueError('payload')
+        url = f'https://{cloud.hostname}/database/1/com.apple.photos.cloud/production/private/zones/list'
     if is_read:
         # Pinned pyicloud 2.7.0 PhotoStreamLibrary._get_albums includes these
         # service params. Use this authenticated session's client identity;
@@ -114,8 +123,10 @@ def run(request, session_factory=None, curl_runner=None):
         params = {'clientBuildNumber':'2534Project66', 'clientMasteringNumber':'2534B22', 'clientId':client_id}
         if endpoint != 'requestWebAccessState':
             params['dsid'] = dsid
+        if endpoint == 'photosZonesList':
+            params.update(remapEnums=True, getCurrentSyncToken=True)
         url += '?' + urlencode(params)
-    content_type = 'plain/text' if endpoint == 'webgetalbumslist' else 'text/plain;charset=UTF-8'
+    content_type = 'plain/text' if endpoint in ['webgetalbumslist', 'photosZonesList'] else 'text/plain;charset=UTF-8'
     session = (session_factory or Session)()
     try:
         # Disable netrc/proxy credential discovery. requests' default adapter has
