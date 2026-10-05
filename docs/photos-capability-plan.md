@@ -1,5 +1,25 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Read-only HTTP transport comparison — 2026-10-05
+
+The deployed 0.1.42 main-MCP read also times out with the larger bounded deadline;
+short latency is not established as the cause. The same call now confirms native
+PhotoKit authorization 3/authorized=true, separately from sharing access. Retained
+ordinary-album live evidence still records three applied/local-readback-verified
+operations; its script and operation Helper remain present. No experiment was rerun.
+
+Candidate 0.1.43 selects the Mac's existing HTTP/2-capable system curl for read-only
+Shared Streams routes. It uses the same account, advertised host, cookies and
+payload; secrets enter stdin, never process arguments. It disables curl startup
+configuration, netrc use, environment proxies, redirects and automatic retries;
+TLS verification, HTTPS-only routing, response-size limits and actor deadlines are
+retained. Private temporary response files are removed after each call. Writes
+cannot use this experimental transport and retain their existing one-attempt path.
+Observed HTTP protocol is reported without provider content. This comparison tests
+a transport hypothesis, not a supported Apple sharing claim. Main-MCP live read,
+exact empty-album lifecycle, content/participants/access and complete Photos
+acceptance remain open. Existing account custody and rollback are preserved.
+
 ## Bounded read latency experiment and recovery correction — 2026-10-05
 
 Deployed 0.1.41 main-MCP health established shared_album_read_timeout before an

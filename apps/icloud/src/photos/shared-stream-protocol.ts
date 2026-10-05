@@ -79,17 +79,19 @@ const inventory=z.object({albums:z.array(serverAlbum).max(10000),rootctag:z.stri
 
 /** Fixed diagnostics only: never include response text, identifiers or cookies. */
 export class SharedStreamReadError extends Error {
- constructor(readonly diagnostic:{stage:'transport'|'http'|'decode'|'schema'|'identity';httpStatus?:number;cause?:string}){super('shared_album_readback_failed');}
+ constructor(readonly diagnostic:{stage:'transport'|'http'|'decode'|'schema'|'identity';httpStatus?:number;httpVersion?:string;cause?:string}){super('shared_album_readback_failed');}
 }
 
 /** Remote observations only; legacy_candidate never grants mutation authority. */
 export async function readSharedStreamAlbums(session:SharedStreamSession,accountId:string,albumGuid?:string){
  const exact=albumGuid===undefined?undefined:guid.parse(albumGuid).toUpperCase();
  const url=sharedStreamURL(session,accountId,exact?'webgetalbumview':'webgetalbumslist');
- let stage:SharedStreamReadError['diagnostic']['stage']='transport',httpStatus:number|undefined;
+ let stage:SharedStreamReadError['diagnostic']['stage']='transport',httpStatus:number|undefined,httpVersion:string|undefined;
  try{
   const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(SHARED_READ_TIMEOUT_MS),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(exact?{albumguids:[exact]}:{})});
   stage='http';httpStatus=response.status;
+  const observedVersion=response.headers.get('x-photos-transport-http-version');
+  if(observedVersion&&['1.0','1.1','2','3'].includes(observedVersion))httpVersion=observedVersion;
   if(!response.ok)throw new Error('read_failed');
   stage='decode';const decoded=JSON.parse(await boundedBody(response,1024*1024));
   stage='schema';const parsed=inventory.parse(decoded);
@@ -107,11 +109,12 @@ export async function readSharedStreamAlbums(session:SharedStreamSession,account
     participants:album.sharinginfo??null};
   });
   if(exact&&albums.length!==1)throw new Error('exact_album_missing');
-  return {source:'remote_shared_streams' as const,albums,rootChangeTag:parsed.rootctag??null,serverResponseObserved:true as const,operationCausedChangeVerified:false as const,crossDeviceObserved:false as const};
+  const version=response.headers.get('x-photos-transport-http-version');
+  return {source:'remote_shared_streams' as const,albums,rootChangeTag:parsed.rootctag??null,serverResponseObserved:true as const,operationCausedChangeVerified:false as const,crossDeviceObserved:false as const,...(version&&['1.0','1.1','2','3'].includes(version)?{serverHTTPVersion:version}:{})};
  }catch(error){
   const code=error&&typeof error==='object'&&'code' in error?error.code:undefined;
   const safeCause=typeof code==='string'&&['shared_album_connection_timeout','shared_album_read_timeout','shared_album_tls_failed','shared_album_connection_failed','shared_album_transport_failed','provider_timeout','provider_unavailable','request_too_large','invalid_provider_response'].includes(code)?code:undefined;
-  throw new SharedStreamReadError({stage,...(httpStatus===undefined?{}:{httpStatus}),...(safeCause?{cause:safeCause}:{})});
+  throw new SharedStreamReadError({stage,...(httpStatus===undefined?{}:{httpStatus}),...(httpVersion?{httpVersion}:{}),...(safeCause?{cause:safeCause}:{})});
  }
 }
 

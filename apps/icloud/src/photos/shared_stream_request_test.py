@@ -2,6 +2,8 @@ import importlib.util
 from pathlib import Path
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
+import os
 from requests import Response, Session
 
 spec = importlib.util.spec_from_file_location('shared_stream_request', Path(__file__).with_name('shared-stream-request.py'))
@@ -9,6 +11,38 @@ actor = importlib.util.module_from_spec(spec); spec.loader.exec_module(actor)
 
 
 class TransportTests(unittest.TestCase):
+    def test_http2_read_sends_secrets_only_over_stdin_and_cleans_private_response(self):
+        request = self.request(); request['transport'] = 'system_http2'; calls = []; files = []
+        def runner(argv, **options):
+            calls.append(argv); config = options['input'].decode();
+            self.assertNotIn('sealed-fixture-token', ' '.join(argv)); self.assertNotIn('123456789', ' '.join(argv))
+            self.assertIn('sealed-fixture-token', config); self.assertIn('/sharedstreams/webgetalbumslist', config)
+            self.assertEqual(argv[:4], ['/usr/bin/curl','--disable','--config','-'])
+            self.assertIn('--http2', argv); self.assertNotIn('--insecure', argv); self.assertNotIn('--location', argv)
+            self.assertNotIn('--netrc', argv); self.assertEqual(options['timeout'], 55)
+            path = argv[argv.index('--output') + 1]; files.append(path)
+            self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
+            Path(path).write_text('{"albums":[]}'); return SimpleNamespace(returncode=0, stdout=b'200\n2')
+        result = actor.run(request, curl_runner=runner)
+        self.assertEqual(result, {'status':200,'body':'{"albums":[]}','httpVersion':'2'})
+        self.assertEqual(len(calls), 1); self.assertFalse(Path(files[0]).exists())
+
+    def test_http2_never_dispatches_writes_and_does_not_retry_failed_reads(self):
+        request = self.request(); request.update(transport='system_http2', endpoint='createalbum')
+        with self.assertRaises(ValueError): actor.run(request, curl_runner=lambda *a,**k:self.fail('write dispatched'))
+        request['endpoint'] = 'webgetalbumslist'; calls = []
+        def runner(argv, **options):
+            calls.append(argv); return SimpleNamespace(returncode=28, stdout=b'000\n0')
+        with self.assertRaises(actor.TransportFailure) as caught: actor.run(request, curl_runner=runner)
+        self.assertEqual(actor.failure_code(caught.exception), 'shared_album_read_timeout'); self.assertEqual(len(calls), 1)
+
+    def test_interrupted_http2_read_removes_private_response(self):
+        request = self.request(); request['transport'] = 'system_http2'; files = []
+        def runner(argv, **options):
+            files.append(argv[argv.index('--output') + 1]); raise InterruptedError()
+        with self.assertRaises(InterruptedError): actor.run(request, curl_runner=runner)
+        self.assertEqual(len(files), 1); self.assertFalse(Path(files[0]).exists())
+
     def test_failure_diagnostics_expose_only_fixed_categories(self):
         from requests.exceptions import ConnectTimeout, ReadTimeout, SSLError, ConnectionError
         for kind, code in [(ConnectTimeout,'shared_album_connection_timeout'),(ReadTimeout,'shared_album_read_timeout'),(SSLError,'shared_album_tls_failed'),(ConnectionError,'shared_album_connection_failed'),(ValueError,'shared_album_transport_failed')]:

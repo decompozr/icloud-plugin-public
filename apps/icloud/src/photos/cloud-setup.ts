@@ -55,12 +55,12 @@ export class PhotosCloudSetup implements PhotosCloudAdmin {
    if(url!==sharedStreamURL(session,accountId,endpoint))throw new PhotosError('invalid_shared_album_request');
    const directory=dirname(fileURLToPath(import.meta.url));
    const script=join(existsSync(join(directory,'shared-stream-request.py'))?directory:join(directory,'photos'),'shared-stream-request.py');
-   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint,body:init.body};
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint,body:init.body,...(endpoint.startsWith('webget')?{transport:'system_http2'}:{})};
    const deadline=endpoint.startsWith('webget')?SHARED_READ_TIMEOUT_MS:SHARED_WRITE_TIMEOUT_MS;
-   const result=z.object({status:z.number().int().min(100).max(599),body:z.string().max(1024*1024)}).strict().parse(await (this.options.requestActor?this.options.requestActor(input):runProcess([this.options.python,script],input,deadline,init.signal??undefined)));
+   const result=z.object({status:z.number().int().min(200).max(599),body:z.string().max(1024*1024),httpVersion:z.enum(['1.0','1.1','2','3']).optional()}).strict().parse(await (this.options.requestActor?this.options.requestActor(input):runProcess([this.options.python,script],input,deadline,init.signal??undefined)));
    // A revocation during dispatch may follow an actual server write: callers
    // retain unknown outcomes rather than treating it as a safe retry.
-   unchanged();return new Response(result.body,{status:result.status});
+   unchanged();return new Response([204,205,304].includes(result.status)?null:result.body,{status:result.status,...(result.httpVersion?{headers:{'x-photos-transport-http-version':result.httpVersion}}:{})});
   }};
   sharedStreamURL(session,accountId,'webgetalbumslist');return session;
  }
