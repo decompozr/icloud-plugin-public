@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'bun:test';
-import {SharedStreamReadError,executeSharedStreamMutation,sharedStreamRequest,sharedStreamURL,readSharedStreamAlbums,type SharedStreamSession} from './shared-stream-protocol.js';
+import {readSharedStreamMembership,readSharedStreamAssetPage,SharedStreamReadError,executeSharedStreamMutation,sharedStreamRequest,sharedStreamURL,readSharedStreamAlbums,type SharedStreamSession} from './shared-stream-protocol.js';
 const albumGuid='11111111-1111-4111-8111-111111111111';
 const mutation={action:'create_shared_album' as const,albumGuid,title:'Disposable protocol fixture'};
 function session(request:SharedStreamSession['request']):SharedStreamSession{return {accountId:'owner-account',protocol:'legacy_shared_streams',dsid:'123456789',serviceOrigin:'https://p37-sharedstreams.icloud.com',request};}
@@ -88,4 +88,32 @@ test('opaque provider album identifiers remain visible but cannot become writabl
  expect(result.unsupportedAlbums).toEqual([{albumIdentifier:'opaque-fixture-id',reason:'unsupported_identifier_format',writable:false}]);
  expect(()=>sharedStreamRequest({...mutation,albumGuid:'opaque-fixture-id'})).toThrow();
  await expect(readSharedStreamAlbums(s,'owner-account',albumGuid)).rejects.toThrow();
+});
+
+test('shared asset pages bind exact album and change tag, pair records and redact unrelated fields',async()=>{
+ const master={recordType:'CPLMaster',recordName:'shared-master',fields:{secret:'must-not-escape'}};
+ const asset={recordType:'CPLAsset',recordName:'shared-copy',fields:{masterRef:{value:{recordName:'shared-master'}},secret:'must-not-escape'}};
+ let records:any[]=[master,asset];let calls=0;
+ const s=session(async(url,init)=>{calls++;expect(url.endsWith('/webgetassets')).toBe(true);expect(JSON.parse(init.body as string)).toEqual({albumguid:albumGuid,albumctag:'observed-tag',offset:'10',limit:'14'});return Response.json({records});});
+ const input={albumGuid,changeTag:'observed-tag',offset:10,limit:2};
+ const page=await readSharedStreamAssetPage(s,'owner-account',input);
+ expect(page.assets).toEqual([{assetGuid:'shared-copy',masterGuid:'shared-master'}]);expect(page.complete).toBe(false);expect(JSON.stringify(page)).not.toContain('must-not-escape');
+ for(const broken of [[asset],[master],[master,asset,asset],[master,{...asset,serverErrorCode:'secret'}]]){
+  records=broken;await expect(readSharedStreamAssetPage(s,'owner-account',input)).rejects.toThrow();
+ }
+ const before=calls;await expect(readSharedStreamAssetPage(s,'wrong-account',input)).rejects.toThrow();expect(calls).toBe(before);
+});
+
+test('complete shared membership rejects changed snapshots, repeated pages and truncated reads',async()=>{
+ let metadataReads=0,mode='ok';
+ const s=session(async(url,init)=>{
+  expect(init.signal).toBeDefined();const body=JSON.parse(init.body as string);
+  if(url.endsWith('webgetalbumview')){metadataReads++;return Response.json({albums:[{albumguid:albumGuid,ownerdsid:'123456789',albumctag:mode==='changed'&&metadataReads>1?'new':'same'}]});}
+  if(url.endsWith('webgetassetcount'))return Response.json({albumassetcount:101});
+  const offset=Number(body.offset);const amount=offset===0?100:1;
+  const records=mode==='truncated'?[]:Array.from({length:amount},(_,i)=>{const n=mode==='repeated'?i:offset+i;return [{recordType:'CPLMaster',recordName:`master-${n}`,fields:{}},{recordType:'CPLAsset',recordName:`copy-${n}`,fields:{masterRef:{value:{recordName:`master-${n}`}}}}];}).flat();
+  return Response.json({records});
+ });
+ const result=await readSharedStreamMembership(s,'owner-account',albumGuid);expect(result.assets.length).toBe(101);expect(result.complete).toBe(true);expect(result.originalLibraryIdentityVerified).toBe(false);
+ for(const failure of ['changed','repeated','truncated']){mode=failure;metadataReads=0;await expect(readSharedStreamMembership(s,'owner-account',albumGuid)).rejects.toThrow();}
 });

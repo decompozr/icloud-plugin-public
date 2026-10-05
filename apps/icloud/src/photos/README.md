@@ -32,9 +32,12 @@ photos_shared_operation. It uses the verified invocation account, existing Photo
 scopes and sealed web session. Remote Shared Album IDs differ from local IDs;
 never translate them by matching names. Explicit experimental prepare/apply covers
 creation, rename and deletion of empty owned legacy candidates. Separate server
-readback is required, with no blind retry. Content/member/access writes and real
-lifecycle acceptance remain pending. The lifecycle payloads are inferred candidates
-from the public endpoint/model declarations, not verified Apple request builders.
+readback is required, with no blind retry. Candidate participant/access changes and exact shared-copy removal use the same
+reviewed lifecycle and source-derived Apple request builders. Candidate uploads now bind explicit source representation and digest to reviewed
+plans, retain dispatch stages and recover through read-only membership checks.
+Unexecuted uploads can be cancelled; full Live Photo pairing, subscriber writes
+and real lifecycle acceptance remain pending. Source contracts and fixture tests do not
+prove successful live writes; consult the dated capability plan for deployment evidence.
 
 The private Admin displays the actual verification method. An SMS challenge must
 use the latest SMS code for that request; trusted-device pop-up codes use a

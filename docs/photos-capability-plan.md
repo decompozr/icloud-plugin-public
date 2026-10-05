@@ -1,5 +1,154 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Reviewed upload lifecycle integrated in candidate — 2026-10-05
+
+upload_shared_asset now uses the existing shared prepare/apply/operation flow and
+Photos scopes. Prepare binds exact local asset, explicit representation, remote
+owned album snapshot and private staged bytes; only digest/size/representation are
+review data, never paths or receipts. A private companion ledger retains generated
+asset/batch IDs, timestamp, stage and eventual job ID. Apply revalidates the album
+and custody snapshot, claims the common operation interlock, durably claims binary
+transfer and publication separately, and sends each once. Receipts stay in memory.
+
+Readback polls retained jobs and independently searches complete stable membership
+for the retained asset GUID; job-read failure does not prevent membership recovery.
+Interrupted/lost writes never resume binary transfer or publication. Unknown binary
+outcomes retain evidence and cannot yet be cleared automatically. Recovery grace
+covers transfer, publication and all readback deadlines. Successful/read-reconciled
+uploads remove only their exact private staged file; failed cleanup retains its
+path for recovery. Unexecuted plans support explicit cancellation through shared
+apply(cancel=true), which releases staged bytes without Photos mutations. Full Live
+Photo pairing, subscriber writes and real provider acceptance remain open.
+
+Self-check: full app suite 417 tests / 2828 assertions and typecheck passed.
+16 Python transport tests and final production build passed for the 0.1.50 release
+candidate, including the cancellation case. These
+are fixtures, not live uploads. Candidate is not deployed; runtime remains 0.1.49.
+Next: full final checks, release/merge/deploy, existing-MCP tool discovery and exact
+owner-reviewed live acceptance. No personal upload or invitation has occurred.
+
+
+## Account-bound binary upload transport candidate — 2026-10-05
+
+Added a private binary-stage actor, packaged with the application. Before account
+network access it opens the staged file without following symlinks, requires owner
+custody/private mode, checks bounded byte count and SHA-256, and detects source
+changes. URL allocation uses the existing actor's saved-account/DSID/advertised-
+service checks. Only that response can supply the upload destination. Parsed HTTPS
+Apple iCloud/content-domain boundaries and region are enforced; redirects, proxy/
+netrc discovery, arbitrary URL input and automatic retries are excluded. Cookies
+remain domain scoped; iCloud cookies are not sent to the content domain. The actor
+performs one binary POST, bounds its response and returns a server-only receipt.
+
+The sealed session exposes this only as an internal method, checking owner/account
+custody generation before and after dispatch. A lost response or revocation during
+transfer does not authorize resending. Public account status does not expose the
+receipt. Reviewed apply integration must durably claim the stage before using it;
+no MCP upload action invokes it yet, and no live account request was made.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Private reviewed upload source staging — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Publication request identity and timestamp — 2026-10-05
+
+Static AST inspection (without executing vendor JavaScript) confirmed module 962's
+submission timestamp is Date.toJSON(), while module 944 defines the binary receipt.
+The internal webputasset builder now requires retained album/asset/batch GUIDs,
+ISO timestamp, filename and valid time zone; it never generates replacement IDs.
+It binds the receipt byte size and rejects tool-supplied extra keys. No publication
+transport has been enabled yet. Five upload-contract tests / 52 assertions and
+typecheck passed. These are source/fixture checks, not live upload acceptance.
+
+The pinned osxphotos PhotoInfo.export API can copy original/edited resources with
+use_photos_export=False (no Photos UI). Export representation must be explicit,
+including Live Photo handling; missing originals need supported download/fallback,
+not silent preview substitution. Remaining upload sequence: reviewed representation
+and staged content digest; account-bound URL allocation and validated destination;
+private binary POST; durable publication claim using retained asset GUID; retained
+job polling; independent exact shared membership and cloud/cross-device evidence.
+
+
+## Shared upload response contracts — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Upload-job polling is now wired through the account-bound read transport with
+fixed endpoint, retained job identity, bounded response/deadline, redacted failures
+and no automatic retry. It is an internal recovery primitive, not an MCP upload
+action. Self-check: 412 app tests / 2753 assertions, 14 Python transport tests and
+typecheck passed. Upload URL host/cookie custody,
+reviewed local export, durable multi-stage dispatch and live readback remain open.
+No authenticated upload request or personal-photo mutation was performed.
+
+
+## Reviewed shared-copy removal candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Shared-copy page reader candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Background reviewed lifecycle candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Reviewed participant changes integrated in candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Reviewed permission changes integrated in candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Management request contracts extracted — 2026-10-05
+
+Fetched Apple's public management bundle directly (no account, cookies or UI):
+https://www.icloud.com/applications/photos3/2636Build18/en-us/sharedalbummanage.js
+SHA-256 6e28405c29e927dbe688d45b50a2dc19244733c319a1a8d094af05673e815416.
+Together with the retained UI bundle it establishes request builders for share,
+unshare, setalbumpublic, updatealbum contributions and deleteassets. Contribution
+updates include the current album name; removing a participant uses invitation ID,
+not person ID; removing photos uses exact shared-copy asset IDs and album routing.
+
+Added internal source-derived builders with strict input boundaries, retained
+invitation IDs, explicit notification classification and separate server-only
+organization-key context. They are not registered or dispatched. Owner checks,
+reviewed plans, durable unknown-outcome recovery, response validation and independent
+readback must be integrated before exposure. Tests cover duplicate invitations,
+empty/duplicate removal targets, permission-change boundaries and retained IDs:
+3 tests / 16 assertions plus typecheck passed. No invitations or writes occurred.
+
+
+## Live Shared Album inventory parsed — 2026-10-05
+
+Installed 0.1.49 from 387abea. Actual existing-main-MCP background health completed
+with 49 UUID-addressable legacy candidates and one unsupported opaque identifier;
+status remote_inventory_partial, HTTP 1.1 response observed. No modern/encrypted
+marker was present on those 49 parsed entries; this is classification from returned
+metadata, not write support proof. Normal Photos reads also remain verified.
+13 doctor checks passed; provider session row digests, configuration and Helper
+were preserved. No shared creation, rename, deletion or upload has been dispatched.
+The conversation still lacks the four registered shared lifecycle tools; the owner
+has been asked to refresh the existing plugin's tools, without replacing its MCP.
+Tool availability and slow-read behavior must be resolved before live lifecycle
+acceptance. All broader Photos phases remain required.
+
+
 ## Observed inventory identifier mismatch — 2026-10-05
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.

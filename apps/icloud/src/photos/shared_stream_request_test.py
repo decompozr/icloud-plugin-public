@@ -12,6 +12,23 @@ actor = importlib.util.module_from_spec(spec); spec.loader.exec_module(actor)
 
 
 class TransportTests(unittest.TestCase):
+    def test_upload_job_status_uses_read_transport_and_retained_identity(self):
+        request = self.request()
+        request.update(endpoint='webuploadstatus', body='{"uploadjobids":["retained-job"]}', transport='system_http2')
+        calls = []
+        def runner(argv, **options):
+            calls.append(argv)
+            config = options['input'].decode()
+            self.assertIn('/sharedstreams/webuploadstatus?', config)
+            self.assertIn('retained-job', config)
+            self.assertEqual(options['timeout'], 55)
+            self.assertNotIn('--location', argv)
+            Path(argv[argv.index('--output') + 1]).write_text('[{"uploadjobid":"retained-job","status":"IN_PROGRESS"}]')
+            return SimpleNamespace(returncode=0, stdout=b'200\n2')
+        result = actor.run(request, curl_runner=runner)
+        self.assertEqual(result['status'], 200)
+        self.assertEqual(len(calls), 1)
+
     def test_http2_read_sends_secrets_only_over_stdin_and_cleans_private_response(self):
         request = self.request(); request['transport'] = 'system_http2'; calls = []; files = []
         def runner(argv, **options):

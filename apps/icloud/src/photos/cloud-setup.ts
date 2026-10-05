@@ -1,5 +1,6 @@
+import {parseSharedUploadReceipt} from './shared-upload-contract.js';
 import {mkdir,lstat,rmdir,writeFile} from 'node:fs/promises';
-import {join,dirname} from 'node:path';
+import {join,dirname,isAbsolute} from 'node:path';
 import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {z} from 'zod';
@@ -26,7 +27,7 @@ export function supportsProviderSessions(store:OwnerSecretStore):store is Sessio
 /** Private owner setup only. Does not grant OAuth or execute any photo write. */
 export class PhotosCloudSetup implements PhotosCloudAdmin {
  private actor:Actor;
- constructor(private options:{store:SessionStore;owner:()=>string;python:string;runtimeDirectory:string;customPython?:boolean;actor?:Actor;requestActor?:Actor;prepareRuntime?:()=>Promise<void>}){
+ constructor(private options:{store:SessionStore;owner:()=>string;python:string;runtimeDirectory:string;customPython?:boolean;actor?:Actor;requestActor?:Actor;uploadActor?:Actor;prepareRuntime?:()=>Promise<void>}){
   const directory=dirname(fileURLToPath(import.meta.url));
   const script=join(existsSync(join(directory,'cloud-session.py'))?directory:join(directory,'photos'),'cloud-session.py');
   this.actor=options.actor??(input=>runProcess([options.python,script],input,60000));
@@ -57,8 +58,9 @@ export class PhotosCloudSetup implements PhotosCloudAdmin {
    const script=join(existsSync(join(directory,'shared-stream-request.py'))?directory:join(directory,'photos'),'shared-stream-request.py');
    const longProbe=new Headers(init.headers).get('x-photos-inventory-probe')==='true';
    if(longProbe&&(endpoint!=='webgetalbumslist'||init.body!=='{}'))throw new PhotosError('invalid_shared_album_request');
-   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint,body:init.body,...(longProbe?{longProbe:true}:{}),...(endpoint.startsWith('webget')?{transport:'system_http2'}:{})};
-   const deadline=longProbe?SHARED_INVENTORY_PROBE_TIMEOUT_MS:endpoint.startsWith('webget')?SHARED_READ_TIMEOUT_MS:SHARED_WRITE_TIMEOUT_MS;
+   const isRead=endpoint.startsWith('webget')||endpoint==='webuploadstatus';
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint,body:init.body,...(longProbe?{longProbe:true}:{}),...(isRead?{transport:'system_http2'}:{})};
+   const deadline=longProbe?SHARED_INVENTORY_PROBE_TIMEOUT_MS:isRead?SHARED_READ_TIMEOUT_MS:SHARED_WRITE_TIMEOUT_MS;
    const result=z.object({status:z.number().int().min(200).max(599),body:z.string().max(1024*1024),httpVersion:z.enum(['1.0','1.1','2','3']).optional()}).strict().parse(await (this.options.requestActor?this.options.requestActor(input):runProcess([this.options.python,script],input,deadline,init.signal??undefined)));
    // A revocation during dispatch may follow an actual server write: callers
    // retain unknown outcomes rather than treating it as a safe retry.
@@ -90,6 +92,16 @@ export class PhotosCloudSetup implements PhotosCloudAdmin {
    const decoded=JSON.parse(result.body);
    const parsed=z.object({zones:z.array(z.object({zoneID:z.object({zoneName:z.string()})})).max(10000)}).safeParse(decoded);
    return parsed.success?{status:'zones_observed',httpStatus:result.status,zoneCount:parsed.data.zones.length}:{status:'unrecognized',httpStatus:result.status};
+  };
+  session.uploadBytes=async source=>{
+   unchanged();
+   const staged=z.object({albumGuid:z.string().uuid(),privatePath:z.string().refine(isAbsolute),bytes:z.number().int().positive().max(500*1024*1024),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).strict().parse(source);
+   const directory=dirname(fileURLToPath(import.meta.url));
+   const script=join(existsSync(join(directory,'shared-stream-upload.py'))?directory:join(directory,'photos'),'shared-stream-upload.py');
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,...staged};
+   const result=z.object({body:z.string().max(65536)}).strict().parse(await (this.options.uploadActor?this.options.uploadActor(input):runProcess([this.options.python,script],input,240000)));
+   unchanged();
+   return parseSharedUploadReceipt(JSON.parse(result.body),staged.bytes);
   };
   sharedStreamURL(session,accountId,'webgetalbumslist');return session;
  }

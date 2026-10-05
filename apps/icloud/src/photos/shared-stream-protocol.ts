@@ -1,10 +1,13 @@
+import {parseSharedUploadReceipt,parseSharedUploadAcknowledgement,sharedUploadPublicationRequest,parseSharedUploadStatus,sharedUploadStatusRequest} from './shared-upload-contract.js';
 import {z} from 'zod';
+import {sharedManagementRequest} from './shared-management-contract.js';
 
 export const SHARED_READ_TIMEOUT_MS=60000;
 export const SHARED_INVENTORY_PROBE_TIMEOUT_MS=180000;
 export const SHARED_WRITE_TIMEOUT_MS=30000;
+export const SHARED_MEMBERSHIP_TIMEOUT_MS=300000;
 // One write plus inventory, exact metadata and count readback, with recovery margin.
-export const SHARED_RECOVERY_GRACE_MS=SHARED_WRITE_TIMEOUT_MS+3*SHARED_READ_TIMEOUT_MS+30000;
+export const SHARED_RECOVERY_GRACE_MS=SHARED_WRITE_TIMEOUT_MS+SHARED_INVENTORY_PROBE_TIMEOUT_MS+2*SHARED_READ_TIMEOUT_MS+SHARED_MEMBERSHIP_TIMEOUT_MS+240000+SHARED_READ_TIMEOUT_MS+30000;
 
 // Undocumented Shared Streams endpoint catalog and read contracts observed in
 // Apple's public Photos client. Lifecycle write payloads are experimental
@@ -17,9 +20,16 @@ export const sharedStreamMutationSchema=z.discriminatedUnion('action',[
  z.object({action:z.literal('create_shared_album'),albumGuid:guid,title}).strict(),
  z.object({action:z.literal('rename_shared_album'),albumGuid:guid,title}).strict(),
  z.object({action:z.literal('delete_shared_album'),albumGuid:guid}).strict(),
+ z.object({action:z.literal('set_shared_contributions'),albumGuid:guid,currentName:title,enabled:z.boolean()}).strict(),
+ z.object({action:z.literal('set_shared_public_access'),albumGuid:guid,enabled:z.boolean()}).strict(),
+ z.object({action:z.literal('invite_shared_participants'),albumGuid:guid,invitations:z.array(z.object({invitationGuid:guid,email:z.string().email()})).min(1).max(20)}).strict(),
+ z.object({action:z.literal('remove_shared_participant'),albumGuid:guid,invitationGuid:z.string().min(1).max(512)}).strict(),
+ z.object({action:z.literal('remove_shared_assets'),albumGuid:guid,assetGuids:z.array(z.string().min(1).max(512)).min(1).max(100)}).strict(),
 ]);
 export type SharedStreamMutation=z.infer<typeof sharedStreamMutationSchema>;
 export interface SharedStreamSession {
+ // Private staged source and receipt; never pass these through MCP output.
+ uploadBytes?:(source:{albumGuid:string;privatePath:string;bytes:number;sha256:string})=>Promise<ReturnType<typeof parseSharedUploadReceipt>>;
  photosServiceState?:()=>Promise<{status:'zones_observed'|'http_error'|'unrecognized';httpStatus:number;zoneCount?:number}>;
  webAccessState?:()=>Promise<{isICDRSDisabled:boolean|null;isDeviceConsentedForPCS:boolean|null;responseKind:'flags'|'provider_error'|'unrecognized';recognizedFields:string[]}>;
  accountId:string;
@@ -41,6 +51,11 @@ export function sharedStreamRequest(mutation:SharedStreamMutation){
  switch(m.action){
   case 'create_shared_album':return {endpoint:'createalbum',payload:{albumguid,attributes:{name:m.title,allowcontributions:'1'}},expectsGuid:true};
   case 'rename_shared_album':return {endpoint:'updatealbum',payload:{albumguid,attributes:{name:m.title}},expectsGuid:false};
+  case 'set_shared_contributions':{const request=sharedManagementRequest({action:'set_contributions',albumGuid:albumguid,currentName:m.currentName,enabled:m.enabled});return {endpoint:request.endpoint,payload:request.payload,expectsGuid:false};}
+  case 'set_shared_public_access':{const request=sharedManagementRequest({action:'set_public_access',albumGuid:albumguid,enabled:m.enabled});return {endpoint:request.endpoint,payload:request.payload,expectsGuid:false};}
+  case 'invite_shared_participants':{const request=sharedManagementRequest({action:'invite_participants',albumGuid:albumguid,invitations:m.invitations});return {endpoint:request.endpoint,payload:request.payload,expectsGuid:false};}
+  case 'remove_shared_participant':{const request=sharedManagementRequest({action:'remove_participant',albumGuid:albumguid,invitationGuid:m.invitationGuid});return {endpoint:request.endpoint,payload:request.payload,expectsGuid:false};}
+  case 'remove_shared_assets':{const request=sharedManagementRequest({action:m.action,albumGuid:albumguid,assetGuids:m.assetGuids});return {endpoint:request.endpoint,payload:request.payload,expectsGuid:false};}
   case 'delete_shared_album':return {endpoint:'deletealbum',payload:{albumguid},expectsGuid:false};
  }
 }
@@ -51,7 +66,7 @@ export function sharedStreamURL(session:SharedStreamSession,accountId:string,end
  // similar album name/UUID is not evidence that the legacy protocol applies.
  if(session.protocol!=='legacy_shared_streams')throw new Error('unsupported_shared_album_protocol');
  if(!/^[0-9]{1,30}$/.test(session.dsid))throw new Error('invalid_shared_album_session');
- if(!['createalbum','updatealbum','deletealbum','webgetalbumslist','webgetalbumview','webgetassetcount'].includes(endpoint))throw new Error('invalid_shared_album_endpoint');
+ if(!['createalbum','updatealbum','deletealbum','setalbumpublic','share','unshare','deleteassets','webgetalbumslist','webgetalbumview','webgetassetcount','webgetassets','webuploadstatus','webputasset'].includes(endpoint))throw new Error('invalid_shared_album_endpoint');
  const url=new URL(session.serviceOrigin);
  if(url.protocol!=='https:'||url.username||url.password||url.port||url.search||url.hash||url.pathname!=='/'||
   !/^p[0-9]+-sharedstreams\.icloud\.com(?:\.cn)?$/.test(url.hostname))throw new Error('invalid_shared_album_service');
@@ -125,6 +140,35 @@ export async function readSharedStreamAlbums(session:SharedStreamSession,account
  }
 }
 
+/** A bounded page of shared-copy identities, never original-library identities. */
+export async function readSharedStreamAssetPage(session:SharedStreamSession,accountId:string,input:{albumGuid:string;changeTag:string;offset:number;limit:number}){
+ const page=z.object({albumGuid:guid,changeTag:z.string().min(1).max(4096),offset:z.number().int().min(0).max(100000),limit:z.number().int().min(1).max(100)}).strict().parse(input);
+ const response=await session.request(sharedStreamURL(session,accountId,'webgetassets'),{method:'POST',redirect:'error',signal:AbortSignal.timeout(SHARED_READ_TIMEOUT_MS),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({albumguid:page.albumGuid.toUpperCase(),albumctag:page.changeTag,offset:String(page.offset),limit:String(page.offset+page.limit*2)})});
+ if(!response.ok)throw new Error('shared_album_assets_read_failed');
+ const name=z.string().min(1).max(512).refine(v=>!/[\x00-\x1f\x7f]/.test(v));
+ const record=z.object({recordName:name,recordType:z.enum(['CPLMaster','CPLAsset']),fields:z.record(z.unknown())}).passthrough();
+ const parsed=z.object({records:z.array(record).max(200)}).parse(JSON.parse(await boundedBody(response)));
+ const masters=new Set<string>(),assets=new Map<string,string>();
+ for(const item of parsed.records){
+  if(['error','errors','serverErrorCode'].some(key=>key in item))throw new Error('shared_album_asset_record_error');
+  if(item.recordType==='CPLMaster'){
+   if(masters.has(item.recordName))throw new Error('shared_album_asset_identity_mismatch');
+   masters.add(item.recordName);
+  }else{
+   const reference=z.object({value:z.object({recordName:name})}).parse(item.fields.masterRef).value.recordName;
+   if(assets.has(item.recordName))throw new Error('shared_album_asset_identity_mismatch');
+   assets.set(item.recordName,reference);
+  }
+ }
+ const used=new Set<string>();
+ for(const reference of assets.values()){
+  if(!masters.has(reference)||used.has(reference))throw new Error('shared_album_asset_identity_mismatch');
+  used.add(reference);
+ }
+ if(used.size!==masters.size||assets.size>page.limit)throw new Error('shared_album_asset_page_mismatch');
+ return {albumGuid:page.albumGuid.toUpperCase(),changeTag:page.changeTag,offset:page.offset,assets:[...assets].map(([assetGuid,masterGuid])=>({assetGuid,masterGuid})),source:'remote_shared_streams' as const,complete:false as const,originalLibraryIdentityVerified:false as const};
+}
+
 /** Independent count read; metadata/list presence alone cannot prove emptiness. */
 export async function readSharedStreamCount(session:SharedStreamSession,accountId:string,albumGuid:string){
  const exact=guid.parse(albumGuid).toUpperCase(),url=sharedStreamURL(session,accountId,'webgetassetcount');
@@ -133,6 +177,43 @@ export async function readSharedStreamCount(session:SharedStreamSession,accountI
   if(!response.ok)throw new Error('read_failed');
   return z.object({albumassetcount:z.number().int().nonnegative()}).parse(JSON.parse(await boundedBody(response))).albumassetcount;
  }catch{throw new Error('shared_album_count_failed');}
+}
+
+/** Read-only recovery of an already retained upload job; never starts an upload. */
+export async function readSharedUploadJob(session:SharedStreamSession,accountId:string,jobId:string){
+ const request=sharedUploadStatusRequest(jobId),url=sharedStreamURL(session,accountId,request.endpoint);
+ try{
+  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(SHARED_READ_TIMEOUT_MS),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(request.payload)});
+  if(!response.ok)throw new Error('read_failed');
+  return parseSharedUploadStatus(JSON.parse(await boundedBody(response)),jobId);
+ }catch{throw new Error('shared_upload_status_read_failed');}
+}
+
+/** Complete bounded owned-album membership, with before/after consistency checks. */
+export async function readSharedStreamMembership(session:SharedStreamSession,accountId:string,albumGuid:string){
+ const exact=guid.parse(albumGuid).toUpperCase(),deadline=AbortSignal.timeout(SHARED_MEMBERSHIP_TIMEOUT_MS);
+ const bounded:SharedStreamSession={...session,request:(url,init)=>{
+  deadline.throwIfAborted();
+  return session.request(url,{...init,signal:AbortSignal.any([deadline,...(init.signal?[init.signal]:[])])});
+ }};
+ const before=(await readSharedStreamAlbums(bounded,accountId,exact)).albums[0]!;
+ if(before.rights!=='owner'||before.protocol!=='legacy_candidate'||!before.changeTag)throw new Error('shared_album_membership_unsupported');
+ const count=await readSharedStreamCount(bounded,accountId,exact);
+ if(count>5000)throw new Error('shared_album_membership_limit');
+ const assets:Array<{assetGuid:string;masterGuid:string}>=[],seenAssets=new Set<string>(),seenMasters=new Set<string>();
+ while(assets.length<count){
+  const page=await readSharedStreamAssetPage(bounded,accountId,{albumGuid:exact,changeTag:before.changeTag,offset:assets.length,limit:Math.min(100,count-assets.length)});
+  if(!page.assets.length)throw new Error('shared_album_membership_incomplete');
+  for(const asset of page.assets){
+   if(seenAssets.has(asset.assetGuid)||seenMasters.has(asset.masterGuid))throw new Error('shared_album_membership_duplicate');
+   seenAssets.add(asset.assetGuid);seenMasters.add(asset.masterGuid);assets.push(asset);
+  }
+ }
+ const after=(await readSharedStreamAlbums(bounded,accountId,exact)).albums[0]!;
+ const finalCount=await readSharedStreamCount(bounded,accountId,exact);
+ if(count!==finalCount||before.changeTag!==after.changeTag||before.ownerDsid!==after.ownerDsid||after.rights!=='owner'||after.protocol!=='legacy_candidate')throw new Error('shared_album_membership_changed');
+ deadline.throwIfAborted();
+ return {albumGuid:exact,changeTag:after.changeTag,assets,total:count,complete:true as const,observedSnapshotStable:true as const,source:'remote_shared_streams' as const,originalLibraryIdentityVerified:false as const};
 }
 
 /** One attempt only; acknowledgement is never membership/cloud readback proof. */
@@ -152,4 +233,15 @@ export async function executeSharedStreamMutation(session:SharedStreamSession,ac
   }
   return {status:'acknowledged_readback_required',albumGuid,serverSyncVerified:false};
  }catch{return unknown();}
+}
+
+
+/** Caller must retain a publication claim before dispatch. Never retry. */
+export async function publishSharedUpload(session:SharedStreamSession,accountId:string,plan:Parameters<typeof sharedUploadPublicationRequest>[0],receipt:unknown,bytes:number){
+ const request=sharedUploadPublicationRequest(plan,receipt,bytes),url=sharedStreamURL(session,accountId,request.endpoint);
+ try{
+  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(SHARED_WRITE_TIMEOUT_MS),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(request.payload)});
+  if(!response.ok)throw Error('publication_failed');
+  return parseSharedUploadAcknowledgement(JSON.parse(await boundedBody(response)),{albumGuid:request.payload.albumguid,assetGuid:request.payload.assetguid});
+ }catch{throw Error('shared_upload_publication_outcome_unknown');}
 }
