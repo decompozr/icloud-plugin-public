@@ -1,5 +1,24 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Installed 0.1.51; remote connection acceptance unresolved — 2026-10-05
+
+PR 49 merged and 0.1.51 installed from clean remote-main 86f63bf. Final build and
+418 app tests / 2844 assertions passed; all 13 installed doctor checks pass. Saved
+provider-session row digest, configuration and signed Helper remain unchanged.
+The primary main checkout fast-forwarded cleanly. No active Photos mutations were
+present before upgrade; no shared write or personal upload was dispatched.
+
+The actual original-MCP health call returned Connection failed on three attempts.
+The installed launcher/child remain live; the original public URL returns expected
+anonymous HTTP 401 from this Mac. Local reachability is not remote connector proof.
+No service crash or source-backed cause has been established. The owner has been
+asked to refresh/reconnect the same existing plugin, never replace it. Do not mark
+remote acceptance passed, restart to manufacture success, or bypass the MCP with
+account-bound CLI requests. Keep the retained rollback and current state intact.
+Next: diagnose the existing connection, then shared-tool discovery and live exact
+reviewed lifecycle. Other unfinished Photos requirements remain unchanged.
+
+
 ## Recovery disposition and slow inventory follow-up — 2026-10-05
 
 Candidate recovery now distinguishes never-published uploads from uncertain
