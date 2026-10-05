@@ -1,5 +1,49 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Explicit synthetic shared-upload fixture candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Self-check: 20 lifecycle tests / 220 assertions, synthetic PNG byte/CRC/digest/mode
+checks, typecheck and production build passed. Tests use local generated fixtures
+only. The candidate also includes reviewed nonempty owned-album deletion. It is not
+yet deployed; current runtime remains 0.1.52. Main-MCP new-tool loading remains the
+live acceptance prerequisite. Do not use a direct authenticated CLI workaround.
+
+
+## Owner-authorized synthetic fixture and remaining acceptance — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Remaining acceptance: original-connection shared tools must load; real empty-album
+create/rename/delete; approved synthetic upload/removal and owned album deletion;
+participant/access actions only with concrete recipients/access approval; ordinary
+writes/delete with separate scope; complete owner photo decisions and independent
+sharing/cloud evidence; setup/lifecycle checks and safe artifact disposition. Do
+not add unsupported subscriber authority or silently flatten Live Photos to finish.
+
+
+## Installed 0.1.52 and original-MCP read acceptance — 2026-10-05
+
+PR 50 merged and 0.1.52 installed from clean remote-main 8eac535. Verification:
+420 app tests / 2869 assertions, typecheck, production build and 13 installed doctor
+checks passed. Provider-session row digest, configuration and signed Helper were
+preserved; the primary main checkout fast-forwarded cleanly. No shared writes were
+in progress or performed. The existing main-MCP health call succeeded and its one
+retained background job read normal Photos HTTP 200/one zone and 49 legacy candidate
+albums plus one unsupported opaque identifier. Native authorization remains 3/true.
+
+The installed shared-copy review and write flow still lack actual conversation-tool
+acceptance: the four shared lifecycle tools remain absent from the loaded tool set.
+Do not equate server registration/fixture discovery or health success with usable
+shared writes. Same-connection refresh remains pending; no additional MCP is needed.
+All personal sharing/cleanup decisions and live mutation/cloud evidence remain open.
+
+
 ## Main-MCP shared-tool discovery coverage — 2026-10-05
 
 An in-memory SDK client now exercises the actual main protocol host with the Photos

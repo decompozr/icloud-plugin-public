@@ -72,7 +72,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
   const shared=photosCloud?()=>{
    const context=invocationContext(),owner=deps.store.ownerId();
    if(!context||context.ownerId!==owner||!context.accountId)throw new PhotosError('verified_account_context_required');
-   return new SharedAlbumService({db:deps.authDatabase,owner:context.ownerId,accountId:context.accountId,currentOwner:()=>deps.store.ownerId()??'',policy,session:()=>photosCloud.sharedSession(context.accountId!),stageUpload:(assetId,representation,livePhotoMode)=>photosProvider.stageUpload(assetId,representation,livePhotoMode),releaseUpload:source=>photosProvider.releaseUpload(source)});
+   return new SharedAlbumService({db:deps.authDatabase,owner:context.ownerId,accountId:context.accountId,currentOwner:()=>deps.store.ownerId()??'',policy,session:()=>photosCloud.sharedSession(context.accountId!),stageUpload:(assetId,representation,livePhotoMode)=>photosProvider.stageUpload(assetId,representation,livePhotoMode),releaseUpload:source=>photosProvider.releaseUpload(source),stageTestUpload:operationId=>photosProvider.stageTestUpload(operationId)});
   }:undefined;
   runtime.register(photosRegistration(photos,policy,shared));
  }
