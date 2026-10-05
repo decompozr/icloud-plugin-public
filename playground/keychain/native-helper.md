@@ -37,3 +37,14 @@ Next gate: qualify app-like helper packaging, stable release identity and approv
 access group/profile, followed by explicitly authorized isolated native acceptance.
 Retain the current file custody until revised K0 and actual migration/lifecycle
 checks pass. Temporary compile/cache files are removed after child completion.
+
+## App-like fixture bundle
+
+The `--bundle-fixture` mode compiles the same memory helper into an APPL `.app`,
+validates Info.plist, signs ad-hoc, verifies strict validity and exact fixture code
+identifier, then verifies rejection after a sealed resource changes and acceptance
+after restoring its original bytes. All twenty-one adapter checks run from the
+inner bundle executable. Five packaging checks pass. No restricted entitlements,
+embedded profile, real identity, installer/LaunchAgent or Keychain operation is
+used. This is bundle-format/code-integrity evidence, not production group access
+or signing continuity. See the [release contract](../../apps/icloud/src/storage/native/README.md).

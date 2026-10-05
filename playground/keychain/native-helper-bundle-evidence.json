@@ -1,0 +1,15 @@
+{
+  "experiment": "native-helper-app-bundle-fixture",
+  "checks": 21,
+  "bundleChecks": 5,
+  "signature": "adhoc",
+  "profileEmbedded": false,
+  "restrictedEntitlements": false,
+  "productionIdentity": false,
+  "fixtureCompileWarningsAsErrors": true,
+  "productionTypecheck": true,
+  "bunAdapterInterop": true,
+  "nativeKeychainCalls": 0,
+  "backend": "compile_time_memory",
+  "k0Passed": false
+}

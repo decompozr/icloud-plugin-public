@@ -35,6 +35,15 @@ web sessions and Mail/Calendar ledgers after Apple passwords move.
 | K3 | Move every connected account password with stable UUIDs/revisions and explicit per-account authority; integrate add/rotate/revoke. Requires K2. | CAS and interrupted-write recovery preserve routing/grants; real rotation/revocation invalidates Photos sessions/readiness and cannot resurrect stale credentials. Custody-only moves retain valid sessions. Revoked accounts remain tombstoned. |
 | K4 | Integrate signed artifacts, setup/doctor/LaunchAgent, ordinary update, recovery/rollback/reinstall and both uninstall modes. Requires K2/K3. | Whole-outcome acceptance and independent review pass. One-time setup authorization is observed; ordinary runtime/updates remain unattended. Retained uninstall/reinstall preserves both stores; opt-in full removal handles exact owned items/state and interrupted cleanup. Actual rollout requires separate authorization. |
 
+**Bundle fixture checkpoint:** the [app-like fixture](../playground/keychain/native-helper.md#app-like-fixture-bundle)
+passes five plist/ad-hoc signature/identifier/resource-tamper checks plus the
+existing twenty-one memory dispatch cases. No restricted entitlement/profile,
+real signer or Keychain call is present. The [proposed release contract](../apps/icloud/src/storage/native/README.md)
+defines stable identity and actual profile/access-group inputs without assuming
+TeamIdentifier equals ApplicationIdentifierPrefix. Production release validation
+and native access remain unimplemented/unqualified. Existing signer/profile
+availability is awaiting owner information; no host identity lookup/install occurs.
+
 **Scoped native helper source checkpoint:** [production source and compile-time
 memory dispatch](../playground/keychain/native-helper.md) implement strict framing,
 identity/types/field sets, configured installation/group, fixed namespace and
@@ -82,11 +91,12 @@ review; operator-authenticated maintenance,
 protected recovery and native backend integration remain incomplete. Keychain
 activation continues to require K0 first; no live secrets have been migrated.
 
-The next bounded slice prepares app-like helper bundle/profile/release packaging
-and determines actual signer/access-group availability after the compiled native
-source/memory-dispatch checkpoint. No signer/profile installation or real Keychain
-operation is implied; actual setup/update/login acceptance remains unpassed before
-native runtime selection under applicable authority. The [stock Bun report](../playground/keychain/runtime-boundary.md)
+The next gate needs actual release signer/profile inputs: owner information is
+pending after the app-like fixture and proposed release contract checkpoint.
+Prepare production verification only from provided/authorized settings; no new
+identity/profile installation or native operation is implied. Actual setup/update/
+login acceptance remains unpassed before native runtime selection. Do not expand
+unrelated preparations to replace this external gate. The [stock Bun report](../playground/keychain/runtime-boundary.md)
 remains valid evidence against app-only isolation, which is no longer required.
 No native Keychain operation was involved, and revised K0 has not passed. K1 fixture contracts
 remain independent; K2/K3 activation remains gated. K1's first inactive foundation

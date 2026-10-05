@@ -130,6 +130,15 @@ helper/Bun protocol, setup approval, noninteractive failure behavior, signing/up
 continuity and supported login/lock contexts. Existing synthetic file-Keychain
 results do not prove production signing or untested OS lifecycle behavior.
 
+**Bundle fixture checkpoint:** the [app-like fixture](../playground/keychain/native-helper.md#app-like-fixture-bundle)
+passes five plist/ad-hoc signature/identifier/resource-tamper checks plus the
+existing twenty-one memory dispatch cases. No restricted entitlement/profile,
+real signer or Keychain call is present. The [proposed release contract](../apps/icloud/src/storage/native/README.md)
+defines stable identity and actual profile/access-group inputs without assuming
+TeamIdentifier equals ApplicationIdentifierPrefix. Production release validation
+and native access remain unimplemented/unqualified. Existing signer/profile
+availability is awaiting owner information; no host identity lookup/install occurs.
+
 **Scoped native helper source checkpoint:** [production source and compile-time
 memory dispatch](../playground/keychain/native-helper.md) implement strict framing,
 identity/types/field sets, configured installation/group, fixed namespace and
@@ -625,14 +634,16 @@ phase before proceeding. No dates or production signer availability are assumed.
 | K3 | Depends on K2; migrate each account password and add/rotate/revoke flows with tombstones, readiness/session invalidation and reconciliation. | Stable account grants/routing and CAS race tests; no stale credentials/session resurrection or fallback; both connected and revoked accounts covered. |
 | K4 | Depends on K2/K3; integrate lifecycle packaging/doctor/LaunchAgent, update/rollback/reinstall, retained uninstall and opt-in full removal. | Whole-outcome acceptance below, independent review and an explicitly authorized operator rollout. Passing fixture checks do not claim live acceptance. |
 
-**Next ready slice: helper packaging/profile/release qualification.** Native source
-and compile-time dispatch now have bounded evidence. Prepare the app-like bundle,
-exact code identifier/access-group entitlement contract, safe build/package inputs
-and native qualification checklist. Determine actual release signer/profile
-availability; no identity or profile may be invented or installed by this source
-checkpoint. Actual Keychain operations and setup/update/login/recovery acceptance
-still require applicable authority. Keep runtime unselected and retain file custody;
-source compilation and memory dispatch cannot close K0 or native migration gates.
+**Next gate: actual release signer/profile inputs and production qualification.**
+The app-like fixture structure and proposed release contract are preserved; they
+are not a trusted production bundle. The owner input request is pending. Use only
+provided/authorized existing signer/profile settings, verify actual identity and
+entitlement authorization, and prepare a reviewable production build/verification
+path before any signing/install/native operation requiring authority. Do not
+manufacture a profile or repeatedly add unrelated preparatory features to avoid
+this gate. If inputs are unavailable, report the specific condition and decide an
+explicit alternative with the product owner rather than silently changing backend.
+No K0-pass, native access or real migration claim follows from fixture packaging.
 
 ## Whole-outcome acceptance and feedback
 

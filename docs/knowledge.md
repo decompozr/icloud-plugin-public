@@ -86,6 +86,18 @@ acceptance follows; helper bundle/release integration and actual native lifecycl
 qualification remain the next gate. CoreFoundation/Swift transport wiping remains
 best effort, and remote/journal authorization is a surrounding caller obligation.
 
+The app-like bundle fixture now passes five packaging checks plus the same
+twenty-one dispatch cases: valid plist, strict ad-hoc signature, exact fixture
+identifier, sealed-resource modification rejection and restoration acceptance.
+No embedded profile, restricted entitlement or production signer is present;
+this does not qualify data-protection item access or ordinary-update continuity.
+The [release contract](../apps/icloud/src/storage/native/README.md) records real
+identity/profile/access-group inputs and requires the future release pipeline to
+reject fixture artifacts; that production pipeline is not implemented here.
+No signer/profile configuration was found in the searched existing tooling files;
+host identity availability is not inferred. The owner has been asked for existing
+release inputs; no keychain identity listing or installation was performed.
+
 ### Historical stronger-boundary findings
 
 K0 follow-up: the [stock Bun runtime boundary experiment](../playground/keychain/runtime-boundary.md)
