@@ -1,5 +1,52 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Account-bound binary upload transport candidate — 2026-10-05
+
+Added a private binary-stage actor, packaged with the application. Before account
+network access it opens the staged file without following symlinks, requires owner
+custody/private mode, checks bounded byte count and SHA-256, and detects source
+changes. URL allocation uses the existing actor's saved-account/DSID/advertised-
+service checks. Only that response can supply the upload destination. Parsed HTTPS
+Apple iCloud/content-domain boundaries and region are enforced; redirects, proxy/
+netrc discovery, arbitrary URL input and automatic retries are excluded. Cookies
+remain domain scoped; iCloud cookies are not sent to the content domain. The actor
+performs one binary POST, bounds its response and returns a server-only receipt.
+
+The sealed session exposes this only as an internal method, checking owner/account
+custody generation before and after dispatch. A lost response or revocation during
+transfer does not authorize resending. Public account status does not expose the
+receipt. Reviewed apply integration must durably claim the stage before using it;
+no MCP upload action invokes it yet, and no live account request was made.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Private reviewed upload source staging — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Publication request identity and timestamp — 2026-10-05
+
+Static AST inspection (without executing vendor JavaScript) confirmed module 962's
+submission timestamp is Date.toJSON(), while module 944 defines the binary receipt.
+The internal webputasset builder now requires retained album/asset/batch GUIDs,
+ISO timestamp, filename and valid time zone; it never generates replacement IDs.
+It binds the receipt byte size and rejects tool-supplied extra keys. No publication
+transport has been enabled yet. Five upload-contract tests / 52 assertions and
+typecheck passed. These are source/fixture checks, not live upload acceptance.
+
+The pinned osxphotos PhotoInfo.export API can copy original/edited resources with
+use_photos_export=False (no Photos UI). Export representation must be explicit,
+including Live Photo handling; missing originals need supported download/fallback,
+not silent preview substitution. Remaining upload sequence: reviewed representation
+and staged content digest; account-bound URL allocation and validated destination;
+private binary POST; durable publication claim using retained asset GUID; retained
+job polling; independent exact shared membership and cloud/cross-device evidence.
+
+
 ## Shared upload response contracts — 2026-10-05
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.

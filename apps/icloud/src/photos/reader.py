@@ -85,6 +85,21 @@ def main(request):
         return {'status':'ok','assets':[summary(p) for p in ps[offset:offset+limit]],'total':len(ps),'resolvedPerson':resolved,
                 'nextOffset':offset+limit if offset+limit<len(ps) else None,'source':'local_synced_snapshot'}
     if command == 'detail': return summary(selected_assets([data['assetId']])[0])
+    if command == 'upload_source':
+        # Server-only descriptor. Never expose filesystem paths as MCP data.
+        p=selected_assets([data['assetId']])[0]
+        if p.shared: raise ValueError('shared_source_write_unsupported')
+        representation=data.get('representation')
+        if representation not in ['original','edited']: raise ValueError('upload_representation_required')
+        if getattr(p,'live_photo',False) and data.get('livePhotoMode') != 'still':
+            raise ValueError('upload_live_photo_choice_required')
+        candidate=p.path if representation == 'original' else p.path_edited
+        if not candidate: raise ValueError('upload_source_unavailable')
+        path=Path(candidate).resolve(strict=True)
+        if not path.is_relative_to(library) or not path.is_file(): raise ValueError('upload_source_unavailable')
+        return {'assetId':data['assetId'],'path':str(path),'filename':path.name,
+                'representation':representation,'livePhotoStillOnly':bool(getattr(p,'live_photo',False)),
+                'mediaType':'video' if p.ismovie else 'photo'}
     if command == 'preview':
         p=selected_assets([data['assetId']])[0]
         for candidate in reversed(p.path_derivatives):
@@ -158,5 +173,5 @@ if __name__=='__main__':
     except PermissionError:
         print(json.dumps({'ok':False,'error':'photos_permission_required'}))
     except Exception as exc:
-        allowed={'dependency_version_mismatch','invalid_library','asset_not_found','album_not_found_or_ambiguous','preview_unavailable','writes_require_system_library','shared_source_write_unsupported','album_not_empty','unsupported_command','request_too_large'}
+        allowed={'dependency_version_mismatch','invalid_library','asset_not_found','album_not_found_or_ambiguous','preview_unavailable','writes_require_system_library','shared_source_write_unsupported','album_not_empty','unsupported_command','request_too_large','upload_representation_required','upload_live_photo_choice_required','upload_source_unavailable'}
         print(json.dumps({'ok':False,'error':str(exc) if isinstance(exc,ValueError) and str(exc) in allowed else 'photos_read_failed'}))

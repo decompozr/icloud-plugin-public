@@ -7,6 +7,27 @@ from datetime import datetime, timezone
 import reader
 
 class ReaderTests(unittest.TestCase):
+    def test_upload_source_requires_explicit_representation_and_live_photo_choice(self):
+        with TemporaryDirectory() as directory:
+            library=Path(directory)/'Test.photoslibrary'; (library/'database').mkdir(parents=True)
+            (library/'database/Photos.sqlite').write_bytes(b'fixture')
+            original=library/'original.jpg'; original.write_bytes(b'original')
+            edited=library/'edited.jpg'; edited.write_bytes(b'edited')
+            p=SimpleNamespace(uuid='11111111-1111-4111-8111-111111111111',shared=False,live_photo=True,ismovie=False,path=str(original),path_edited=str(edited))
+            db=SimpleNamespace(album_info=[],album_info_shared=[],photos=lambda:[p])
+            import hashlib
+            asset_id=f"asset:{hashlib.sha256(str(library.resolve()).encode()).hexdigest()[:16]}:{p.uuid}"
+            with patch('osxphotos.PhotosDB',return_value=db),patch('reader.version',return_value='0.77.2'):
+                def run(**extra): return reader.main({'library':str(library),'command':'upload_source','input':{'assetId':asset_id,**extra}})
+                with self.assertRaisesRegex(ValueError,'upload_representation_required'): run()
+                with self.assertRaisesRegex(ValueError,'upload_live_photo_choice_required'): run(representation='original')
+                self.assertEqual(run(representation='original',livePhotoMode='still')['path'],str(original.resolve()))
+                self.assertEqual(run(representation='edited',livePhotoMode='still')['path'],str(edited.resolve()))
+                p.path_edited=None
+                with self.assertRaisesRegex(ValueError,'upload_source_unavailable'): run(representation='edited',livePhotoMode='still')
+                p.shared=True
+                with self.assertRaisesRegex(ValueError,'shared_source_write_unsupported'): run(representation='original',livePhotoMode='still')
+
     def test_normalization(self):
         self.assertEqual(reader.normalize(' Example  Chu '),reader.normalize('example chu'))
         self.assertEqual(reader.normalize('Ｓａｍｐｌｅ'), 'sample')

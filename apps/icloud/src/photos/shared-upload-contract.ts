@@ -42,3 +42,20 @@ export function parseSharedUploadStatus(raw:unknown,jobId:string){
  // Completion acknowledges processing only, not verified destination membership.
  return {jobId,status,progress:result.progress,serverMembershipVerified:false,automaticRetry:false} as const;
 }
+
+// Identifiers and submission time come from the durable prepared plan. This
+// builder never generates them, so a lost response cannot silently create a new
+// asset identity. The receipt is server-only, supplied after binary transfer.
+export function sharedUploadPublicationRequest(raw:unknown,rawReceipt:unknown,expectedBytes:number){
+ const plan=z.object({
+  albumGuid:z.string().uuid(),assetGuid:z.string().uuid(),batchGuid:z.string().uuid(),
+  filename:z.string().min(1).max(255).refine(value=>!/[\x00-\x1f\x7f/\\]/.test(value)),
+  submittedAt:z.string().datetime(),
+  timeZone:id.refine(value=>{try{new Intl.DateTimeFormat('en',{timeZone:value});return true;}catch{return false;}}),
+ }).strict().safeParse(raw);
+ if(!plan.success)throw Error('shared_upload_plan_invalid');
+ const file=parseSharedUploadReceipt({singleFile:rawReceipt},expectedBytes),p=plan.data;
+ return {endpoint:'webputasset',payload:{albumguid:p.albumGuid,assetguid:p.assetGuid,
+  filename:p.filename,collectionmetadata:{batchDateCreated:p.submittedAt,dateCreated:p.submittedAt,batchGUID:p.batchGuid},
+  singlefileupload:file,localtimezoneid:p.timeZone},automaticRetry:false} as const;
+}

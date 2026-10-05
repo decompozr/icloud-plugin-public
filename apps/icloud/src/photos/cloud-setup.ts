@@ -1,5 +1,6 @@
+import {parseSharedUploadReceipt} from './shared-upload-contract.js';
 import {mkdir,lstat,rmdir,writeFile} from 'node:fs/promises';
-import {join,dirname} from 'node:path';
+import {join,dirname,isAbsolute} from 'node:path';
 import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {z} from 'zod';
@@ -26,7 +27,7 @@ export function supportsProviderSessions(store:OwnerSecretStore):store is Sessio
 /** Private owner setup only. Does not grant OAuth or execute any photo write. */
 export class PhotosCloudSetup implements PhotosCloudAdmin {
  private actor:Actor;
- constructor(private options:{store:SessionStore;owner:()=>string;python:string;runtimeDirectory:string;customPython?:boolean;actor?:Actor;requestActor?:Actor;prepareRuntime?:()=>Promise<void>}){
+ constructor(private options:{store:SessionStore;owner:()=>string;python:string;runtimeDirectory:string;customPython?:boolean;actor?:Actor;requestActor?:Actor;uploadActor?:Actor;prepareRuntime?:()=>Promise<void>}){
   const directory=dirname(fileURLToPath(import.meta.url));
   const script=join(existsSync(join(directory,'cloud-session.py'))?directory:join(directory,'photos'),'cloud-session.py');
   this.actor=options.actor??(input=>runProcess([options.python,script],input,60000));
@@ -91,6 +92,16 @@ export class PhotosCloudSetup implements PhotosCloudAdmin {
    const decoded=JSON.parse(result.body);
    const parsed=z.object({zones:z.array(z.object({zoneID:z.object({zoneName:z.string()})})).max(10000)}).safeParse(decoded);
    return parsed.success?{status:'zones_observed',httpStatus:result.status,zoneCount:parsed.data.zones.length}:{status:'unrecognized',httpStatus:result.status};
+  };
+  session.uploadBytes=async source=>{
+   unchanged();
+   const staged=z.object({albumGuid:z.string().uuid(),privatePath:z.string().refine(isAbsolute),bytes:z.number().int().positive().max(500*1024*1024),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).strict().parse(source);
+   const directory=dirname(fileURLToPath(import.meta.url));
+   const script=join(existsSync(join(directory,'shared-stream-upload.py'))?directory:join(directory,'photos'),'shared-stream-upload.py');
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,...staged};
+   const result=z.object({body:z.string().max(65536)}).strict().parse(await (this.options.uploadActor?this.options.uploadActor(input):runProcess([this.options.python,script],input,240000)));
+   unchanged();
+   return parseSharedUploadReceipt(JSON.parse(result.body),staged.bytes);
   };
   sharedStreamURL(session,accountId,'webgetalbumslist');return session;
  }

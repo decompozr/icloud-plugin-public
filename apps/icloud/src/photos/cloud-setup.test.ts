@@ -7,12 +7,12 @@ import {SqliteOwnerStore} from '../storage/owner-store.js';
 import {PhotosCloudSetup} from './cloud-setup.js';
 import {createPrivateAdmin} from '../admin/handler.js';
 
-function fixture(actor:(input:any)=>Promise<unknown>,requestActor?:(input:any)=>Promise<unknown>){
+function fixture(actor:(input:any)=>Promise<unknown>,requestActor?:(input:any)=>Promise<unknown>,uploadActor?:(input:any)=>Promise<unknown>){
  const root=mkdtempSync(join(tmpdir(),'icloud-cloud-setup-'));
  const options={databasePath:join(root,'owner.sqlite'),markerPath:join(root,'marker'),masterKey:randomBytes(32),bootstrapProof:randomBytes(32).toString('hex')};
  const store=SqliteOwnerStore.provision(options);store.enroll({proof:options.bootstrapProof,ownerId:'owner'});
  const account=store.addAccount('owner',{user:'owner@example.test',credential:Buffer.from('mail-fixture')});
- const service=new PhotosCloudSetup({store,owner:()=>store.ownerId()!,python:'/fixture/python',runtimeDirectory:join(root,'cloud'),actor:input=>actor(input),requestActor});
+ const service=new PhotosCloudSetup({store,owner:()=>store.ownerId()!,python:'/fixture/python',runtimeDirectory:join(root,'cloud'),actor:input=>actor(input),requestActor,uploadActor});
  return {root,store,account,service,cleanup:()=>{store.close();rmSync(root,{recursive:true});}};
 }
 const pending={phase:'awaiting_2fa',privateState:{username:'owner@example.test',sessionData:{scnt:'private-token-fixture'}},sharedServiceAdvertised:false};
@@ -129,5 +129,23 @@ test('normal Photos diagnostic reveals count only and never accepts malformed zo
   reply={status:401,body:'secret'};expect(await session.photosServiceState!()).toEqual({status:'http_error',httpStatus:401});
   f.store.revokeProviderSession('owner',f.account.id,'photos_web',f.store.providerSessionState('owner',f.account.id,'photos_web'));
   await expect(session.photosServiceState!()).rejects.toThrow('cloud_session_changed');
+ }finally{f.cleanup();}
+});
+
+
+test('private binary upload transport binds custody generation and never returns receipts through status',async()=>{
+ let calls=0,revoke=false;let f:ReturnType<typeof fixture>;
+ f=fixture(async input=>input.action==='check'?{dependencyReady:true}:authenticated,undefined,async input=>{
+  calls++;expect(input.username).toBe('owner@example.test');expect(input).not.toHaveProperty('password');
+  if(revoke)f.store.revokeProviderSession('owner',f.account.id,'photos_web',f.store.providerSessionState('owner',f.account.id,'photos_web'));
+  return {body:JSON.stringify({singleFile:{fileChecksum:'fixture',size:3,referenceChecksum:'fixture',receipt:'private-upload-receipt'}})};
+ });
+ try{
+  await f.service.action({action:'login',accountId:f.account.id,password:'fixture'});
+  const session=f.service.sharedSession(f.account.id),source={albumGuid:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',privatePath:'/private/fixture/content',bytes:3,sha256:'a'.repeat(64)};
+  expect((await session.uploadBytes!(source)).size).toBe(3);expect(calls).toBe(1);
+  expect(JSON.stringify(await f.service.status(f.account.id))).not.toContain('private-upload-receipt');
+  revoke=true;await expect(session.uploadBytes!(source)).rejects.toThrow('cloud_session_changed');expect(calls).toBe(2);
+  await expect(session.uploadBytes!(source)).rejects.toThrow('cloud_session_changed');expect(calls).toBe(2);
  }finally{f.cleanup();}
 });

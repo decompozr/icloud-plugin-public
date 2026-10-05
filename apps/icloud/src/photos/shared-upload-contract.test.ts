@@ -35,3 +35,14 @@ test('upload recovery status reads are account-bound, bounded and never retry',a
  session.request=async()=>{calls++;throw Error('private-token');};
  await expect(readSharedUploadJob(session,'owner-account','retained-job')).rejects.toThrow('shared_upload_status_read_failed');expect(calls).toBe(2);
 });
+
+test('publication builder retains durable IDs, ISO submission time and exact binary receipt',async()=>{
+ const {sharedUploadPublicationRequest}=await import('./shared-upload-contract.js');
+ const plan={albumGuid,assetGuid,batchGuid:albumGuid,filename:'reviewed.jpg',submittedAt:'2026-10-05T18:00:00.000Z',timeZone:'America/Toronto'};
+ const receipt={fileChecksum:'checksum',size:3,referenceChecksum:'reference',receipt:'server-only'};
+ const a=sharedUploadPublicationRequest(plan,receipt,3),b=sharedUploadPublicationRequest(plan,receipt,3);
+ expect(a).toEqual(b);expect(a.endpoint).toBe('webputasset');expect(a.automaticRetry).toBe(false);
+ expect(a.payload.collectionmetadata).toEqual({batchDateCreated:plan.submittedAt,dateCreated:plan.submittedAt,batchGUID:plan.batchGuid});expect(a.payload.assetguid).toBe(assetGuid);
+ for(const change of [{filename:'../secret.jpg'},{timeZone:'invalid-zone'},{submittedAt:'now'},{assetGuid:'new-random-value'},{clientOrgKey:'tool-supplied-key'}])expect(()=>sharedUploadPublicationRequest({...plan,...change},receipt,3)).toThrow('shared_upload_plan_invalid');
+ expect(()=>sharedUploadPublicationRequest(plan,receipt,4)).toThrow('shared_upload_size_mismatch');
+});

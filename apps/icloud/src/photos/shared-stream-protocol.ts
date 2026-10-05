@@ -1,4 +1,4 @@
-import {parseSharedUploadStatus,sharedUploadStatusRequest} from './shared-upload-contract.js';
+import {parseSharedUploadReceipt,parseSharedUploadStatus,sharedUploadStatusRequest} from './shared-upload-contract.js';
 import {z} from 'zod';
 import {sharedManagementRequest} from './shared-management-contract.js';
 
@@ -28,6 +28,8 @@ export const sharedStreamMutationSchema=z.discriminatedUnion('action',[
 ]);
 export type SharedStreamMutation=z.infer<typeof sharedStreamMutationSchema>;
 export interface SharedStreamSession {
+ // Private staged source and receipt; never pass these through MCP output.
+ uploadBytes?:(source:{albumGuid:string;privatePath:string;bytes:number;sha256:string})=>Promise<ReturnType<typeof parseSharedUploadReceipt>>;
  photosServiceState?:()=>Promise<{status:'zones_observed'|'http_error'|'unrecognized';httpStatus:number;zoneCount?:number}>;
  webAccessState?:()=>Promise<{isICDRSDisabled:boolean|null;isDeviceConsentedForPCS:boolean|null;responseKind:'flags'|'provider_error'|'unrecognized';recognizedFields:string[]}>;
  accountId:string;

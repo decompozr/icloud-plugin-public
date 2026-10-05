@@ -1,3 +1,4 @@
+import {stageUploadSource} from './upload-source.js';
 import {existsSync} from 'node:fs';
 import {mkdtemp,writeFile,readFile,stat,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -77,6 +78,12 @@ export class LocalPhotosProvider implements PhotosProvider {
    return {...health,native,sharedAlbumWriteVerified:false};
   }
   throw new PhotosError('unsupported_command');
+ }
+ /** Private staging for reviewed sharing; never returns source paths to MCP. */
+ async stageUpload(assetId:string,representation:'original'|'edited',livePhotoMode?:'still'){
+  if(!this.settings.stateDirectory)throw new PhotosError('upload_runtime_not_configured');
+  const source=await this.reader('upload_source',{assetId,representation,livePhotoMode});
+  return stageUploadSource(source,{library:this.settings.library,directory:join(this.settings.stateDirectory,'shared-upload-staging'),assetId});
  }
  async inspect(mutation:Mutation){
   const state=snapshot.parse(await this.reader('inspect',mutation));
