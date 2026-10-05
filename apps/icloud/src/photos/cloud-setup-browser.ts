@@ -1,5 +1,6 @@
 import {z} from 'zod';
-const statusSchema=z.object({dependencyReady:z.boolean(),setupAvailable:z.boolean(),phase:z.enum(['not_connected','awaiting_2fa','authenticated','challenge_expired']).optional(),managementReady:z.boolean()});
+import {verificationMethod,verificationPrompt,verificationFailure,type VerificationMethod} from './cloud-verification.js';
+const statusSchema=z.object({dependencyReady:z.boolean(),setupAvailable:z.boolean(),phase:z.enum(['not_connected','awaiting_2fa','authenticated','challenge_expired']).optional(),verificationMethod:verificationMethod.default('unknown'),managementReady:z.boolean()});
 export function initializePhotosCloud(){
  const root=document.getElementById('photos-cloud-setup');if(!root)return;
  const account=document.getElementById('photos-cloud-account') as HTMLSelectElement;
@@ -7,21 +8,25 @@ export function initializePhotosCloud(){
  const password=document.getElementById('photos-cloud-password') as HTMLInputElement;
  const code=document.getElementById('photos-cloud-code') as HTMLInputElement;
  const confirm=document.getElementById('photos-cloud-revoke-confirm') as HTMLInputElement;
- let busy=false;
+ let busy=false,method:VerificationMethod='unknown';
  const message=(value:string)=>{status.textContent=value;};
  async function request(path:string,body?:unknown){const response=await fetch('/icloud/admin/photos/cloud/'+path,{credentials:'same-origin',...(body===undefined?{}:{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}),signal:AbortSignal.timeout(path==='setup'?300000:70000)});if(!response.ok)throw Error('Connection request failed.');return await response.json();}
  async function refresh(){
   const result=statusSchema.parse(await request('status'+(account.value?'?accountId='+encodeURIComponent(account.value):'')));
+  method=result.verificationMethod;
   const fields=document.getElementById('photos-cloud-login-fields') as HTMLFieldSetElement;fields.disabled=!result.dependencyReady;
+  document.getElementById('photos-cloud-login')!.hidden=result.phase==='awaiting_2fa'||result.phase==='authenticated';
   const install=document.getElementById('photos-cloud-install') as HTMLButtonElement;install.hidden=result.dependencyReady||!result.setupAvailable;
   document.getElementById('photos-cloud-verify')!.hidden=result.phase!=='awaiting_2fa';
-  message(!result.dependencyReady?'Set up the connection before signing in.':result.phase==='awaiting_2fa'?'Enter the verification code from Apple.':result.phase==='challenge_expired'?'Verification expired. Sign in again.':result.phase==='authenticated'?'Signed in. Shared Album operations have not yet been verified.':'Select an account and sign in.');
+  const resend=document.getElementById('photos-cloud-send-code')!;resend.textContent=method==='sms'?'Request a new SMS code':'Request a new code';
+  const label=document.querySelector('label[for="photos-cloud-code"]')!;label.textContent=method==='sms'?'Six-digit SMS verification code':'Six-digit verification code';
+  message(!result.dependencyReady?'Set up the connection before signing in.':result.phase==='awaiting_2fa'?verificationPrompt(method):result.phase==='challenge_expired'?'Verification expired. Sign in again.':result.phase==='authenticated'?'Signed in. Shared Album operations have not yet been verified.':'Select an account and sign in.');
  }
  async function run(action:()=>Promise<void>){if(busy)return;busy=true;account.disabled=true;root!.querySelectorAll<HTMLButtonElement>('button').forEach(b=>b.disabled=true);
   try{await action();}catch{message('Could not complete the connection request. Check the account and try an explicit new request.');}
   finally{busy=false;account.disabled=false;root!.querySelectorAll<HTMLButtonElement>('button').forEach(b=>b.disabled=false);}
  }
- async function action(path:string,extra:Record<string,unknown>={}){if(!account.value)throw Error();const result=await request(path,{accountId:account.value,...extra});await refresh();if(['verification_failed','delivery_failed','unsupported_authentication','authentication_required'].includes(result.phase))message(result.phase==='verification_failed'?'Verification failed. Check the code.':result.phase==='unsupported_authentication'?'This authentication method is not supported yet.':'Apple authentication needs a new explicit sign-in or code request.');}
+ async function action(path:string,extra:Record<string,unknown>={}){if(!account.value)throw Error();const result=await request(path,{accountId:account.value,...extra});await refresh();if(['verification_failed','delivery_failed','unsupported_authentication','authentication_required'].includes(result.phase))message(result.phase==='verification_failed'?verificationFailure(method):result.phase==='unsupported_authentication'?'This authentication method is not supported yet.':'Apple authentication needs a new explicit sign-in or code request.');}
  account.addEventListener('change',()=>{password.value='';code.value='';confirm.checked=false;void run(refresh);});
  document.getElementById('photos-cloud-install')!.addEventListener('click',()=>void run(async()=>{message('Setting up the connection on the service.');await request('setup',{});await refresh();}));
  document.getElementById('photos-cloud-login')!.addEventListener('submit',event=>{event.preventDefault();const secret=password.value;password.value='';void run(()=>action('login',{password:secret}));});

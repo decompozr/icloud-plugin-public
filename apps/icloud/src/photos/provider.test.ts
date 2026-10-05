@@ -20,3 +20,8 @@ test('process adapter validates envelope and suppresses raw provider diagnostics
 test('process adapter times out without an automatic retry',async()=>{
  await expect(runProcess([process.execPath,'-e','setTimeout(()=>{},5000)'],{},20)).rejects.toThrow('provider_timeout');
 });
+test('cancelled transport signals cannot start or continue a request actor',async()=>{
+ await expect(runProcess(['/does-not-exist'],{},1000,AbortSignal.abort())).rejects.toThrow('provider_timeout');
+ const controller=new AbortController();const request=runProcess([process.execPath,'-e','setTimeout(()=>{},5000)'],{},1000,controller.signal);controller.abort();
+ await expect(request).rejects.toThrow();
+});

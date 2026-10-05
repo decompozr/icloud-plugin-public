@@ -42,17 +42,19 @@ export async function runNative(helper:string,input:unknown,timeoutMs=60000):Pro
  }finally{if(child&&child.exitCode===null)child.kill();await rm(directory,{recursive:true,force:true});}
 }
 /** No shell, stdout/stderr bounds, fixed errors, and no automatic retry. */
-export async function runProcess(argv:string[],input:unknown,timeoutMs=60000):Promise<unknown>{
+export async function runProcess(argv:string[],input:unknown,timeoutMs=60000,signal?:AbortSignal):Promise<unknown>{
+ if(signal?.aborted)throw new PhotosError('provider_timeout');
  const encoded=JSON.stringify(input);if(Buffer.byteLength(encoded)>65536)throw new PhotosError('request_too_large');
  let child:Bun.Subprocess<"pipe","pipe","pipe">;try{child=Bun.spawn(argv,{stdin:'pipe',stdout:'pipe',stderr:'pipe',env:{...process.env,PYTHONDONTWRITEBYTECODE:'1'}});}catch{throw new PhotosError('provider_unavailable');}
  let timedOut=false;const timer=setTimeout(()=>{timedOut=true;child.kill();},timeoutMs);
+ const abort=()=>{timedOut=true;child.kill();};signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();
  async function bounded(stream:ReadableStream<Uint8Array>,limit:number){const reader=stream.getReader();const chunks:Uint8Array[]=[];let size=0;while(true){const next=await reader.read();if(next.done)break;size+=next.value.length;if(size>limit){child.kill();throw new PhotosError('provider_output_limit');}chunks.push(next.value);}return Buffer.concat(chunks);}
  try{
   child.stdin.write(encoded);child.stdin.end();
   const [out,,code]=await Promise.all([bounded(child.stdout,12*1024*1024),bounded(child.stderr,128*1024),child.exited]);
   if(timedOut)throw new PhotosError('provider_timeout');if(code!==0)throw new PhotosError('provider_failed');
   const value=envelope.parse(JSON.parse(out.toString('utf8')));if(!value.ok)throw new PhotosError(value.error);return value.result;
- }catch(e){child.kill();throw e instanceof PhotosError?e:new PhotosError('invalid_provider_response');}finally{clearTimeout(timer);}
+ }catch(e){child.kill();throw e instanceof PhotosError?e:new PhotosError('invalid_provider_response');}finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
 }
 export class LocalPhotosProvider implements PhotosProvider {
  constructor(private readonly settings:ProviderSettings){if(![settings.python,settings.library,settings.nativeHelper].every(isAbsolute))throw new PhotosError('absolute_provider_paths_required');}

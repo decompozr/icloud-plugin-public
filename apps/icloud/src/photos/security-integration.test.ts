@@ -10,6 +10,22 @@ import {photosRegistration} from './module.js';
 import {PhotosService} from './service.js';
 import type {PhotosProvider} from './contracts.js';
 
+test('experimental shared management cannot bypass the existing Photos OAuth scopes',async()=>{
+ const db=new Database(':memory:');let sharedCalls=0;
+ const policy=()=>({read:true,write:true,delete:false});
+ const service=new PhotosService(db,{read:async()=>({}),inspect:async()=>({}),apply:async()=>({status:'applied'})},policy,()=> 'owner');
+ const runtime=new ModuleRuntime().register(photosRegistration(service,policy,()=>{sharedCalls++;throw Error('Must not reach shared provider');}));await runtime.start();
+ try{
+  for(const scopes of [['mail.read'],['photos.read'],['photos.write']]){
+   const server=createServer(runtime,'https://fixture.invalid/icloud/mcp',new Set(scopes)),client=new Client({name:'shared-scope-fixture',version:'1'});
+   const [a,b]=InMemoryTransport.createLinkedPair();await server.connect(a);await client.connect(b);
+   try{expect((await client.callTool({name:'photos_shared_prepare',arguments:{action:'create_shared_album',title:'Must not dispatch',experimental:true}})).isError).toBe(true);}
+   finally{await client.close();await server.close();}
+  }
+  expect(sharedCalls).toBe(0);
+ }finally{await runtime.dispose();db.close();}
+});
+
 test('Mail grants and incomplete Photos grants cannot invoke Photos writes or deletion',async()=>{
  const db=new Database(':memory:');let reads=0,writes=0;
  const policy={read:true,write:true,delete:true};

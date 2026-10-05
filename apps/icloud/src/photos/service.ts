@@ -3,6 +3,7 @@ import {randomUUID} from 'node:crypto';
 import {mutationSchema,catalogSchema,remoteDecisionsSchema,reviewSummarySchema,sharedObservationSchema,assetSchema,PhotosError,type PhotosProvider,type Mutation,type CleanupCandidate} from './contracts.js';
 import {z} from 'zod';
 import {reviewDecision} from './shared-review.js';
+import {initializeSharedAlbumLedger} from './shared-albums.js';
 export interface PhotosPolicy {read:boolean;write:boolean;delete:boolean}
 interface Row {id:string;owner:string;mutation:string;snapshot:string;status:string;result:string|null;expires:number}
 /** Durable single-use plans. Unknown writes are never automatically resubmitted. */
@@ -10,6 +11,7 @@ export class PhotosService {
  constructor(private readonly db:Database,private readonly provider:PhotosProvider,private readonly policy:()=>PhotosPolicy,private readonly owner:()=>string){
   db.exec(`CREATE TABLE IF NOT EXISTS photos_operations (id TEXT PRIMARY KEY,owner TEXT NOT NULL,mutation TEXT NOT NULL,snapshot TEXT NOT NULL,status TEXT NOT NULL,result TEXT,expires INTEGER NOT NULL)`);
   db.exec(`CREATE TABLE IF NOT EXISTS photos_reviews (id TEXT PRIMARY KEY,owner TEXT NOT NULL,request TEXT NOT NULL,status TEXT NOT NULL,result TEXT)`);
+  initializeSharedAlbumLedger(db);
  }
  private check(write=false,destructive=false){const p=this.policy();if(!p.read||write&&!p.write||destructive&&!p.delete)throw new PhotosError('forbidden');return this.owner();}
  async read(command:string,input:unknown){this.check();return this.provider.read(command,input);}
@@ -63,7 +65,7 @@ export class PhotosService {
   this.db.query("UPDATE photos_reviews SET status='selection_reviewed',result=? WHERE id=? AND owner=? AND status='remote_review_pending'").run(JSON.stringify({...opened,lastEvent:result}),input.reviewId,owner);
   return {reviewId:input.reviewId,status:'selection_reviewed',result};
  }
- async prepare(raw:unknown){const mutation=mutationSchema.parse(raw);const owner=this.check(true,mutation.action==='delete_assets');if(this.db.query("SELECT id FROM photos_operations WHERE owner=? AND mutation=? AND status IN ('executing','outcome_unknown','review_pending','posting_completed_membership_unverified','different_destination_membership_unverified') LIMIT 1").get(owner,JSON.stringify(mutation)))throw new PhotosError('unresolved_operation');
+ async prepare(raw:unknown){const mutation=mutationSchema.parse(raw);const owner=this.check(true,mutation.action==='delete_assets');if(this.db.query("SELECT id FROM photos_shared_operations WHERE status IN ('executing','outcome_unknown') LIMIT 1").get())throw new PhotosError('unresolved_operation');if(this.db.query("SELECT id FROM photos_operations WHERE owner=? AND mutation=? AND status IN ('executing','outcome_unknown','review_pending','posting_completed_membership_unverified','different_destination_membership_unverified') LIMIT 1").get(owner,JSON.stringify(mutation)))throw new PhotosError('unresolved_operation');
   if(mutation.action==='post_to_shared_album'){
    const unresolved=this.db.query("SELECT mutation FROM photos_operations WHERE status IN ('executing','outcome_unknown','review_pending','posting_completed_membership_unverified','different_destination_membership_unverified') AND json_extract(mutation,'$.action')='post_to_shared_album'").all() as {mutation:string}[];
    if(unresolved.some(row=>{const previous=mutationSchema.parse(JSON.parse(row.mutation));return previous.action==='post_to_shared_album'&&previous.assetIds.some(id=>mutation.assetIds.includes(id));}))throw new PhotosError('unresolved_operation');
@@ -82,6 +84,7 @@ export class PhotosService {
   // the whole library, so changing the intent cannot bypass reconciliation.
   const claimed=this.db.query(`UPDATE photos_operations SET status='executing' WHERE id=? AND owner=? AND status='prepared'
    AND NOT EXISTS (SELECT 1 FROM photos_operations WHERE status IN ('executing','review_pending','outcome_unknown'))
+   AND NOT EXISTS (SELECT 1 FROM photos_shared_operations WHERE status IN ('executing','outcome_unknown'))
    AND (? != 'post_to_shared_album' OR NOT EXISTS (SELECT 1 FROM photos_operations p
     WHERE p.id != ? AND json_extract(p.mutation,'$.action')='post_to_shared_album'
      AND p.status IN ('executing','outcome_unknown','review_pending','posting_completed_membership_unverified','different_destination_membership_unverified')
