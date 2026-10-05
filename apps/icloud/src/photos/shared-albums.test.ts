@@ -242,3 +242,18 @@ test('album inventory returns promptly and polls one retained account-bound job'
   expect(()=>create().albumsBackground(undefined,fresh.readId)).toThrow('shared_album_read_not_found');
  }finally{db.close();}
 });
+
+
+test('remote content review pages retain one complete membership snapshot and exact shared-copy IDs',async()=>{
+ const f=fixture(),guid='AAAAAAAA-1111-4111-8111-111111111111',albumId=`shared-album:${accountId}:${guid}`;
+ f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Content review'},albumctag:'1',count:3,assets:['copy-a','copy-b','copy-c']});
+ try{
+  expect(()=>f.service.albumsBackground(undefined,undefined,false,{offset:0,limit:2})).toThrow('shared_album_content_arguments_invalid');
+  const pending=f.service.albumsBackground(albumId,undefined,false,{offset:0,limit:2});
+  let first:any;for(let i=0;i<30;i++){await new Promise(r=>setTimeout(r,1));first=f.service.albumsBackground(albumId,pending.readId,false,{offset:0,limit:2});if(first.status!=='read_pending')break;}
+  expect(first.status).toBe('complete');expect(first.membership.assets.map((a:any)=>a.assetGuid)).toEqual(['copy-a','copy-b']);expect(first.membership.snapshotComplete).toBe(true);expect(first.membership.complete).toBe(false);
+  const second:any=f.create().albumsBackground(albumId,pending.readId,false,{offset:first.membership.nextOffset,limit:2});
+  expect(second.membership.assets.map((a:any)=>a.assetGuid)).toEqual(['copy-c']);expect(second.membership.nextOffset).toBeNull();expect(second.membership.originalLibraryIdentityVerified).toBe(false);expect(f.writes()).toBe(0);
+  expect(()=>f.service.albumsBackground(albumId,pending.readId)).toThrow('shared_album_read_not_found');
+ }finally{f.db.close();}
+});

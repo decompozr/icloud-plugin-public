@@ -1,5 +1,18 @@
 # Photos capability: active remote delivery plan and evidence
 
+## 0.1.51 remote reads recovered; shared-copy review candidate — 2026-10-05
+
+The original main-MCP health call recovered without another service restart or
+credential change. Its retained inventory job completed with Photos HTTP 200/one
+zone and 49 addressable legacy candidates plus one unsupported opaque identifier;
+osxphotos and native authorization remain verified. The earlier connection failure
+cause is unknown. Remote read acceptance for 0.1.51 is now observed; full shared
+writes remain unverified and shared lifecycle tools are still absent from this
+conversation's loaded tool set.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
 ## Installed 0.1.51; remote connection acceptance unresolved — 2026-10-05
 
 PR 49 merged and 0.1.51 installed from clean remote-main 86f63bf. Final build and
