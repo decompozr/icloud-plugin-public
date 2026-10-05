@@ -76,6 +76,16 @@ cannot be treated as equivalent evidence for this modern candidate. No silent
 backend fallback or custom Bun requirement follows. Native qualification remains
 the critical next gate.
 
+The [native helper source checkpoint](../playground/keychain/native-helper.md)
+adds strict one-request dispatch and modern SecItem add/read/delete source using
+the accepted query policy. A compile-time memory branch cannot route to native
+storage; twenty-one cases through the real Bun adapter pass, including malformed
+identity/type/extra fields and bounded status/unknown-mutation handling. Production
+source typechecks without being executed. No Keychain call or profile/signing
+acceptance follows; helper bundle/release integration and actual native lifecycle
+qualification remain the next gate. CoreFoundation/Swift transport wiping remains
+best effort, and remote/journal authorization is a surrounding caller obligation.
+
 ### Historical stronger-boundary findings
 
 K0 follow-up: the [stock Bun runtime boundary experiment](../playground/keychain/runtime-boundary.md)
