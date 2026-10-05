@@ -228,6 +228,13 @@ staging before native requests, preserves exact bytes and rejects post-cutover f
 requests. The full consumer validator, actual stopped maintenance, native startup/
 settings transition, protected restore and file retirement remain unimplemented;
 synthetic coordinator tests are not a K2 exit gate or native activation.
+The owner portion of that validator now exists as
+`SqliteOwnerStore.validateExistingCiphertexts`: supplied-handle read snapshots
+authenticate marker, explicit legacy-v1/accounts-v2 format, all account ciphertext
+and all retained Photos ciphertext using stored AAD, without schema repair or
+plaintext output. Populated fixtures prove corrupted Photos state prevents
+synthetic master cutover. Full auth/internal-client, Mail/Calendar and custody
+journal validation/composition plus product maintenance wiring are still required.
 The inactive [password-copy coordinator](../apps/icloud/src/storage/account-password-migration.ts)
 now drives exact noninteractive readback, create-only provisioning, verification
 and fresh-read cutover through injected ports. Lost create replies never cause

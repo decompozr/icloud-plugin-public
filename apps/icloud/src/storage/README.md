@@ -198,6 +198,29 @@ signing/API policy or installed lifecycle. No product entry point imports it.
 Independent read-only source review reran the nine tests/152 assertions and
 typecheck, found no confirmed blocker, and accepted only this inactive scope.
 
+`SqliteOwnerStore.validateExistingCiphertexts` implements the owner portion of
+the required validator using a supplied existing SQLite handle and read snapshot.
+It reuses marker HMAC/state checks and the actual v1/v2/session decryption routines;
+it does not call ordinary open, which may migrate schema. Required installation,
+owner and explicit legacy-v1/accounts-v2 format come from the authenticated baseline.
+It authenticates every non-null account and Photos ciphertext, including retained
+stale sessions with their stored revision/generation AAD, checks registry/link/
+session ownership, and rechecks the marker against the same snapshot. Missing or
+partial schema and invalid bindings fail closed without creating tables or fixing
+data. The caller still supplies safe paths and stopped maintenance; a SQLite read
+snapshot is not cross-store filesystem isolation or proof that service is stopped.
+
+Only immutable counts are returned; opaque credentials are not coerced into Apple
+passwords and sessions are not declared provider-valid. Caller-owned DB/key remain
+usable; the private key clone and decrypted/intermediate buffers are wiped.
+Seven tests cover readonly handles, actual current writers, legacy-v1 ciphertext,
+tamper/transplantation, stale AAD, missing/orphan state and populated master-copy
+integration. Corrupt Photos state blocks synthetic cutover. This method does not
+cover auth/internal-client, Mail/Calendar ledgers or account-journal HMACs; full
+inventory composition and product maintenance wiring remain pending.
+Independent review reran the validator and related owner/session suites: 23 tests,
+148 assertions and typecheck passed with no confirmed blocker in this scope.
+
 `AccountPasswordMigration` now coordinates inactive password-copy steps using
 injected custody ports. Its caller must authenticate the owner, satisfy K0 and
 original-master K2 acceptance, and hold exclusive stopped maintenance throughout.
@@ -224,7 +247,7 @@ borrowed add buffers and caller-owned read buffers. Ten synthetic tests cover
 preservation, reopen, lost replies, exact selectors/conflicts, late mutations,
 unavailability, buffer lifetimes and unsupported bytes. Memory ports do not prove
 native item durability, real UI suppression or signed caller isolation.
-With both copy coordinators, the combined storage/startup suite passed 83 tests/672 assertions, with
+With both copy coordinators and the owner validator, the combined storage/startup suite passed 90 tests/713 assertions, with
 typecheck and private application build passing. Independent review reran the
 final ten coordinator tests/96 assertions; an earlier related-storage run passed
 61 tests/451 assertions before the last two cases were added. The reviewer found

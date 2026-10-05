@@ -9,6 +9,10 @@ export class OwnerStorageError extends Error {
   constructor(readonly code: StorageErrorCode) { super(code); this.name = 'OwnerStorageError'; }
 }
 export interface OwnerStoreOptions { databasePath: string; markerPath: string; masterKey: Uint8Array }
+export interface OwnerCiphertextValidation {
+ readonly format:1;readonly accounts:number;readonly accountCiphertexts:number;
+ readonly providerSessions:number;readonly providerCiphertexts:number;readonly legacyCiphertexts:number;
+}
 export interface MailAccount { id: string; user: string; label: string; credentialStored: boolean }
 export type ProviderSessionRealm='photos_web';
 export interface ProviderSessionState {accountRevision:number;generation:number;stored:boolean}
@@ -72,6 +76,55 @@ export class SqliteOwnerStore implements OwnerSecretStore,ProviderSessionCustody
       store.state(); store.migrate(); return store;
     } catch { db?.close(); key.fill(0); return fail('STATE_UNAVAILABLE'); }
   }
+  /** Read-only crypto inventory for stopped custody maintenance. Never calls
+   * open/migrate/provision, repairs schema or closes the caller's DB. Required
+   * format/bindings come from the authenticated installation baseline, not from
+   * missing-table inference. This covers owner/account/Photos ciphertext only;
+   * auth/internal-client and Mail/Calendar ledgers require separate validators.
+   */
+  static validateExistingCiphertexts(options:{database:Database;markerPath:string;masterKey:Uint8Array;
+    installationId:string;ownerId:string|null;ownerFormat:'legacy-v1'|'accounts-v2'}):OwnerCiphertextValidation {
+    if(options.masterKey.byteLength!==32)fail('INVALID_INPUT');
+    const key=Buffer.from(options.masterKey),store=new SqliteOwnerStore({databasePath:'',markerPath:options.markerPath,masterKey:key},key,options.database);
+    try{return options.database.transaction(()=>{
+      const db=options.database,state=store.state();
+      if(state.install!==options.installationId||state.owner!==options.ownerId||!Number.isSafeInteger(state.version))fail('STATE_UNAVAILABLE');
+      if((db.query('SELECT count(*) AS count FROM owner_state').get() as {count:number}).count!==1)fail('STATE_UNAVAILABLE');
+      const columns=db.query('PRAGMA table_info(owner_state)').all() as {name:string}[];
+      if(columns.some(column=>column.name==='legacy_account')!==(options.ownerFormat==='accounts-v2'))fail('STATE_UNAVAILABLE');
+      const counts={format:1 as const,accounts:0,accountCiphertexts:0,providerSessions:0,providerCiphertexts:0,legacyCiphertexts:0};
+      if(options.ownerFormat==='legacy-v1'){
+        if(db.query("SELECT name FROM sqlite_master WHERE name IN ('mail_accounts','provider_sessions')").get())fail('STATE_UNAVAILABLE');
+        if(state.secret!==null){
+          if(state.owner===null||state.version<1)fail('STATE_UNAVAILABLE');
+          const bytes=store.unseal(state.secret,`credential:v1:${state.owner}:${state.version}`);try{counts.legacyCiphertexts++;}finally{bytes.fill(0);}
+        }
+      }else{
+        if(state.secret!==null)fail('STATE_UNAVAILABLE');
+        const accounts=db.query('SELECT id,owner,user,label,secret,version FROM mail_accounts').all();
+        const registry=new Map<string,number>();
+        for(const raw of accounts){
+          const account=z.object({id:z.string().uuid(),owner:z.string().min(1),user:z.string(),label:z.string(),secret:z.string().nullable(),version:z.number().int().positive().safe()}).strict().parse(raw);
+          if(account.owner!==state.owner||registry.has(account.id))fail('STATE_UNAVAILABLE');
+          registry.set(account.id,account.version);counts.accounts++;
+          if(account.secret!==null){const bytes=store.unseal(account.secret,`credential:v2:${account.owner}:${account.id}:${account.version}`);try{counts.accountCiphertexts++;}finally{bytes.fill(0);}}
+        }
+        const link=(db.query('SELECT legacy_account FROM owner_state WHERE singleton=1').get() as {legacy_account:string|null}).legacy_account;
+        if(link!==null&&!registry.has(link))fail('STATE_UNAVAILABLE');
+        for(const raw of db.query('SELECT owner,account,realm,accountRevision,generation,secret FROM provider_sessions').all()){
+          const session=z.object({owner:z.string().min(1),account:z.string().uuid(),realm:z.literal('photos_web'),accountRevision:z.number().int().positive().safe(),generation:z.number().int().positive().safe(),secret:z.string().nullable()}).strict().parse(raw);
+          const revision=registry.get(session.account);
+          if(session.owner!==state.owner||revision===undefined||session.accountRevision>revision)fail('STATE_UNAVAILABLE');
+          counts.providerSessions++;
+          // Authenticate even a stale retained ciphertext using its STORED AAD.
+          // This does not revive a session or declare it current/provider-valid.
+          if(session.secret!==null){const bytes=store.unseal(session.secret,store.sessionAAD(session.owner,session.account,session.realm,session.accountRevision,session.generation));try{counts.providerCiphertexts++;}finally{bytes.fill(0);}}
+        }
+      }
+      store.state(); // Recheck marker against the same SQLite read snapshot.
+      return Object.freeze(counts);
+    })();}catch{return fail('STATE_UNAVAILABLE');}finally{key.fill(0);}
+  }
   private static marker(id: string, phase: Marker['phase'], key: Buffer, owner: string | null = null): string {
     const payload = JSON.stringify({ version: 1, id, phase, owner });
     return JSON.stringify({ id, phase, owner, mac: createHmac('sha256', key).update(payload).digest('hex') });
@@ -100,7 +153,9 @@ export class SqliteOwnerStore implements OwnerSecretStore,ProviderSessionCustody
       const decipher = createDecipheriv('aes-256-gcm', this.key, Buffer.from(envelope.iv, 'base64'));
       decipher.setAAD(Buffer.from(aad));
       decipher.setAuthTag(Buffer.from(envelope.tag, 'base64'));
-      return Buffer.concat([decipher.update(Buffer.from(envelope.data, 'base64')), decipher.final()]);
+      const partial=decipher.update(Buffer.from(envelope.data,'base64'));let final:Buffer|undefined;
+      try{final=decipher.final();return Buffer.concat([partial,final]);}
+      finally{partial.fill(0);final?.fill(0);}
     } catch { return fail('SECRET_UNAVAILABLE'); }
   }
   private legacyUser(credential: Uint8Array | null): string {
