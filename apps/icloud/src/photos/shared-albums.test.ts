@@ -207,10 +207,10 @@ test('reviewed upload retains source digest and dispatch stages; recovery never 
    const result=await f.service.apply(plan.operationId,true);expect(result.status).toBe(mode==='success'?'applied':'outcome_unknown');
    expect(f.uploads()).toBe(1);expect(f.writes()).toBe(mode==='lost-binary'?0:1);
    await f.create().apply(plan.operationId,true);expect(f.uploads()).toBe(1);
-   if(mode==='lost-publication'){expect((await f.create().reconcile(plan.operationId)).status).toBe('reconciled');expect(f.writes()).toBe(1);}
-   if(mode==='lost-binary'){expect((await f.create().reconcile(plan.operationId)).status).toBe('outcome_unknown');expect(f.writes()).toBe(0);}
+   if(mode==='lost-publication'){const album=f.albums.get(guid),copies=album.assets;album.assets=[];album.count=0;expect((await f.create().reconcile(plan.operationId)).status).toBe('outcome_unknown');album.assets=copies;album.count=copies.length;expect((await f.create().reconcile(plan.operationId)).status).toBe('reconciled');expect(f.writes()).toBe(1);}
+   if(mode==='lost-binary'){const recovered=await f.create().reconcile(plan.operationId);expect(recovered.status).toBe('not_published');expect(recovered.result.binaryTransferOutcome).toBe('unknown');expect(recovered.result.publicationDispatched).toBe(false);expect(recovered.result.remoteStagedResourceMayRemain).toBe(true);expect(f.writes()).toBe(0);await f.service.prepare({action:'rename_shared_album',albumId,title:'Explicit next plan',experimental:true});}
    expect(JSON.stringify(f.service.status(plan.operationId))).not.toContain('private-receipt');expect(f.uploads()).toBe(1);
-   expect(f.cleanups()).toBe(mode==='lost-binary'?0:1);expect(f.service.status(plan.operationId).upload).not.toHaveProperty('source');
+   expect(f.cleanups()).toBe(1);expect(f.service.status(plan.operationId).upload).not.toHaveProperty('source');
   }finally{f.db.close();}
  }
 });
@@ -224,4 +224,21 @@ test('cancelling an unexecuted upload discards only its staged source and cannot
   expect((await f.service.cancel(p.operationId)).status).toBe('cancelled');expect(f.cleanups()).toBe(1);
   await f.service.apply(p.operationId,true);await f.service.cancel(p.operationId);expect(f.uploads()).toBe(0);expect(f.writes()).toBe(0);expect(f.cleanups()).toBe(1);
  }finally{f.db.close();}
+});
+
+
+test('album inventory returns promptly and polls one retained account-bound job',async()=>{
+ const db=new Database(':memory:');let calls=0,resolve!:(response:Response)=>void,generation=1;
+ const session=()=>({accountId,dsid:'123',protocol:'legacy_shared_streams' as const,serviceOrigin:'https://p37-sharedstreams.icloud.com',generation,accountRevision:1,request:async(_url:string,init:RequestInit)=>{calls++;expect(new Headers(init.headers).get('x-photos-inventory-probe')).toBe('true');return new Promise<Response>(r=>resolve=r);}});
+ const create=()=>new SharedAlbumService({db,owner:'owner',accountId,currentOwner:()=> 'owner',policy:()=>({read:true,write:true,delete:false}),session});
+ try{
+  const initial=create().albumsBackground() as any;expect(initial.status).toBe('read_pending');expect(calls).toBe(1);
+  expect((create().albumsBackground(undefined,initial.readId) as any).readId).toBe(initial.readId);expect(calls).toBe(1);
+  resolve(Response.json({albums:[]}));await new Promise(r=>setTimeout(r,1));
+  expect((create().albumsBackground(undefined,initial.readId) as any).status).toBe('complete');expect(calls).toBe(1);
+  const fresh=create().albumsBackground(undefined,undefined,true) as any;expect(fresh.readId).not.toBe(initial.readId);expect(calls).toBe(2);
+  expect(()=>create().albumsBackground(undefined,initial.readId)).toThrow('shared_album_read_not_found');
+  resolve(Response.json({albums:[]}));await new Promise(r=>setTimeout(r,1));generation++;
+  expect(()=>create().albumsBackground(undefined,fresh.readId)).toThrow('shared_album_read_not_found');
+ }finally{db.close();}
 });
