@@ -1,5 +1,25 @@
 # Photos capability: active remote delivery plan and evidence
 
+## API-first repeat acceptance and remaining gates — 2026-10-05
+
+A new owner-requested synthetic image was uploaded through the existing main MCP
+on 0.1.56. Initial cloud readback detected a changed membership snapshot. A single
+explicit read-only reconciliation then observed a completed Apple job and the
+exact retained asset ID in a complete stable cloud membership snapshot. No write
+was retried and no local fallback was used. Reviewed deletion of the dedicated
+nonempty album then reached applied with serverReadbackVerified and albumAbsent.
+This adds live nonempty-album deletion acceptance; the exact synthetic artifact
+and destination are cleaned. Private evidence: live-api-first-new-photo-0156.json
+in the task session evidence directory.
+
+Accepted routing: Shared Album cloud API first, local osxphotos/PhotoKit read
+fallback explicitly labeled as a local synced snapshot. This is workflow routing,
+not an implemented automatic retry/failover engine. Person/local-library reads
+remain osxphotos-first. No backend switch may duplicate an uncertain write.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
 ## Live cloud readback fix and exact synthetic cleanup — 2026-10-05
 
 Installed 0.1.56 from main 0debd5c successfully read the synthetic image's exact
