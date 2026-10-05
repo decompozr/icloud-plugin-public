@@ -250,7 +250,8 @@ local write acknowledgement and handoff pickup are separate evidence categories.
 The current receiver owns product changes exclusively in the same task worktree
 and branch. Preserve the separate primary checkout and existing private records.
 No new runtime or global dependency installation is needed. Repository artifacts
-remain English; communication and native review support Traditional Chinese.
+remain English; communication remains Traditional Chinese; helper-owned native UI is English-only
+per the owner's later explicit preference.
 
 Implementation, local builds, read-only checks and owner-facing review preparation
 are in scope. Personal uploads require concrete asset/destination review; deletion
@@ -518,3 +519,37 @@ Read back actual permissions, then open exact previews and obtain specific
 asset/destination or disposable-test-data decisions. Only then complete live
 posting/writes, cloud evidence, clean delivery/review gates and the installed
 end-to-end owner scenario. Do not auto-upload, auto-delete or retry unknown writes.
+
+
+### Helper language correction
+
+The owner clarified that only the Helper UI must use English; conversation
+replies remain Traditional Chinese. Removed bilingual Chinese strings from
+helper-owned setup, comparison/cleanup, sharing and alert views. Apple-owned
+system sheets retain their system language. Candidate authorization was still
+0/false before the UI update; the original authorized helper remains preserved.
+
+
+### Admin-owned permission flow (owner correction)
+
+The owner-provided screenshot established the former setup window was visible;
+`cgWindowNotFound` was an automation-observation limitation, not proof that the
+app could not show a window. The owner then requested setup in the admin page as
+steps 1–2–3, and English-only helper UI with Traditional Chinese conversation.
+
+Removed the duplicate native setup window, its `review_setup` command and the
+unreleased `photos_open_setup` tool. Admin now presents 1. library access,
+2. Photos Full Access, 3. actual permission recheck. These are executable actions,
+not instructions-only buttons. Authorization launches a fresh app instance so
+arguments cannot be swallowed by an already-running helper. Supported native
+comparison/cleanup and Apple posting flows remain; helper-owned strings are
+English-only and system-owned sheets follow macOS language settings.
+
+The obsolete setup process was stopped after matching its exact executable. A
+replacement `production-runtime-admin` was compiled/signed/verified without
+requesting access or modifying photos. Full source checks passed 323 application
+tests / 1,998 assertions, TypeScript and application build; native typecheck and
+compile/link passed. The earlier English-only build had a syntax error and was
+not launched; the corrected admin-flow build passed. Existing held server/native
+candidates with the old setup flow are superseded and must not be deployed.
+Actual admin deployment and owner-triggered permission/readback remain pending.

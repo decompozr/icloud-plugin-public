@@ -100,16 +100,6 @@ do {
     if CommandLine.arguments.contains("--authorize") { _ = NSApplication.shared }
     let data = CommandLine.arguments.contains("--authorize") ? Data("{\"command\":\"authorize\"}".utf8) : FileHandle.standardInput.readDataToEndOfFile()
     guard data.count <= 65536, let input = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { try fail("invalid_request") }
-    if input["command"] as? String == "review_setup" {
-        let app = NSApplication.shared
-        guard app.setActivationPolicy(.regular) else { try fail("native_ui_policy_failed") }
-        let setup = PhotosPermissionWindow()
-        app.finishLaunching()
-        setup.show()
-        FileHandle.standardOutput.write(Data("{\"ok\":true,\"result\":{\"status\":\"setup_opened\",\"changesPerformed\":false}}\n".utf8))
-        withExtendedLifetime(setup) { app.run() }
-        exit(0)
-    }
     if input["command"] as? String == "review_catalog" {
         let app = NSApplication.shared
         guard app.setActivationPolicy(.regular) else { try fail("native_ui_policy_failed") }

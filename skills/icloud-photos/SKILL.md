@@ -11,9 +11,10 @@ Calendar consent does not enable Photos. Use the owner's setup/status/recheck
 flow; never ask for credentials in chat or bypass unavailable permissions.
 
 Start with `photos_health`. It checks the local synced snapshot and native access,
-not server synchronization. `photos_open_setup` opens controls on the service Mac,
-including when the owner uses a phone. The owner completes permission prompts
-there; opening a settings pane or a setup window is not a granted permission.
+not server synchronization. Permission controls are in the owner admin page:
+1. library access, 2. Photos Full Access, 3. actual permission recheck. Buttons
+open settings/prompts on the service Mac even from a phone. The owner completes
+macOS prompts there; opening a settings pane is not a granted permission.
 
 Find people through `photos_persons` and existing tags, never face recognition or
 guessed identity. Use `photos_query` with offset-bearing capture bounds: inclusive

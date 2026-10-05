@@ -98,10 +98,17 @@ includes motion flags; the native review labels still thumbnails as incomplete.
 
 ## Native review workflow
 
-`photos_open_setup` opens permission controls on the service Mac. It never requests
-permission until the owner presses the native request-access button. The existing
-owner web setup continues to verify both selected-library readability and native
-authorization; Photos permission alone does not prove sidecar/Full Disk Access.
+Helper-owned setup, comparison, cleanup and sharing UI text is English-only,
+per owner preference. This does not rename library assets or albums. Apple-owned
+picker/permission/posting sheets follow macOS language settings.
+
+Permission setup lives in the owner admin page as three steps: library access,
+Photos Full Access, then actual permission recheck. Buttons act on the service Mac.
+Only explicit owner clicks request access; no independent helper setup window
+is exposed. The native helper remains responsible for Apple-owned permission
+prompts and supported review/posting flows. The admin checks both selected-library
+readability and native authorization; Photos permission alone does not prove
+sidecar/Full Disk Access.
 
 `photos_open_review` accepts either `{kind:"comparison",assetIds:[...],albumId}`
 (at most twelve exact source assets), or `{kind:"cleanup",offset,limit}`. The

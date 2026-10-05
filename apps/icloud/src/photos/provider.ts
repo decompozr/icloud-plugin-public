@@ -22,7 +22,7 @@ export async function runNative(helper:string,input:unknown,timeoutMs=60000):Pro
  try{
   const source=join(directory,'input.json'),target=join(directory,'output.json');
   await writeFile(source,encoded,{mode:0o600});await writeFile(target,'',{mode:0o600});
-  const interactive=['authorize','review_setup','review_catalog','shared_review'].includes((input as {command?:string})?.command??'');
+  const interactive=['authorize','review_catalog','shared_review'].includes((input as {command?:string})?.command??'');
   const args=['/usr/bin/open','-n',...(interactive?[]:['-g']),'-i',source,'-o',target,'--stderr','/dev/null',app];
   if((input as {command?:string})?.command==='authorize')args.push('--args','--authorize');
   child=Bun.spawn(args,{stdout:'ignore',stderr:'ignore'});
@@ -58,7 +58,6 @@ export class LocalPhotosProvider implements PhotosProvider {
  constructor(private readonly settings:ProviderSettings){if(![settings.python,settings.library,settings.nativeHelper].every(isAbsolute))throw new PhotosError('absolute_provider_paths_required');}
  private reader(command:string,input:unknown){return runProcess([this.settings.python,join(this.settings.sidecarDirectory??base,'reader.py')],{library:this.settings.library,command,input},this.settings.timeoutMs);}
  async read(command:string,input:unknown):Promise<unknown>{
-  if(command==='native_setup')return z.object({status:z.literal('setup_opened'),changesPerformed:z.literal(false)}).strict().parse(await runNative(this.settings.nativeHelper,{command:'review_setup'},this.settings.timeoutMs));
   const value=await this.reader(command,input);
   if(command==='detail')return assetSchema.parse(value);
   if(command==='query')return z.union([

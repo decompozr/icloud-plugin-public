@@ -7,6 +7,9 @@ test('configured Photos onboarding provides native shortcuts, remote Mac guidanc
  const html=setupPage({enrolled:true,ready:true,admin:true,photosConfigured:true});
  expect(html).toContain(privacyLinks.photos);expect(html).toContain(privacyLinks.files);expect(html).toContain(privacyLinks.automation);
  expect(html).toContain('data-photos-action="authorize"');expect(html).toContain('id="photos-recheck"');expect(html).toContain('service Mac');expect(html).toContain('aria-live="polite"');
+ expect(html.indexOf('1. Read your library')).toBeLessThan(html.indexOf('2. Allow Photos access'));
+ expect(html.indexOf('2. Allow Photos access')).toBeLessThan(html.indexOf('3. Verify permissions'));
+ expect(html.match(/id="photos-recheck"/g)).toHaveLength(1);
  expect(setupPage({enrolled:false,ready:true,admin:false,photosConfigured:true})).toContain('id="photos-onboarding" hidden');
  expect(setupPage({enrolled:true,ready:true,admin:true})).not.toContain('id="photos-setup"');
 });
