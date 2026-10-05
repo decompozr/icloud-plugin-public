@@ -475,3 +475,13 @@ verifying the next asset is untouched. Eight Python tests, 323 application tests
 metadata was edited. A candidate health read still reports authorization 0/false,
 and its exact setup process remains running; owner visibility/permission action
 is still pending. No setup relaunch or permission grant was inferred.
+
+
+### Held Photos delivery candidate
+
+Application/client version 0.1.29 is reserved locally for the Photos delivery
+candidate, based on production 0.1.28. This is not a tag, publication, installation
+or release acceptance. The candidate stays held until owner-visible setup,
+permissions, reviewed live writes/sharing and installed scenario gates pass.
+Do not overwrite the existing 0.1.28 release or infer deployment permission from
+the candidate version. Check remote version availability again before publication.
