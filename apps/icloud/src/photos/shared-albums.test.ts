@@ -30,7 +30,7 @@ function fixture(){
   if(loseReply)throw Error('private-token-lost-reply');
   return Response.json(endpoint==='createalbum'?{albumguid:body.albumguid}:endpoint==='webputasset'?{albumguid:body.albumguid,assetguid:body.assetguid,uploadjobid:'retained-job'}:{});
  }});
- const create=(account=accountId,currentOwner=owner)=>new SharedAlbumService({db,owner:currentOwner,accountId:account,currentOwner:()=>owner,policy:()=>({read:true,write:allow,delete:false}),session,stageUpload:async(assetId,representation)=>({assetId,representation,filename:'fixture.jpg',livePhotoStillOnly:false,mediaType:'photo',bytes:3,sha256:'a'.repeat(64),privatePath:'/private/fixture/content'}),releaseUpload:async()=>{cleanups++;}});
+ const create=(account=accountId,currentOwner=owner)=>new SharedAlbumService({db,owner:currentOwner,accountId:account,currentOwner:()=>owner,policy:()=>({read:true,write:allow,delete:false}),session,stageUpload:async(assetId,representation)=>({assetId,representation,filename:'fixture.jpg',livePhotoStillOnly:false,mediaType:'photo',bytes:3,sha256:'a'.repeat(64),privatePath:'/private/fixture/content'}),releaseUpload:async()=>{cleanups++;},stageTestUpload:async(operationId)=>({assetId:'fixture:'+operationId,representation:'original',filename:'Photos capability test.png',livePhotoStillOnly:false,mediaType:'photo',bytes:3,sha256:'a'.repeat(64),privatePath:'/private/fixture/content'})});
  return {db,local,service:create(),create,albums,cleanups:()=>cleanups,uploads:()=>uploads,loseBinary:()=>loseUpload=true,writes:()=>writes,lose:()=>loseReply=true,revoke:()=>generation++,owner:()=>owner='other',disable:()=>allow=false};
 }
 test('experimental true Shared Album lifecycle requires review and separate exact server readback',async()=>{
@@ -279,4 +279,31 @@ test('main MCP discovery exposes shared lifecycle under existing Photos grants a
    await new Promise(r=>setTimeout(r,5));
   }finally{await client.close();await server.close();await runtime.dispose();f.db.close();}
  }
+});
+
+
+test('deleting an owned nonempty Shared Album requires its exact complete reviewed membership',async()=>{
+ const f=fixture(),guid='BBBBBBBB-1111-4111-8111-111111111111',albumId=`shared-album:${accountId}:${guid}`;
+ f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Delete fixture'},albumctag:'1',count:2,assets:['copy-a','copy-b']});
+ try{
+  await expect(f.service.prepare({action:'delete_empty_shared_album',albumId,experimental:true})).rejects.toThrow('album_not_empty');
+  const plan=await f.service.prepare({action:'delete_shared_album',albumId,experimental:true});expect(plan.warning).toContain('for everyone');expect(plan.mayNotify).toBe(true);expect('membership' in plan.before&&plan.before.membership.total).toBe(2);expect(f.writes()).toBe(0);
+  const album=f.albums.get(guid);album.assets.push('copy-c');album.count=3;album.albumctag='2';
+  await expect(f.service.apply(plan.operationId,true)).rejects.toThrow('stale_plan');expect(f.writes()).toBe(0);
+  const fresh=await f.service.prepare({action:'delete_shared_album',albumId,experimental:true});f.lose();
+  expect((await f.service.apply(fresh.operationId,true)).status).toBe('outcome_unknown');expect(f.writes()).toBe(1);
+  expect((await f.create().reconcile(fresh.operationId)).status).toBe('reconciled');expect(f.writes()).toBe(1);expect(f.albums.has(guid)).toBe(false);
+ }finally{f.db.close();}
+});
+
+
+test('synthetic test upload uses explicit reviewed destination without a personal asset ID',async()=>{
+ const f=fixture(),guid='CCCCCCCC-1111-4111-8111-111111111111',albumId=`shared-album:${accountId}:${guid}`;
+ f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Synthetic fixture only'},albumctag:'1',count:0,assets:[]});
+ try{
+  const plan=await f.service.prepare({action:'upload_shared_test_fixture',albumId,experimental:true});
+  expect('upload' in plan.before&&plan.before.upload?.assetId).toBe('fixture:'+plan.operationId);expect('upload' in plan.before&&plan.before.upload?.filename).toBe('Photos capability test.png');expect(f.uploads()).toBe(0);expect(f.writes()).toBe(0);
+  await expect(f.service.apply(plan.operationId,false)).rejects.toThrow('confirmation_required');
+  expect((await f.service.apply(plan.operationId,true)).status).toBe('applied');expect(f.uploads()).toBe(1);expect(f.writes()).toBe(1);expect(f.cleanups()).toBe(1);
+ }finally{f.db.close();}
 });

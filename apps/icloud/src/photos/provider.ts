@@ -85,6 +85,10 @@ export class LocalPhotosProvider implements PhotosProvider {
   const source=await this.reader('upload_source',{assetId,representation,livePhotoMode});
   return stageUploadSource(source,{library:this.settings.library,directory:join(this.settings.stateDirectory,'shared-upload-staging'),assetId});
  }
+ async stageTestUpload(operationId:string):Promise<StagedUploadSource>{
+  if(!this.settings.stateDirectory)throw new PhotosError('upload_runtime_not_configured');
+  return z.object({assetId:z.string(),filename:z.literal('Photos capability test.png'),representation:z.literal('original'),livePhotoStillOnly:z.literal(false),mediaType:z.literal('photo'),bytes:z.number().int().positive(),sha256:z.string().regex(/^[a-f0-9]{64}$/),privatePath:z.string().refine(isAbsolute)}).strict().parse(await runProcess([this.settings.python,join(this.settings.sidecarDirectory??base,'shared-test-fixture.py')],{directory:join(this.settings.stateDirectory,'shared-upload-staging'),operationId}));
+ }
  async releaseUpload(source:StagedUploadSource){
   if(!this.settings.stateDirectory)throw new PhotosError('upload_runtime_not_configured');
   await releaseUploadSource(source,join(this.settings.stateDirectory,'shared-upload-staging'));
