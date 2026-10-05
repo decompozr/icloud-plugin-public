@@ -40,6 +40,21 @@ class TransportTests(unittest.TestCase):
             with self.subTest(replacement=replacement), patch.object(Session, '__init__', side_effect=AssertionError('transport must not be constructed')):
                 with self.assertRaises(ValueError): actor.run({**self.request(), **replacement})
 
+    def test_advertised_standard_tls_port_is_canonicalized_and_other_ports_reject(self):
+        request = self.request()
+        request['serviceOrigin'] += ':443'
+        request['state']['data']['webservices']['sharedstreams']['url'] = request['serviceOrigin']
+        calls = []
+        def send(session, prepared, **options):
+            calls.append(prepared.url); r = Response(); r.status_code = 200; r._content = b'{"albums":[]}'; r._content_consumed = True; return r
+        with patch.object(Session, 'send', send): actor.run(request)
+        self.assertEqual(calls, ['https://p37-sharedstreams.icloud.com/123456789/sharedstreams/webgetalbumslist'])
+        for port in [80, 444, 8443]:
+            request['serviceOrigin'] = f'https://p37-sharedstreams.icloud.com:{port}'
+            request['state']['data']['webservices']['sharedstreams']['url'] = request['serviceOrigin']
+            with patch.object(Session, '__init__', side_effect=AssertionError('no transport')):
+                with self.assertRaises(ValueError): actor.run(request)
+
     def test_transport_failure_never_retries_or_authenticates(self):
         calls = []
         def fail(session, request, **options): calls.append(request); raise ConnectionError('fixture transport failure')

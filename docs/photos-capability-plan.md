@@ -1,5 +1,20 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Advertised HTTPS port mismatch resolved in source — 2026-10-05
+
+The deployed 0.1.39 main-MCP diagnostic localized failure to transport, before an
+HTTP response. A network-disabled preflight of the existing sealed session found
+that Apple's advertised service uses explicit standard TLS port 443. TypeScript
+URL canonicalization accepted it; Python incorrectly rejected any explicit port.
+The account and advertised route otherwise matched. No new login is required.
+
+Candidate 0.1.40 accepts only absent/default HTTPS port 443, canonicalizes the
+request route to the same origin as TypeScript, and continues rejecting all
+nonstandard ports, account substitution and unadvertised hosts. Four actual
+requests-transport fixture tests pass, including default-port canonicalization,
+nonstandard-port rejection and no authentication/write retries. Deployment and
+main-MCP inventory acceptance remain the next gates. No album mutation occurred.
+
 ## Deployed lifecycle experiment and live read failure — 2026-10-05
 
 Release 0.1.38 was merged through PR36 and deployed from clean main f2790e7.
