@@ -1,3 +1,4 @@
+// Nonshipping research. Never included in the operation Helper build.
 import AppKit
 import Photos
 import PhotosUI

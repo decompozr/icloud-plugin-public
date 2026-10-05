@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {join,dirname,isAbsolute} from 'node:path';
 import {z} from 'zod';
 import {assetSchema,albumSchema,mutationSchema,PhotosError,type Mutation,type PhotosProvider} from './contracts.js';
-import {reserveReview,readReview} from './shared-review.js';
+import {readReview} from './shared-review.js';
 const moduleDirectory=dirname(fileURLToPath(import.meta.url));
 const base=existsSync(join(moduleDirectory,'reader.py'))?moduleDirectory:join(moduleDirectory,'photos');
 const envelope=z.discriminatedUnion('ok',[z.object({ok:z.literal(true),result:z.unknown()}).strict(),z.object({ok:z.literal(false),error:z.string().regex(/^[a-z_]{1,80}$/)}).strict()]);
@@ -22,7 +22,7 @@ export async function runNative(helper:string,input:unknown,timeoutMs=60000):Pro
  try{
   const source=join(directory,'input.json'),target=join(directory,'output.json');
   await writeFile(source,encoded,{mode:0o600});await writeFile(target,'',{mode:0o600});
-  const interactive=['authorize','shared_review'].includes((input as {command?:string})?.command??'');
+  const interactive=(input as {command?:string})?.command==='authorize';
   const args=['/usr/bin/open','-n',...(interactive?[]:['-g']),'-i',source,'-o',target,'--stderr','/dev/null',app];
   if((input as {command?:string})?.command==='authorize')args.push('--args','--authorize');
   child=Bun.spawn(args,{stdout:'ignore',stderr:'ignore'});
@@ -84,14 +84,6 @@ export class LocalPhotosProvider implements PhotosProvider {
  }
  private native(command:string,mutation:Mutation){return runNative(this.settings.nativeHelper,{command,mutation},this.settings.timeoutMs);}
  private reviewPath(){const directory=this.settings.reviewDirectory??(this.settings.stateDirectory?join(this.settings.stateDirectory,'shared-reviews'):undefined);if(!directory)throw new PhotosError('review_runtime_not_configured');return directory;}
- async openReview(mutation:Mutation,expected:unknown,operationId:string){
-  if(mutation.action!=='post_to_shared_album')throw new PhotosError('wrong_operation_type');
-  const current=snapshot.parse(await this.reader('inspect',mutation));
-  if(JSON.stringify(current)!==JSON.stringify(expected))throw new PhotosError('stale_plan');
-  const directory=this.reviewPath();await reserveReview(directory,operationId);
-  const result=await runNative(this.settings.nativeHelper,{command:'shared_review',mutation,operationId,reviewDirectory:directory},this.settings.timeoutMs);
-  return z.object({status:z.literal('review_pending'),operationId:z.string().uuid(),localReadbackVerified:z.literal(false),serverSyncVerified:z.literal(false)}).strict().parse(result);
- }
  async reviewStatus(operationId:string){return readReview(this.reviewPath(),operationId);}
  async apply(mutation:Mutation,expected:unknown){
   if(mutation.action==='post_to_shared_album')throw new PhotosError('native_review_required');

@@ -96,12 +96,14 @@ owner-visible diagnostics and new host registration/tool use remain pending.
 
 The active Helper build still includes the isolated posting UI candidate even
 though remote MCP preparation/application reject it. This contradicts the
-nonshipping-research disposition above. The next correction will exclude that UI
-and its launch path from the operation Helper, retaining research source outside
-the production native build and preserving historical journal/status readback.
+nonshipping-research disposition above. The source correction excludes that UI and its launch path from the operation
+Helper. Research source is retained in playground/photos outside the production
+native build; historical TypeScript journal/status readback is preserved.
 Compile the operation Helper and isolated research independently; remote posting
 must remain explicitly unsupported. Preserve installed Helper identity on a
 TypeScript-only update; change native identity only with actual consent recheck.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
 Latest live acceptance observations: no registered client, consent, access grant
 or refresh grant includes Photos; Helper authorization is still 0. The library is
