@@ -40,8 +40,10 @@ No Keychain operation was involved, and K0 has not passed. K1 fixture contracts
 remain independent; K2/K3 activation remains gated. K1's first inactive foundation
 now provides both custody ports/exact selectors and a master authority journal
 with original-key HMAC, atomic fsynced writes, phase/generation CAS and exclusive
-leases. Synthetic process-death/lock tests cover metadata only. Account SQLite
-pointers/tombstones/epochs, stopped recovery and settings/compatibility/backend
+leases. The inactive account SQLite journal now adds HMAC-bound pointers/cleanup,
+epoch CAS, atomic ciphertext cutover and revision/session-aware revocation. Synthetic
+process-death/concurrency tests cover storage only; neither journal calls Keychain.
+Stopped recovery, account add/rotation adapters and settings/compatibility/backend
 integration remain pending; K1 is not complete and runtime custody is unchanged.
 No production identity is presumed available; sealed
 Bun packaging and authenticated peer-channel feasibility are unverified. Open

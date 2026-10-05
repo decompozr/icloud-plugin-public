@@ -193,8 +193,18 @@ Lost replies require readback; unresolved staging and interrupted locks stop new
 writers. Runtime does not import these modules or select Keychain. Synthetic
 process-death and cross-process lock tests are retained in
 [storage verification](../apps/icloud/src/storage/master-authority.test.ts).
-Account SQLite authority/tombstones/epochs, stopped recovery, settings/format
-gates, custody paths and backend integration are still required for K1 completion.
+The inactive [account journal](../apps/icloud/src/storage/account-authority.ts)
+adds original-key-authenticated SQLite authority/cleanup records and epoch CAS.
+Explicit preparation baselines existing accounts together. Cutover atomically
+commits the exact pointer and removes ciphertext without changing account revision
+or provider sessions; real revocation advances revision and invalidates sessions
+before external cleanup. Missing pointers cannot be rebaselined; unavailable native
+custody retains authority without fallback. Synthetic tests cover competing writers,
+stale results, tamper/mixed snapshots and process death before/after commit.
+Caller authentication, leases, fresh native verification/deletion and asynchronous
+read revalidation are still required; no runtime adapter imports this component.
+Stopped recovery, account add/rotation adapters, settings/format gates, custody
+paths and backend integration are still required for K1 completion.
 No all-consumer or Keychain validation is implied by advancing a fixture phase.
 
 `credentialStored` means an active authoritative pointer, not `secret != null`.

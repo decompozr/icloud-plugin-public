@@ -114,9 +114,39 @@ replacement or satisfy K0 caller isolation. An independent review verified the
 inactive scope and reran the 15 new master-authority tests successfully. The
 owner's targeted suite also passed all 31 master/owner/provider-session tests.
 
-This is the first K1 slice, not the K1 exit gate. Pending pieces include stopped
-lock/staging reconciliation, account pointer/tombstone SQLite transactions,
-custody epochs, settings/format and installer compatibility gates, stable custody
+`AccountAuthorityJournal` adds an inactive SQLite account authority journal.
+Explicit stopped provisioning baselines all existing accounts atomically; ordinary
+open never creates or repairs missing pointers. Original-key HMACs bind state and
+cleanup intents to installation/owner/account/revision/generation. An epoch CAS
+coordinates copy intent, external verification and cutover without changing the
+semantic credential revision. Pointer activation and legacy ciphertext removal
+commit together, preserving account metadata and Photos sessions. Real local
+revocation instead atomically advances revision, invalidates provider sessions and
+queues exact native item cleanup. Generation reservations are never reused.
+
+Reads use a SQLite snapshot; mutations use immediate transactions with FULL/EXTRA
+synchronous durability and persistent journaling (DELETE/TRUNCATE/PERSIST/WAL)
+required; MEMORY/OFF fail closed without changing connection settings.
+Authenticated caller/installation leases, native
+item validation, asynchronous-read epoch revalidation and actual item deletion
+remain caller obligations. Cleanup metadata never authorizes removing a current
+pointer; acknowledgement follows fresh external absence verification. Missing
+authority cannot be rebaselined, and unavailable native custody retains its pointer
+and revision in recovery-required state without fallback. HMACs do not detect a
+consistent rollback of all original-key-authenticated state. No add-account/native
+rotation adapter or operational recovery path is provided by this foundation.
+
+The 15 new account tests include competing connections, stale replies/rotation,
+revocation, tampered/mixed snapshots, ignored/aborted statements, and actual process
+exit before/after cutover commit. The combined master/account/owner/session suite
+passed 46 tests; typecheck passed. These are synthetic storage checks, not native
+Keychain or deployment acceptance.
+Independent review identified the persistent-journaling precondition; after its
+correction, the reviewer reran all 46 tests and typecheck with no confirmed blocker.
+
+These are K1 slices, not the K1 exit gate. Pending pieces include stopped
+lock/staging reconciliation, add/rotation adapters, settings/format and installer
+compatibility gates, stable custody
 paths and actual backend wiring. No journal is provisioned in the installation;
 runtime remains file-based. No native item, provider action, live credential or
 existing installation state is accessed by the tests. Colocated master-authority
