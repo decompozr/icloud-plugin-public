@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'bun:test';
-import {executeSharedStreamMutation,sharedStreamRequest,sharedStreamURL,readSharedStreamAlbums,type SharedStreamSession} from './shared-stream-protocol.js';
+import {SharedStreamReadError,executeSharedStreamMutation,sharedStreamRequest,sharedStreamURL,readSharedStreamAlbums,type SharedStreamSession} from './shared-stream-protocol.js';
 const albumGuid='11111111-1111-4111-8111-111111111111';
 const mutation={action:'create_shared_album' as const,albumGuid,title:'Disposable protocol fixture'};
 function session(request:SharedStreamSession['request']):SharedStreamSession{return {accountId:'owner-account',protocol:'legacy_shared_streams',dsid:'123456789',serviceOrigin:'https://p37-sharedstreams.icloud.com',request};}
@@ -40,6 +40,19 @@ describe('internal API-only Shared Album contract',()=>{
 });
 
 describe('remote Shared Album readback identity and boundaries',()=>{
+ test('separates transport, HTTP and model failures without exposing provider content',async()=>{
+  const cases:[SharedStreamSession['request'],SharedStreamReadError['diagnostic']][]=[
+   [async()=>{throw new Error('secret-token');},{stage:'transport'}],
+   [async()=>new Response('secret-token',{status:403}),{stage:'http',httpStatus:403}],
+   [async()=>new Response('secret-token'),{stage:'decode',httpStatus:200}],
+   [async()=>Response.json({secretToken:'secret-token'}),{stage:'schema',httpStatus:200}],
+  ];
+  for(const [request,expected] of cases){
+   let caught:unknown;try{await readSharedStreamAlbums(session(request),'owner-account');}catch(error){caught=error;}
+   expect(caught).toBeInstanceOf(SharedStreamReadError);expect((caught as SharedStreamReadError).diagnostic).toEqual(expected);
+   expect(JSON.stringify(caught)).not.toContain('secret-token');
+  }
+ });
  const album={albumguid:albumGuid,ownerdsid:'123456789',albumctag:'fixture-change-tag',attributes:{name:'Fixture Shared Album',ispublic:'0',allowcontributions:'1'},sharinginfo:[{personid:'fixture-owner',sharingtype:'Owner',email:'owner@example.test'}]};
  test('reads exact GUID once, retains ownership/change evidence and strips arbitrary private fields',async()=>{
   let calls=0;const s=session(async(url,init)=>{calls++;expect(url.endsWith('/webgetalbumview')).toBe(true);expect(JSON.parse(init.body as string)).toEqual({albumguids:[albumGuid]});expect(init.redirect).toBe('error');return Response.json({albums:[{...album,providerSecret:'must-not-leak'}],sessionToken:'must-not-leak'});});

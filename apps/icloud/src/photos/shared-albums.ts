@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {PhotosError} from './contracts.js';
 import type {PhotosPolicy} from './service.js';
-import {readSharedStreamAlbums,readSharedStreamCount,executeSharedStreamMutation,type SharedStreamSession,type SharedStreamMutation} from './shared-stream-protocol.js';
+import {SharedStreamReadError,readSharedStreamAlbums,readSharedStreamCount,executeSharedStreamMutation,type SharedStreamSession,type SharedStreamMutation} from './shared-stream-protocol.js';
 
 export const remoteSharedAlbumId=z.string().regex(/^shared-album:[a-f0-9-]{36}:[A-Fa-f0-9-]{36}$/);
 const title=z.string().trim().min(1).max(200);
@@ -38,7 +38,7 @@ export class SharedAlbumService {
   try{
    const result=await this.albums();
    return {status:'remote_inventory_verified',accountId:this.options.accountId,authenticated:true,total:result.albums.length,legacyCandidates:result.albums.filter(a=>a.protocol==='legacy_candidate').length,modernOrEncrypted:result.albums.filter(a=>a.protocol==='modern_or_encrypted').length,serverResponseObserved:true,managementReady:false,experimental:true};
-  }catch(error){return {status:'unavailable',error:error instanceof PhotosError?error.code:'shared_album_readback_failed',serverResponseObserved:false,managementReady:false,experimental:true};}
+  }catch(error){return {status:'unavailable',error:error instanceof PhotosError?error.code:'shared_album_readback_failed',...(error instanceof SharedStreamReadError?{diagnostic:error.diagnostic}:{}),serverResponseObserved:error instanceof SharedStreamReadError&&error.diagnostic.httpStatus!==undefined,managementReady:false,experimental:true};}
  }
  private async snapshot(session:Session,intent:Intent,guid:string){
   const sessionIdentity={generation:session.generation,accountRevision:session.accountRevision};

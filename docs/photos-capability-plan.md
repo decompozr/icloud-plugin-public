@@ -1,5 +1,16 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Deployed lifecycle experiment and live read failure — 2026-10-05
+
+Release 0.1.38 was merged through PR36 and deployed from clean main f2790e7.
+Installed payload readback and all 13 deployment diagnostics passed. Configuration,
+existing signed operation Helper and the owner-authenticated custody were retained;
+rollback is preserved. An actual invocation of the existing main MCP Photos health
+reached the new remote inventory path but returned shared_album_readback_failed.
+This is not remote inventory acceptance. No Shared Album mutation was attempted.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Account-bound MCP lifecycle experiment and authentication correction — 2026-10-05
 
 This supersedes provider-selection notes below. The native daemon diagnostic
