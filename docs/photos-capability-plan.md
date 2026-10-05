@@ -1,5 +1,19 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Contributor setting live acceptance — 2026-10-05
+
+The original MCP on 0.1.56 created a dedicated private empty album, disabled
+contributions and restored them. Both mutations reached applied with independent
+serverReadbackVerified; the returned allowsContributions values were false and
+true respectively. Title, private status, zero content and owner-only participation
+remained unchanged. Exact empty-album deletion then reached applied with albumAbsent
+and serverReadbackVerified. Private evidence is live-contribution-permissions-0156.json
+in the retained task session evidence directory. No invitations or public links
+were enabled, and no personal asset was used.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
 ## API-first repeat acceptance and remaining gates — 2026-10-05
 
 A new owner-requested synthetic image was uploaded through the existing main MCP
