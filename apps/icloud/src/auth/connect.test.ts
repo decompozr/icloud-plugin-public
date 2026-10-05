@@ -1,7 +1,7 @@
 import { test,expect } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { makeSignature } from 'better-auth/crypto';
-import { createAccountConnection,authorizationKey } from './connect.js';
+import { createAccountConnection,authorizationKey,validConsentScopes } from './connect.js';
 
 const secret='connection-test-secret-that-is-long-enough';
 async function signed(state='one',extras:Record<string,string>={}){
@@ -73,3 +73,12 @@ test('failed continuation retains added account and requires a fresh authorizati
  const request=async(path:string,state:string,body:object)=>component.handle(new Request('https://icloud.invalid/icloud/connect/'+path,{method:'POST',headers:{origin:'https://icloud.invalid','content-type':'application/json'},body:JSON.stringify({oauth_query:await signed(state),...body})}));
  try{const failed=await request('add','old',{user:'saved@icloud.com',appPassword:'secret'});expect((await failed.json()).error).toBe('CONNECT_RESTART_REQUIRED');expect(accounts.length).toBe(1);fail=false;expect((await request('select','fresh',{accountId:'saved'})).status).toBe(200);}finally{db.close();}
 });
+
+ test('consent subsets preserve request ceiling, global policy and nonempty explicit choice',()=>{
+ const query=new URLSearchParams({scope:'mail.read mail.send offline_access'}).toString();
+ const allowed=['mail.read','mail.send','offline_access'];
+ expect(validConsentScopes(query,'mail.read',allowed)).toBe(true);
+ expect(validConsentScopes(query,undefined,allowed)).toBe(true);
+ for(const scope of ['', ' mail.read','mail.read  offline_access','calendar.read','mail.read mail.read','mail.read mail.send'])expect(validConsentScopes(query,scope,['mail.read'])).toBe(false);
+ expect(validConsentScopes(query,undefined,['mail.read'])).toBe(false);
+ });

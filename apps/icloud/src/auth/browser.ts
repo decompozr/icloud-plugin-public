@@ -13,7 +13,9 @@ async function request(path:string,body?:object,headers:Record<string,string>={}
  return result;
 }
 export async function registerOwner():Promise<void>{
- const begun=z.object({passkeyRegistered:z.boolean()}).parse(await(await request('/icloud/setup/begin',{})).json());
+ const fragment=new URLSearchParams(typeof location==='undefined'?'':location.hash.slice(1)),proof=fragment.get('owner-proof');
+ if(proof)history.replaceState(null,'',location.pathname+location.search);
+ const begun=z.object({passkeyRegistered:z.boolean()}).parse(await(await request('/icloud/setup/begin',proof?{proof}:{})).json());
  if(begun.passkeyRegistered)return;
  const options=registrationOptions.parse(await(await request('/icloud/auth/passkey/generate-register-options')).json());
  const response=await startRegistration({optionsJSON:{...options,attestation:'none',authenticatorSelection:{residentKey:'required',userVerification:'required'}}});
@@ -45,7 +47,9 @@ async function signIn():Promise<void>{
  const status=document.querySelector('[data-auth-status]');if(status)status.textContent=authT('signedIn');
 }
 async function consent(accept:boolean):Promise<void>{
- const result:unknown=await(await request('/icloud/auth/oauth2/consent',{accept,oauth_query:signedOAuthQuery(location.search)})).json();
+ const chosen=[...document.querySelectorAll<HTMLInputElement>('[data-auth-scope]:checked')].map(input=>input.value);
+ if(accept&&!chosen.length)throw new AuthRequestError(authT('selectPermission'));
+ const result:unknown=await(await request('/icloud/auth/oauth2/consent',{accept,...(accept?{scope:chosen.join(' ')}:{}),oauth_query:signedOAuthQuery(location.search)})).json();
  const destination=redirectResult(result);if(!destination)throw Error(authT('incompleteAuthorization'));location.assign(destination);
 }
 /** Empty optional names must be absent so the server can use the account email. */
@@ -64,9 +68,9 @@ function mount(){
  const run=async(button:HTMLButtonElement,action:()=>Promise<void>)=>{if(busy)return;busy=true;const buttons=[...document.querySelectorAll<HTMLButtonElement>('button')];const states=buttons.map(item=>item.disabled);buttons.forEach(item=>item.disabled=true);button.disabled=true;if(status){status.classList.remove('error');status.textContent=authT('working');}try{await action();if(status)status.textContent='';}catch(error){if(status){status.classList.add('error');status.textContent=error instanceof AuthRequestError?error.message:authT('actionFailed');}}finally{busy=false;buttons.forEach((item,index)=>item.disabled=states[index]??false);button.disabled=mode==='consent'&&button===primary&&!consentReady;}};
  const primary=document.querySelector<HTMLButtonElement>('[data-auth-primary]');if(mode==='consent'&&primary)primary.disabled=true;let consentReady=mode!=='consent';
  primary?.addEventListener('click',()=>{if(mode==='consent'&&!consentReady)return;void run(primary,()=>mode==='sign-in'?signIn():consent(true));});
- const deny=document.querySelector<HTMLButtonElement>('[data-auth-deny]');deny?.addEventListener('click',()=>void run(deny,()=>consent(false)));
+ const deny=document.querySelector<HTMLButtonElement>('[data-auth-deny]');deny?.addEventListener('click',()=>{document.querySelector<HTMLFormElement>('[data-connect-form]')?.reset();void run(deny,()=>consent(false));});
  const accountSchema=z.object({id:z.string(),user:z.string(),label:z.string(),credentialStored:z.boolean()});
- const connectionStatus=z.object({accounts:z.array(accountSchema),selectedAccount:accountSchema.optional(),client:z.object({id:z.string(),name:z.string().optional()})});
+ const connectionStatus=z.object({accounts:z.array(accountSchema),selectedAccount:accountSchema.optional(),client:z.object({id:z.string(),name:z.string().optional()}),permissions:z.array(z.string())});
  const loadStatus=async()=>connectionStatus.parse(await(await request('/icloud/connect/status?'+new URLSearchParams({oauth_query:signedOAuthQuery(location.search)}))).json());
  const continueToConsent=(value:unknown)=>{const url=redirectResult(value);if(!url)throw new AuthRequestError(authT('incompleteAuthorization'));location.assign(url);};
  function renderAccounts(accounts:Array<z.infer<typeof accountSchema>>){
@@ -86,7 +90,7 @@ function mount(){
   if(mode==='consent'){
    const account=result.selectedAccount;
    if(!account?.credentialStored)throw new AuthRequestError(authT('chooseAccount'));
-   consentReady=true;
+   renderPermissions(result.permissions);consentReady=result.permissions.length>0;
    const target=document.querySelector('[data-auth-account]');
    const display=accountDisplay(account);if(target)target.textContent=`${authT('selectedAccount')}: ${display.primary}${display.secondary?' · '+display.secondary:''}`;
    const client=document.querySelector('[data-auth-client]'),clientId=document.querySelector('[data-auth-client-id]');
@@ -96,7 +100,12 @@ function mount(){
   }
   renderAccounts(result.accounts);
   const form=document.querySelector<HTMLFormElement>('[data-connect-form]');
-  document.querySelector('[data-connect-add]')?.addEventListener('click',()=>{if(form)form.hidden=false;document.getElementById('connect-email')?.focus();});
+  const add=document.querySelector<HTMLButtonElement>('[data-connect-add]'),list=document.querySelector<HTMLElement>('[data-connect-accounts]');
+  const clearForm=()=>{form?.reset();};
+  add?.addEventListener('click',()=>{if(form)form.hidden=false;if(add)add.hidden=true;if(list)list.hidden=true;document.getElementById('connect-email')?.focus();});
+  document.querySelector('[data-connect-back]')?.addEventListener('click',()=>{clearForm();if(form)form.hidden=true;if(add){add.hidden=false;add.focus();}if(list)list.hidden=false;});
+  window.addEventListener('pagehide',clearForm);
+  window.addEventListener('pageshow',event=>{if(event.persisted)clearForm();});
   form?.addEventListener('submit',event=>{
    event.preventDefault();const button=form.querySelector<HTMLButtonElement>('button[type=submit]');if(!button)return;
    void run(button,async()=>{
@@ -107,11 +116,15 @@ function mount(){
    });
   });
  });
- if(mode==='consent'){
-  const params=new URLSearchParams(location.search);
+ function renderPermissions(scopes:string[]){
   const labels=z.record(z.string(),z.union([z.string(),z.record(z.string(),z.string())])).parse(JSON.parse(document.body.dataset.authScopeLabels??'{}'));
   labels.offline_access=authT('scopeOffline');
-  const list=document.querySelector('[data-auth-scopes]');for(const scope of(params.get('scope')??'').split(' ').filter(Boolean)){const item=document.createElement('li');item.textContent=consentScopeLabel(labels,scope,document.documentElement.lang);list?.append(item);}
+  const target=document.querySelector('[data-auth-scopes]');
+  for(const [prefix,title] of [['mail.',authT('permissionMail')],['calendar.',authT('permissionCalendar')],['',authT('permissionConnection')]]){
+   const group=scopes.filter(scope=>prefix?scope.startsWith(prefix):!scope.startsWith('mail.')&&!scope.startsWith('calendar.'));if(!group.length)continue;
+   const heading=document.createElement('h3');heading.textContent=title!;target?.append(heading);
+   for(const scope of group){const label=document.createElement('label');label.className='permission-choice';const input=document.createElement('input');input.type='checkbox';input.value=scope;input.checked=true;input.dataset.authScope='';const text=document.createElement('span');text.textContent=consentScopeLabel(labels,scope,document.documentElement.lang);label.append(input,text);target?.append(label);}
+  }
  }
 }
 if(typeof document!=='undefined')mount();

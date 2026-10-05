@@ -19,6 +19,9 @@ export interface AdminOptions {
  ownerAuth: { ownerSession(headers: Headers): Promise<{user: {id: string}}>; enrollmentSession(headers: Headers): Promise<{user: {id: string}}> };
  diagnostics(): Promise<TailscaleStatus>;
  validateCredential(credential: AppleCredential): Promise<void>;
+ setupReady?:boolean;
+ localOwner?:boolean;
+ connectionCommands?:readonly string[];
  setupState?(request:Request):Promise<{bootstrapAuthorized:boolean;passkeyRegistered:boolean}>;
 }
 const ready = (status:TailscaleStatus) => status.installed && status.authenticated && status.online && status.privateReachable;
@@ -65,7 +68,7 @@ export function createPrivateAdmin(options:AdminOptions) {
     let passkeyRegistered=false;
     if(!enrolled)try{await options.ownerAuth.enrollmentSession(request.headers);passkeyRegistered=true;}catch{}
     const setup=options.setupState?await options.setupState(request):{bootstrapAuthorized:false,passkeyRegistered};
-    return json({prerequisites:status,ready:ready(status),enrolled,...setup});
+    return json({prerequisites:status,ready:options.setupReady??ready(status),enrolled,...setup});
    }
    if(request.method==='GET' && (path==='/icloud/setup'||Object.hasOwn(views,path))) {
     const enrolled=options.store.ownerId()!==null;
@@ -79,14 +82,14 @@ export function createPrivateAdmin(options:AdminOptions) {
      if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     }
     const status=await options.diagnostics();
-    return new Response(setupPage({enrolled,ready:ready(status),admin:Object.hasOwn(views,path),view:views[path]??'setup',...(url.searchParams.get('mode')==='account'?{mode:'account' as const}:{}),publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,presentation:options.presentation,modules:options.modules}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
+    return new Response(setupPage({enrolled,ready:options.setupReady??ready(status),admin:Object.hasOwn(views,path),view:views[path]??'setup',...(url.searchParams.get('mode')==='account'?{mode:'account' as const}:{}),publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,localOwner:options.localOwner,connectionCommands:options.connectionCommands,presentation:options.presentation,modules:options.modules}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
    }
    if(request.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405);
    if(request.headers.get('origin')!==options.privateOrigin)return json({error:'ORIGIN_DENIED'},403);
    if(!(request.headers.get('content-type')?.split(';')[0]?.trim()==='application/json'))return json({error:'INVALID_INPUT'},400);
    if(path==='/icloud/setup/complete') {
     if(options.store.ownerId()!==null)return json({error:'ENROLLMENT_CLOSED'},409);
-    if(!ready(await options.diagnostics()))return json({error:'PREREQUISITES_REQUIRED'},409);
+    if(!(options.setupReady??ready(await options.diagnostics())))return json({error:'PREREQUISITES_REQUIRED'},409);
     options.store.checkBootstrapProof(request.headers.get('x-bootstrap-proof')??'');
     const session=await options.ownerAuth.enrollmentSession(request.headers);
     const parsed=z.object({}).strict().safeParse(await parseBody(request));if(!parsed.success)return json({error:'INVALID_INPUT'},400);

@@ -2,6 +2,7 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {randomBytes} from 'node:crypto';
+import {renderAuthPage} from '../../icloud/src/auth/pages.js';
 import {createPrivateAdmin} from '../../icloud/src/admin/handler.js';
 import {mailAdminPresentation} from '../../icloud/src/mail/admin.js';
 import {SqliteOwnerStore} from '../../icloud/src/storage/owner-store.js';
@@ -15,12 +16,21 @@ const policy={read:true,write:true,send:false,unsubscribe:false};let calendarPol
 const session=async(headers:Headers)=>{if(headers.get('x-fixture-session')!=='owner'&&!(headers.get('cookie')??'').split(';').some(part=>part.trim()==='fixture-owner=owner'))throw Error('Fixture denied');return{user:{id:'owner'}};};
 let handler:(request:Request)=>Promise<Response>;
 const assets=resolve(import.meta.dir,'../../icloud/dist/assets');
-let evidence=true;
+let evidence=true;let authorized=true;let registered=true;
 const server=Bun.serve({hostname:'127.0.0.1',port:0,fetch:async request=>{const path=new URL(request.url).pathname;
- if(path.startsWith('/icloud/assets/')){const name=path.split('/').at(-1);if(!['admin-browser.js','inter.ttf','plugin-icon.png'].includes(name??''))return new Response(null,{status:404});return new Response(Bun.file(join(assets,name!)));}
+ if(['/icloud/connect','/icloud/consent','/icloud/sign-in'].includes(path))return new Response(renderAuthPage(path.endsWith('consent')?'consent':path.endsWith('connect')?'connect':'sign-in',path.endsWith('sign-in'),{'mail.read':'Read and search mail','mail.send':'Send and reply','calendar.read':'Read calendars','calendar.write':'Manage calendars and events'}),{headers:{'content-type':'text/html'}});
+ if(path==='/icloud/connect/status')return Response.json({accounts:store.listAccounts('owner'),selectedAccount:store.listAccounts('owner')[0],client:{id:'fixture-client',name:'ChatGPT fixture'},permissions:['mail.read','mail.send','calendar.read','calendar.write','offline_access']});
+ if(path==='/icloud/connect/select'){const body=await request.json() as {oauth_query:string};return Response.json({url:server.url.origin+'/icloud/consent?'+body.oauth_query});}
+ if(path==='/icloud/auth/oauth2/consent'){const body=await request.json() as {accept:boolean;scope:string};return Response.json({url:server.url.origin+'/fixture/'+(body.accept?'authorized?scope='+encodeURIComponent(body.scope):'denied')});}
+ if(path.startsWith('/fixture/authorized')||path==='/fixture/denied')return new Response('Fixture completed');
+ if(path.startsWith('/icloud/assets/')){const name=path.split('/').at(-1);if(!['admin-browser.js','auth-browser.js','inter.ttf','plugin-icon.png'].includes(name??''))return new Response(null,{status:404});return new Response(Bun.file(join(assets,name!)));}
  if(path==='/fixture/revoke-all'&&request.method==='POST'){await session(request.headers);for(const account of store.listAccounts('owner'))store.revokeAccountSecret('owner',account.id);evidence=false;return Response.json({ok:true});}
  if(path==='/fixture/invalidate'){await session(request.headers);evidence=false;return Response.json({ok:true});}
- if(path==='/icloud/admin/oauth-clients'){try{await session(request.headers);}catch{return Response.json({error:'DENIED'},{status:403});}return Response.json({clients:[{clientId:'fixture-client',name:'ChatGPT fixture',registeredScopes:['mail.read','calendar.read'],recovery:'fresh_consent_and_tool_refresh'}]});}
+ if(path==='/icloud/admin/oauth-clients'){try{await session(request.headers);}catch{return Response.json({error:'DENIED'},{status:403});}
+ const url=new URL(request.url),action=url.searchParams.get('action');if(action)return Response.json({impact:{clientId:'fixture-client',name:'ChatGPT fixture',action,accountIds:[account.id],accessTokens:authorized?1:0,refreshTokens:authorized?1:0,consents:authorized?1:0,authorizationCodes:0,registrationRemoved:action==='remove',accountsPreserved:true,removable:true},confirmation:'fixture-confirmation'});
+ if(request.method==='POST'){const body=await request.json() as {confirm?:boolean;confirmation?:string;action?:string};if(!body.confirm||body.confirmation!=='fixture-confirmation')return Response.json({error:'DENIED'},{status:403});authorized=false;if(body.action==='remove')registered=false;return Response.json({ok:true});}
+ return Response.json({clients:registered?[{clientId:'fixture-client',name:'ChatGPT fixture',registeredScopes:['mail.read','calendar.read'],recovery:'fresh_consent_and_tool_refresh'}]:[],connections:authorized?[{clientId:'fixture-client',name:'ChatGPT fixture',accountId:account.id,grantedScopes:['mail.read','calendar.read'],authorizedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+60000).toISOString()}]:[]});}
+
  return handler(request);
 }});
 const settings:AppSettings={public_origin:'https://public.example.invalid',private_origin:server.url.origin,public_port:4100,private_port:server.port!,host:'127.0.0.1',runtime_mode:'native',state_directory:dir,master_key_file:join(dir,'key'),installation_marker:join(dir,'marker'),allow_writes:false,allow_send:false,tailscale_binary:'/fixture/tailscale'};
