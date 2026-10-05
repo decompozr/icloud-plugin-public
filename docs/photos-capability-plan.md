@@ -57,6 +57,31 @@ tool discovery and successful remote use are separate observations.
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
+### Generic diagnostics correction — 2026-10-05
+
+The Connections diagnostics still enumerated only Mail/Calendar, despite Photos
+being composed in the main runtime. This omitted Photos readiness and left recovery
+copy naming only Mail/Calendar. Diagnostics now enumerate installed modules,
+including read-disabled ones, and report Photos registration, consent and actual
+provider-read evidence separately. Health, tool discovery and saved review decisions
+cannot count as a Photos read. The local-library context stays visible.
+
+Official OpenAI documentation confirms DCR occurs once per MCP connection and the
+client is reused. Its supported developer-mode setup lets the owner add a separate
+MCP connection; using that path for a new DCR registration is the next owner-visible
+acceptance attempt, preserving the working connection. Metadata Refresh updates
+the catalog; it is not proof of expanded registration or grants. The actual owner
+UI and new client scopes still need readback before this gate can close.
+
+Sources checked on 2026-10-05:
+[Authentication](https://developers.openai.com/plugins/build/auth) and
+[Connect and test](https://developers.openai.com/plugins/deploy/connect-chatgpt).
+Self-checks passed: 48 Admin/client-recovery tests, 451 assertions, including
+8 readiness/provider-evidence tests with 58 assertions; production TypeScript and
+browser build passed. Native UI inspection of the owner's ChatGPT app was denied
+by the computer-use surface policy, so actual host setup must be owner-observed. Deployment of this diagnostics
+correction and owner-visible UI acceptance remain pending.
+
 ### Immediate slice and boundaries
 
 Owner: the receiver in this existing worktree; preserve the primary checkout and
