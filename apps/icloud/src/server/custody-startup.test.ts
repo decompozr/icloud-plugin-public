@@ -8,6 +8,7 @@ import {readSettings,custodyDirectory,type AppSettings} from './settings.js';
 import {installation} from './installation.js';
 import {MasterAuthorityJournal} from '../storage/master-authority.js';
 import {AccountAuthorityJournal} from '../storage/account-authority.js';
+import {custodyStartup} from './custody-startup.js';
 
 function fixture(){
  const directory=mkdtempSync(join(tmpdir(),'icloud-custody-startup-')),path=join(directory,'config.toml');
@@ -44,6 +45,15 @@ test('native selection rejects before file/owner/auth access, including initiali
   expect(()=>installation(selected)).toThrow(/^recovery_required$/);expect(()=>installation(selected,true)).toThrow(/^recovery_required$/);
   expect(readdirSync(custodyDirectory(f.settings))).not.toContain('key');expect(readFileSync(f.settings.installation_marker)).toEqual(marker);
   expect(readFileSync(join(f.settings.state_directory,'owner.sqlite'))).toEqual(owner);expect(readFileSync(f.auth)).toEqual(auth);
+ }finally{f.cleanup();}
+});
+test('format-1 runtime refuses format-2 baseline metadata while file remains authoritative',()=>{
+ const f=fixture();try{
+  f.baseline();const lease=f.journal.acquire(f.operationId);try{f.journal.beginBaseline(lease,f.key,1,'0'.repeat(64));}finally{lease.release();}
+  const record=f.journal.discover();expect(record.format).toBe(2);expect(record.phase).toBe('file_authoritative');
+  const owner=readFileSync(join(f.settings.state_directory,'owner.sqlite')),auth=readFileSync(f.auth);
+  expect(()=>custodyStartup({...f.settings,custody:f.policy},false)).toThrow(/^recovery_required$/);
+  expect(readFileSync(join(f.settings.state_directory,'owner.sqlite'))).toEqual(owner);expect(readFileSync(f.auth)).toEqual(auth);expect(readFileSync(f.settings.master_key_file)).toEqual(f.key);
  }finally{f.cleanup();}
 });
 test('actual Bun entry point rejects native custody without opening listeners or creating auth state',async()=>{

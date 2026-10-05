@@ -25,7 +25,7 @@ export function custodyStartup(settings:AppSettings,initialize:boolean):MasterAu
   if(initialize)throw new CustodyError('conflict'); // adoption is explicit stopped preparation
   const journal=new MasterAuthorityJournal(directory,settings.custody.installation_id);
   const record=journal.discover({requiredAuthority:'file',minimumGeneration:settings.custody.minimum_generation});
-  if(record.phase!=='file_authoritative')throw new CustodyError('recovery_required');
+  if(record.format!==settings.custody.format||record.phase!=='file_authoritative')throw new CustodyError('recovery_required');
   return journal; // still untrusted until original-key verification in installation
  }catch(error){if(error instanceof CustodyError)throw error;throw new CustodyError('recovery_required');}
 }

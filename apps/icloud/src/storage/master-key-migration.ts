@@ -1,6 +1,7 @@
 import {timingSafeEqual} from 'node:crypto';
 import {MasterAuthorityJournal,type AuthorityLease,type MasterAuthorityRecord} from './master-authority.js';
 import {CustodyError,type MasterKeyCustody,type CustodyProvisioning} from './custody-contract.js';
+import {MasterConsumerBaselineStore} from './master-consumer-baseline.js';
 
 /** Administrative ports, not runtime reads. Caller supplies authenticated K0
  * policy and an exclusive stopped-maintenance lease in addition to the journal
@@ -30,6 +31,10 @@ export class MasterKeyMigration {
   const inspection=this.journal.inspectRecovery(key,lease.operationId,{requiredAuthority:'file'}),state=inspection.committed;
   if(inspection.staged)throw new CustodyError('recovery_required');
   if(state.generation!==generation)throw new CustodyError('conflict');
+  if(state.format===2){
+   if(state.baseline?.phase!=='established')throw new CustodyError('conflict');
+   new MasterConsumerBaselineStore(this.journal).read(key,{operationId:lease.operationId,minimumMasterGeneration:state.baseline.masterGeneration});
+  }
   return state;
  }
  private preflight(lease:AuthorityLease):void {
@@ -38,6 +43,7 @@ export class MasterKeyMigration {
   // routing only; original-key authentication follows before any mutation.
   const discovered=this.journal.discover({requiredAuthority:'file'});
   if(!['file_authoritative','copy_intent','keychain_verified'].includes(discovered.phase))throw new CustodyError('conflict');
+  if(discovered.format===2&&discovered.baseline?.phase!=='established')throw new CustodyError('conflict');
  }
  private exact(key:Uint8Array):void {if(key.byteLength!==32)throw new CustodyError('recovery_required');}
  async begin(lease:AuthorityLease,generation:number):Promise<MasterAuthorityRecord> {

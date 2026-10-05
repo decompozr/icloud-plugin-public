@@ -5,18 +5,19 @@ import {mkdtempSync,readFileSync,writeFileSync,rmSync,existsSync,chmodSync,symli
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {SqliteOwnerStore} from './owner-store.js';
-import {MasterAuthorityJournal} from './master-authority.js';
+import {MasterAuthorityJournal,type AuthorityCheckpoint} from './master-authority.js';
 import {MasterConsumerBaselineStore} from './master-consumer-baseline.js';
-import type {MasterConsumerBaseline} from './master-consumer-validation.js';
+import {validateMasterConsumers,type MasterConsumerBaseline} from './master-consumer-validation.js';
+import {MasterKeyMigration} from './master-key-migration.js';
 import {ownerAuthSecret,resourceClientStorageId,sealResourceClient} from '../auth/key-contexts.js';
 
-function fixture(){
+function fixture(authorityFault?:(point:AuthorityCheckpoint)=>void){
  const directory=mkdtempSync(join(tmpdir(),'icloud-custody-baseline-')),key=Buffer.alloc(32,29),ownerPath=join(directory,'owner.sqlite'),markerPath=join(directory,'marker');
  const owner=SqliteOwnerStore.provision({databasePath:ownerPath,markerPath,masterKey:key,bootstrapProof:'synthetic-baseline-bootstrap-proof'});owner.enroll({proof:'synthetic-baseline-bootstrap-proof',ownerId:'owner'});owner.addAccount('owner',{user:'synthetic@example.invalid',credential:Buffer.from('synthetic-private-password')});
  const ownerDatabase=new Database(ownerPath),authDatabase=new Database(':memory:'),installationId=JSON.parse(readFileSync(markerPath,'utf8')).id as string;
  const required=resourceClientStorageId('https://baseline.invalid/icloud/auth','https://baseline.invalid/icloud/mcp');authDatabase.exec('CREATE TABLE plugin_auth_private(id TEXT PRIMARY KEY,value TEXT NOT NULL)');
  authDatabase.query('INSERT INTO plugin_auth_private VALUES(?,?)').run(required,sealResourceClient(ownerAuthSecret(key,'remote'),JSON.stringify({client_id:'synthetic-client',client_secret:'synthetic-client-secret'})));
- const journal=new MasterAuthorityJournal(directory,installationId),lease=journal.acquire(randomUUID());journal.provision(lease,key);
+ const journal=new MasterAuthorityJournal(directory,installationId,authorityFault),lease=journal.acquire(randomUUID());journal.provision(lease,key);
  const store=new MasterConsumerBaselineStore(journal),baseline:MasterConsumerBaseline={installationId,ownerId:'owner',ownerFormat:'accounts-v2',requiredAuthRecordId:required,mailOwnerNamespaces:[],calendarPolicyOwners:[],calendarAccountIdentities:[],expected:{owner:{format:1,accounts:1,accountCiphertexts:1,providerSessions:0,providerCiphertexts:0,legacyCiphertexts:0},auth:{format:1,records:1},mail:null,calendar:null,accountCustody:null}};
  let stopped=true;const stores={ownerDatabase,authDatabase,markerPath,assertStoppedMaintenance:()=>{if(!stopped)throw Error('Synthetic missing maintenance');}};
  const expectation={operationId:lease.operationId,minimumMasterGeneration:1};
@@ -89,5 +90,77 @@ test('file-close failure stays redacted and preserves uncertain evidence without
   expect(()=>store.create(f.lease,f.key,f.baseline,f.stores)).toThrow(/^outcome_unknown$/);expect(closes).toBe(1);
   const before=readFileSync(store.path);expect(f.store.read(f.key,f.expectation)).toEqual(f.baseline);
   expect(()=>store.read(f.key,f.expectation)).toThrow(/^recovery_required$/);expect(closes).toBe(2);expect(readFileSync(store.path)).toEqual(before);
+ }finally{f.cleanup();}
+});
+
+test('established baseline loss cannot recapture',()=>{
+ const f=fixture();try{
+  f.store.create(f.lease,f.key,f.baseline,f.stores);expect(f.journal.verify(f.key).baseline?.phase).toBe('established');rmSync(f.store.path);
+  expect(()=>f.store.create(f.lease,f.key,f.baseline,f.stores)).toThrow(/^conflict$/);expect(()=>f.store.resume(f.lease,f.key,f.stores)).toThrow(/^recovery_required$/);expect(existsSync(f.store.path)).toBe(false);
+  expect(()=>f.journal.beginBaseline(f.lease,f.key,3,'0'.repeat(64))).toThrow(/^conflict$/);
+ }finally{f.cleanup();}
+});
+
+for(const point of ['temp_fsynced','renamed','directory_fsynced'] as const)test('baseline intent '+point+' interruption remains inspectable without fresh capture',()=>{
+ let armed=false;const f=fixture(checkpoint=>{if(armed&&checkpoint===point)throw Error('Synthetic lost authority result');});try{
+  armed=true;expect(()=>f.store.create(f.lease,f.key,f.baseline,f.stores)).toThrow(/^outcome_unknown$/);
+  const inspection=f.journal.inspectRecovery(f.key,f.lease.operationId,{requiredAuthority:'file'});
+  if(point==='temp_fsynced'){expect(inspection.committed.format).toBe(1);expect(inspection.staged?.record.baseline?.phase).toBe('intent');expect(()=>f.store.create(f.lease,f.key,f.baseline,f.stores)).toThrow(/^conflict$/);}
+  else{expect(inspection.committed.baseline?.phase).toBe('intent');expect(inspection.staged).toBeNull();expect(()=>f.store.create(f.lease,f.key,{...f.baseline,mailOwnerNamespaces:['changed']},f.stores)).toThrow(/^conflict$/);}
+  expect(existsSync(f.store.path)).toBe(false);
+ }finally{f.cleanup();}
+});
+
+test('intent recovery pins original metadata and resyncs retained readback before establishing exactly once',()=>{
+ const f=fixture();try{
+  const interrupted=new MasterConsumerBaselineStore(f.journal,point=>{if(point==='file_fsynced')throw Error('Synthetic lost result');});
+  expect(()=>interrupted.create(f.lease,f.key,f.baseline,f.stores)).toThrow(/^outcome_unknown$/);const intent=f.journal.verify(f.key);expect(intent.baseline?.phase).toBe('intent');
+  expect(()=>f.journal.advance(f.lease,f.key,intent.generation,'copy_intent')).toThrow(/^conflict$/);
+  expect(()=>f.store.create(f.lease,f.key,{...f.baseline,mailOwnerNamespaces:['changed-baseline']},f.stores)).toThrow(/^conflict$/);
+  const before=readFileSync(f.store.path);expect(f.store.resume(f.lease,f.key,f.stores)).toEqual(f.baseline);const established=f.journal.verify(f.key);expect(established.baseline?.phase).toBe('established');
+  expect(f.store.resume(f.lease,f.key,f.stores)).toEqual(f.baseline);expect(f.journal.verify(f.key).generation).toBe(established.generation);expect(readFileSync(f.store.path)).toEqual(before);
+ }finally{f.cleanup();}
+});
+
+test('format-2 master coordinator rejects established-file loss before native requests even with a no-op consumer port',async()=>{
+ const f=fixture();let requests=0;try{
+  f.store.create(f.lease,f.key,f.baseline,f.stores);const state=f.journal.verify(f.key);rmSync(f.store.path);
+  const migration=new MasterKeyMigration(f.journal,{assertStoppedMaintenance:f.stores.assertStoppedMaintenance,readOriginalFile:async()=>Buffer.from(f.key),validateExistingState:async()=>{}},{read:async()=>{requests++;return Buffer.from(f.key);},addMaster:async()=>{requests++;}});
+  await expect(migration.begin(f.lease,state.generation)).rejects.toMatchObject({code:'recovery_required'});expect(requests).toBe(0);expect(f.journal.verify(f.key).generation).toBe(state.generation);
+ }finally{f.cleanup();}
+});
+
+test('format-2 established binding survives exact-key copy with fresh persisted baseline validation',async()=>{
+ const f=fixture();try{
+  f.store.create(f.lease,f.key,f.baseline,f.stores);let state=f.journal.verify(f.key);const binding=state.baseline;
+  const migration=new MasterKeyMigration(f.journal,{assertStoppedMaintenance:f.stores.assertStoppedMaintenance,readOriginalFile:async()=>Buffer.from(f.key),validateExistingState:async key=>{const baseline=f.store.read(key,f.expectation);validateMasterConsumers({...f.stores,masterKey:key,baseline});}},
+   {read:async()=>Buffer.from(f.key),addMaster:async()=>{throw Error('Existing synthetic item must not be replaced');}});
+  state=await migration.begin(f.lease,state.generation);state=await migration.advance(f.lease,state.generation,{interaction:'prohibited'});state=await migration.advance(f.lease,state.generation,{interaction:'prohibited'});
+  expect(state.phase).toBe('keychain_authoritative');expect(state.format).toBe(2);expect(state.baseline).toEqual(binding);expect(f.store.read(f.key,f.expectation)).toEqual(f.baseline);
+ }finally{f.cleanup();}
+});
+
+for(const point of ['temp_fsynced','renamed','directory_fsynced'] as const)test('baseline establishment '+point+' interruption reconciles without repeating the manifest commit',()=>{
+ let armed=false,path='';const f=fixture(checkpoint=>{if(armed&&checkpoint===point&&existsSync(path))throw Error('Synthetic lost establishment result');});try{
+  path=f.store.path;armed=true;expect(()=>f.store.create(f.lease,f.key,f.baseline,f.stores)).toThrow(/^outcome_unknown$/);
+  const inspection=f.journal.inspectRecovery(f.key,f.lease.operationId,{requiredAuthority:'file'});
+  if(point==='temp_fsynced'){expect(inspection.committed.baseline?.phase).toBe('intent');expect(inspection.staged?.record.baseline?.phase).toBe('established');expect(()=>f.store.resume(f.lease,f.key,f.stores)).toThrow(/^recovery_required$/);}
+  else{expect(inspection.committed.baseline?.phase).toBe('established');expect(inspection.staged).toBeNull();expect(f.store.resume(f.lease,f.key,f.stores)).toEqual(f.baseline);expect(f.journal.verify(f.key).generation).toBe(inspection.committed.generation);}
+  expect(f.store.read(f.key,f.expectation)).toEqual(f.baseline);
+ }finally{f.cleanup();}
+});
+
+test('late baseline-file corruption after validated readback reports unknown establishment instead of success',()=>{
+ const f=fixture();let closes=0;try{
+  const store=new MasterConsumerBaselineStore(f.journal,undefined,fd=>{closeSync(fd);if(++closes===2)writeFileSync(f.store.path,'bad');});
+  expect(()=>store.create(f.lease,f.key,f.baseline,f.stores)).toThrow(/^outcome_unknown$/);expect(()=>f.store.read(f.key,f.expectation)).toThrow(/^recovery_required$/);
+ }finally{f.cleanup();}
+});
+
+test('resume reauthenticates after resync before promoting an intent',()=>{
+ const f=fixture();let closes=0;try{
+  const interrupted=new MasterConsumerBaselineStore(f.journal,point=>{if(point==='file_fsynced')throw Error('Synthetic lost result');});expect(()=>interrupted.create(f.lease,f.key,f.baseline,f.stores)).toThrow(/^outcome_unknown$/);
+  const store=new MasterConsumerBaselineStore(f.journal,undefined,fd=>{closeSync(fd);if(++closes===1)writeFileSync(f.store.path,'bad');});
+  expect(()=>store.resume(f.lease,f.key,f.stores)).toThrow(/^recovery_required$/);expect(f.journal.verify(f.key).baseline?.phase).toBe('intent');
  }finally{f.cleanup();}
 });

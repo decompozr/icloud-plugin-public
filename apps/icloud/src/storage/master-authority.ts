@@ -6,10 +6,13 @@ import {CustodyError,installationIdentitySchema} from './custody-contract.js';
 
 const phases=['file_authoritative','copy_intent','keychain_verified','keychain_authoritative','file_cleanup_pending','complete','recovery_required'] as const;
 export type MasterAuthorityPhase=typeof phases[number];
-const recordSchema=z.object({format:z.literal(1),installationId:installationIdentitySchema,
+const baselineBindingSchema=z.object({phase:z.enum(['intent','established']),operationId:z.string().uuid(),masterGeneration:z.number().int().positive().safe(),recordMac:z.string().regex(/^[a-f0-9]{64}$/)}).strict().readonly();
+const recordSchema=z.object({format:z.union([z.literal(1),z.literal(2)]),installationId:installationIdentitySchema,
  generation:z.number().int().positive().safe(),authority:z.enum(['file','keychain']),
- phase:z.enum(phases),operationId:z.string().uuid().nullable(),mac:z.string().regex(/^[a-f0-9]{64}$/),
+ phase:z.enum(phases),operationId:z.string().uuid().nullable(),baseline:baselineBindingSchema.optional(),mac:z.string().regex(/^[a-f0-9]{64}$/),
 }).strict().superRefine((v,c)=>{
+ if(v.format===1?v.baseline!==undefined:v.baseline===undefined)c.addIssue({code:'custom',message:'Invalid baseline format'});
+ if(v.baseline&&(v.baseline.masterGeneration>=v.generation||v.operationId!==null&&v.operationId!==v.baseline.operationId||v.baseline.phase==='intent'&&!['file_authoritative','recovery_required'].includes(v.phase)))c.addIssue({code:'custom',message:'Invalid baseline binding'});
  if(v.phase==='recovery_required')return;
  const file=['file_authoritative','copy_intent','keychain_verified'].includes(v.phase);
  if(v.authority!==(file?'file':'keychain')||(v.phase==='file_authoritative')!==(v.operationId===null))c.addIssue({code:'custom',message:'Invalid custody authority'});
@@ -40,11 +43,17 @@ const privateInfo=(path:string,directory:boolean)=>{
 const syncDirectory=(path:string)=>{const fd=openSync(path,constants.O_RDONLY|constants.O_NOFOLLOW);try{fsyncSync(fd);}finally{closeSync(fd);}};
 const mac=(key:Uint8Array,record:Omit<MasterAuthorityRecord,'mac'>)=>{
  if(key.byteLength!==32)fail('invalid_input');
- return createHmac('sha256',key).update('icloud-master-custody-manifest-v1\0').update(JSON.stringify(record)).digest('hex');
+ return createHmac('sha256',key).update(record.format===1?'icloud-master-custody-manifest-v1\0':'icloud-master-custody-manifest-v2\0').update(JSON.stringify(record)).digest('hex');
 };
 // Explicit field order prevents JSON property ordering from changing the MAC.
 const payload=(record:MasterAuthorityRecord)=>({format:record.format,installationId:record.installationId,
- generation:record.generation,authority:record.authority,phase:record.phase,operationId:record.operationId});
+ generation:record.generation,authority:record.authority,phase:record.phase,operationId:record.operationId,...(record.format===2?{baseline:record.baseline}:{})});
+const boundOperation=(record:MasterAuthorityRecord)=>record.operationId??record.baseline?.operationId??null;
+function baselineTransition(current:MasterAuthorityRecord,next:MasterAuthorityRecord):boolean {
+ if(current.phase!=='file_authoritative'||next.phase!=='file_authoritative'||next.authority!=='file'||next.operationId!==null||next.format!==2||!next.baseline)return false;
+ if(current.format===1)return next.baseline.phase==='intent'&&next.baseline.masterGeneration===current.generation;
+ return current.baseline?.phase==='intent'&&next.baseline.phase==='established'&&JSON.stringify({...current.baseline,phase:'established'})===JSON.stringify(next.baseline);
+}
 
 /**
  * Pre-owner-store authority metadata. Discover is UNTRUSTED routing metadata:
@@ -95,7 +104,7 @@ export class MasterAuthorityJournal {
   try{
    if(!z.string().uuid().safeParse(operationId).success)fail('invalid_input');
    const committed=this.verify(key,expectation);
-   if(committed.operationId!==null&&committed.operationId!==operationId)fail('conflict');
+   if(boundOperation(committed)!==null&&boundOperation(committed)!==operationId)fail('conflict');
    const names=readdirSync(this.directory).filter(name=>name.startsWith('.master-authority.')&&name.endsWith('.pending')).sort();
    if(names.length>1)fail('recovery_required');
    let lock:MasterRecoveryInspection['lock']=null;
@@ -128,7 +137,8 @@ export class MasterAuthorityJournal {
      if(!stat.isFile()||stat.uid!==process.getuid?.()||(stat.mode&0o077)!==0||stat.size>4096)fail('recovery_required');
      record=recordSchema.parse(JSON.parse(readFileSync(fd,'utf8')));
     }finally{closeSync(fd);}
-    if(record.installationId!==this.installationId||record.operationId!==operationId||record.generation!==committed.generation+1||!transitions[committed.phase].includes(record.phase))fail('recovery_required');
+    const normalTransition=transitions[committed.phase].includes(record.phase)&&record.format===committed.format&&JSON.stringify(record.baseline)===JSON.stringify(committed.baseline);
+    if(record.installationId!==this.installationId||boundOperation(record)!==operationId||record.generation!==committed.generation+1||!(normalTransition||baselineTransition(committed,record)))fail('recovery_required');
     const authority=record.phase==='keychain_authoritative'?'keychain':committed.authority;
     if(record.authority!==authority||!timingSafeEqual(Buffer.from(record.mac,'hex'),Buffer.from(mac(key,payload(record)),'hex')))fail('recovery_required');
     staged=Object.freeze({name,record:Object.freeze(record)});
@@ -185,11 +195,26 @@ export class MasterAuthorityJournal {
   this.assertLease(lease);
   const current=this.verify(key);
   if(current.generation!==expectedGeneration||!transitions[current.phase].includes(phase))fail('conflict');
-  if(current.operationId!==null&&current.operationId!==lease.operationId)fail('conflict');
+  if(boundOperation(current)!==null&&boundOperation(current)!==lease.operationId)fail('conflict');
+  if(current.format===2&&current.baseline?.phase!=='established'&&phase!=='recovery_required')fail('conflict');
   const next={...payload(current),generation:current.generation+1,phase,
    authority:phase==='keychain_authoritative'?'keychain' as const:current.authority,
    operationId:current.operationId??lease.operationId};
   if(!Number.isSafeInteger(next.generation))fail('recovery_required');
+  return this.persist(lease,recordSchema.parse({...next,mac:mac(key,next)}));
+ }
+ /** Administrative format-2 intent pins the exact baseline MAC before file creation. */
+ beginBaseline(lease:AuthorityLease,key:Uint8Array,expectedGeneration:number,recordMac:string):MasterAuthorityRecord {
+  this.assertLease(lease);const current=this.verify(key);
+  if(current.format!==1||current.phase!=='file_authoritative'||current.generation!==expectedGeneration||!/^[a-f0-9]{64}$/.test(recordMac))fail('conflict');
+  const next={...payload(current),format:2 as const,generation:current.generation+1,baseline:{phase:'intent' as const,operationId:lease.operationId,masterGeneration:current.generation,recordMac}};
+  return this.persist(lease,recordSchema.parse({...next,mac:mac(key,next)}));
+ }
+ establishBaseline(lease:AuthorityLease,key:Uint8Array,expectedGeneration:number):MasterAuthorityRecord {
+  this.assertLease(lease);const current=this.verify(key);
+  if(current.format!==2||current.phase!=='file_authoritative'||current.generation!==expectedGeneration||current.baseline?.phase!=='intent'||current.baseline.operationId!==lease.operationId)fail('conflict');
+  const binding=baselineBindingSchema.parse(current.baseline);
+  const next={...payload(current),generation:current.generation+1,baseline:{...binding,phase:'established' as const}};
   return this.persist(lease,recordSchema.parse({...next,mac:mac(key,next)}));
  }
  private persist(lease:AuthorityLease,record:MasterAuthorityRecord):MasterAuthorityRecord {

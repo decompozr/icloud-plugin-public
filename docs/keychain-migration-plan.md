@@ -261,13 +261,17 @@ memory-port fixtures prove late internal-client corruption blocks master cutover
 An inactive [baseline store](../apps/icloud/src/storage/master-consumer-baseline.ts)
 now validates and persists explicitly selected metadata in a create-only private
 HMAC record bound to installation, operation and original master generation.
-Read never recreates missing/tampered records, and existing files cannot be
-overwritten. A future durable administrative establishment gate must distinguish
-first capture from loss of an established file and prohibit rebaselining after
-loss; create-only filesystem flags alone do not establish that history.
-Uncertain writes retain the file for
-authenticated readback and fresh consumer validation. This is not a recovery
-backup or proof of completed directory fsync after a lost result. Baseline capture,
+Format-2 master metadata now records exact planned baseline MAC/operation/original
+generation before file creation, then CAS-marks establishment after fsync,
+readback and fresh checks. An intent only permits its exact planned metadata;
+established-file loss cannot recapture. Lost results reconcile retained readback
+with file/directory resync and consumer validation; unresolved manifest staging
+remains read-only evidence. The format-2 master coordinator authenticates the
+established file before native requests. Current format-1 startup explicitly
+rejects format-2 metadata even under file authority; no format-2/native runtime
+adoption is enabled. Legacy format-1 administrative primitives remain fixture
+contracts; actual operations must establish format-2 first. This is not a recovery
+backup or full durability/rollback proof. Baseline capture,
 protected backup/restore, same-count/historical rollback protection, operational
 maintenance, live auth/session compatibility and actual native acceptance remain
 pending; composition/persistence are not the K2 exit gate.
