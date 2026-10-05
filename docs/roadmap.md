@@ -13,7 +13,7 @@ app-specific password and the **exact existing installation master key** into
 macOS Keychain. Neither migration is optional. The
 [full migration plan](keychain-migration-plan.md) defines the current-code
 inventory, authority/state machines, caller/signing gates, recovery and observable
-acceptance. Status: documentation complete; production implementation, migration,
+acceptance. Status: documentation complete and K0 investigation started; production implementation, migration,
 signer provisioning and installed acceptance are not performed. The earlier
 implementation authorization/checkpoint history does not activate this migration.
 
@@ -32,7 +32,13 @@ web sessions and Mail/Calendar ledgers after Apple passwords move.
 | K4 | Integrate signed artifacts, setup/doctor/LaunchAgent, ordinary update, recovery/rollback/reinstall and both uninstall modes. Requires K2/K3. | Whole-outcome acceptance and independent review pass. One-time setup authorization is observed; ordinary runtime/updates remain unattended. Retained uninstall/reinstall preserves both stores; opt-in full removal handles exact owned items/state and interrupted cleanup. Actual rollout requires separate authorization. |
 
 The next bounded slice is K0's caller/signing/API design and isolated prototype,
-as detailed in the plan. No production identity is presumed available; sealed
+as detailed in the plan. The [stock Bun boundary experiment](../playground/keychain/runtime-boundary.md)
+reproduced external-script/preload execution under an unchanged signed standalone
+executable. Stock compilation plus signing is insufficient; K0 now requires a
+native pre-JS code-loading boundary before any broker can release credentials.
+No Keychain operation was involved, and K0 has not passed. K1 fixture contracts
+remain independent; K2/K3 activation remains gated.
+No production identity is presumed available; sealed
 Bun packaging and authenticated peer-channel feasibility are unverified. Open
 decisions are signer custody/renewal, Keychain implementation/accessibility,
 supported OS/login contexts, protected recovery retention/export, and whether
@@ -41,7 +47,7 @@ semantics until that product choice is made; explicit opt-in complete removal mu
 not delete a master key while retained ciphertext needs it. Local removal does
 not revoke Apple passwords or securely erase backups.
 
-No Keychain migration or OS lifecycle tests were run by this planning change.
+No Keychain migration or OS lifecycle tests have been run in the K0 investigation.
 The previous certificate experiment was self-checked, not independent review;
 its retained sources remain historical evidence and must not ship as a production
 helper or signer. Planning changes do not modify the historical checkpoints below.

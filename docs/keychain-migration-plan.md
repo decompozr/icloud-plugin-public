@@ -1,6 +1,7 @@
 # Dual macOS Keychain migration plan
 
-Status: **planned, not implemented or deployed** (2026-10-05). This plan covers
+Status: **K0 feasibility investigation started; migrations not implemented or deployed**
+(2026-10-05). This plan covers
 both required migrations: every connected account's Apple app-specific password,
 and the exact existing 32-byte installation master encryption key. These are
 different secrets. Moving passwords does not retire the master key.
@@ -133,6 +134,22 @@ or plaintext already in application memory. Retain short buffer lifetimes and
 best-effort wiping; do not promise reliable erasure of JS strings. Keeping keys
 inside a crypto broker would require moving all consumers and is a separate
 architecture choice, not an implicit consequence of this plan.
+
+**K0 update — observed stock Bun boundary failure (2026-10-05):** the
+[isolated runtime experiment](../playground/keychain/runtime-boundary.md) shows
+that Bun 1.4.2 standalone compilation still executes an external script through
+`BUN_BE_BUN` and an external preload through `BUN_OPTIONS`, with unchanged
+executable bytes/designated requirement and passing signature verification.
+This reproduced with hardened runtime, only `allow-jit`, all config autoload
+disabled and an entry-point JS environment guard. The guard runs too late;
+ordinary launcher environment cleanup does not restrict direct same-user starts.
+No Keychain operation or credential extraction was tested. Stock compilation and
+signing alone are rejected as the K0 caller boundary. Before broker activation,
+select and demonstrate a native pre-JS boundary that removes/rejects these paths
+and other external code-loading inputs. A dedicated audited runtime build or a
+compatible native embedded host remains an unverified architecture candidate;
+new-runtime build/maintenance scope requires an explicit decision. K2/K3 activation
+remains gated, while K1 fixture-only work is independent of native feasibility.
 
 ### Shared storage contract: K1
 
@@ -310,7 +327,8 @@ phase before proceeding. No dates or production signer availability are assumed.
 
 **Next ready slice: K0 design/prototype gate.** The gap is helper trust without
 caller trust, plus unchosen production API/signing. Inputs are the retained report,
-current Bun/installer topology and Apple references above. The assigned security/
+current Bun/installer topology, the negative stock-runtime result above and Apple
+references above. The assigned security/
 release implementer may design signed runtime packaging and a narrowly bounded
 synthetic broker prototype after implementation authorization. Editable scope is
 new isolated prototype/packaging design and evidence docs; no production credentials,

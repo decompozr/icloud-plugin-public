@@ -4,6 +4,17 @@
 
 ## macOS Keychain custody and update identity (2026-10-05)
 
+K0 follow-up: the [stock Bun runtime boundary experiment](../playground/keychain/runtime-boundary.md)
+reproduced external-script and preload execution on Bun 1.4.2 without changing
+the signed compiled executable or designated requirement. Hardened runtime,
+disabled config autoload and an entry-point JS environment guard did not establish
+a fixed-entry application. This used synthetic test labels, no broker/Keychain or
+real credentials; it is a negative caller-boundary finding, not an extraction or
+production signing test. A native pre-JS restriction needs separate feasibility
+evidence before this runtime can be authorized to receive secrets. The
+[migration plan](keychain-migration-plan.md#api-signing-and-caller-boundary-k0)
+and roadmap retain both migrations behind K0; stock compilation alone is rejected.
+
 The Keychain experiment is closed as a feasibility investigation. Its
 [report and reproduction recipes](../playground/keychain/README.md) and
 [bounded acceptance evidence](../playground/keychain/evidence.json) retain the
