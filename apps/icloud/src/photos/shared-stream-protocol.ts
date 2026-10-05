@@ -159,7 +159,7 @@ export async function readSharedStreamAssetPage(session:SharedStreamSession,acco
  const parsed=z.object({records:z.array(record).max(200)}).parse(JSON.parse(await boundedBody(response)));
  const masters=new Set<string>(),assets=new Map<string,string>();
  for(const item of parsed.records){
-  if(['error','errors','serverErrorCode'].some(key=>key in item))throw new Error('shared_album_asset_record_error');
+  if(['error','errors','serverErrorCode'].some(key=>key in item))throw new SharedStreamReadError({stage:'schema',cause:'shared_album_asset_record_error:'+['error','errors','serverErrorCode'].filter(key=>key in item).map(key=>key+'='+ (item[key]===null?'null':Array.isArray(item[key])?'array_'+(item[key] as unknown[]).length:typeof item[key]==='string'?(item[key]===''?'empty_string':'nonempty_string'):typeof item[key])).join(',')});
   if(item.recordType==='CPLMaster'){
    if(masters.has(item.recordName))throw new Error('shared_album_asset_identity_mismatch');
    masters.add(item.recordName);
