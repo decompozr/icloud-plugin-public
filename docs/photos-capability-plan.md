@@ -436,3 +436,25 @@ Validation: application build/typechecking passed, 322 application tests / 1,991
 assertions passed, and 10 tooling tests / 135 assertions passed. The archive tests
 verify the Photos skill is present while unrelated files are excluded. These remain
 source/packaging self-checks; installed and live native acceptance are pending.
+
+
+### Production runtime candidate acceptance checkpoint (2026-10-04)
+
+The current setup command built `apps/icloud/build/photos/production-runtime`
+from the committed native sources while reusing the validated existing Python.
+Compile/link, ad-hoc signing and strict signature verification passed. The private
+runtime manifest's source and executable hashes were independently recomputed
+and match; the candidate is not installed. No dependencies were reinstalled and
+the original authorized helper remains unchanged with native health 3/true.
+
+Candidate health returned authorization 0/false. Its interactive setup command
+returned `setup_opened` without Photos changes, but native UI observation again
+returned `cgWindowNotFound`; the native inventory reports the helper running.
+This does not prove owner-visible UI, permission or onboarding acceptance. An
+owner visibility/explicit Full Access action is pending. The task-owned candidate
+and setup process are retained for that concrete gate, separately from the
+previous preview/compiler outputs already removed at the owner's request.
+
+No source/selected photo was uploaded, deleted or edited. Installed 0.1.28 remains
+unchanged; service target confirmation and final immutable release identity remain
+pending before deployment.
