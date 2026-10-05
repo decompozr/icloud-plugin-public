@@ -92,3 +92,21 @@ test('shared tools use the same Photos scopes and global revocation boundary',as
   await runtime.dispose();
  }finally{f.db.close();}
 });
+
+test('health read keeps one identity across polls and service recreation without retry',async()=>{
+ const db=new Database(':memory:');let resolve!:(value:Response)=>void,calls=0,generation=1;
+ const session=()=>({accountId,dsid:'123',protocol:'legacy_shared_streams' as const,serviceOrigin:'https://p37-sharedstreams.icloud.com',generation,accountRevision:1,request:async(_url:string,init:RequestInit)=>{
+  calls++;expect(new Headers(init.headers).get('x-photos-inventory-probe')).toBe('true');
+  return new Promise<Response>(r=>resolve=r);
+ }});
+ const create=()=>new SharedAlbumService({db,owner:'owner',accountId,currentOwner:()=> 'owner',policy:()=>({read:true,write:true,delete:false}),session});
+ try{
+  const a=await create().health() as any;expect(a.status).toBe('read_pending');
+  const b=await create().health() as any;expect(b.readId).toBe(a.readId);expect(calls).toBe(1);
+  resolve(Response.json({albums:[]}));
+  let completed:any;for(let i=0;i<20;i++){await new Promise(r=>setTimeout(r,1));completed=await create().health();if(completed.status!=='read_pending')break;}
+  expect(completed.status).toBe('remote_inventory_verified');expect(completed.readId).toBe(a.readId);expect(calls).toBe(1);
+  generation++;const next=await create().health() as any;expect(next.readId).not.toBe(a.readId);expect(calls).toBe(2);
+  resolve(Response.json({albums:[]}));await new Promise(r=>setTimeout(r,5));
+ }finally{db.close();}
+});

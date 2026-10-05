@@ -24,7 +24,7 @@ def config_value(value):
     return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
 
 
-def http2_read(url, payload, cookie, runner=None, content_type="text/plain;charset=UTF-8", empty_body=False):
+def http2_read(url, payload, cookie, runner=None, content_type="text/plain;charset=UTF-8", empty_body=False, long_probe=False):
     """One read-only system transport; secrets enter stdin, never argv or logs."""
     with tempfile.TemporaryDirectory(prefix='icloud-photos-http2-') as directory:
         body_path = os.path.join(directory, 'response')
@@ -42,11 +42,11 @@ def http2_read(url, payload, cookie, runner=None, content_type="text/plain;chars
         completed = (runner or subprocess.run)([
             '/usr/bin/curl', '--disable', '--config', '-', '--http2',
             '--silent', '--compressed', '--proxy', '', '--noproxy', '*',
-            '--proto', '=https', '--connect-timeout', '5', '--max-time', '50',
+            '--proto', '=https', '--connect-timeout', '5', '--max-time', '170' if long_probe else '50',
             '--max-filesize', '1048576', '--output', body_path,
             '--write-out', '%{http_code}\n%{http_version}',
         ], input=config.encode(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            timeout=55, env={'PATH': '/usr/bin:/bin', 'LANG': 'C'})
+            timeout=175 if long_probe else 55, env={'PATH': '/usr/bin:/bin', 'LANG': 'C'})
         if completed.returncode:
             codes = {28: 'shared_album_read_timeout', 60: 'shared_album_tls_failed',
                      6: 'shared_album_connection_failed', 7: 'shared_album_connection_failed'}
@@ -89,6 +89,9 @@ def run(request, session_factory=None, curl_runner=None):
     endpoint = request['endpoint']
     if endpoint not in ENDPOINTS:
         raise ValueError('endpoint')
+    long_probe = request.get('longProbe', False)
+    if not isinstance(long_probe, bool) or long_probe and (endpoint != 'webgetalbumslist' or request.get('transport') != 'system_http2' or request.get('body') != '{}'):
+        raise ValueError('probe')
     is_read = endpoint.startswith('webget') or endpoint in ['requestWebAccessState', 'photosZonesList']
     transport = request.get('transport', 'requests')
     if transport not in ['requests', 'system_http2'] or transport == 'system_http2' and not is_read:
@@ -140,7 +143,7 @@ def run(request, session_factory=None, curl_runner=None):
             session.cookies.set_cookie(create_cookie(**cookie))
         if transport == 'system_http2':
             prepared = session.prepare_request(Request('POST', url))
-            return http2_read(url, payload, prepared.headers.get('Cookie', ''), curl_runner, content_type, endpoint == 'requestWebAccessState')
+            return http2_read(url, payload, prepared.headers.get('Cookie', ''), curl_runner, content_type, endpoint == 'requestWebAccessState', long_probe)
         with session.post(url, data=None if endpoint == 'requestWebAccessState' else payload.encode(), headers={
                 **({} if endpoint == 'requestWebAccessState' else {'Content-Type': content_type}),
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15',

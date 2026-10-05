@@ -1,6 +1,7 @@
 import {z} from 'zod';
 
 export const SHARED_READ_TIMEOUT_MS=60000;
+export const SHARED_INVENTORY_PROBE_TIMEOUT_MS=180000;
 export const SHARED_WRITE_TIMEOUT_MS=30000;
 // One write plus inventory, exact metadata and count readback, with recovery margin.
 export const SHARED_RECOVERY_GRACE_MS=SHARED_WRITE_TIMEOUT_MS+3*SHARED_READ_TIMEOUT_MS+30000;
@@ -85,12 +86,12 @@ export class SharedStreamReadError extends Error {
 }
 
 /** Remote observations only; legacy_candidate never grants mutation authority. */
-export async function readSharedStreamAlbums(session:SharedStreamSession,accountId:string,albumGuid?:string){
+export async function readSharedStreamAlbums(session:SharedStreamSession,accountId:string,albumGuid?:string,longProbe=false){
  const exact=albumGuid===undefined?undefined:guid.parse(albumGuid).toUpperCase();
  const url=sharedStreamURL(session,accountId,exact?'webgetalbumview':'webgetalbumslist');
  let stage:SharedStreamReadError['diagnostic']['stage']='transport',httpStatus:number|undefined,httpVersion:string|undefined;
  try{
-  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(SHARED_READ_TIMEOUT_MS),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(exact?{albumguids:[exact]}:{})});
+  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(longProbe?SHARED_INVENTORY_PROBE_TIMEOUT_MS:SHARED_READ_TIMEOUT_MS),headers:{'Content-Type':'text/plain;charset=UTF-8',...(longProbe?{'x-photos-inventory-probe':'true'}:{})},body:JSON.stringify(exact?{albumguids:[exact]}:{})});
   stage='http';httpStatus=response.status;
   const observedVersion=response.headers.get('x-photos-transport-http-version');
   if(observedVersion&&['1.0','1.1','2','3'].includes(observedVersion))httpVersion=observedVersion;

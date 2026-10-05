@@ -93,6 +93,20 @@ class TransportTests(unittest.TestCase):
             with patch.object(Session, '__init__', side_effect=AssertionError('no transport')):
                 with self.assertRaises(ValueError): actor.run(request)
 
+    def test_long_probe_is_bounded_single_read_and_forbidden_for_writes(self):
+        request = self.request(); request.update(transport='system_http2', longProbe=True)
+        calls = []
+        def runner(argv, **options):
+            calls.append(argv); self.assertEqual(options['timeout'], 175)
+            self.assertEqual(argv[argv.index('--max-time')+1], '170')
+            Path(argv[argv.index('--output')+1]).write_text('{"albums":[]}')
+            return SimpleNamespace(returncode=0, stdout=b'200\n2')
+        actor.run(request, curl_runner=runner); self.assertEqual(len(calls), 1)
+        for endpoint in ['createalbum', 'webgetalbumview', 'photosZonesList']:
+            request['endpoint'] = endpoint
+            with self.assertRaises(ValueError): actor.run(request, curl_runner=runner)
+        self.assertEqual(len(calls), 1)
+
     def test_failure_diagnostics_expose_only_fixed_categories(self):
         from requests.exceptions import ConnectTimeout, ReadTimeout, SSLError, ConnectionError
         for kind, code in [(ConnectTimeout,'shared_album_connection_timeout'),(ReadTimeout,'shared_album_read_timeout'),(SSLError,'shared_album_tls_failed'),(ConnectionError,'shared_album_connection_failed'),(ValueError,'shared_album_transport_failed')]:
