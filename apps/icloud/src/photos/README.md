@@ -113,13 +113,23 @@ Fingerprint matches do not establish Live Photo motion equivalence. Deletion use
 Photos' normal delete operation and never empties Recently Deleted. No automatic
 delete follows a comparison or cleanup query.
 
+Oversized fingerprint groups are split into bounded review parts, each with at
+most 1,000 IDs. Continuation parts retain the first source as a reference so even
+a final single new source has comparison context. `groupAssetCount`, `groupPart`
+and `groupParts` expose original-group coverage; `total` counts review parts plus
+other candidates. Follow `nextOffset` to retrieve every part. UUID ordering is
+stable for an unchanged local snapshot; concurrent library changes still require
+fresh reconciliation. An exact remote subset can exclude an already-reviewed
+reference; omitted source counts remain explicit. None of this proves byte or
+motion equivalence or approves deletion.
+
 Cleanup pages also include messaging-style filename signals. They do not prove
 application origin or that an image is unneeded. `offset` and `nextOffset` support
 review beyond the first page. Fingerprint evidence is not an exact-byte duplicate
 claim; age does not decide screenshot expiry or value. Video/Live Photo detail
 includes motion flags; the native review labels still thumbnails as incomplete.
 
-## Native review workflow
+## Remote review and historical native recovery
 
 Helper-owned setup, comparison, cleanup and sharing UI text is English-only,
 per owner preference. This does not rename library assets or albums. Apple-owned
@@ -128,8 +138,8 @@ picker/permission/posting sheets follow macOS language settings.
 Permission setup lives in the owner admin page as three steps: library access,
 Photos Full Access, then actual permission recheck. Buttons act on the service Mac.
 Only explicit owner clicks request access; no independent helper setup window
-is exposed. The native helper remains responsible for Apple-owned permission
-prompts and supported review/posting flows. The admin checks both selected-library
+is exposed. The operation Helper remains responsible for Apple-owned permission prompts and
+supported native operations. Historical posting journals remain readable. The admin checks both selected-library
 readability and native authorization; Photos permission alone does not prove
 sidecar/Full Disk Access.
 

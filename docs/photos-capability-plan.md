@@ -7,8 +7,8 @@ below are historical evidence and are superseded wherever they require a native
 catalog reviewer or equate source/build/deployment with remote product acceptance.
 The full goal remains open. The installed service is 0.1.35, built from main merge c0699ac; its preserved operation
 Helper excludes both the catalog reviewer and posting UI research. Generic
-authorization fixtures and reviewer removal/deployment are verified; actual remote
-client acceptance and the rebuilt operation Helper's consent remain pending.
+authorization fixtures, reviewer removal/deployment and actual remote read acceptance
+are verified; native write permission and full sharing/cleanup acceptance remain pending.
 
 ### Same-connection scope upgrade correction — 2026-10-05
 
@@ -84,6 +84,24 @@ consent on the SAME MCP connection. Verify actual tools and a Photos read afterw
 Do not delete/recreate the connection or add a temporary MCP for this production
 upgrade. Native write permission, supported remote sharing, exact cleanup decisions
 and all remaining end-to-end phases remain open.
+
+### Actual remote read acceptance and cleanup coverage plan — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+### Cleanup review completeness implementation — 2026-10-05
+
+Fingerprint groups now have bounded review parts (at most 1,000 IDs), with an
+explicit original group size, part index and part count. Continuations keep the
+first source as context; an exact remote subset can exclude that already-reviewed
+reference. All source IDs remain retrievable by following the candidate-page
+continuation. UUID order is stable when the local library is unchanged. Group
+size/part metadata survives into durable remote review evidence; it is not exact
+byte/motion equivalence or write approval.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
 ### Goal and accepted product boundary
 

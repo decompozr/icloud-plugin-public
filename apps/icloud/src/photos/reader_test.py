@@ -49,4 +49,40 @@ class ReaderTests(unittest.TestCase):
                 self.assertTrue(second['complete'])
                 self.assertIsNone(second['nextOffset'])
 
+    def test_large_duplicate_groups_remain_fully_reviewable_across_pages(self):
+        with TemporaryDirectory() as directory:
+            library=Path(directory)/'Test.photoslibrary'; (library/'database').mkdir(parents=True)
+            (library/'database/Photos.sqlite').write_bytes(b'fixture')
+            for count, expected_parts in [(1000,1),(1001,2),(1999,2),(2000,3)]:
+                with self.subTest(count=count):
+                    photos=[SimpleNamespace(uuid=f'{i:08x}-1111-1111-1111-111111111111',shared=False,
+                        original_filename='IMG.jpg',filename='IMG.jpg',screenshot=False,
+                        _info={'masterFingerprint':'fixture-fingerprint'},ismovie=False,width=100,height=100)
+                        for i in range(count)]
+                    db=SimpleNamespace(album_info=[],album_info_shared=[],photos=lambda:list(reversed(photos)))
+                    with patch('osxphotos.PhotosDB',return_value=db),patch('reader.version',return_value='0.77.2'):
+                        def run(offset):
+                            return reader.main({'library':str(library),'command':'cleanup','input':{'offset':offset,'limit':1}})
+                        page=run(0); self.assertEqual(page['total'],expected_parts)
+                        self.assertEqual(page['complete'],expected_parts==1)
+                        parts=[]
+                        while True:
+                            parts.extend(page['candidates'])
+                            if page['nextOffset'] is None: break
+                            self.assertFalse(page['complete'])
+                            page=run(page['nextOffset'])
+                        self.assertTrue(page['complete'])
+                        scope=reader.hashlib.sha256(str(library.resolve()).encode()).hexdigest()[:16]
+                        expected={f'asset:{scope}:{p.uuid}' for p in photos}
+                        self.assertEqual({asset for part in parts for asset in part['assetIds']},expected)
+                        for index,part in enumerate(parts,1):
+                            self.assertGreaterEqual(len(part['assetIds']),2)
+                            self.assertLessEqual(len(part['assetIds']),1000)
+                            self.assertEqual(part['groupAssetCount'],count)
+                            self.assertEqual(part['groupPart'],index)
+                            self.assertEqual(part['groupParts'],expected_parts)
+                            self.assertEqual(part['assetIds'][0],parts[0]['assetIds'][0])
+                        db.photos=lambda:photos
+                        self.assertEqual(run(0)['candidates'],[parts[0]])
+
 if __name__=='__main__': unittest.main()
