@@ -5,7 +5,7 @@
 This section is authoritative for remaining work. Earlier plans and checkpoints
 below are historical evidence and are superseded wherever they require a native
 catalog reviewer or equate source/build/deployment with remote product acceptance.
-The full goal remains open. The installed service is 0.1.35, built from main merge c0699ac; its preserved operation
+The full goal remains open. The installed service is 0.1.36, built from main merge 70f6726; its preserved operation
 Helper excludes both the catalog reviewer and posting UI research. Generic
 authorization fixtures, reviewer removal/deployment and actual remote read acceptance
 are verified; native write permission and full sharing/cleanup acceptance remain pending.
@@ -103,6 +103,28 @@ byte/motion equivalence or write approval.
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
+### Cleanup coverage installed and durable decisions — 2026-10-05
+
+PR 27 is merged; runtime 0.1.36 is installed from verified clean remote-main
+70f6726. Installed payload matches the artifact, all 13 read-only doctor checks
+pass, and OAuth discovery advertises Photos read/write. Configuration, custody,
+existing owner/OAuth rows and the operation Helper binary are preserved. Both
+state databases pass integrity; only resource update time and rate-limit state
+changed during installation/read checks. No native rebuild or permission grant
+was performed.
+
+The installed reader passes synthetic complete-coverage checks for groups of
+1,000, 1,001, 1,999 and 2,000 sources. A real authenticated cleanup read returns
+bounded candidates with original-group metadata and continuation. It reports 589
+candidate review parts/signals in this snapshot, not 589 disposable photos.
+
+After restart, the same authenticated MCP reads back the exact three keep
+records with zero sharing selections and writeApproved=false. The comparison
+summary accounts for all 263 sources: three kept and 260 without saved decisions.
+There is no upload, photo edit, deletion, identity-confirmed shared membership or
+server-sync claim. Remaining scenario and native permission gates keep the full
+goal open.
+
 ### Goal and accepted product boundary
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
@@ -124,29 +146,7 @@ tool discovery and successful remote use are separate observations.
 
 ### Current evidence and gaps
 
-- Installed 0.1.35 registers Photos in the shared MCP and advertises read/write.
-  Library reads are verified. Previous Helper Full Access was verified, but the
-  rebuilt operation Helper reports not-requested (0), not inherited consent. Deletion is
-  configured off. Mail/Calendar configuration and existing grants were preserved.
-- Remote review preparation, previews, exact decision persistence and restart/owner
-  boundaries pass MCP SDK fixtures. A live local operator request read one real
-  source and persisted an undecided draft without UI or photo mutation. This is
-  not proof that the owner's remote ChatGPT connection can invoke Photos tools.
-- The owner screenshot has Mail/Calendar only. Live nonsecret metadata confirms
-  existing ChatGPT registration ceilings contain no Photos. Re-consenting an old
-  ceiling cannot add Photos. The same-connection owner-controlled registration upgrade is implemented and
-  installed. Owner confirmation, new Photos consent/tool refresh and real read
-  still need owner-visible acceptance.
-- The Swift catalog reviewer and launch paths are removed in source and the
-  active installed Helper. Build/signature checks and deployment readback pass.
-  The superseded candidate was removed. Old releases/helper remain rollback state;
-  no reviewer is part of the active native build. Owner authorization is pending.
-- Native empty ordinary-album create/rename/delete was previously verified; do
-  not repeat it. Personal asset writes/deletion, remote Shared Album posting and
-  cloud propagation remain unverified. Probable matches are not sharing proof.
-- Remote shared posting currently rejects before host UI. Keep that explicit limit
-  until a supported remote path is verified; the Apple UI candidate is evidence,
-  not the remote product flow or a reason to send the owner back to the Mac.
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
 ### Ordered delivery and observable acceptance
 
