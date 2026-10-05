@@ -1,5 +1,10 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Observed inventory identifier mismatch — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
 ## Shared Streams response received by background probe — 2026-10-05
 
 Installed 0.1.47 from deeafe0; 13 doctor checks passed. The actual main-MCP

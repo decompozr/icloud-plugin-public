@@ -70,7 +70,7 @@ async function boundedBody(response:Response,limit=65536):Promise<string>{
 }
 
 const serverAlbum=z.object({
- albumguid:guid,ownerdsid:z.string().regex(/^[0-9]{1,30}$/),
+ albumguid:z.string().min(1).max(512),ownerdsid:z.string().regex(/^[0-9]{1,30}$/),
  albumctag:z.string().max(4096).optional(),
  attributes:z.object({name:z.string().max(200),ispublic:z.enum(['0','1']).optional(),allowcontributions:z.enum(['0','1']).optional()}).optional(),
  requiresminimumos:z.boolean().optional(),sharedCollectionZoneIdentifier:z.string().max(4096).optional(),
@@ -100,7 +100,10 @@ export async function readSharedStreamAlbums(session:SharedStreamSession,account
   stage='schema';const parsed=inventory.parse(decoded);
   stage='identity';
   const seen=new Set<string>();
-  const albums=parsed.albums.filter(album=>!album._deleted||exact).map(album=>{
+  const visible=parsed.albums.filter(album=>!album._deleted||exact);
+  const unsupportedAlbums=visible.filter(album=>!guid.safeParse(album.albumguid).success).map(album=>({albumIdentifier:album.albumguid,reason:'unsupported_identifier_format' as const,writable:false as const}));
+  if(exact&&unsupportedAlbums.length)throw new Error('identity_mismatch');
+  const albums=visible.filter(album=>guid.safeParse(album.albumguid).success).map(album=>{
    const id=album.albumguid.toUpperCase();
    if(seen.has(id)||(exact&&id!==exact))throw new Error('identity_mismatch');seen.add(id);
    if(exact&&album._deleted)throw new Error('deleted_album_returned');
@@ -113,7 +116,7 @@ export async function readSharedStreamAlbums(session:SharedStreamSession,account
   });
   if(exact&&albums.length!==1)throw new Error('exact_album_missing');
   const version=response.headers.get('x-photos-transport-http-version');
-  return {source:'remote_shared_streams' as const,albums,rootChangeTag:parsed.rootctag??null,serverResponseObserved:true as const,operationCausedChangeVerified:false as const,crossDeviceObserved:false as const,...(version&&['1.0','1.1','2','3'].includes(version)?{serverHTTPVersion:version}:{})};
+  return {source:'remote_shared_streams' as const,albums,unsupportedAlbums,inventoryFullySupported:unsupportedAlbums.length===0,rootChangeTag:parsed.rootctag??null,serverResponseObserved:true as const,operationCausedChangeVerified:false as const,crossDeviceObserved:false as const,...(version&&['1.0','1.1','2','3'].includes(version)?{serverHTTPVersion:version}:{})};
  }catch(error){
   const code=error&&typeof error==='object'&&'code' in error?error.code:undefined;
   const safeCause=typeof code==='string'&&['shared_album_connection_timeout','shared_album_read_timeout','shared_album_tls_failed','shared_album_connection_failed','shared_album_transport_failed','provider_timeout','provider_unavailable','request_too_large','invalid_provider_response'].includes(code)?code:undefined;
