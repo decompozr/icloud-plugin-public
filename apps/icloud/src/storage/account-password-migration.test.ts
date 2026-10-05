@@ -141,3 +141,62 @@ test('opaque, mismatched-user, malformed UTF-8/Unicode and extra fields require 
   const f=fixture(raw);try{expect(()=>begin(f)).toThrow(/^recovery_required$/);expect(f.journal.read('owner',f.a).epoch).toBe(1);expect(f.native.added).toBe(0);expect(f.sourceBuffers.every(zero)).toBe(true);}finally{f.cleanup();}
  }
 });
+
+// Cleanup shares the populated owner/session fixtures, never a live Keychain.
+import {AccountPasswordCleanup} from './account-password-cleanup.js';
+function cancellation(f:ReturnType<typeof fixture>){
+ const {state,operationId}=begin(f);
+ f.native.items.set(accountPasswordSelector(staged(f)).account,Buffer.from('synthetic-a'));
+ const cancelled=f.journal.cancelCopy('owner',f.a,state.epoch,operationId);
+ return {epoch:cancelled.epoch,item:f.journal.listCleanup('owner',f.a)[0]!};
+}
+test('cleanup deletes exact cancelled generation and requires a separate absence read',async()=>{
+ const f=fixture();try{
+  const {epoch,item}=cancellation(f),other=accountPasswordSelector({...staged(f),accountId:f.b}).account;
+  f.native.items.set(other,Buffer.from('synthetic-b'));let deletes=0;
+  const cleanup=new AccountPasswordCleanup(f.journal,{read:f.native.read.bind(f.native),async deletePassword(id,options){expect(options).toEqual({interaction:'prohibited'});deletes++;f.native.items.delete(accountPasswordSelector(id).account);}},{assertHeld(){}});
+  expect(await cleanup.advance('owner',f.a,epoch,item)).toBe('pending');expect(f.journal.listCleanup('owner',f.a)).toHaveLength(1);
+  expect(await cleanup.advance('owner',f.a,epoch,item)).toBe('complete');expect(deletes).toBe(1);expect(f.native.items.has(other)).toBe(true);
+  expect(f.journal.read('owner',f.a).epoch).toBe(epoch);expect(f.journal.listCleanup('owner',f.a)).toHaveLength(0);expect(f.native.reads.every(zero)).toBe(true);
+ }finally{f.cleanup();}
+});
+test('lost applied delete reply retains evidence and resumes by absence without repeated delete',async()=>{
+ const f=fixture();try{
+  const {epoch,item}=cancellation(f);let deletes=0;
+  const cleanup=new AccountPasswordCleanup(f.journal,{read:f.native.read.bind(f.native),async deletePassword(id){deletes++;f.native.items.delete(accountPasswordSelector(id).account);throw new CustodyError('outcome_unknown');}},{assertHeld(){}});
+  await expect(cleanup.advance('owner',f.a,epoch,item)).rejects.toThrow('outcome_unknown');expect(f.journal.listCleanup('owner',f.a)).toHaveLength(1);
+  expect(await cleanup.advance('owner',f.a,epoch,item)).toBe('complete');expect(deletes).toBe(1);expect(f.native.reads.every(zero)).toBe(true);
+ }finally{f.cleanup();}
+});
+test('cleanup fences concurrent revocation after read and rejects foreign or active selectors',async()=>{
+ const f=fixture();try{
+  const {epoch,item}=cancellation(f);let deletes=0;
+  const cleanup=new AccountPasswordCleanup(f.journal,{read:f.native.read.bind(f.native),async deletePassword(){deletes++;}},{assertHeld(){}});
+  await expect(cleanup.advance('owner',f.b,1,item)).rejects.toThrow('conflict');expect(f.native.readOptions).toHaveLength(0);
+  f.native.beforeRead=()=>{f.journal.revoke('owner',f.a,epoch,randomUUID());};
+  await expect(cleanup.advance('owner',f.a,epoch,item)).rejects.toThrow('conflict');expect(deletes).toBe(0);expect(f.journal.listCleanup('owner',f.a)).toHaveLength(1);expect(f.native.reads.every(zero)).toBe(true);
+ }finally{f.cleanup();}
+});
+test('denied reads or lost maintenance never delete or acknowledge pending cleanup',async()=>{
+ const f=fixture();try{
+  const {epoch,item}=cancellation(f);let held=true,deletes=0;
+  const cleanup=new AccountPasswordCleanup(f.journal,{async read(){throw new CustodyError('denied');},async deletePassword(){deletes++;}},{assertHeld(){if(!held)throw Error('private-diagnostic');}});
+  await expect(cleanup.advance('owner',f.a,epoch,item)).rejects.toThrow(/^denied$/);held=false;
+  await expect(cleanup.advance('owner',f.a,epoch,item)).rejects.toThrow(/^recovery_required$/);expect(deletes).toBe(0);expect(f.journal.listCleanup('owner',f.a)).toHaveLength(1);
+ }finally{f.cleanup();}
+});
+test('revocation cleanup retains tombstone, revised account and invalidated Photos session',async()=>{
+ const f=fixture();try{
+  const {state,operationId}=begin(f);await advance(f,state.epoch,operationId);
+  const verified=await advance(f,state.epoch,operationId),active=await advance(f,verified.epoch,operationId);
+  let deletes=0;const cleanup=new AccountPasswordCleanup(f.journal,{read:f.native.read.bind(f.native),async deletePassword(id){deletes++;f.native.items.delete(accountPasswordSelector(id).account);}},{assertHeld(){}});
+  const forged={...staged(f),operationId,mac:active.mac};
+  await expect(cleanup.advance('owner',f.a,active.epoch,forged)).rejects.toThrow('conflict');expect(deletes).toBe(0);
+  const revoked=f.journal.revoke('owner',f.a,active.epoch,randomUUID()),session=f.owner.providerSessionState('owner',f.a,'photos_web'),item=f.journal.listCleanup('owner',f.a)[0]!;
+  expect(revoked.revision).toBe(2);expect(f.owner.readProviderSession('owner',f.a,'photos_web')).toBeNull();
+  expect(await cleanup.advance('owner',f.a,revoked.epoch,item)).toBe('pending');
+  expect(await cleanup.advance('owner',f.a,revoked.epoch,item)).toBe('complete');
+  expect(f.journal.read('owner',f.a)).toEqual(revoked);expect(f.owner.providerSessionState('owner',f.a,'photos_web')).toEqual(session);
+  expect(f.owner.readAccountSecret('owner',f.a)).toBeNull();expect(f.journal.listCleanup('owner',f.a)).toHaveLength(0);
+ }finally{f.cleanup();}
+});

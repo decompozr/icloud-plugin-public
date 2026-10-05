@@ -308,6 +308,12 @@ or promotes an uncommitted cutover. Account cancellation preserves SQLite author
 and queues exact staging cleanup; native availability restoration requires the
 retained exact selector and epoch after fresh caller validation. Neither restores
 revoked access or changes credential revision/session state.
+The inactive account cleanup coordinator now checks an authenticated exact cleanup
+item and current epoch before and after native calls. A delete reply retains
+intent; only a separate noninteractive read reporting exact-item absence
+acknowledges it. Synthetic cancellation, revocation, lost-result and concurrency
+checks do not authorize a live backend or prove operator exclusion.
+
 Operational stopped recovery, account add/rotation adapters, settings/format gates, custody
 paths and backend integration are still required for K1 completion.
 No all-consumer or Keychain validation is implied by advancing a fixture phase.

@@ -55,8 +55,16 @@ epoch CAS, atomic ciphertext cutover and revision/session-aware revocation. Synt
 process-death/concurrency tests cover storage only; neither journal calls Keychain.
 Read-only master interruption inspection retains committed authority and all lock/
 staging evidence; account cancellation/exact-selector availability recovery now use
-CAS without revising credentials or sessions. Operational stopped recovery,
-account add/rotation adapters and settings/compatibility/backend
+CAS without revising credentials or sessions.
+
+The inactive account cleanup coordinator now checks an authenticated exact cleanup
+item and current epoch before and after native calls. A delete reply retains
+intent; only a separate noninteractive read reporting exact-item absence
+acknowledges it. Synthetic cancellation, revocation, lost-result and concurrency
+checks do not authorize a live backend or prove operator exclusion.
+
+Operational stopped recovery, account add/rotation adapters and
+settings/compatibility/backend
 integration remain pending; K1 is not complete and runtime custody is unchanged.
 The product startup path now checks explicit file authority/format/UUID/generation
 and unfinished custody intent, and refuses native selection or unsupported account
