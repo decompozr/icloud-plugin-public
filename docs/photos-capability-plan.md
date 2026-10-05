@@ -21,8 +21,8 @@ apply(cancel=true), which releases staged bytes without Photos mutations. Full L
 Photo pairing, subscriber writes and real provider acceptance remain open.
 
 Self-check: full app suite 417 tests / 2828 assertions and typecheck passed.
-16 Python transport tests and production build passed before the final cancellation
-case; final production build is required before release. These
+16 Python transport tests and final production build passed for the 0.1.50 release
+candidate, including the cancellation case. These
 are fixtures, not live uploads. Candidate is not deployed; runtime remains 0.1.49.
 Next: full final checks, release/merge/deploy, existing-MCP tool discovery and exact
 owner-reviewed live acceptance. No personal upload or invitation has occurred.

@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import signal
 import sys
 from urllib.parse import urlsplit
 from uuid import UUID
@@ -103,6 +104,9 @@ def run(request, allocate=None, session_factory=None):
 
 
 if __name__ == '__main__':
+    def interrupt_actor(_signal, _frame):
+        raise InterruptedError()
+    signal.signal(signal.SIGTERM, interrupt_actor)
     logging.disable(logging.CRITICAL)
     try:
         raw = sys.stdin.buffer.read(65537)
