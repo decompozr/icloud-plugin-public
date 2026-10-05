@@ -48,6 +48,20 @@ and unknown-mutation handling. The native backend remains unselected; K0 is not
 passed. The experiment and standalone TypeScript check passed, with no real
 Keychain operations or new toolchain.
 
+The inactive [Bun-side adapter](../apps/icloud/src/storage/custody-helper.ts)
+implements that candidate with collection-time stdout/stderr caps, strict response
+identity/schema/length checks, copied request bytes and caller-owned read outputs.
+Abort cancels pipe readers, terminates the owned child when needed and observes
+its terminal state before returning. Explicit helper error enums are preserved;
+transport failures after launching add/delete return outcome_unknown without
+automatic retry. Real subprocess fixtures model an applied mutation with a lost
+reply, oversized/malformed/stderr/nonzero output and stalled reads/deletes. No
+native Security API or Keychain backend is selected, and child termination does
+not roll back an already-applied mutation. The journal must reconcile exact items.
+Buffer wiping cannot erase every Blob/Bun transport copy. The subprocess fixtures
+prove direct-child cleanup, not descendant-process, native or cross-user lifecycle
+acceptance; the native helper topology remains a separate qualification gate.
+
 ### Historical stronger-boundary findings
 
 K0 follow-up: the [stock Bun runtime boundary experiment](../playground/keychain/runtime-boundary.md)

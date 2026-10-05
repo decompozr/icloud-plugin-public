@@ -130,6 +130,16 @@ helper/Bun protocol, setup approval, noninteractive failure behavior, signing/up
 continuity and supported login/lock contexts. Existing synthetic file-Keychain
 results do not prove production signing or untested OS lifecycle behavior.
 
+**Inactive helper adapter checkpoint:** official Bun transport now enforces
+collection-time stdout/stderr caps, strict response binding and byte lengths,
+deadline/pipe cancellation and terminal child cleanup. Launch-time command is
+trusted installation configuration; credentials travel only in stdin/stdout
+frames. Reads return owned buffers; explicit native errors remain bounded.
+Lost/invalid mutation replies return outcome_unknown without retry so existing
+CAS journals reconcile exact items. Subprocess fixtures cover transport failure
+and a synthetic applied mutation with a lost result. Native backend/helper
+qualification and startup selection remain unimplemented; K0 is still unpassed.
+
 **Revised K0 protocol checkpoint:** the [official Bun/helper process experiment](../playground/keychain/helper-protocol.md)
 passed thirteen synthetic requests for exact bytes, scoped selectors, response
 binding, create-only/missing behavior and noninteractive reads. No native API or
@@ -595,15 +605,17 @@ phase before proceeding. No dates or production signer availability are assumed.
 | K3 | Depends on K2; migrate each account password and add/rotate/revoke flows with tombstones, readiness/session invalidation and reconciliation. | Stable account grants/routing and CAS race tests; no stale credentials/session resurrection or fallback; both connected and revoked accounts covered. |
 | K4 | Depends on K2/K3; integrate lifecycle packaging/doctor/LaunchAgent, update/rollback/reinstall, retained uninstall and opt-in full removal. | Whole-outcome acceptance below, independent review and an explicitly authorized operator rollout. Passing fixture checks do not claim live acceptance. |
 
-**Next ready slice: bounded Bun-side helper adapter.** The candidate scoped binary
-framing has synthetic process evidence, reconciled in knowledge and this plan.
-Implement collection limits while bytes arrive, request/response validation,
-timeout/termination, buffer ownership and redacted process failures. Test lost
-mutation replies as unknown, never automatically replay add/delete. Use a separate
-synthetic process and injected custody ports; do not select a production backend.
-The next native step still requires selecting/qualifying Keychain API/access policy,
-helper signing and actual UI/update/lifecycle behavior under applicable authority.
-No K0-pass or real migration claim follows from process protocol checks alone.
+**Next ready slice: standard native helper/API qualification.** The Bun-side
+transport is implemented and synthetic failure-tested. Select the supported
+Keychain implementation/access policy and small helper packaging using retained
+Apple/experiment evidence. Define compile/dispatch fixtures and the remaining
+actual setup/signing/update/login checks before implementing the native backend.
+Respect existing authority for real Keychain operations and production signing;
+do not install tools/identities or activate runtime as part of a source checkpoint.
+Direct-child pipe tests do not prove descendant-process, cross-user or OS lifecycle
+behavior. Blob/Bun transient copies cannot all be securely erased. K0 remains
+unpassed until its required native behavior is observed, not inferred from this
+transport implementation.
 
 ## Whole-outcome acceptance and feedback
 

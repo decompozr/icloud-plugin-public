@@ -35,6 +35,16 @@ web sessions and Mail/Calendar ledgers after Apple passwords move.
 | K3 | Move every connected account password with stable UUIDs/revisions and explicit per-account authority; integrate add/rotate/revoke. Requires K2. | CAS and interrupted-write recovery preserve routing/grants; real rotation/revocation invalidates Photos sessions/readiness and cannot resurrect stale credentials. Custody-only moves retain valid sessions. Revoked accounts remain tombstoned. |
 | K4 | Integrate signed artifacts, setup/doctor/LaunchAgent, ordinary update, recovery/rollback/reinstall and both uninstall modes. Requires K2/K3. | Whole-outcome acceptance and independent review pass. One-time setup authorization is observed; ordinary runtime/updates remain unattended. Retained uninstall/reinstall preserves both stores; opt-in full removal handles exact owned items/state and interrupted cleanup. Actual rollout requires separate authorization. |
 
+**Inactive helper adapter checkpoint:** official Bun transport now enforces
+collection-time stdout/stderr caps, strict response binding and byte lengths,
+deadline/pipe cancellation and terminal child cleanup. Launch-time command is
+trusted installation configuration; credentials travel only in stdin/stdout
+frames. Reads return owned buffers; explicit native errors remain bounded.
+Lost/invalid mutation replies return outcome_unknown without retry so existing
+CAS journals reconcile exact items. Subprocess fixtures cover transport failure
+and a synthetic applied mutation with a lost result. Native backend/helper
+qualification and startup selection remain unimplemented; K0 is still unpassed.
+
 **Revised K0 protocol checkpoint:** the [official Bun/helper process experiment](../playground/keychain/helper-protocol.md)
 passed thirteen synthetic requests for exact bytes, scoped selectors, response
 binding, create-only/missing behavior and noninteractive reads. No native API or
@@ -52,10 +62,10 @@ review; operator-authenticated maintenance,
 protected recovery and native backend integration remain incomplete. Keychain
 activation continues to require K0 first; no live secrets have been migrated.
 
-The next bounded slice implements the Bun-side helper adapter after the protocol
-experiment/knowledge/plan checkpoint: bounded stream collection, timeout and
-termination, response validation and unknown mutation failures, using synthetic
-processes. The [stock Bun report](../playground/keychain/runtime-boundary.md)
+The next bounded slice selects/qualifies the standard native helper/API and access
+policy after the implemented Bun transport checkpoint. Define compile/dispatch
+fixtures and remaining actual setup/signing/update/login acceptance before native
+backend implementation under applicable authority. The [stock Bun report](../playground/keychain/runtime-boundary.md)
 remains valid evidence against app-only isolation, which is no longer required.
 No native Keychain operation was involved, and revised K0 has not passed. K1 fixture contracts
 remain independent; K2/K3 activation remains gated. K1's first inactive foundation
