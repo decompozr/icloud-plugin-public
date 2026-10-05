@@ -152,9 +152,19 @@ Unavailable authority cannot use SQLite status as fallback. Account addition
 with this reader returns CREDENTIAL_MAINTENANCE_UNAVAILABLE until a transactional
 custody writer is integrated. Synthetic signed OAuth requests with actual journal
 state cover successful native selection and revocation during continuation.
-Production auth composition still supplies no reader. Owner-auth grant creation,
-refresh, bearer validation and client recovery account checks still need custody
-integration; chooser acceptance does not prove those downstream paths.
+Owner-auth now accepts the same optional reader for grant reference checks,
+refresh response authorization, bearer account validation and client recovery.
+Exact owner/account metadata is fenced through assertCurrent; reader errors or
+revoked authority deny access without SQLite/another-account fallback. Existing
+legacy mapping, grant references, scopes, Passkeys and auth derivations remain
+unchanged. The full local HTTP/Passkey/OAuth fixture runs in legacy and injected
+custody modes with cleared legacy credential metadata, exercising refresh,
+recovery, restart and account isolation. Epoch-only changes preserve existing
+grants; unavailable/revoked custody denies bearer and revoked refresh issuance.
+These custody ports are synthetic metadata, not real Keychain availability or
+sealed caller proof. Snapshot checks do not establish atomicity between provider
+token issuance and concurrent custody mutation; operational exclusion/acceptance
+remains required. Production application composition still supplies no reader.
 
 Operational stopped recovery, account add/rotation adapters and
 settings/compatibility/backend
