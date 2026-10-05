@@ -15,12 +15,14 @@ function fixture(){
   if(endpoint==='webgetalbumslist')return Response.json({albums:[...albums.values()]});
   if(endpoint==='webgetalbumview')return Response.json({albums:body.albumguids.flatMap((id:string)=>albums.has(id)?[albums.get(id)]:[])});
   if(endpoint==='webgetassetcount')return Response.json({albumassetcount:albums.get(body.albumguid)?.count??0});
+  if(endpoint==='webgetassets'){const a=albums.get(body.albumguid);return Response.json({records:(a.assets??[]).slice(Number(body.offset),Number(body.offset)+100).flatMap((id:string)=>[{recordType:'CPLMaster',recordName:`master-${id}`,fields:{}},{recordType:'CPLAsset',recordName:id,fields:{masterRef:{value:{recordName:`master-${id}`}}}}])});}
   writes++;
   if(endpoint==='createalbum')albums.set(body.albumguid,{albumguid:body.albumguid,ownerdsid:'123456789',attributes:body.attributes,albumctag:'1',count:0});
   else if(endpoint==='updatealbum'){const a=albums.get(body.albumguid);a.attributes={...a.attributes,...body.attributes};a.albumctag=String(Number(a.albumctag)+1);}
   else if(endpoint==='setalbumpublic'){const a=albums.get(body.albumguid);a.attributes.ispublic=body.ispublic;a.albumctag=String(Number(a.albumctag)+1);}
   else if(endpoint==='share'){const a=albums.get(body.albumguid);a.sharinginfo.push(...body.invitations.map((i:any)=>({...i,sharingtype:'pending'})));a.albumctag=String(Number(a.albumctag)+1);}
   else if(endpoint==='unshare'){const a=albums.get(body.albumguid);a.sharinginfo=a.sharinginfo.filter((p:any)=>!body.invitations.includes(p.invitationguid));a.albumctag=String(Number(a.albumctag)+1);}
+  else if(endpoint==='deleteassets'){const a=albums.get(body.albumguid);const targets=a.partialRemoval?body.assets.slice(0,1):body.assets;a.assets=a.assets.filter((id:string)=>!targets.includes(id));if(a.dropUnselected)a.assets=[];a.count=a.assets.length;a.albumctag=String(Number(a.albumctag)+1);}
   else if(endpoint==='deletealbum')albums.delete(body.albumguid);
   else throw Error('unexpected endpoint');
   if(loseReply)throw Error('private-token-lost-reply');
@@ -172,4 +174,21 @@ test('background prepare and apply retain one operation ID and never resend on p
   f.db.query("UPDATE photos_shared_operations SET status='preparing' WHERE id=?").run(pending.operationId);
   expect(f.create().status(pending.operationId).result.error).toBe('shared_album_prepare_interrupted');expect(f.writes()).toBe(1);
  }finally{f.db.close();}
+});
+
+
+test('shared-copy removal verifies exact membership and preserves unselected copies',async()=>{
+ for(const mode of ['success','lost','partial','collateral'] as const){
+  const f=fixture(),guid='66666666-6666-4666-8666-666666666666',albumId=`shared-album:${accountId}:${guid}`;
+  f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Copy fixture'},albumctag:'1',count:3,assets:['copy-a','copy-b','copy-c'],partialRemoval:mode==='partial',dropUnselected:mode==='collateral'});
+  try{
+   await expect(f.service.prepare({action:'remove_shared_assets',albumId,assetGuids:['local-original-id'],experimental:true})).rejects.toThrow('shared_album_asset_not_found');expect(f.writes()).toBe(0);
+   const plan=await f.service.prepare({action:'remove_shared_assets',albumId,assetGuids:['copy-a','copy-b'],experimental:true});
+   expect('membership' in plan.before && plan.before.membership.complete).toBe(true);if(mode==='lost')f.lose();
+   const result=await f.service.apply(plan.operationId,true);expect(result.status).toBe(mode==='success'?'applied':'outcome_unknown');expect(f.writes()).toBe(1);
+   await f.service.apply(plan.operationId,true);expect(f.writes()).toBe(1);
+   if(mode==='lost'){expect((await f.service.reconcile(plan.operationId)).status).toBe('reconciled');expect(f.writes()).toBe(1);}
+   if(mode==='success'||mode==='lost')expect(f.albums.get(guid).assets).toEqual(['copy-c']);
+  }finally{f.db.close();}
+ }
 });

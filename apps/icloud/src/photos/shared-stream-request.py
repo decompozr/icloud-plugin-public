@@ -15,7 +15,7 @@ from urllib.parse import urlsplit, urlencode
 from uuid import UUID
 
 ENDPOINTS = {'photosZonesList', 'requestWebAccessState', 'webgetalbumslist', 'webgetalbumview', 'webgetassetcount', 'webgetassets',
-             'createalbum', 'updatealbum', 'deletealbum', 'setalbumpublic', 'share', 'unshare'}
+             'createalbum', 'updatealbum', 'deletealbum', 'setalbumpublic', 'share', 'unshare', 'deleteassets', 'webuploadstatus'}
 
 
 def config_value(value):
@@ -92,7 +92,7 @@ def run(request, session_factory=None, curl_runner=None):
     long_probe = request.get('longProbe', False)
     if not isinstance(long_probe, bool) or long_probe and (endpoint != 'webgetalbumslist' or request.get('transport') != 'system_http2' or request.get('body') != '{}'):
         raise ValueError('probe')
-    is_read = endpoint.startswith('webget') or endpoint in ['requestWebAccessState', 'photosZonesList']
+    is_read = endpoint.startswith('webget') or endpoint in ['requestWebAccessState', 'photosZonesList', 'webuploadstatus']
     transport = request.get('transport', 'requests')
     if transport not in ['requests', 'system_http2'] or transport == 'system_http2' and not is_read:
         raise ValueError('transport')

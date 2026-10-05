@@ -1,5 +1,25 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Shared upload response contracts — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Upload-job polling is now wired through the account-bound read transport with
+fixed endpoint, retained job identity, bounded response/deadline, redacted failures
+and no automatic retry. It is an internal recovery primitive, not an MCP upload
+action. Self-check: 412 app tests / 2753 assertions, 14 Python transport tests and
+typecheck passed. Upload URL host/cookie custody,
+reviewed local export, durable multi-stage dispatch and live readback remain open.
+No authenticated upload request or personal-photo mutation was performed.
+
+
+## Reviewed shared-copy removal candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
 ## Shared-copy page reader candidate — 2026-10-05
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.

@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {PhotosError} from './contracts.js';
 import type {PhotosPolicy} from './service.js';
-import {SHARED_RECOVERY_GRACE_MS,SharedStreamReadError,readSharedStreamAlbums,readSharedStreamCount,executeSharedStreamMutation,type SharedStreamSession,type SharedStreamMutation} from './shared-stream-protocol.js';
+import {SHARED_RECOVERY_GRACE_MS,SharedStreamReadError,readSharedStreamMembership,readSharedStreamAlbums,readSharedStreamCount,executeSharedStreamMutation,type SharedStreamSession,type SharedStreamMutation} from './shared-stream-protocol.js';
 
 export const remoteSharedAlbumId=z.string().regex(/^shared-album:[a-f0-9-]{36}:[A-Fa-f0-9-]{36}$/);
 const title=z.string().trim().min(1).max(200);
@@ -15,6 +15,7 @@ export const sharedAlbumIntent=z.discriminatedUnion('action',[
  z.object({action:z.literal('set_shared_public_access'),albumId:remoteSharedAlbumId,enabled:z.boolean(),experimental:z.literal(true)}).strict(),
  z.object({action:z.literal('invite_shared_participants'),albumId:remoteSharedAlbumId,emails:z.array(z.string().trim().email().max(320)).min(1).max(20).refine(items=>new Set(items.map(v=>v.toLowerCase())).size===items.length),experimental:z.literal(true)}).strict(),
  z.object({action:z.literal('remove_shared_participant'),albumId:remoteSharedAlbumId,invitationId:z.string().min(1).max(512).refine(v=>!/[\x00-\x1f\x7f]/.test(v)),experimental:z.literal(true)}).strict(),
+ z.object({action:z.literal('remove_shared_assets'),albumId:remoteSharedAlbumId,assetGuids:z.array(z.string().min(1).max(512).refine(v=>!/[\x00-\x1f\x7f]/.test(v))).min(1).max(100).refine(items=>new Set(items).size===items.length),experimental:z.literal(true)}).strict(),
 ]);
 type Intent=z.infer<typeof sharedAlbumIntent>;
 type Session=SharedStreamSession&{generation:number;accountRevision:number};
@@ -87,6 +88,11 @@ export class SharedAlbumService {
   }
   const count=await readSharedStreamCount(session,this.options.accountId,guid);
   if(intent.action==='delete_empty_shared_album'&&count!==0)throw new PhotosError('album_not_empty');
+  if(intent.action==='remove_shared_assets'){
+   const membership=await readSharedStreamMembership(session,this.options.accountId,guid);
+   if(!intent.assetGuids.every(id=>membership.assets.some(a=>a.assetGuid===id)))throw new PhotosError('shared_album_asset_not_found');
+   return {...sessionIdentity,album,count,membership};
+  }
   return {...sessionIdentity,album,count};
  }
  private reserve(raw:unknown){
@@ -140,6 +146,11 @@ export class SharedAlbumService {
   const exact=(await readSharedStreamAlbums(session,this.options.accountId,row.albumGuid)).albums[0]!;
   const count=await readSharedStreamCount(session,this.options.accountId,row.albumGuid);
   const before=JSON.parse(row.snapshot);
+  if(intent.action==='remove_shared_assets'){
+   const membership=await readSharedStreamMembership(session,this.options.accountId,row.albumGuid),remaining=new Set(membership.assets.map(a=>a.assetGuid)),removed=new Set(intent.assetGuids);
+   const preserved=before.membership.assets.filter((a:{assetGuid:string})=>!removed.has(a.assetGuid)).every((a:{assetGuid:string})=>remaining.has(a.assetGuid));
+   return {matches:intent.assetGuids.every(id=>!remaining.has(id))&&preserved,membership,count:membership.total,originalLibraryModified:false};
+  }
   const desired=intent.action==='invite_shared_participants'?Array.isArray(exact.participants)&&before.preparedInvitations.every((invite:{email:string;invitationGuid:string})=>exact.participants!.some(p=>p.invitationguid===invite.invitationGuid&&p.email?.toLowerCase()===invite.email.toLowerCase()&&['pending','subscribed'].includes(p.sharingtype?.toLowerCase()??''))):intent.action==='remove_shared_participant'?Array.isArray(exact.participants)&&!exact.participants.some(p=>p.invitationguid===intent.invitationId&&p.sharingtype?.toLowerCase()!=='unshared'):intent.action==='set_shared_contributions'?exact.allowsContributions===intent.enabled&&exact.title===before.album.title&&exact.isPublic===before.album.isPublic:intent.action==='set_shared_public_access'?exact.isPublic===intent.enabled&&exact.title===before.album.title&&exact.allowsContributions===before.album.allowsContributions:exact.title===intent.title&&(intent.action!=='create_shared_album'||count===0);
   return {matches:exact.rights==='owner'&&exact.protocol==='legacy_candidate'&&desired,album:{...exact,id:this.id(row.albumGuid)},count};
  }
@@ -158,7 +169,7 @@ export class SharedAlbumService {
   let status='outcome_unknown',result:unknown={error:'shared_album_write_outcome_unknown'};
   try{
    this.check(true);
-   const mutation:SharedStreamMutation=intent.action==='create_shared_album'?{action:'create_shared_album',albumGuid:row.albumGuid,title:intent.title}:intent.action==='rename_shared_album'?{action:'rename_shared_album',albumGuid:row.albumGuid,title:intent.title}:intent.action==='set_shared_contributions'?{action:intent.action,albumGuid:row.albumGuid,currentName:JSON.parse(row.snapshot).album.title,enabled:intent.enabled}:intent.action==='set_shared_public_access'?{action:intent.action,albumGuid:row.albumGuid,enabled:intent.enabled}:intent.action==='invite_shared_participants'?{action:intent.action,albumGuid:row.albumGuid,invitations:JSON.parse(row.snapshot).preparedInvitations}:intent.action==='remove_shared_participant'?{action:intent.action,albumGuid:row.albumGuid,invitationGuid:intent.invitationId}:{action:'delete_shared_album',albumGuid:row.albumGuid};
+   const mutation:SharedStreamMutation=intent.action==='create_shared_album'?{action:'create_shared_album',albumGuid:row.albumGuid,title:intent.title}:intent.action==='rename_shared_album'?{action:'rename_shared_album',albumGuid:row.albumGuid,title:intent.title}:intent.action==='set_shared_contributions'?{action:intent.action,albumGuid:row.albumGuid,currentName:JSON.parse(row.snapshot).album.title,enabled:intent.enabled}:intent.action==='set_shared_public_access'?{action:intent.action,albumGuid:row.albumGuid,enabled:intent.enabled}:intent.action==='invite_shared_participants'?{action:intent.action,albumGuid:row.albumGuid,invitations:JSON.parse(row.snapshot).preparedInvitations}:intent.action==='remove_shared_participant'?{action:intent.action,albumGuid:row.albumGuid,invitationGuid:intent.invitationId}:intent.action==='remove_shared_assets'?{action:intent.action,albumGuid:row.albumGuid,assetGuids:intent.assetGuids}:{action:'delete_shared_album',albumGuid:row.albumGuid};
    const acknowledgement=await executeSharedStreamMutation(session,this.options.accountId,mutation);
    if(acknowledgement.status==='acknowledged_readback_required'){
     const observed=await this.desiredState(session,row);this.check(true);
