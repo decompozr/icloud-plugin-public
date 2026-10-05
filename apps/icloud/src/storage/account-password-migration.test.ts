@@ -412,3 +412,43 @@ test('Calendar activation guards provider discovery requests before policy publi
   await expect(f.module.admin.updateCapabilities({read:true,write:true,schedule:false,share:false},true)).rejects.toThrow('Account credential changed');expect(guardPresent).toBe(true);expect(f.reads()).toBe(0);expect(f.module.admin.capabilities()).toEqual(initial);
  }finally{await f.dispose();}
 });
+
+import {createMailModule} from '../mail/module.js';
+import {MailOperationError,type MailSession} from '../mail/domain/mail.js';
+import {SqliteOutboundLedger} from '../mail/storage/outbound-ledger.js';
+async function mailCustodyFixture(){
+ const f=await rotationFixture(),auth=new Database(':memory:'),{reader,sourceReads}=readerFixture(f);let calls=0,marks=0,sends=0,late:(()=>void)|undefined,afterSend:(()=>void)|undefined;
+ const session:MailSession={supportsMove:true,list:async()=>{calls++;late?.();return[{path:'INBOX',name:'Inbox',selectable:true}];},select:async()=>({uidValidity:'123',uidNext:2,supportsKeywords:true,release(){}}),search:async()=>[1],summaries:async()=>[],metadata:async()=>{late?.();return{attachments:[]};},download:async()=>({contentType:'message/rfc822',chunks:(async function*(){yield Buffer.from('synthetic');})(),cancel(){}}),mark:async()=>{marks++;return true;},flag:async()=>true,tag:async()=>true,move:async()=>false};
+ const module=createMailModule({allow_writes:true,allow_send:true,public_origin:'https://example.test'} as AppSettings,{store:f.owner,credentialReader:reader,authDatabase:auth,masterKey:f.options.masterKey,monitor:new OperationMonitor(()=>{}),provider:credential=>{if(credential.user!=='a@example.test'||credential.appPassword!=='synthetic-a')throw Error('wrong account password');return{withSession:run=>run(session),parse:async()=>({subject:'synthetic',from:'',to:[],text:'synthetic'}),send:async()=>({messageId:'id',accepted:[],rejected:[]})};},outboundProvider:()=>({send:async input=>{sends++;afterSend?.();return{messageId:input.messageId,accepted:input.to,rejected:[]};},draft:async(input,mailbox)=>({messageId:input.messageId,mailbox,uid:1,uidValidity:'123'})})});
+ return {...f,module,auth,sourceReads,calls:()=>calls,marks:()=>marks,sends:()=>sends,late:(fn:()=>void)=>{late=fn;},afterSend:(fn:()=>void)=>{afterSend=fn;},run:(tool:string,input:unknown)=>withInvocationContext({ownerId:'owner',accountId:f.a},()=>module.registration.tools.find(entry=>entry.tool.name===tool)!.run(input,new Set(['mail.read','mail.write','mail.send']))),dispose:async()=>{await module.registration.dispose?.();auth.close();f.cleanup();}};
+}
+test('Mail registered consumer loads native credentials once, retains identity, and rejects malformed input before native IO',async()=>{
+ const f=await mailCustodyFixture();try{
+  const before=f.native.readOptions.length;expect((await f.run('mail_get_profile',{})).isError).not.toBe(true);expect(f.native.readOptions).toHaveLength(before);
+  expect((await f.run('mail_list_mailboxes',{})).isError).not.toBe(true);expect(f.native.readOptions).toHaveLength(before+1);expect(f.sourceReads()).toBe(0);expect(f.calls()).toBe(1);
+  expect((await f.run('mail_list_mailboxes',{unexpected:true})).isError).toBe(true);expect(f.native.readOptions).toHaveLength(before+1);expect(f.native.reads.every(zero)).toBe(true);
+ }finally{await f.dispose();}
+});
+test('Mail native denial and epoch changes reject provider reads and preflight mutation without fallback',async()=>{
+ const f=await mailCustodyFixture();try{
+  f.native.beforeRead=()=>{throw new CustodyError('denied');};expect((await f.run('mail_list_mailboxes',{})).isError).toBe(true);expect(f.calls()).toBe(0);expect(f.sourceReads()).toBe(0);f.native.beforeRead=undefined;
+  const state=f.journal.read('owner',f.a);f.late(()=>{f.journal.revoke('owner',f.a,state.epoch,randomUUID());});expect((await f.run('mail_mark',{accountId:f.a,mailbox:'INBOX',uidValidity:'123',uid:1,seen:true})).isError).toBe(true);expect(f.marks()).toBe(0);
+ }finally{await f.dispose();}
+ const late=await mailCustodyFixture();try{const state=late.journal.read('owner',late.a);late.late(()=>{late.journal.revoke('owner',late.a,state.epoch,randomUUID());});expect((await late.run('mail_list_mailboxes',{})).isError).toBe(true);}finally{await late.dispose();}
+});
+test('Mail SMTP observed result retains encrypted original-account receipt after credential revocation',async()=>{
+ const f=await mailCustodyFixture();try{
+  const state=f.journal.read('owner',f.a);f.afterSend(()=>{f.journal.revoke('owner',f.a,state.epoch,randomUUID());});
+  const result=await f.run('mail_send',{operationId:randomUUID(),to:['recipient@example.test'],subject:'synthetic',text:'synthetic'});expect(result.isError).not.toBe(true);expect(JSON.parse((result.content[0] as {text:string}).text).status).toBe('submitted');expect(f.sends()).toBe(1);
+  const namespace=JSON.stringify(['owner',f.a]);expect(SqliteOutboundLedger.validateExistingReceipts({database:f.auth,masterKey:f.options.masterKey,allowedOwnerNamespaces:[namespace]})).toEqual({format:1,records:1,encrypted:1,pending:0});expect(f.journal.read('owner',f.a).phase).toBe('revoked');
+ }finally{await f.dispose();}
+});
+test('Mail unknown SMTP result remains unreplayable after explicit same-UUID reconnect',async()=>{
+ const f=await mailCustodyFixture(),password=Buffer.from('synthetic-a');try{
+  const state=f.journal.read('owner',f.a);f.afterSend(()=>{f.journal.revoke('owner',f.a,state.epoch,randomUUID());throw new MailOperationError('outcome_unknown','Synthetic lost reply');});
+  const input={operationId:randomUUID(),to:['recipient@example.test'],subject:'synthetic',text:'synthetic'},unknown=await f.run('mail_send',input);expect(JSON.parse((unknown.content[0] as {text:string}).text).status).toBe('unknown');expect(f.sends()).toBe(1);
+  const revoked=f.journal.read('owner',f.a),addition=new AccountPasswordAddition(f.journal,f.native,{assertHeld(){}}),op=randomUUID(),pending=addition.begin('owner',{user:'a@example.test',operationId:op,password,reconnect:{accountId:f.a,epoch:revoked.epoch}});
+  await addition.advance('owner',f.a,pending.epoch,op,password,{interaction:'prohibited'});const checked=await addition.advance('owner',f.a,pending.epoch,op,password,{interaction:'prohibited'});await addition.advance('owner',f.a,checked.epoch,op,password,{interaction:'prohibited'});
+  f.afterSend(()=>{});const retry=await f.run('mail_send',input),receipt=JSON.parse((retry.content[0] as {text:string}).text);expect(receipt.status).toBe('unknown');expect(receipt.replayed).toBe(true);expect(f.sends()).toBe(1);
+ }finally{password.fill(0);await f.dispose();}
+});

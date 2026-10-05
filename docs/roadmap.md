@@ -100,8 +100,7 @@ bytes; opaque, malformed or mismatched-user legacy payloads fail closed. Native 
 passwords are losslessly wrapped in the same provider fields. Revision/custody-epoch
 snapshots fence late reads and can guard dispatch/readiness/session acceptance;
 this consistency check does not authenticate callers. Returned buffers belong to
-callers; parsed JS strings cannot be securely erased. Current synchronous Mail and admin consumers still need async/revision-aware
-adaptation before
+callers; parsed JS strings cannot be securely erased. Current admin consumers still need async/revision-aware adaptation before
 this port can be selected. Readiness evidence now accepts an optional custody
 snapshot and includes authority/epoch as well as semantic revision; synthetic
 in-flight evidence checks reject late reads after custody changes even when
@@ -120,6 +119,18 @@ validation. Retained service access also rechecks the snapshot before ledger
 status/policy use.
 Synthetic registered-module checks exercise these branches; the runtime factory
 still passes no reader and K0/native activation remain unpassed.
+
+Mail now accepts an optional async reader through a monitored per-tool execution
+hook after schema/identity checks. A per-invocation async context holds the loaded
+credential and snapshot; concurrent accounts retain separate contexts. Profile and
+persistent-access confirmation use metadata only. IMAP session methods fence
+snapshots before dispatch and after reads; stale selection/download results release
+leases or cancel streams. Observed mutation replies remain publishable after
+dispatch. Outbound claims require current custody, while receipt finalization uses
+the already-admitted exact account namespace so revocation cannot discard a
+confirmed or unknown SMTP result. This is method-level/provider-call fencing, not
+proof of each internal protocol packet or sealed native caller identity. Registered
+module tests use synthetic providers; the runtime factory selects no reader.
 
 Operational stopped recovery, account add/rotation adapters and
 settings/compatibility/backend
