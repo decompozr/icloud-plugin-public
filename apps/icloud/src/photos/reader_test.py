@@ -30,4 +30,23 @@ class ReaderTests(unittest.TestCase):
                 self.assertEqual(run('query',{'person':'Example'})['status'],'person_selection_required')
                 with self.assertRaises(ValueError): run('detail',{'assetId':'asset:0000000000000000:'+p.uuid})
 
+    def test_cleanup_pagination_and_filename_signal_do_not_imply_disposability(self):
+        with TemporaryDirectory() as directory:
+            library=Path(directory)/'Test.photoslibrary'; (library/'database').mkdir(parents=True)
+            (library/'database/Photos.sqlite').write_bytes(b'fixture')
+            photos=[SimpleNamespace(uuid=f'{i:08d}-1111-1111-1111-111111111111', shared=False,
+                original_filename='IMG-20260901-WA0001.jpg' if i==2 else 'screen.png',filename='screen.png',
+                screenshot=i<2,_info={},ismovie=False,width=100,height=100) for i in range(3)]
+            db=SimpleNamespace(album_info=[],album_info_shared=[],photos=lambda:photos)
+            with patch('osxphotos.PhotosDB',return_value=db),patch('reader.version',return_value='0.77.2'):
+                def run(offset): return reader.main({'library':str(library),'command':'cleanup','input':{'offset':offset,'limit':2}})
+                first=run(0); second=run(first['nextOffset'])
+                self.assertEqual(first['total'],3)
+                self.assertFalse(first['complete'])
+                self.assertEqual(len(first['candidates']),2)
+                self.assertEqual(second['candidates'][0]['reason'],'messaging_filename')
+                self.assertTrue(second['reviewOnly'])
+                self.assertTrue(second['complete'])
+                self.assertIsNone(second['nextOffset'])
+
 if __name__=='__main__': unittest.main()

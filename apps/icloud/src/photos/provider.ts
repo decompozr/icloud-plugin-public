@@ -4,12 +4,13 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {join,dirname,isAbsolute} from 'node:path';
 import {z} from 'zod';
-import {assetSchema,albumSchema,mutationSchema,PhotosError,type Mutation,type PhotosProvider} from './contracts.js';
+import {assetSchema,albumSchema,mutationSchema,PhotosError,type Mutation,type PhotosProvider,type CatalogRequest} from './contracts.js';
+import {reserveReview,readReview} from './shared-review.js';
 const moduleDirectory=dirname(fileURLToPath(import.meta.url));
 const base=existsSync(join(moduleDirectory,'reader.py'))?moduleDirectory:join(moduleDirectory,'photos');
 const envelope=z.discriminatedUnion('ok',[z.object({ok:z.literal(true),result:z.unknown()}).strict(),z.object({ok:z.literal(false),error:z.string().regex(/^[a-z_]{1,80}$/)}).strict()]);
 const snapshot=z.object({libraryScope:z.string().regex(/^[a-f0-9]{16}$/),mutation:mutationSchema,assets:z.array(assetSchema).max(50),album:albumSchema.optional(),members:z.array(z.string()).max(100000).optional()}).strict();
-export interface ProviderSettings {python:string;library:string;nativeHelper:string;sidecarDirectory?:string;timeoutMs?:number}
+export interface ProviderSettings {python:string;library:string;nativeHelper:string;sidecarDirectory?:string;timeoutMs?:number;stateDirectory?:string;reviewDirectory?:string}
 /** Launch Services preserves the app's Photos consent identity. Never retry a launch. */
 export async function runNative(helper:string,input:unknown,timeoutMs=60000):Promise<unknown>{
  const app=dirname(dirname(dirname(helper)));
@@ -21,7 +22,8 @@ export async function runNative(helper:string,input:unknown,timeoutMs=60000):Pro
  try{
   const source=join(directory,'input.json'),target=join(directory,'output.json');
   await writeFile(source,encoded,{mode:0o600});await writeFile(target,'',{mode:0o600});
-  const args=['/usr/bin/open','-n','-g','-i',source,'-o',target,'--stderr','/dev/null',app];
+  const interactive=['authorize','review_setup','review_catalog','shared_review'].includes((input as {command?:string})?.command??'');
+  const args=['/usr/bin/open','-n',...(interactive?[]:['-g']),'-i',source,'-o',target,'--stderr','/dev/null',app];
   if((input as {command?:string})?.command==='authorize')args.push('--args','--authorize');
   child=Bun.spawn(args,{stdout:'ignore',stderr:'ignore'});
   // open -W can fail to track short-lived apps. The response, not launcher exit,
@@ -56,6 +58,7 @@ export class LocalPhotosProvider implements PhotosProvider {
  constructor(private readonly settings:ProviderSettings){if(![settings.python,settings.library,settings.nativeHelper].every(isAbsolute))throw new PhotosError('absolute_provider_paths_required');}
  private reader(command:string,input:unknown){return runProcess([this.settings.python,join(this.settings.sidecarDirectory??base,'reader.py')],{library:this.settings.library,command,input},this.settings.timeoutMs);}
  async read(command:string,input:unknown):Promise<unknown>{
+  if(command==='native_setup')return z.object({status:z.literal('setup_opened'),changesPerformed:z.literal(false)}).strict().parse(await runNative(this.settings.nativeHelper,{command:'review_setup'},this.settings.timeoutMs));
   const value=await this.reader(command,input);
   if(command==='detail')return assetSchema.parse(value);
   if(command==='query')return z.union([
@@ -66,7 +69,7 @@ export class LocalPhotosProvider implements PhotosProvider {
   if(command==='persons')return z.object({persons:z.array(z.object({name:z.string(),count:z.number().int().nonnegative()})).max(100),total:z.number().int().nonnegative(),complete:z.boolean()}).strict().parse(value);
   if(command==='preview')return z.object({assetId:z.string(),mimeType:z.enum(['image/jpeg','image/png']),data:z.string().max(2800000)}).strict().parse(value);
   if(command==='compare')return z.object({source:z.literal('local_synced_snapshot'),album:albumSchema,results:z.array(z.object({assetId:z.string(),status:z.enum(['confirmed','probable','ambiguous','not_found']),candidates:z.array(z.object({assetId:z.string(),sameFilename:z.boolean(),secondsApart:z.number().nullable(),sameMediaType:z.boolean(),sameDimensions:z.boolean(),sameIdentity:z.boolean()}).strict()).max(1000)}).strict()).max(50)}).strict().parse(value);
-  if(command==='cleanup')return z.object({source:z.literal('local_synced_snapshot'),reviewOnly:z.literal(true),total:z.number().int(),candidates:z.array(z.object({reason:z.enum(['same_fingerprint','screenshot']),assetIds:z.array(z.string()).max(1000)}).strict()).max(100),complete:z.boolean()}).strict().parse(value);
+  if(command==='cleanup')return z.object({source:z.literal('local_synced_snapshot'),reviewOnly:z.literal(true),total:z.number().int(),candidates:z.array(z.object({reason:z.enum(['same_fingerprint','screenshot','messaging_filename']),assetIds:z.array(z.string()).max(1000)}).strict()).max(100),complete:z.boolean(),nextOffset:z.number().int().nonnegative().nullable()}).strict().parse(value);
   if(command==='health'){
    const health=z.object({provider:z.literal('osxphotos'),version:z.literal('0.77.2'),libraryScope:z.string(),systemLibrary:z.boolean(),source:z.literal('local_synced_snapshot'),serverSyncVerified:z.literal(false)}).strict().parse(value);
    let native:unknown;try{native=z.object({authorization:z.number().int(),authorized:z.boolean()}).strict().parse(await runNative(this.settings.nativeHelper,{command:'health'},this.settings.timeoutMs));}catch{native={authorized:false,error:'native_helper_unavailable'};}
@@ -81,7 +84,39 @@ export class LocalPhotosProvider implements PhotosProvider {
   return state;
  }
  private native(command:string,mutation:Mutation){return runNative(this.settings.nativeHelper,{command,mutation},this.settings.timeoutMs);}
+ private reviewPath(){const directory=this.settings.reviewDirectory??(this.settings.stateDirectory?join(this.settings.stateDirectory,'shared-reviews'):undefined);if(!directory)throw new PhotosError('review_runtime_not_configured');return directory;}
+ async openReview(mutation:Mutation,expected:unknown,operationId:string){
+  if(mutation.action!=='post_to_shared_album')throw new PhotosError('wrong_operation_type');
+  const current=snapshot.parse(await this.reader('inspect',mutation));
+  if(JSON.stringify(current)!==JSON.stringify(expected))throw new PhotosError('stale_plan');
+  const directory=this.reviewPath();await reserveReview(directory,operationId);
+  const result=await runNative(this.settings.nativeHelper,{command:'shared_review',mutation,operationId,reviewDirectory:directory},this.settings.timeoutMs);
+  return z.object({status:z.literal('review_pending'),operationId:z.string().uuid(),localReadbackVerified:z.literal(false),serverSyncVerified:z.literal(false)}).strict().parse(result);
+ }
+ async reviewStatus(operationId:string){return readReview(this.reviewPath(),operationId);}
+ async openCatalog(request:CatalogRequest,operationId:string){
+  const health=await this.reader('health',{});if(!(health as {systemLibrary?:boolean}).systemLibrary)throw new PhotosError('native_review_requires_system_library');
+  const entries:{assetId:string;reason:string;candidateIds:string[];filename?:string;date?:string|null;favorite?:boolean}[]=[];
+  let coverage:unknown;
+  if(request.kind==='comparison'){
+   const compared=await this.read('compare',{assetIds:request.assetIds,albumId:request.albumId}) as {album:unknown;results:{assetId:string;status:string;candidates:{assetId:string}[]}[]};
+   for(const row of compared.results)entries.push({assetId:row.assetId,reason:row.status,candidateIds:row.candidates.slice(0,2).map(c=>c.assetId)});
+   coverage={source:'local_synced_snapshot',album:compared.album,totalSources:entries.length,moreCandidatesMayExist:compared.results.some(r=>r.candidates.length>2)};
+  }else{
+   const cleanup=await this.read('cleanup',request) as {total:number;nextOffset:number|null;candidates:{reason:string;assetIds:string[]}[]};
+   const seen=new Set<string>();let omittedAssets=0;
+   for(const group of cleanup.candidates)for(const id of group.assetIds){if(seen.has(id))continue;seen.add(id);if(entries.length>=12){omittedAssets++;continue;}entries.push({assetId:id,reason:group.reason,candidateIds:group.reason==='same_fingerprint'?group.assetIds.filter(v=>v!==id).slice(0,2):[]});}
+   coverage={source:'local_synced_snapshot',totalCandidateGroups:cleanup.total,nextOffset:cleanup.nextOffset,omittedAssets,reviewOnly:true};
+  }
+  if(!entries.length)return {status:'no_review_candidates',coverage};
+  for(const entry of entries){const detail=assetSchema.parse(await this.read('detail',{assetId:entry.assetId}));entry.filename=detail.filename;entry.date=detail.date;entry.favorite=detail.favorite;}
+  const directory=this.reviewPath();await reserveReview(directory,operationId);
+  const manifest=join(directory,operationId+'.manifest.json');await writeFile(manifest,JSON.stringify({operationId,entries,coverage}),{mode:0o600,flag:'wx'});
+  const opened=await runNative(this.settings.nativeHelper,{command:'review_catalog',entries,operationId,reviewDirectory:directory},this.settings.timeoutMs);
+  return {...z.object({status:z.literal('catalog_review'),operationId:z.string().uuid(),localReadbackVerified:z.literal(false),serverSyncVerified:z.literal(false)}).strict().parse(opened),coverage,assetIds:entries.map(e=>e.assetId)};
+ }
  async apply(mutation:Mutation,expected:unknown){
+  if(mutation.action==='post_to_shared_album')throw new PhotosError('native_review_required');
   const current=snapshot.parse(await this.reader('inspect',mutation));
   if(JSON.stringify(current)!==JSON.stringify(expected))throw new PhotosError('stale_plan');
   const result=mutation.action==='set_metadata'

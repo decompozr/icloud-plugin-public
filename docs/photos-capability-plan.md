@@ -1,6 +1,6 @@
 # Photos capability: experiment closeout and build plan
 
-Status: experiments closed on 2026-10-04; read/write module implemented in source, not deployed.
+Status: foundational experiments closed on 2026-10-04; read/write module implemented in source, not deployed. Full product acceptance remains pending. The reconciled delivery plan below governs remaining work.
 See apps/icloud/src/photos/README.md for operator setup and current boundaries.
 PhotoKit authorization and an ordinary empty-album create/rename/delete lifecycle
 are live-verified. Shared Album upload support is not yet established.
@@ -199,3 +199,156 @@ Asset add/remove, metadata changes and asset deletion still lack live mutation
 evidence. Shared posting remains a user-assisted API candidate requiring a live
 picker/posting experiment, membership readback and synchronization verification.
 The installed service has not been changed.
+
+## Receiver pickup and next slice (2026-10-04)
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The shared-album probe now requires exactly one owner-reviewed asset, full native
+authorization and an actual Shared Album identifier. Its host must retain the
+delegate, supply presentation/dismissal callbacks, launch under the authorized
+app identity, and call `abandon()` on window close. `start()` creates an exclusive
+0600 append-only operation journal in an existing owner-owned 0700 directory.
+Reusing an operation UUID fails; interrupted posting requires reconciliation.
+Changed picker selection stops the flow. A second native confirmation precedes
+posting, and a flushed unknown-outcome record precedes presentation. Completion
+records the actual destination and never asserts membership or cloud sync.
+
+Self-checking: Swift 6 typechecking and `git diff --check` passed. The controller
+is still source-only: no host window was opened, no picker result was exercised,
+and no upload occurred. The installed SDK confirms empty providers for preselected
+items and that posting completion does not automatically dismiss the controller.
+Live acceptance of those items remains unresolved.
+
+Next: wire a bounded review window into the authorized app without breaking its
+consent identity, then have the owner review the exact preview and destination
+before any posting. Preserve the probe and journal for recovery until sharing
+acceptance; integrate verified behavior later. Existing prototype/private evidence
+cleanup remains deferred while product work and handoff gates are pending.
+
+## Reconciled full-outcome delivery plan (2026-10-04)
+
+### Outcome and acceptance
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The entire outcome is accepted only when the installed capability passes the
+owner scenario: existing person tags resolve correctly; all queried source
+assets are accounted for in the comparison; the owner can inspect identifiable
+previews and uncertainty; selected sharing reaches the intended real Shared
+Album with separately recorded cross-device/cloud evidence; cleanup preserves
+unreviewed assets and applies only exact approved selections; and setup, recovery
+and installed-version checks are observed. Source tests, compiler success,
+local write acknowledgement and handoff pickup are separate evidence categories.
+
+### Evidence basis and accepted approach
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+### Scope, ownership and authorization
+
+The current receiver owns product changes exclusively in the same task worktree
+and branch. Preserve the separate primary checkout and existing private records.
+No new runtime or global dependency installation is needed. Repository artifacts
+remain English; communication and native review support Traditional Chinese.
+
+Implementation, local builds, read-only checks and owner-facing review preparation
+are in scope. Personal uploads require concrete asset/destination review; deletion
+requires exact selected assets and explicit batch confirmation. Unknown value is
+a question for the owner, not a deletion heuristic. Deployment/publication,
+conversation archive and worktree removal retain their separate authorization
+and verification gates. Do not silently publish a test photo to family members,
+bulk upload before sharing acceptance, empty Recently Deleted, remove private
+evidence, reinstall existing dependencies or infer authorization from a probable
+comparison match. No additional agent is a prerequisite for this plan.
+
+### Ordered phases, dependencies and observable acceptance
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Phases 1 and 2 share the same native host and may be developed as one coherent
+slice. Phase 5 can supply build/setup feedback throughout source implementation.
+Later live-write and delivery details remain provisional until their preceding
+evidence is available; this does not drop those phases from the outcome.
+
+### Next executable slice
+
+Objective: a bounded native review host plus asynchronous single-asset shared
+posting sessions. Editable scope: `apps/icloud/src/photos/`, its optional runtime
+wiring, and this plan/Photos README. The receiver is the sole writer. Existing
+provider contracts, scoped IDs, operation ledger, Launch Services transport and
+installed SDK are the prerequisites. Preserve prototype artifacts separately
+from the product host; no additional dependency install is required.
+
+Complete source wiring and crash/cancellation tests, compile/link the entire
+native host, build a separate preview app, and run read-only health/setup checks.
+Present exact previews and the actual destination to the owner before any upload.
+Bound live posting acceptance to one reviewed asset, one operation identity and
+one explicit owner action; a timeout/error stops that attempt for reconciliation.
+If preselected providers are rejected, inspect the official picker behavior and
+revise this slice using supported native APIs; do not fall back to private cloud
+protocols, automated Photos UI posting or fabricated picker results.
+
+Observable slice acceptance is a native review window that can be cancelled
+without mutation, accurate permission status, stable operation recovery after
+restart, and explicit unverified membership/cloud state. Complete upload/cloud
+acceptance additionally needs the owner-reviewed live operation and separate
+destination/cloud readback. Missing owner input defers only the dependent action;
+remaining source, tests, packaging and review continue.
+
+### Prototype disposition and lifecycle coverage
+
+The receiver retains `playground/photos/SharedAlbumReviewProbe.swift` as a
+compile-only API evidence artifact and integrates verified behavior into native
+product sources. Existing historical experiment reports remain historical;
+private manifests, previews and ledgers stay outside Git. Keep the authorized
+original helper and the separate preview helper until consent continuity and
+rollback are established. Do not remove them during an unfinished acceptance gate.
+
+Dev/Build: isolated task worktree, synthetic regression fixtures and separately
+identified native build evidence. Install: explicit selected library, existing
+pinned uv/Python tooling, owner permission/recheck and optional configuration.
+Update: immutable source/artifact identity, preserved prior runtime and permission
+recheck after signing changes. Release: publication/merge/deployment gates above.
+Uninstall: only capability-owned files within explicit authorization; keep user
+libraries, exports and global tooling. Cleanup: reconcile useful evidence into
+this plan and the README, verify any required remote preservation and inactivity,
+then remove only authorized disposable artifacts. Handoff archive/sidebar/App
+verification remains separate from product completion; old-root archive remains
+unauthorized and pending.
+
+### Receiver source milestone and verification limits
+
+Source now wires native comparison/cleanup review, asynchronous single-asset
+posting, durable selection/operation records, process-liveness checks and explicit
+owner observations. Unknown sharing cannot be bypassed with another destination
+or a previously prepared plan for the same source. A lost catalog launch response
+can recover its exact selection from the private manifest and retain it in SQLite.
+Cleanup pagination, messaging filename clues and Live Photo motion flags are
+included. Native permission messages describe states without exposing raw codes.
+
+Current self-checking: application tests passed 176 tests / 714 assertions;
+six Python tests passed; TypeScript checking, application build, entire native
+typechecking/compile/link and `git diff --check` passed. The latest native compile
+check is an ignored executable, not an installed helper or GUI acceptance result.
+Private validation logs and the prepared twelve-candidate review request are under
+`/tmp/photos-flow-handoff/`; no personal asset IDs or previews were added to Git.
+
+A staged preview helper returned `setup_opened`, but native UI observation failed
+with `cgWindowNotFound`; a bundle-ID lookup is ambiguous because the preserved
+original and preview share an identifier. A read-only diagnostic agent checked
+source and official SDK/docs, confirming background `open -g` for interactive
+requests and unchecked activation were material uncertainties. Interactive
+commands now omit `-g`, native policy transitions are checked, and modern
+activation is used. This is a source correction, not a verified live UI fix.
+The currently running preview setup predates the final source milestone; retain
+it and the original while owner visibility/permission input is pending. Do not
+replace/re-sign a permission-pending app behind the owner's interaction.
+
+The diagnostic was independent read-only investigation, not a complete product
+review. Live native review, picker/posting acceptance, ordinary asset mutations,
+asset deletion and cross-device/cloud evidence remain pending. No receiver photo
+upload, personal metadata edit, asset add/remove, deletion, installed-service
+change, push, merge or deployment occurred. Source checks do not settle those
+gates. Continue with the owner-visible native acceptance slice before publishing
+or treating the product scenario as complete.

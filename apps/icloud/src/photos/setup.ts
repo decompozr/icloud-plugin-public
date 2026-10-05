@@ -15,6 +15,6 @@ const python=join(target,'venv/bin/python');
 await command(['uv','pip','install','--python',python,'osxphotos==0.77.2','photoscript==0.6.1']);
 const app=join(target,'iCloud Photos Helper.app','Contents');await mkdir(join(app,'MacOS'),{recursive:true});await copyFile(join(source,'Info.plist'),join(app,'Info.plist'));
 const helper=join(app,'MacOS','photos-helper');
-await command(['swiftc',join(source,'PhotosHelper.swift'),'-o',helper,'-framework','Photos','-Xlinker','-sectcreate','-Xlinker','__TEXT','-Xlinker','__info_plist','-Xlinker',join(source,'Info.plist')]);
+await command(['swiftc',...['PhotosHelper.swift','SharedAlbumReview.swift','ReviewCatalog.swift','ReviewJournal.swift'].map(name=>join(source,name)),'-o',helper,'-framework','Photos','-framework','PhotosUI','-framework','AppKit','-Xlinker','-sectcreate','-Xlinker','__TEXT','-Xlinker','__info_plist','-Xlinker',join(source,'Info.plist')]);
 await command(['codesign','--force','--sign','-',join(target,'iCloud Photos Helper.app')]);
 console.log(JSON.stringify({python,nativeHelper:helper,nextStep:'Configure the selected library, grant host Full Disk Access, then explicitly authorize PhotoKit using the helper. No Photos changes performed.'}));

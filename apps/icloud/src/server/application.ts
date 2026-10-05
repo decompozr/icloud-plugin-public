@@ -44,7 +44,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  if(settings.photos){
   const p=settings.photos;
   const policy=()=>({read:true,write:p.allow_writes,delete:p.allow_delete});
-  const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
+  const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,reviewDirectory:join(dirname(settings.master_key_file),'photos-shared-reviews'),sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
   runtime.register(photosRegistration(photos,policy));
  }
  await runtime.start();

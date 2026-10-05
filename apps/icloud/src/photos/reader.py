@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import sys
 import unicodedata
@@ -35,7 +36,7 @@ def main(request):
     def album(a, kind): return {'id': f'album:{scope}:{kind}:{a.uuid}', 'title': a.title or '', 'kind': kind, 'count': len(a.photos)}
     def summary(p):
         return {'id': aid(p), 'filename': p.original_filename or p.filename or '',
-                'date': p.date.isoformat() if p.date else None, 'mediaType': 'video' if p.ismovie else 'photo',
+                'date': p.date.isoformat() if p.date else None, 'mediaType': 'video' if p.ismovie else 'photo', 'livePhoto': bool(getattr(p,'live_photo',False)),
                 'title': p.title or '', 'description': p.description or '', 'keywords': list(p.keywords),
                 'favorite': bool(p.favorite), 'persons': list(p.persons), 'width': p.width, 'height': p.height, 'shared': bool(p.shared)}
     ordinary = list(db.album_info)
@@ -118,9 +119,13 @@ def main(request):
                 key=(fingerprint,p.ismovie,p.width,p.height)
                 groups.setdefault(key,[]).append(aid(p))
             if p.screenshot: candidates.append({'reason':'screenshot','assetIds':[aid(p)]})
+            name=p.original_filename or p.filename or ''
+            if re.match(r'^(WhatsApp (Image|Video)|(?:IMG|VID)-\d{8}-WA\d{4})',name,re.IGNORECASE):
+                candidates.append({'reason':'messaging_filename','assetIds':[aid(p)]})
         duplicate=[{'reason':'same_fingerprint','assetIds':v[:1000]} for v in groups.values() if len(v)>1]
-        candidates=duplicate+candidates; limit=data.get('limit',50)
-        return {'source':'local_synced_snapshot','reviewOnly':True,'total':len(candidates),'candidates':candidates[:limit],'complete':len(candidates)<=limit}
+        candidates=duplicate+candidates; limit=data.get('limit',50); offset=data.get('offset',0)
+        return {'source':'local_synced_snapshot','reviewOnly':True,'total':len(candidates),'candidates':candidates[offset:offset+limit],
+                'complete':offset+limit>=len(candidates),'nextOffset':offset+limit if offset+limit<len(candidates) else None}
     if command == 'inspect':
         system=get_system_library_path()
         if not system or Path(system).resolve()!=library: raise ValueError('writes_require_system_library')
