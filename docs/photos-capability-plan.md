@@ -1,5 +1,24 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Live cloud readback fix and exact synthetic cleanup — 2026-10-05
+
+Installed 0.1.56 from main 0debd5c successfully read the synthetic image's exact
+retained cloud asset ID through the original MCP. The Apple job reported completed;
+independent complete stable membership contained that same ID. Read-only recovery
+changed the original upload from outcome_unknown to reconciled and cleaned its
+private staged source without resubmitting. Owner iPhone observation and separate
+main-MCP Mac metadata/preview provide distinct cross-device evidence; the server
+operation correctly does not claim to have performed that observation itself.
+
+The exact shared-copy removal then reached applied with stable empty membership,
+serverReadbackVerified=true and originalLibraryModified=false. The dedicated empty
+album deletion reached applied with albumAbsent=true and serverReadbackVerified=true.
+No synthetic test album remains in that server readback; no personal photo or
+invitation was used. Exact IDs and operation recovery evidence remain private.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
 ## Confirmed cloud content parsing defect — 2026-10-05
 
 Through the existing MCP on deployed 0.1.55, the retained synthetic album read
