@@ -116,6 +116,8 @@ export class MailService implements MailOperations {
     return { type: 'move', destination };
   }
   private async perform(session: MailSession, target: MailTarget, action: Exclude<BatchAction, { type: 'organize' }>): Promise<MailMutationResult> {
+    // Preflight awaits may outlive authorization. Check again at the dispatch boundary.
+    this.writeAllowed();
     try {
       if (action.type === 'move') {
         const result = await session.move(target.uid, action.destination);
@@ -148,9 +150,9 @@ export class MailService implements MailOperations {
       for (const target of targets) this.checkTarget(lease.uidValidity, target);
       for (const target of targets) if (!await session.metadata(target.uid)) throw new MailOperationError('missing', 'A selected message was not found; no changes were attempted');
       const action = await this.resolveAction(session, lease, input.action);
-      const items: MailItemOutcome[] = []; let unknown = false;
+      const items: MailItemOutcome[] = []; let unknown = false, stopped = false;
       for (const target of targets) {
-        if (unknown) { items.push({ target, status: 'not_attempted' }); continue; }
+        if (unknown || stopped) { items.push({ target, status: 'not_attempted' }); continue; }
         try {
           if (!await session.metadata(target.uid)) { items.push({ target, status: 'failed', code: 'missing' }); continue; }
           items.push({ target, status: 'succeeded', result: await this.perform(session, target, action) });
@@ -159,7 +161,7 @@ export class MailService implements MailOperations {
           const code = error instanceof MailOperationError ? error.code : 'outcome_unknown';
           if (code === 'outcome_unknown') { unknown = true; items.push({ target, status: 'outcome_unknown', code,
             ...(error instanceof MailOperationError && error.recovery ? { recovery: error.recovery } : {}) }); }
-          else items.push({ target, status: 'failed', code });
+          else { items.push({ target, status: 'failed', code }); if (code === 'forbidden') stopped = true; }
         }
       }
       const succeeded = items.filter(item => item.status === 'succeeded').length;

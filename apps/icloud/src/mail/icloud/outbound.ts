@@ -34,8 +34,8 @@ export class ICloudOutboundAdapter implements OutboundGateway {
     try {
       const receipt = await transport.sendMail(message);
       return { messageId: receipt.messageId,
-        accepted: receipt.accepted.map(value => typeof value === 'string' ? value : value.address),
-        rejected: receipt.rejected.map(value => typeof value === 'string' ? value : value.address) };
+        accepted: [...receipt.accepted],
+        rejected: [...receipt.rejected] };
     } catch (error: unknown) {
       const rejected = rejectedEnvelope.safeParse(error);
       if (rejected.success && rejected.data.rejected.length === input.to.length && rejected.data.rejectedErrors.length === input.to.length

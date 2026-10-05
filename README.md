@@ -1,12 +1,27 @@
 # iCloud plugin
 
-The project is named **icloud-plugin**. Mail and an optional registered Calendar module share one authenticated MCP server. Calendar is disabled by default and requires separate operator permissions and client consent; see [Calendar acceptance](docs/calendar-production.md) for verified behavior and remaining limitations. Drive, Contacts and Photos remain planned.
+The project is named **icloud-plugin**. Mail and an optional registered Calendar module share one authenticated MCP server. Calendar is disabled by default and requires separate operator permissions and client consent; see [Calendar acceptance](docs/calendar-production.md) for verified behavior and remaining limitations. Drive and Contacts remain planned; Photos is implemented as an optional module pending live acceptance.
 
-The goal is to provide precise, basic iCloud mailbox tools for external agents
-in Codex and ChatGPT first, through the intended Tailscale setup on this Mac.
-Dots and other providers are deferred; future support can be added when needed.
-The agent owns scheduling, rules, approval decisions, notifications and reports. **Implementation proceeds through reviewed checkpoints in the
-[roadmap](docs/roadmap.md).** Mailbox checkpoints CP1/CP2 are reviewed. Owner setup/authentication CP3/CP4 is independently reviewed for local automated integration; native and Linux runtime checks pass. The native 0.1.17 service is enrolled and connected through ChatGPT. The owner reported successful read/search/tag, Junk/Trash moves, draft creation and send/reply threading. Release 0.1.17 adds attachments, existing-draft operations and forwarding; these new actions and actual client catalog refresh still require live acceptance. See [current status](docs/current-status.md) for evidence and remaining gates. Sending is disabled by default in new installations and requires explicit operator enablement and OAuth consent.
+The current preparation target is **one accepted iCloud account through a custom
+MCP connection**, with Mail and Calendar enabled by existing owner policy and
+explicit OAuth consent. The running Mac installation is diagnostic **0.1.26**;
+this branch prepares source changes without publishing, installing or restarting
+it. See the [single-account production audit](docs/single-account-production-readiness.md)
+for fixes, verified behavior, remaining gates and the next approval boundary.
+Sending is disabled by default in new installations and requires operator
+enablement and OAuth consent.
+
+Photos feasibility experiments are complete. The accepted implementation is a
+Bun API backed by a pinned local osxphotos provider, with a Swift/PhotoKit helper
+only where needed. Existing person labels and true Shared Album reads have been
+verified on the synced Mac library; native sharing and deletion source is implemented, with live acceptance pending.
+See the [build plan and evidence](docs/photos-capability-plan.md). Historical
+cloud protocol work remains isolated in [the experiment package](playground/photos/README.md).
+An opt-in [Photos module](apps/icloud/src/photos/README.md) now implements read tools
+and reviewed album, metadata and deletion workflows. Empty ordinary-album lifecycle writes are verified; native asset writes and
+Shared Album upload remain unverified.
+No production Photos capability is deployed.
+
 
 [Project decisions and status](docs/project.md) are the authoritative foundation.
 [Mailbox scope and expected outcomes](docs/mailbox-tools.md) define the agreed
@@ -33,7 +48,7 @@ The accepted [setup and authentication flow](docs/setup-and-auth.md) uses privat
 Tailscale owner enrollment with a Passkey, followed by OAuth client access with
 Passkey login and an iCloud account chooser. Each connection selects or adds one
 iCloud account using an Apple app-specific password on the hosted connection page.
-This multi-account source change is not deployed. Local synthetic-ceremony verification is recorded in the roadmap; the owner has also completed the real browser ceremony.
+Account isolation has synthetic coverage; the current release claim is limited to one accepted account. Multiple-account client acceptance remains outside this preparation scope.
 
 ## Documentation map
 

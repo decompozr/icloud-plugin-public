@@ -17,8 +17,15 @@ export function authorizationKey(query:string):string {
  const entries=[...params].sort(([a,b],[c,d])=>a<c?-1:a>c?1:b<d?-1:b>d?1:0);
  return createHash('sha256').update(new URLSearchParams(entries).toString()).digest('hex');
 }
+/** A submitted consent subset never rewrites the signed authorization query. */
+export function validConsentScopes(query:string,scope:string|undefined,allowed:readonly string[]):boolean {
+ const requested=new Set((new URLSearchParams(query).get('scope')??'').split(' ').filter(Boolean));
+ const chosen=scope===undefined?[...requested]:scope.split(' ').filter(Boolean);
+ return (scope===undefined||scope===chosen.join(' '))&&chosen.length>0&&new Set(chosen).size===chosen.length&&chosen.every(value=>requested.has(value)&&allowed.includes(value));
+}
 export function createAccountConnection(options:{database:Database;secret:string;origin:string;store:AccountStore;ownerSession(headers:Headers):Promise<{user:{id:string};session:{id:string}}>;
  clientName?(id:string):string|undefined;
+ allowedScopes?():readonly string[];
  validateCredential(credential:{user:string;appPassword:string}):Promise<void>;
  continueAuthorization(request:Request,query:string,accountId:string):Promise<Response>;
 }) {
@@ -53,7 +60,7 @@ export function createAccountConnection(options:{database:Database;secret:string
     const chosen=cleared?selected(oauth_query,session.user.id,session.session.id):undefined;
     if(cleared&&!chosen)return json({error:'ACCOUNT_SELECTION_REQUIRED'},403);
     const clientId=params.get('client_id')??'',name=options.clientName?.(clientId)?.trim();
-    return json({client:{id:clientId,...(name?{name}:{})},accounts:options.store.listAccounts(session.user.id),...(chosen?{selectedAccount:chosen}:{})});
+    return json({client:{id:clientId,...(name?{name}:{})},accounts:options.store.listAccounts(session.user.id),permissions:[...new Set((params.get('scope')??'').split(' ').filter(Boolean))].filter(scope=>!options.allowedScopes||options.allowedScopes().includes(scope)),...(chosen?{selectedAccount:chosen}:{})});
    }
    // Consent-stage queries cannot be used to switch accounts underneath displayed consent.
    if(cleared)return json({error:'INVALID_AUTHORIZATION'},403);

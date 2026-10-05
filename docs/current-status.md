@@ -1,4 +1,86 @@
+## Single-account production preparation (2026-10-04 UTC)
+
+The installed diagnostic release remains 0.1.26. The current preparation is based
+on diagnostic commit `b85c33f`, after the successful custom MCP acceptance, and
+does not change the service, accounts, credentials, grants or routes. Current
+scope and evidence supersede broad or historical claims below:
+[production audit](single-account-production-readiness.md).
+
+## Reconnect redirect diagnostic iteration 0.1.26
+
+Closes the authorization302 diagnostic gap by reducing the provider-created
+redirect to one exact allowlisted OAuth error code. Redirect URL/header/query,
+state, code, descriptions and identifiers never enter capture. Tests cover
+actual synthetic302 invalid_scope and secret canary exclusion. The original
+activation marker and30-minute deadline are preserved across this iteration.
+No grants, credentials or network routes change. GitHub publication is paused.
+
+## Reconnect diagnostic release 0.1.25
+
+Adds a disabled-by-default, owner-only local capture for known discovery,
+registration, authorization, token and MCP routes. Records only UTC timestamp,
+fixed stage/route, HTTP status and allowlisted error code; no credentials,
+headers, queries, bodies, identities or provider content. The empty private
+enable marker grants a 30-minute window and retention is capped at256 records.
+No grants or network routes change. See [activation and privacy contract](reconnect-diagnostics.md).
+Publication and production activation remain separately verified outcomes.
+
+## Readiness release 0.1.24
+
+Adds account/client-scoped readiness observations, contextual registration recovery,
+explicit unsaved capability changes and restored account chooser layout. Observations
+come from verified bearer requests and successful allowlisted read tools; Calendar
+completion requires listing plus an event read/query. They invalidate conservatively
+on expiry or relevant metadata, credential and policy changes and clear on restart.
+No grants are widened and no consent or provider operation is started by the UI.
+See [evidence contract](readiness-evidence.md). Publication and installed acceptance
+are recorded separately; fixture screenshots are not live ChatGPT acceptance.
+
 # Source architecture and evidence status
+
+## Photos implementation (2026-10-04)
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> **2026-10-04 closeout:** Experiments are closed. See [Photos capability plan](photos-capability-plan.md) for the authoritative current evidence, accepted local provider architecture, comparison limits and implementation phases. Older checkpoints below are historical.
+
+## Photos research (2026-10-03)
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The earlier basic read milestone below remains valid:
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+### Historical implementation checkpoints (superseded by the result above)
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The authentication-only helper passed six fake-client tests. Actual preflight
+stopped before login because the available Python 3.9.6 does not meet the pinned
+upstream's Python 3.10–3.13 requirement. It created no session state and read no
+Photos metadata. That Python route is historical and superseded by the accepted
+Bun-native implementation goal. The native SRP/auth, scoped cookies, bounded
+Photos HTTP reader and plist decoder now pass **66 tests / 565 assertions**;
+preflight confirms no Python, credentials or network use. Actual terminal account
+authentication and a cloud response are still required. The reader currently
+targets only private `PrimarySync`, at most two pages/twenty assets. A follow-up
+adds capped ordinary-album listing and exact-ID membership; listing explicitly
+reports incomplete coverage because upstream album pagination is unverified.
+Real-account album behavior and person-name search remain open. The goal is not
+complete; see the research document.
+
+`--people-schema` now samples at most two PrimarySync change pages/two hundred
+records, outputting only schema names and counts. It verifies neither person
+names nor photo mappings; missing types are inconclusive. Actual account/2FA
+interaction remains the unchanged external gate after the native, album and
+schema slices. No authenticated handle or live Photos result has been obtained.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Production installation verified (2026-10-03 UTC)
 
 ## Audit corrections integrated with multi-account source (2026-10-03 UTC)
 
@@ -281,3 +363,38 @@ Evidence detail and historical receipts: [roadmap](roadmap.md), [mail contracts]
 The historical 0.1.16 Mail surface contains 14 tools: `mail_list_mailboxes`, `mail_search`, `mail_read`, `mail_mark`, `mail_move`, `mail_flag`, `mail_tag`, `mail_organize`, `mail_batch`, `mail_send`, `mail_reply`, `mail_draft_create`, `mail_unsubscribe_discover`, and `mail_unsubscribe_submit`. Release 0.1.17 adds `mail_attachment_download`, `mail_draft_read`, `mail_draft_edit`, `mail_draft_send`, and `mail_forward`, for 19 installed tools. Availability follows operator policy; invocation additionally requires the corresponding OAuth scopes.
 
 A separate read-only Dot log observation recorded a cloud-backend DNS `ENOTFOUND` at 22:55:22Z and a connected event at 22:57:34Z. These historical events have no established mapping to the user's current task. Current DNS resolution and a separate Bun service-health request returning 200 are different observations; they do not identify the exact Dot failure. No restart or configuration change was made. The OAuth fixture lifecycle results above do not establish global session revocation.
+
+Private administration UI preparation now adds an owner-protected root overview,
+Accounts, Client connections, System/diagnostics and a resumable account-only wizard.
+See [admin shell](admin-shell.md) for routes, uncertainty semantics, fixture browser
+checks and the proposed private root mapping. This candidate is local only; live
+8443 routing, runtime, credentials and supervision are unchanged. The current source
+version still collides with installed 0.1.26 and requires a new release version before
+an authorized deployment.
+
+The user reported reinstalling the custom MCP connection at 22:38 UTC on October 4.
+Earlier grant lineage and proactive refresh observations describe the previous
+connection. Do not transfer those claims to the reinstalled connection; fresh
+read-only acceptance is a separate check in the parent task.
+
+
+## Native release 0.1.27 candidate
+
+Release 0.1.27 integrates the reviewed single-account security fixes and private
+owner administration flow from 8bb6556, preserving its credential/grant/policy
+contracts. The user explicitly approved publication, a controlled native restart
+and only the private 8443 root mapping on October 4 at 23:06 UTC. No supervision
+installation, broader security setting change, connector reconnect or screenshot
+upload is included. The release is native darwin-arm64/Bun 1.4.2; Linux remains
+unvalidated. Publication and live deployment are recorded separately after checks.
+
+The repository currently has no configured GitHub Actions workflows or check runs.
+Local full-suite, artifact, fixture-browser and independent review evidence is the
+release validation; no passing remote CI claim is made.
+
+
+Native patch 0.1.28 corrects private-root navigation to enter `/icloud/admin` before
+authentication. Owner cookies retain their narrow `/icloud` scope, preserving
+existing sessions and avoiding exposure to unrelated root applications on the
+same hostname. The approved private 8443 root proxy remains unchanged. A browser
+regression uses a real fixture cookie with path `/icloud` and no owner header.

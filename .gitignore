@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 dist/
 .env
 .env.*
@@ -9,3 +9,5 @@ dist/
 releases/
 .e2e/
 apps/icloud/build/
+
+__pycache__/

@@ -1,4 +1,9 @@
-# Credential-free Bun research playground
+# Bun research playground
+
+Independent packages include [Calendar](calendar/README.md) and the closed
+[Photos experiments](photos/README.md). Photos source remains research-only;
+use the [capability plan](../docs/photos-capability-plan.md) for the accepted
+local-provider architecture, current verification and implementation phases.
 
 This directory is an isolated experiment, not production implementation. It uses
 its own pinned dependencies and lockfile; it never imports the unfinished `src/`.

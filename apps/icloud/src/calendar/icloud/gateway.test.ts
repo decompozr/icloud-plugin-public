@@ -110,3 +110,14 @@ test('sharing access namespace confusion fails before POST',async()=>{
  const f=fixture();f.setRoster('<cs:user><d:href>mailto:friend@example.com</d:href><cs:access><x:read xmlns:x="http://calendarserver.org/xx/"/></cs:access><cs:invite-noresponse/></cs:user>');
  await expect(f.gateway.execute({operation:'share',calendarHref:calendar,sharee:'friend@example.com',access:'read-write'})).rejects.toMatchObject({code:'unsupported'});expect(f.calls.some(c=>c.method==='POST')).toBe(false);
 });
+
+test('invalid normalized UTC dates are rejected before a range REPORT',async()=>{
+ for(const operation of ['query_events','availability'] as const){
+  for(const start of ['2026-02-30T00:00:00Z','2026-10-05T24:00:00Z']){
+   const f=fixture();await expect(f.gateway.execute({operation,calendarHref:calendar,start,end:'2026-10-07T00:00:00Z'})).rejects.toMatchObject({code:'invalid_input'});
+   expect(f.calls.filter(c=>c.method==='REPORT')).toHaveLength(0);
+  }
+ }
+ const f=fixture();await f.gateway.execute({operation:'query_events',calendarHref:calendar,start:'2028-02-29T00:00:00.000Z',end:'2028-03-01T00:00:00Z'});
+ expect(f.calls.filter(c=>c.method==='REPORT')).toHaveLength(1);
+});

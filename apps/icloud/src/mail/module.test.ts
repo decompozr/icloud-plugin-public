@@ -10,14 +10,14 @@ import type {OwnerSecretStore} from '../storage/owner-store.js';
 import type {AppSettings} from '../server/settings.js';
 import {MailOperationError,type MailSession} from './domain/mail.js';
 
-async function fixture(moveUnknown=false,revokeOnMove=false){
+async function fixture(moveUnknown=false,revokeOnMove=false,revokeOnMetadata=false){
  const database=new Database(':memory:');const users: string[]=[];const sends:string[]=[];const moves:string[]=[];
  const accounts=[{id:'a',user:'a@icloud.com',label:'Personal',credentialStored:true},{id:'b',user:'b@icloud.com',label:'Work',credentialStored:true}];
  const store={ownerId:()=> 'owner',legacyAccountId:()=> 'a',account:(_owner:string,id:string)=>accounts.find(a=>a.id===id)??null,readAccountSecret:(_owner:string,id:string)=>new TextEncoder().encode(JSON.stringify({user:accounts.find(a=>a.id===id)!.user,appPassword:'test-password'}))} as unknown as OwnerSecretStore;
  const settings={allow_writes:true,allow_send:true,host:'127.0.0.1',public_port:4100,public_origin:'https://example.test'} as AppSettings;
  const source=Buffer.from('From: sender@example.com\r\nTo: receiver@example.com\r\nSubject: Draft\r\nMessage-ID: <original@example.com>\r\nContent-Type: text/plain\r\n\r\nsame draft');
  const module=createMailModule(settings,{store,authDatabase:database,masterKey:new Uint8Array(32).fill(3),monitor:new OperationMonitor(),provider:credential=>{
-  const session:MailSession={supportsMove:true,list:async()=>[{path:'INBOX',name:credential.user,selectable:true},{path:'Drafts',name:'Drafts',specialUse:'\\Drafts',selectable:true},{path:'Archive',name:'Archive',specialUse:'\\Archive',selectable:true}],select:async()=>({uidValidity:'123',uidNext:3,supportsKeywords:true,release(){}}),search:async()=>[2,1],summaries:async uids=>uids.map(uid=>({uid,subject:credential.user,from:[],flags:[]})),metadata:async()=>({attachments:[],size:source.length}),download:async()=>({contentType:'message/rfc822',chunks:(async function*(){yield source;})(),cancel(){}}),mark:async()=>true,flag:async()=>true,tag:async()=>true,move:async()=>{moves.push(credential.user);if(revokeOnMove)accounts.find(account=>account.user===credential.user)!.credentialStored=false;if(moveUnknown)throw new MailOperationError('outcome_unknown','Source removal unconfirmed',{copiedTarget:{mailbox:'Archive',uid:81,uidValidity:'901'}});return{uid:1,uidValidity:'123'};}};
+  const session:MailSession={supportsMove:true,list:async()=>[{path:'INBOX',name:credential.user,selectable:true},{path:'Drafts',name:'Drafts',specialUse:'\\Drafts',selectable:true},{path:'Archive',name:'Archive',specialUse:'\\Archive',selectable:true}],select:async()=>({uidValidity:'123',uidNext:3,supportsKeywords:true,release(){}}),search:async()=>[2,1],summaries:async uids=>uids.map(uid=>({uid,subject:credential.user,from:[],flags:[]})),metadata:async()=>{if(revokeOnMetadata){await Promise.resolve();accounts.find(account=>account.user===credential.user)!.credentialStored=false;}return{attachments:[],size:source.length};},download:async()=>({contentType:'message/rfc822',chunks:(async function*(){yield source;})(),cancel(){}}),mark:async()=>true,flag:async()=>true,tag:async()=>true,move:async()=>{moves.push(credential.user);if(revokeOnMove)accounts.find(account=>account.user===credential.user)!.credentialStored=false;if(moveUnknown)throw new MailOperationError('outcome_unknown','Source removal unconfirmed',{copiedTarget:{mailbox:'Archive',uid:81,uidValidity:'901'}});return{uid:1,uidValidity:'123'};}};
   return{withSession:async run=>{users.push(credential.user);await new Promise(resolve=>setTimeout(resolve,5));return run(session);},parse:async()=>({to:[],text:credential.user}),send:async()=>({messageId:'fixture',accepted:[],rejected:[]})};
  },outboundProvider:credential=>({send:async input=>{sends.push(credential.user);await new Promise(resolve=>setTimeout(resolve,5));return{messageId:input.messageId,accepted:input.to,rejected:[]};},draft:async()=>({mailbox:'Drafts',uid:2,uidValidity:'123',messageId:'fixture'})})});
  const runtime=new ModuleRuntime().register(module.registration);await runtime.start();
@@ -26,6 +26,22 @@ async function fixture(moveUnknown=false,revokeOnMove=false){
  return{connect,users,sends,moves,accounts,close:async()=>{for(const c of connections){await c.client.close();await c.server.close();}await runtime.dispose();database.close();}};
 }
 function result(response:Awaited<ReturnType<Client['callTool']>>){return JSON.parse((response.content as Array<{text:string}>)[0]!.text);}
+
+test('credential revocation during batch preflight prevents the first provider mutation',async()=>{
+ const f=await fixture(false,false,true);try{
+  const b=await f.connect('b');
+  const body=result(await b.callTool({name:'mail_batch',arguments:{accountId:'b',mailbox:'INBOX',uidValidity:'123',uids:[2,1],action:{type:'move',destination:'Archive'}}}));
+  expect(body.status).toBe('rejected');expect(body.items.map((item:{status:string})=>item.status)).toEqual(['failed','not_attempted']);expect(body.items[0].code).toBe('forbidden');expect(f.moves).toEqual([]);
+ }finally{await f.close();}
+});
+
+test('credential revocation after a confirmed batch item stops later provider mutations',async()=>{
+ const f=await fixture(false,true);try{
+  const b=await f.connect('b');
+  const body=result(await b.callTool({name:'mail_batch',arguments:{accountId:'b',mailbox:'INBOX',uidValidity:'123',uids:[2,1],action:{type:'move',destination:'Archive'}}}));
+  expect(body.status).toBe('partial');expect(body.items.map((item:{status:string})=>item.status)).toEqual(['succeeded','failed']);expect(body.items[0].result.destinationTarget).toEqual({accountId:'b',mailbox:'Archive',uid:1,uidValidity:'123'});expect(body.items[1].code).toBe('forbidden');expect(f.moves).toEqual(['b@icloud.com']);
+ }finally{await f.close();}
+});
 
 test('concurrent authenticated accounts keep providers, profiles, references, and cursors isolated',async()=>{
  const f=await fixture();try{const[a,b,missing]=await Promise.all([f.connect('a'),f.connect('b'),f.connect()]);

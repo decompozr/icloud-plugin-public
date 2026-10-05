@@ -16,3 +16,11 @@ tailscale_binary = "tailscale"
 
 # Exact trusted Tailscale user login, pinned by the installer (never first visitor).
 bootstrap_owner_login = "owner@example.invalid"
+
+# Optional macOS Photos module. Dependencies/helpers are explicitly provisioned.
+# [photos]
+# python = "/absolute/path/to/isolated/python"
+# library = "/Users/you/Pictures/Photos Library.photoslibrary"
+# native_helper = "/absolute/path/to/photos-helper"
+# allow_writes = true
+# allow_delete = false

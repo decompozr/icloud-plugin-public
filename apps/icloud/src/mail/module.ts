@@ -56,7 +56,7 @@ export function createMailModule(settings:AppSettings,deps:MailModuleDependencie
   profile(){const account=selected();const email=account.metadata?.user??credentials().user;return{id:account.id,name:account.metadata?.label??email,email};}
  };
  const gateway:MailGateway={withSession:run=>current().withSession(run),parse:source=>current().parse(source)};
- const mail=new MailService({allowWrites:settings.allow_writes},gateway,capabilities);
+ const mail=new MailService({allowWrites:settings.allow_writes},gateway,()=>{selected();return capabilities();});
  const unsubscribe=new UnsubscribeService(mail,createUnsubscribeGateway({sendMail:input=>current().send(input)}),{get enabled(){const p=capabilities();return p.read&&p.write&&p.unsubscribe;}});
  const outboundProvider=()=>{const credential=credentials();return deps.outboundProvider?.(credential)??new ICloudOutboundAdapter({user:credential.user,password:credential.appPassword});};
  const ledger=new SqliteOutboundLedger(deps.authDatabase,deps.masterKey,()=>{const account=selected();credentials();return account.legacy?account.owner:JSON.stringify([account.owner,account.id]);});

@@ -13,12 +13,12 @@ const encoder=new Encoder({useRecords:false,mapsAsObjects:false});
 const {privateKey,publicKey}=generateKeyPairSync('ec',{namedCurve:'prime256v1'});
 const jwk=publicKey.export({format:'jwk'}),id=randomBytes(24);
 const cose=encoder.encode(new Map<number, number | Buffer>([[1,2],[3,-7],[-1,1],[-2,Buffer.from(jwk.x!,'base64url')],[-3,Buffer.from(jwk.y!,'base64url')]]));
-function response(challenge:string,origin:string,register:boolean,uv=true,counter=1){
+function response(challenge:string,origin:string,register:boolean,uv=true,counter=1,rpID='127.0.0.1',credentialID=id){
  const cd=Buffer.from(JSON.stringify({type:register?'webauthn.create':'webauthn.get',challenge,origin,crossOrigin:false}));
  const count=Buffer.alloc(4);count.writeUInt32BE(register?0:counter);
- const ad=Buffer.concat([hash('127.0.0.1'),Buffer.from([register?(uv?0x45:0x41):(uv?5:1)]),count]);
- const length=Buffer.alloc(2);length.writeUInt16BE(id.length);
- return {id:b64(id),rawId:b64(id),type:'public-key',clientExtensionResults:{},response:register?{clientDataJSON:b64(cd),attestationObject:b64(encoder.encode(new Map<string, unknown>([['fmt','none'],['attStmt',new Map()],['authData',Buffer.concat([ad,Buffer.alloc(16),length,id,cose])]])))}:{clientDataJSON:b64(cd),authenticatorData:b64(ad),signature:b64(sign('sha256',Buffer.concat([ad,hash(cd)]),privateKey))}};
+ const ad=Buffer.concat([hash(rpID),Buffer.from([register?(uv?0x45:0x41):(uv?5:1)]),count]);
+ const length=Buffer.alloc(2);length.writeUInt16BE(credentialID.length);
+ return {id:b64(credentialID),rawId:b64(credentialID),type:'public-key',clientExtensionResults:{},response:register?{clientDataJSON:b64(cd),attestationObject:b64(encoder.encode(new Map<string, unknown>([['fmt','none'],['attStmt',new Map()],['authData',Buffer.concat([ad,Buffer.alloc(16),length,credentialID,cose])]])))}:{clientDataJSON:b64(cd),authenticatorData:b64(ad),signature:b64(sign('sha256',Buffer.concat([ad,hash(cd)]),privateKey))}};
 }
 const challengeSchema=z.object({challenge:z.string()});
 const clientSchema=z.object({client_id:z.string()});
@@ -96,7 +96,9 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const originalStatus=await request('/icloud/connect/status?oauth_query='+encodeURIComponent(consentLocation.search.slice(1)));
   expect(z.object({selectedAccount:z.object({id:z.string()})}).parse(await originalStatus.json()).selectedAccount.id).toBe('original-mailbox');
   expect((await request('/icloud/auth/oauth2/consent',{accept:false,oauth_query:overlappingConsent.search.slice(1)})).status).toBe(200);
-  const parallelConsent=await Promise.all([request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:consentLocation.search.slice(1)}),request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:consentLocation.search.slice(1)})]);
+  expect((await request('/icloud/auth/oauth2/consent',{accept:true,scope:'mail.send',oauth_query:consentLocation.search.slice(1)})).status).toBe(403);
+  expect((await request('/icloud/auth/oauth2/consent',{accept:true,scope:'',oauth_query:consentLocation.search.slice(1)})).status).toBe(403);
+  const parallelConsent=await Promise.all([request('/icloud/auth/oauth2/consent',{accept:true,scope:'mail.read offline_access',oauth_query:consentLocation.search.slice(1)}),request('/icloud/auth/oauth2/consent',{accept:true,scope:'mail.read offline_access',oauth_query:consentLocation.search.slice(1)})]);
   expect(parallelConsent.map(item=>item.status).sort()).toEqual([200,403]);
   const consent=parallelConsent.find(item=>item.status===200)!;
   const decision=z.object({url:z.string()}).parse(await consent.json());
@@ -135,10 +137,13 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const anonymousLocation=new URL(anonymousStart.headers.get('location')!,base);
   const anonymousSelection=await request('/icloud/connect/select',{accountId:'original-mailbox',oauth_query:anonymousLocation.search.slice(1)});
   const anonymousConsentLocation=new URL((await anonymousSelection.json() as {url:string}).url,base);
-  expect((await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:anonymousConsentLocation.search.slice(1)})).status).toBe(200);
+  const anonymousConsent=await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:anonymousConsentLocation.search.slice(1)});expect(anonymousConsent.status).toBe(200);
+  const anonymousCallback=new URL((await anonymousConsent.json() as {url:string}).url);
+  const anonymousExchange=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:anonymous.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:anonymousCallback.searchParams.get('code')!,code_verifier:verifier},true);
+  expect(anonymousExchange.status).toBe(200);const anonymousTokens=tokensSchema.parse(await anonymousExchange.json());
   const legacyBefore=snapshots();
   const legacy=await request(recoveryPath,{clientId:anonymous.client_id,additionalScopes:['calendar.read'],confirm:true},false,true);
-  expect(legacy.status).toBe(409);expect((await legacy.json() as {error:string}).error).toBe('NEW_CLIENT_REGISTRATION_REQUIRED');
+  expect(legacy.status).toBe(409);expect((await legacy.json() as {error:string}).error).toBe('REGISTRATION_IMPACT_CONFIRMATION_REQUIRED');
   expect(snapshots()).toBe(legacyBefore);
   const legacyScopeRequest=await request(authorizationPath.replace(client.client_id,anonymous.client_id).replace('mail.read+offline_access','mail.read+calendar.read+offline_access'));
   expect(new URL(legacyScopeRequest.headers.get('location')!,base).searchParams.get('error')).toBe('invalid_scope');
@@ -154,7 +159,55 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const calendarExchange=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:calendarClient.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:calendarCallback.searchParams.get('code')!,code_verifier:verifier},true);
   expect(calendarExchange.status).toBe(200);
   const calendarTokens=tokensSchema.parse(await calendarExchange.json()),calendarPrincipal=await component.verifyBearer('Bearer '+calendarTokens.access_token);
-  expect(calendarPrincipal.accountId).toBe('original-mailbox');expect(calendarPrincipal.scopes.has('calendar.read')).toBe(true);expect(calendarPrincipal.scopes.has('mail.read')).toBe(true);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('mail.read')).toBe(true);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('calendar.read')).toBe(false);
+  expect(calendarPrincipal.clientId).toBeDefined();expect(calendarPrincipal.expiresAt).toBeGreaterThan(Date.now());expect(calendarPrincipal.accountId).toBe('original-mailbox');expect(calendarPrincipal.scopes.has('calendar.read')).toBe(true);expect(calendarPrincipal.scopes.has('mail.read')).toBe(true);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('mail.read')).toBe(true);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('calendar.read')).toBe(false);
+  // New capabilities traverse the same registration and signed-consent flow.
+  const previousEnabled=[...enabledScopes];enabledScopes.push('photos.read','photos.write');
+  config.scopes.push('photos.read','photos.write','photos.delete');component=await createOwnerAuth(config);handler=component.publicHandler;
+  // Upgrade the SAME legacy anonymous connection through the private project API.
+  // Registration changes are separate from OAuth consent and token issuance.
+  const legacyPhotosBefore=snapshots(),clientCount=db.query('SELECT count(*) AS count FROM oauthClient').get();
+  const legacyPreviewResponse=await request(recoveryPath+'?'+new URLSearchParams({clientId:anonymous.client_id,action:'upgrade'}),undefined,false,true);expect(legacyPreviewResponse.status).toBe(200);
+  const legacyPreview=await legacyPreviewResponse.json() as {confirmation:string;impact:{additionalScopes:string[]}};
+  expect(legacyPreview.impact.additionalScopes).toContain('photos.read');expect(legacyPreview.impact.additionalScopes).toContain('photos.write');expect(legacyPreview.impact.additionalScopes).not.toContain('photos.delete');
+  expect((await request(recoveryPath,{clientId:anonymous.client_id,action:'upgrade',confirmation:legacyPreview.confirmation,confirm:true},false,true)).status).toBe(200);
+  expect(snapshots()).toBe(legacyPhotosBefore);expect(db.query('SELECT count(*) AS count FROM oauthClient').get()).toEqual(clientCount);
+  expect(db.query('SELECT userId FROM oauthClient WHERE clientId=?').get(anonymous.client_id)).toEqual({userId:null});
+  expect((await component.verifyBearer('Bearer '+anonymousTokens.access_token)).scopes.has('photos.read')).toBe(false);
+  const samePath=authorizationPath.replace(client.client_id,anonymous.client_id).replace('mail.read+offline_access','mail.read+photos.read+photos.write+offline_access');
+  const sameStart=await request(samePath);const sameLocation=new URL(sameStart.headers.get('location')!,base);expect(sameLocation.pathname).toBe('/icloud/connect');
+  const sameSelection=await request('/icloud/connect/select',{accountId:'original-mailbox',oauth_query:sameLocation.search.slice(1)});const sameConsentLocation=new URL((await sameSelection.json() as {url:string}).url,base);
+  const sameConsent=await request('/icloud/auth/oauth2/consent',{accept:true,scope:'mail.read photos.read offline_access',oauth_query:sameConsentLocation.search.slice(1)});expect(sameConsent.status).toBe(200);
+  const sameCallback=new URL((await sameConsent.json() as {url:string}).url);
+  const sameExchange=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:anonymous.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:sameCallback.searchParams.get('code')!,code_verifier:verifier},true);expect(sameExchange.status).toBe(200);
+  const sameTokens=tokensSchema.parse(await sameExchange.json()),samePrincipal=await component.verifyBearer('Bearer '+sameTokens.access_token);expect(samePrincipal.clientId).toBe(anonymous.client_id);expect(samePrincipal.accountId).toBe('original-mailbox');expect(samePrincipal.scopes.has('photos.read')).toBe(true);expect(samePrincipal.scopes.has('photos.write')).toBe(false);
+  expect((await component.verifyBearer('Bearer '+anonymousTokens.access_token)).scopes.has('photos.read')).toBe(false);
+  const oldRefresh=await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:anonymous.client_id,refresh_token:anonymousTokens.refresh_token,resource:base+'/icloud/mcp'},true);expect(oldRefresh.status).toBe(200);
+  const oldRefreshTokens=tokensSchema.parse(await oldRefresh.json());expect((await component.verifyBearer('Bearer '+oldRefreshTokens.access_token)).scopes.has('photos.read')).toBe(false);
+  const beforePhotosGrants=snapshots();
+  const anonymousPhotosCookies=new Map(cookies);cookies.clear();
+  const photosRegistrationResponse=await request('/icloud/auth/oauth2/register',{client_name:'Fresh Mail Calendar Photos fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code']});
+  expect(photosRegistrationResponse.status).toBe(201);
+  const photosRegistration=await photosRegistrationResponse.json() as {client_id:string;scope:string};
+  expect(photosRegistration.scope.split(' ')).toContain('photos.read');expect(photosRegistration.scope.split(' ')).toContain('photos.write');
+  const photosClient=clientSchema.parse(photosRegistration);
+  for(const [key,value] of anonymousPhotosCookies)cookies.set(key,value);
+  const photosPath=authorizationPath.replace(client.client_id,photosClient.client_id).replace('mail.read+offline_access','mail.read+calendar.read+photos.read+photos.write+offline_access');
+  const photosStart=await request(photosPath);const photosConnect=new URL(photosStart.headers.get('location')!,base);
+  expect(photosConnect.pathname).toBe('/icloud/connect');
+  const photosSelection=z.object({url:z.string()}).parse(await(await request('/icloud/connect/select',{accountId:'original-mailbox',oauth_query:photosConnect.search.slice(1)})).json());
+  const photosConsentLocation=new URL(photosSelection.url,base);expect(photosConsentLocation.pathname).toBe('/icloud/consent');
+  const photosStatus=await request('/icloud/connect/status?oauth_query='+encodeURIComponent(photosConsentLocation.search.slice(1)));
+  const photosPermissions=(await photosStatus.json() as {permissions:string[]}).permissions;
+  expect(photosPermissions).toContain('photos.read');expect(photosPermissions).toContain('photos.write');expect(photosPermissions).not.toContain('photos.delete');
+  expect(snapshots()).toBe(beforePhotosGrants);
+  expect((await request('/icloud/auth/oauth2/consent',{accept:true,scope:'mail.read calendar.read photos.read photos.write photos.delete offline_access',oauth_query:photosConsentLocation.search.slice(1)})).status).toBe(403);
+  const photosConsent=await request('/icloud/auth/oauth2/consent',{accept:true,scope:'mail.read calendar.read photos.read offline_access',oauth_query:photosConsentLocation.search.slice(1)});expect(photosConsent.status).toBe(200);
+  const photosCallback=new URL(z.object({url:z.string()}).parse(await photosConsent.json()).url);
+  const photosExchange=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:photosClient.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:photosCallback.searchParams.get('code')!,code_verifier:verifier},true);expect(photosExchange.status).toBe(200);
+  const photosTokens=tokensSchema.parse(await photosExchange.json()),photosPrincipal=await component.verifyBearer('Bearer '+photosTokens.access_token);
+  expect(photosPrincipal.accountId).toBe('original-mailbox');expect(photosPrincipal.scopes.has('mail.read')).toBe(true);expect(photosPrincipal.scopes.has('calendar.read')).toBe(true);expect(photosPrincipal.scopes.has('photos.read')).toBe(true);expect(photosPrincipal.scopes.has('photos.write')).toBe(false);
+  expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('photos.read')).toBe(false);
+  enabledScopes=previousEnabled;
   const sendClient=clientSchema.parse(await(await request('/icloud/auth/oauth2/register',{client_name:'Explicit send fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read mail.send offline_access'})).json());
   const sendPath=authorizationPath.replace(client.client_id,sendClient.client_id).replace('mail.read+offline_access','mail.read+mail.send+offline_access');
   expect((await request(sendPath)).status).toBe(403);
@@ -178,6 +231,19 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   expect((await component.verifyBearer('Bearer '+next.access_token)).accountId).toBe('original-mailbox');
   const secondRefresh=tokensSchema.parse(await(await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:sendClient.client_id,refresh_token:sendTokens.refresh_token,resource:base+'/icloud/mcp'},true)).json());
   expect((await component.verifyBearer('Bearer '+secondRefresh.access_token)).accountId).toBe('second-mailbox');
+  // Provider consent accepts an explicit reduced subset without changing the signed request.
+  const reducedClient=clientSchema.parse(await(await request('/icloud/auth/oauth2/register',{client_name:'Reduced fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read mail.send offline_access'})).json());
+  const reducedPath=sendPath.replace(sendClient.client_id,reducedClient.client_id).replace('send-state','reduced-state');
+  const reducedStart=await request(reducedPath),reducedLocation=new URL(reducedStart.headers.get('location')!,base);
+  const reducedSelection=z.object({url:z.string()}).parse(await(await request('/icloud/connect/select',{accountId:'second-mailbox',oauth_query:reducedLocation.search.slice(1)})).json());
+  const reducedConsent=new URL(reducedSelection.url,base);
+  const reducedDecision=await request('/icloud/auth/oauth2/consent',{accept:true,scope:'mail.read offline_access',oauth_query:reducedConsent.search.slice(1)});
+  expect(reducedDecision.status).toBe(200);
+  const reducedCallback=new URL(z.object({url:z.string()}).parse(await reducedDecision.json()).url);
+  const reducedTokens=tokensSchema.parse(await(await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:reducedClient.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:reducedCallback.searchParams.get('code')!,code_verifier:verifier},true)).json());
+  const reducedGrant=await component.verifyBearer('Bearer '+reducedTokens.access_token);expect(reducedGrant.scopes.has('mail.read')).toBe(true);expect(reducedGrant.scopes.has('mail.send')).toBe(false);expect(reducedGrant.accountId).toBe('second-mailbox');
+  const reducedRefresh=tokensSchema.parse(await(await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:reducedClient.client_id,refresh_token:reducedTokens.refresh_token,resource:base+'/icloud/mcp'},true)).json());
+  expect((await component.verifyBearer('Bearer '+reducedRefresh.access_token)).scopes.has('mail.send')).toBe(false);
   // Approving another client's send grant does not upgrade the original grant.
   expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('mail.send')).toBe(false);
   db.close();db=new Database(databasePath);component=await createOwnerAuth({...config,database:db});handler=component.publicHandler;
@@ -219,6 +285,18 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   expect((await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:legacyRefresh.refresh_token,resource:base+'/icloud/mcp'},true)).status).not.toBe(200);
   expect((await component.verifyBearer('Bearer '+secondRefresh.access_token)).accountId).toBe('second-mailbox');
   legacyId='original-mailbox';
+  // Management revoke exercises genuine provider token introspection and rotation, not direct token fixture mutation.
+  const pendingStart=await request(sendPath),pendingLocation=new URL(pendingStart.headers.get('location')!,base);
+  const pendingSelection=z.object({url:z.string()}).parse(await(await request('/icloud/connect/select',{accountId:'second-mailbox',oauth_query:pendingLocation.search.slice(1)})).json());
+  const pendingConsent=new URL(pendingSelection.url,base),pendingCallback=new URL(z.object({url:z.string()}).parse(await(await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:pendingConsent.search.slice(1)})).json()).url);
+  const revokePreview=await(await request(recoveryPath+'?'+new URLSearchParams({clientId:sendClient.client_id,action:'revoke'}),undefined,false,true)).json() as {confirmation:string;impact:{authorizationCodes:number}};
+  expect(revokePreview.impact.authorizationCodes).toBeGreaterThan(0);
+  expect((await request(recoveryPath,{clientId:sendClient.client_id,action:'revoke',confirmation:revokePreview.confirmation,confirm:true},false,true)).status).toBe(200);
+  await expect(component.verifyBearer('Bearer '+secondRefresh.access_token)).rejects.toThrow();
+  expect((await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:sendClient.client_id,refresh_token:secondRefresh.refresh_token,resource:base+'/icloud/mcp'},true)).status).toBe(400);
+  expect((await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:sendClient.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:pendingCallback.searchParams.get('code')!,code_verifier:verifier},true)).status).toBe(400);
+  expect((await component.verifyBearer('Bearer '+legacyRefresh.access_token)).accountId).toBe('original-mailbox');
+  expect(accountStore.listAccounts()).toHaveLength(2);
   await request('/icloud/auth/sign-out',{});cookies.clear();
   const loginStart=await request(authorizationPath);
   const loginLocation=new URL(loginStart.headers.get('location')!,base);
@@ -231,4 +309,82 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
 
 
  }finally{await server.stop(true);db.close();rmSync(directory,{recursive:true,force:true});}
+});
+
+test('local RP associates an established owner without replacing remote credentials or sharing sessions',async()=>{
+ const db=new Database(':memory:');let owner:string|undefined;
+ const base='http://127.0.0.1:48201',local='http://localhost:48202';
+ const remote=await createOwnerAuth({database:db,publicBaseURL:base,privateOrigin:base,rpID:'127.0.0.1',secret:'remote-fixture-secret-at-least-thirty-two-bytes',resource:base+'/icloud/mcp',scopes:['mail.read'],ownerId:()=>owner,checkBootstrapProof:p=>{if(p!=='proof')throw Error('Denied');}});
+ const cookies=new Map<string,string>();
+ async function request(component:typeof remote,origin:string,path:string,body?:object,jar=cookies){const headers=new Headers({origin,'x-bootstrap-proof':'proof',cookie:[...jar].map(([k,v])=>k+'='+v).join('; '),...(body?{'content-type':'application/json'}:{})});const result=await component.privateHandler(new Request(origin+path,{headers,method:body?'POST':'GET',...(body?{body:JSON.stringify(body)}:{})}));for(const c of result.headers.getSetCookie()){const pair=c.split(';')[0]!,at=pair.indexOf('=');jar.set(pair.slice(0,at),pair.slice(at+1));}return result;}
+ try{
+  const options=await(await request(remote,base,'/icloud/auth/passkey/generate-register-options')).json() as {challenge:string};
+  expect((await request(remote,base,'/icloud/auth/passkey/verify-registration',{response:response(options.challenge,base,true),createSession:true})).status).toBe(200);
+  owner=(await remote.enrollmentSession(new Headers({cookie:[...cookies].map(([k,v])=>k+'='+v).join('; ')}))).user.id;
+  const before=db.query('SELECT * FROM passkey WHERE userId=?').all(owner);
+  const persistedBefore=JSON.stringify(['user','passkey','oauthClient','oauthConsent','oauthAccessToken','oauthRefreshToken','plugin_auth_private'].map(table=>db.query('SELECT * FROM '+table).all()));
+  const localAuth=await createOwnerAuth({database:db,publicBaseURL:local,privateOrigin:local,rpID:'localhost',sessionOnly:true,cookiePrefix:'icloud_local',secret:'local-fixture-secret-at-least-thirty-two-bytes',resource:base+'/icloud/mcp',scopes:['mail.read'],ownerId:()=>owner,registrationOwnerId:()=>owner,checkRegistrationProof:p=>{if(p!=='proof')throw Error('Denied');},checkBootstrapProof:()=>{throw Error('No bootstrap');}});
+  expect(JSON.stringify(['user','passkey','oauthClient','oauthConsent','oauthAccessToken','oauthRefreshToken','plugin_auth_private'].map(table=>db.query('SELECT * FROM '+table).all()))).toBe(persistedBefore);
+  await expect(localAuth.verifyBearer('Bearer unused-fixture')).rejects.toThrow('session-only');
+  const localCookies=new Map<string,string>(),localID=randomBytes(24);
+  const reg=await(await request(localAuth,local,'/icloud/auth/passkey/generate-register-options',undefined,localCookies)).json() as {challenge:string;rp:{id:string}};
+  expect(reg.rp.id).toBe('localhost');
+  expect((await request(localAuth,local,'/icloud/auth/passkey/verify-registration',{response:response(reg.challenge,local,true,true,1,'localhost',localID),createSession:true},localCookies)).status).toBe(200);
+  expect(db.query('SELECT * FROM passkey WHERE credentialID=?').all(b64(id))).toEqual(before);
+  expect(db.query<{count:number},[]>("SELECT count(*) AS count FROM user").get()!.count).toBe(1);
+  expect((await localAuth.ownerSession(new Headers({cookie:[...localCookies].map(([k,v])=>k+'='+v).join('; ')}))).user.id).toBe(owner);
+  await expect(localAuth.ownerSession(new Headers({cookie:[...cookies].map(([k,v])=>k+'='+v).join('; ')}))).rejects.toThrow();
+  await expect(remote.ownerSession(new Headers({cookie:[...localCookies].map(([k,v])=>k+'='+v).join('; ')}))).rejects.toThrow();
+  await request(localAuth,local,'/icloud/auth/sign-out',{},localCookies);localCookies.clear();
+  const challenge=await(await request(localAuth,local,'/icloud/auth/passkey/generate-authenticate-options',undefined,localCookies)).json() as {challenge:string};
+  expect((await request(localAuth,local,'/icloud/auth/passkey/verify-authentication',{response:response(challenge.challenge,local,false)},localCookies)).status).not.toBe(200);
+  const correct=await(await request(localAuth,local,'/icloud/auth/passkey/generate-authenticate-options',undefined,localCookies)).json() as {challenge:string};
+  expect((await request(localAuth,local,'/icloud/auth/passkey/verify-authentication',{response:response(correct.challenge,local,false,true,1,'localhost',localID)},localCookies)).status).toBe(200);
+ }finally{db.close();}
+});
+
+test('application local owner custody enrollment and confirmed remote pairing preserve owner and reject spoofed ingress',async()=>{
+ const {createApplication}=await import('../server/application.js'),{SqliteOwnerStore}=await import('../storage/owner-store.js'),{prepareLocalOwner}=await import('./local-owner.js');
+ const {mkdirSync}=await import('node:fs'),{createServer}=await import('node:net');
+ const freePort=async()=>{const server=createServer();await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const address=server.address();if(!address||typeof address==='string')throw Error('No port');await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));return address.port;};
+ const directory=mkdtempSync(join(tmpdir(),'icloud-local-route-')),masterKey=randomBytes(32),proof='fixture-bootstrap-proof-at-least-thirty-two-bytes';
+ mkdirSync(join(directory,'custody'),{mode:0o700});mkdirSync(join(directory,'assets'));
+ const store=SqliteOwnerStore.provision({databasePath:join(directory,'owner.sqlite'),markerPath:join(directory,'custody/marker'),masterKey,bootstrapProof:proof}),db=new Database(join(directory,'auth.sqlite'));
+ const localPort=await freePort(),privatePort=await freePort(),publicPort=await freePort(),localOrigin=`http://localhost:${localPort}`,remoteOrigin='https://owner.fixture.invalid:8443';
+ const settings={local_origin:localOrigin,public_origin:'https://owner.fixture.invalid',private_origin:remoteOrigin,public_port:publicPort,private_port:privatePort,host:'127.0.0.1' as const,runtime_mode:'native' as const,state_directory:directory,master_key_file:join(directory,'custody/key'),installation_marker:join(directory,'custody/marker'),allow_send:false,allow_writes:false,tailscale_binary:'unused'};
+ const app=await createApplication(settings,{store,masterKey,authDatabase:db,assetsDirectory:join(directory,'assets'),bootstrapProof:()=>proof,diagnostics:async()=>({installed:false,authenticated:false,online:false,privateReachable:false})});
+ const localServer=app.localApp!.listen(localPort,'127.0.0.1'),remoteServer=app.privateApp.listen(privatePort,'127.0.0.1');
+ await Promise.all([localServer,remoteServer].map(server=>new Promise<void>(resolve=>server.once('listening',resolve))));
+ const localCookies=new Map<string,string>(),remoteCookies=new Map<string,string>();
+ const request=async(path:string,body?:object,remote=false,extra:Record<string,string>={},jar=remote?remoteCookies:localCookies)=>{const origin=remote?remoteOrigin:localOrigin,port=remote?privatePort:localPort;const result=await fetch(`http://127.0.0.1:${port}`+path,{method:body?'POST':'GET',redirect:'manual',headers:{host:new URL(origin).host,origin,cookie:[...jar].map(([key,value])=>key+'='+value).join('; '),...(body?{'content-type':'application/json'}:{}),...extra},...(body?{body:JSON.stringify(body)}:{})});for(const cookie of result.headers.getSetCookie()){const pair=cookie.split(';')[0]!,at=pair.indexOf('=');jar.set(pair.slice(0,at),pair.slice(at+1));}return result;};
+ try{
+  expect((await request('/icloud/auth/passkey/generate-register-options')).status).toBe(403);
+  expect((await request('/icloud/auth/passkey/generate-register-options',undefined,false,{'x-bootstrap-proof':proof})).status).toBe(403);
+  expect((await request('/icloud/setup/begin',{proof:'fake'})).status).toBe(403);
+  expect((await request('/icloud/setup/status?mode=local-owner',undefined,false,{host:'evil.invalid'})).status).toBe(403);
+  const url=prepareLocalOwner(settings,null),ticket=new URLSearchParams(new URL(url).hash.slice(1)).get('owner-proof')!;
+  expect((await request('/icloud/setup/begin',{proof:ticket},false,{origin:'http://evil.invalid'})).status).toBe(403);
+  expect((await request('/icloud/setup/begin',{proof:ticket})).status).toBe(200);
+  expect((await request('/icloud/setup/begin',{})).status).toBe(200); // cancel/resume remains bounded
+  const localID=randomBytes(24),reg=await(await request('/icloud/auth/passkey/generate-register-options')).json() as {challenge:string};
+  expect((await request('/icloud/auth/passkey/verify-registration',{response:response(reg.challenge,localOrigin,true,true,1,'localhost',localID),createSession:true})).status).toBe(200);
+  expect((await request('/icloud/setup/complete',{})).status).toBe(200);const owner=store.ownerId()!;expect(owner).toBeTruthy();
+  expect((await request('/icloud/admin/status')).status).toBe(200);
+  expect((await(await request('/icloud/setup/status')).json() as {enrolled:boolean}).enrolled).toBe(true);
+  expect((await request('/icloud/admin/remote-owner',{confirm:true},false,{},new Map())).status).toBe(403);
+  expect((await request('/icloud/admin/remote-owner',{confirm:false})).status).toBe(403);
+  const pairing=await(await request('/icloud/admin/remote-owner',{confirm:true})).json() as {url:string};const remoteTicket=new URLSearchParams(new URL(pairing.url).hash.slice(1)).get('owner-proof')!;
+  expect((await request('/icloud/setup/begin',{proof:remoteTicket},true,{host:'evil.invalid'})).status).toBe(403);
+  expect((await request('/icloud/setup/begin',{proof:remoteTicket},true)).status).toBe(200);
+  expect((await request('/icloud/setup/begin',{proof:remoteTicket},true,{},new Map())).status).toBe(403);
+  const remoteID=randomBytes(24),remoteReg=await(await request('/icloud/auth/passkey/generate-register-options',undefined,true)).json() as {challenge:string};
+  expect((await request('/icloud/auth/passkey/verify-registration',{response:response(remoteReg.challenge,remoteOrigin,true,true,1,'owner.fixture.invalid',remoteID),createSession:true},true)).status).toBe(200);
+  expect((await request('/icloud/setup/complete',{},true)).status).toBe(200);expect(store.ownerId()).toBe(owner);
+  expect(db.query<{count:number},[]>('SELECT count(*) AS count FROM passkey').get()!.count).toBe(2);
+  expect((await request('/icloud/admin/status',undefined,true)).status).toBe(200);
+  expect((await request('/icloud/admin/status',undefined,true,{},localCookies)).status).toBe(403);
+  const credentialRows=db.query('SELECT credentialID,userId FROM passkey ORDER BY credentialID').all();
+  const second=await(await request('/icloud/admin/remote-owner',{confirm:true})).json() as {url:string};
+  expect(second.url).toContain('mode=remote-owner');expect(db.query('SELECT credentialID,userId FROM passkey ORDER BY credentialID').all()).toEqual(credentialRows);
+ }finally{await Promise.all([localServer,remoteServer].map(server=>new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()))));await app.runtime.dispose();db.close();store.close();rmSync(directory,{recursive:true,force:true});}
 });
