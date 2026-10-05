@@ -1,5 +1,26 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Installed 0.1.50 lifecycle candidate — 2026-10-05
+
+PR 48 merged; installed 0.1.50 from clean remote-main commit 61d6a96. Final release
+checks passed: 417 app tests / 2828 assertions, 16 Python transport tests, typecheck,
+production build and 13 installed doctor checks. The provider-session custody row
+digest, configuration and signed operation Helper were preserved. The primary main
+checkout was clean and fast-forwarded. Exact backup and receipt remain in private
+runtime recovery storage; no personal asset or shared mutation was dispatched.
+
+An actual existing-main-MCP health call verified osxphotos and native authorization
+3/true. One retained background inventory read completed with normal Photos HTTP
+200/one zone and 49 addressable legacy candidates plus one unsupported opaque ID,
+matching the earlier read boundary. This proves installed reads, not write support.
+The conversation still does not expose the four shared lifecycle tools; refresh of
+the same connection remains pending. No alternative MCP, direct authenticated CLI
+or UI path was used. Next live gate is original-MCP empty Shared Album lifecycle,
+then a concrete reviewed source/destination for upload and independent readback.
+Full Live Photo pairing, subscriber writes, unknown-binary disposition, broader
+Photos acceptance and owner decisions remain part of the unfinished objective.
+
+
 ## Reviewed upload lifecycle integrated in candidate — 2026-10-05
 
 upload_shared_asset now uses the existing shared prepare/apply/operation flow and
