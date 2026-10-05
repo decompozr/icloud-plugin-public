@@ -57,3 +57,35 @@ test('lost catalog launch response recovers exact selection from retained manife
   t.provider.reviewStatus=async()=>{throw new Error('temporary files no longer available');};const next=new PhotosService(t.db,t.provider,t.policy,()=> 'owner');expect((await next.catalogStatus(opened.reviewId)).result.selectedAssetIds).toEqual([id]);expect(t.calls()).toBe(0);
  }finally{t.db.close();}
 });
+
+test('catalog decisions account for every source and survive restart without authorizing writes',async()=>{
+ const t=setup();t.provider.openCatalog=async(_request,operationId)=>({status:'catalog_review',operationId,assetIds:[id]});
+ t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:[],decisions:[{assetId:id,decision:'keep'}]});
+ try{
+  const opened=await t.service.openCatalog({kind:'cleanup',offset:0,limit:1});
+  expect((await t.service.catalogStatus(opened.reviewId)).result.decisions).toEqual([{assetId:id,decision:'keep'}]);
+  t.provider.reviewStatus=async()=>{throw Error('journal removed');};
+  const next=new PhotosService(t.db,t.provider,t.policy,()=> 'owner');
+  expect((await next.catalogStatus(opened.reviewId)).result.decisions[0].decision).toBe('keep');
+  expect(t.calls()).toBe(0);
+ }finally{t.db.close();}
+});
+test('catalog rejects missing, duplicate, wrong-purpose and selection-inconsistent decisions',async()=>{
+ const t=setup();t.provider.openCatalog=async(_request,operationId)=>({status:'catalog_review',operationId,assetIds:[id]});
+ try{
+  for(const decisions of [[],[{assetId:id,decision:'keep'},{assetId:id,decision:'keep'}],[{assetId:id,decision:'share_review'}],[{assetId:id,decision:'delete_review'}]]){
+   t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:[],decisions});
+   const opened=await t.service.openCatalog({kind:'cleanup',offset:0,limit:1});
+   await expect(t.service.catalogStatus(opened.reviewId)).rejects.toThrow('invalid_review_decisions');
+  }
+  expect(t.calls()).toBe(0);
+ }finally{t.db.close();}
+});
+test('confirmed native cancellation is retained when journal is unavailable after restart',async()=>{
+ const t=setup();t.provider.openReview=async()=>({status:'review_pending'});t.provider.reviewStatus=async()=>({status:'cancelled_before_posting'});
+ try{const plan=await t.service.prepare(sharedIntent);await t.service.apply(plan.operationId,true);await t.service.reviewStatus(plan.operationId);
+  t.provider.reviewStatus=async()=>{throw Error('journal unavailable');};
+  const next=new PhotosService(t.db,t.provider,t.policy,()=> 'owner');
+  expect((await next.operationStatus(plan.operationId)).status).toBe('cancelled');expect(t.calls()).toBe(0);
+ }finally{t.db.close();}
+});

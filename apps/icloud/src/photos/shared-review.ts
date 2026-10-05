@@ -4,11 +4,12 @@ import {isAbsolute,join} from 'node:path';
 import {z} from 'zod';
 import {PhotosError} from './contracts.js';
 
+export const reviewDecision=z.object({assetId:z.string().regex(/^asset:[a-f0-9]{16}:[A-Fa-f0-9-]{36}$/),decision:z.enum(['undecided','keep','share_review','delete_review'])}).strict();
 export const reviewEvent=z.object({operationId:z.string().uuid(),status:z.enum([
  'review_pending','picker_review','cancelled_before_posting','selection_changed_review_required',
  'posting_outcome_unknown','posting_closed_outcome_unknown','posting_not_verified','posting_completed_membership_unverified',
  'different_destination_membership_unverified','journal_failed_reconcile_operation','catalog_review','catalog_cancelled','selection_reviewed','outcome_unknown'
-]),timestamp:z.number(),processId:z.number().int().positive().optional(),actualAlbum:z.string().optional(),selectedAssetIds:z.array(z.string().regex(/^asset:[a-f0-9]{16}:[A-Fa-f0-9-]{36}$/)).max(12).optional(),localReadbackVerified:z.literal(false),serverSyncVerified:z.literal(false)}).strict();
+]),timestamp:z.number(),processId:z.number().int().positive().optional(),actualAlbum:z.string().optional(),selectedAssetIds:z.array(z.string().regex(/^asset:[a-f0-9]{16}:[A-Fa-f0-9-]{36}$/)).max(12).optional(),decisions:z.array(reviewDecision).max(12).optional(),localReadbackVerified:z.literal(false),serverSyncVerified:z.literal(false)}).strict();
 
 /** Durable UI sessions survive request timeouts. No retry/cleanup of unresolved sessions. */
 export async function reviewDirectory(directory:string){

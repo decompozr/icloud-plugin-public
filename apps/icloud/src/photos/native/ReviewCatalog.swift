@@ -7,7 +7,8 @@ final class ReviewCatalog: NSObject, NSWindowDelegate {
     private let journal: ReviewJournal
     private let root = NSViewController()
     private var window: NSWindow!
-    private var selections: [NSButton] = []
+    private var selections: [NSPopUpButton] = []
+    private let kind: String
     private var requests: [PHImageRequestID] = []
     private var finished = false
     init(input: [String: Any]) throws {
@@ -15,6 +16,8 @@ final class ReviewCatalog: NSObject, NSWindowDelegate {
         guard let entries = input["entries"] as? [[String: Any]], !entries.isEmpty, entries.count <= 12,
               let id = input["operationId"] as? String, let directory = input["reviewDirectory"] as? String,
               entries.allSatisfy({ ($0["assetId"] as? String) != nil && ($0["reason"] as? String) != nil }) else { try fail("invalid_request") }
+        guard let kind = input["kind"] as? String, ["comparison", "cleanup"].contains(kind) else { try fail("invalid_request") }
+        self.kind = kind
         self.entries = entries
         journal = try ReviewJournal(directory: directory, operationId: id)
         super.init()
@@ -27,7 +30,7 @@ final class ReviewCatalog: NSObject, NSWindowDelegate {
         window.contentViewController = root
         window.isReleasedWhenClosed = false
         window.delegate = self
-        let header = NSTextField(wrappingLabelWithString: "Select exact assets for further review. This window never uploads or deletes. Probable matches and messaging filenames are clues; age alone does not mean disposable.\n選取需要下一步審閱的照片。此視窗不會上傳或刪除。可能相符與通訊軟體檔名僅是線索；照片較舊不代表可以刪除。")
+        let header = NSTextField(wrappingLabelWithString: "Record a decision for each photo. Keep and undecided are preserved; sharing/deletion need a separate final review. This window never uploads or deletes. Probable matches and messaging filenames are clues; age alone does not mean disposable.\n記錄每張照片的決定。保留與尚未決定均不會修改照片；分享及刪除仍需另外確認。此視窗不會上傳或刪除。可能相符與通訊軟體檔名僅是線索；照片較舊不代表可以刪除。")
         header.frame = NSRect(x: 24, y: 625, width: 832, height: 70)
         root.view.addSubview(header)
         let scroll = NSScrollView(frame: NSRect(x: 24, y: 80, width: 832, height: 535))
@@ -39,9 +42,10 @@ final class ReviewCatalog: NSObject, NSWindowDelegate {
             let assetId = entry["assetId"] as! String
             let asset = try fetchAssets([assetId])[0]
             let y = CGFloat((entries.count - index - 1) * 300)
-            let select = NSButton(checkboxWithTitle: "Select / 選取", target: nil, action: nil)
+            let select = NSPopUpButton(frame: .zero, pullsDown: false)
+            select.addItems(withTitles: ["Undecided / 尚未決定", "Keep / 保留", kind == "comparison" ? "Review sharing / 待分享審閱" : "Review deletion / 待刪除審閱"])
             select.identifier = NSUserInterfaceItemIdentifier(assetId)
-            select.frame = NSRect(x: 8, y: y + 266, width: 160, height: 25)
+            select.frame = NSRect(x: 8, y: y + 266, width: 240, height: 25)
             select.isEnabled = false
             document.addSubview(select)
             selections.append(select)
@@ -49,7 +53,7 @@ final class ReviewCatalog: NSObject, NSWindowDelegate {
             let reasons = ["confirmed": "Same asset identity / 同一照片識別碼", "probable": "Probable copy, unverified / 可能副本，尚未確認", "ambiguous": "Multiple candidates / 多個候選副本", "not_found": "No local candidate / 本機未找到候選副本", "same_fingerprint": "Matching fingerprint, review required / 指紋相符，需審閱", "screenshot": "Screenshot; value/expiry undecided / 截圖，價值與時效待判斷", "messaging_filename": "Messaging filename signal only / 僅通訊軟體檔名線索"]
             let motion = asset.mediaType == .video || asset.mediaSubtypes.contains(.photoLive)
             let text = NSTextField(wrappingLabelWithString: "\(entry["filename"] as? String ?? "Photo") · \(reasons[reason] ?? reason)\(asset.isFavorite ? " · Favorite / 喜好項目" : "")\n\(entry["date"] as? String ?? "Unknown capture date")\n\(motion ? "Motion thumbnail only; inspect full video/Live Photo in Photos / 動態縮圖，請在 Photos 檢查完整影片或原況照片" : "Source at left; candidate copies at right / 左側原照片；右側候選副本")")
-            text.frame = NSRect(x: 180, y: y + 230, width: 620, height: 65)
+            text.frame = NSRect(x: 260, y: y + 230, width: 540, height: 65)
             document.addSubview(text)
             preview(asset, in: document, frame: NSRect(x: 8, y: y + 8, width: 260, height: 216), selection: select)
             for (candidateIndex, candidate) in (entry["candidateIds"] as? [String] ?? []).prefix(2).enumerated() {
@@ -67,14 +71,14 @@ final class ReviewCatalog: NSObject, NSWindowDelegate {
         let cancel = NSButton(title: "Cancel / 取消", target: self, action: #selector(cancelReview))
         cancel.frame = NSRect(x: 24, y: 24, width: 180, height: 32)
         root.view.addSubview(cancel)
-        let save = NSButton(title: "Save selection only / 僅儲存選取", target: self, action: #selector(saveSelection))
+        let save = NSButton(title: "Save decisions / 儲存決定", target: self, action: #selector(saveSelection))
         save.frame = NSRect(x: 550, y: 24, width: 306, height: 32)
         root.view.addSubview(save)
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate()
     }
-    private func preview(_ asset: PHAsset, in view: NSView, frame: NSRect, selection: NSButton?) {
+    private func preview(_ asset: PHAsset, in view: NSView, frame: NSRect, selection: NSPopUpButton?) {
         let image = NSImageView(frame: frame)
         image.imageScaling = .scaleProportionallyUpOrDown
         view.addSubview(image)
@@ -95,15 +99,22 @@ final class ReviewCatalog: NSObject, NSWindowDelegate {
         })
     }
     @objc private func saveSelection() {
-        let ids = selections.filter { $0.state == .on && $0.isEnabled }.compactMap { $0.identifier?.rawValue }
-        finish("selection_reviewed", ids: ids)
+        let decisions: [[String: String]] = selections.compactMap { control in
+            guard let id = control.identifier?.rawValue else { return nil }
+            let value = !control.isEnabled || control.indexOfSelectedItem == 0 ? "undecided" : control.indexOfSelectedItem == 1 ? "keep" : kind == "comparison" ? "share_review" : "delete_review"
+            return ["assetId": id, "decision": value]
+        }
+        let ids = decisions.filter { ["share_review", "delete_review"].contains($0["decision"]!) }.compactMap { $0["assetId"] }
+        finish("selection_reviewed", ids: ids, decisions: decisions)
     }
     @objc private func cancelReview() { finish("catalog_cancelled", ids: []) }
     func windowShouldClose(_ sender: NSWindow) -> Bool { cancelReview(); return false }
-    private func finish(_ status: String, ids: [String]) {
+    private func finish(_ status: String, ids: [String], decisions: [[String: String]]? = nil) {
         guard !finished else { return }
         finished = true
-        do { try journal.record(status, values: ["selectedAssetIds": ids]) }
+        var values: [String: Any] = ["selectedAssetIds": ids]
+        if let decisions { values["decisions"] = decisions }
+        do { try journal.record(status, values: values) }
         catch { let alert = NSAlert(); alert.messageText = "Selection could not be saved / 無法儲存選取"; alert.runModal() }
         for request in requests { PHImageManager.default().cancelImageRequest(request) }
         window.orderOut(nil)

@@ -107,7 +107,11 @@ Missing previews remain explicit and sources without previews cannot be selected
 If candidate groups exceed the twelve-asset window, the response reports omitted
 assets; use their exact IDs in subsequent comparison reviews rather than silently
 claiming the whole group was reviewed. `photos_review_status` returns durable
-selected IDs. Saving selections changes no photo and does not approve deletion.
+selected IDs and per-source decisions: undecided, keep, review sharing (comparison)
+or review deletion (cleanup). Every source is accounted for; missing previews
+remain undecided. Saving decisions changes no photo and does not approve writes
+or deletion. Only sharing/deletion review candidates populate selected IDs.
+The service rejects missing, duplicate, wrong-purpose or inconsistent decisions.
 Finalized selections persist in SQLite; a retained private manifest recovers
 allowed selections if the launch response was lost.
 

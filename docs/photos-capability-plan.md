@@ -381,3 +381,23 @@ Production acceptance gates:
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
+
+### Decision coverage and installed-baseline inspection (2026-10-04)
+
+Native review now records each source as undecided, keep or a purpose-specific
+sharing/deletion review candidate. The service validates complete, unique source
+coverage and selection consistency, and stores final decisions through restart.
+These decisions do not authorize a write. Confirmed pre-post cancellation is also
+retained when a later journal read is unavailable.
+
+Current self-checks passed 181 application tests / 732 assertions, TypeScript
+checking, application build and complete native source typechecking. No new
+helper app/executable was created or launched.
+
+A read-only inspection of the actual owned installation found `current` points
+to `releases/0.1.28-darwin-arm64`; Photos is not configured. This supersedes older
+0.1.19 installation notes for the delivery decision. The Photos worktree still
+uses the older application baseline. Do not deploy this branch as a downgrade;
+reconcile current release/main changes in the task worktree before packaging.
+The installed artifact metadata has no source commit field, so version alone
+does not establish source provenance. No installed files were changed.

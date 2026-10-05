@@ -112,7 +112,7 @@ export class LocalPhotosProvider implements PhotosProvider {
   for(const entry of entries){const detail=assetSchema.parse(await this.read('detail',{assetId:entry.assetId}));entry.filename=detail.filename;entry.date=detail.date;entry.favorite=detail.favorite;}
   const directory=this.reviewPath();await reserveReview(directory,operationId);
   const manifest=join(directory,operationId+'.manifest.json');await writeFile(manifest,JSON.stringify({operationId,entries,coverage}),{mode:0o600,flag:'wx'});
-  const opened=await runNative(this.settings.nativeHelper,{command:'review_catalog',entries,operationId,reviewDirectory:directory},this.settings.timeoutMs);
+  const opened=await runNative(this.settings.nativeHelper,{command:'review_catalog',kind:request.kind,entries,operationId,reviewDirectory:directory},this.settings.timeoutMs);
   return {...z.object({status:z.literal('catalog_review'),operationId:z.string().uuid(),localReadbackVerified:z.literal(false),serverSyncVerified:z.literal(false)}).strict().parse(opened),coverage,assetIds:entries.map(e=>e.assetId)};
  }
  async apply(mutation:Mutation,expected:unknown){

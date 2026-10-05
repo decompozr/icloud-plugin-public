@@ -2,6 +2,7 @@ import {Database} from 'bun:sqlite';
 import {randomUUID} from 'node:crypto';
 import {mutationSchema,catalogSchema,sharedObservationSchema,assetSchema,PhotosError,type PhotosProvider,type Mutation} from './contracts.js';
 import {z} from 'zod';
+import {reviewDecision} from './shared-review.js';
 export interface PhotosPolicy {read:boolean;write:boolean;delete:boolean}
 interface Row {id:string;owner:string;mutation:string;snapshot:string;status:string;result:string|null;expires:number}
 /** Durable single-use plans. Unknown writes are never automatically resubmitted. */
@@ -54,7 +55,7 @@ export class PhotosService {
   const owner=this.check();const row=this.db.query('SELECT * FROM photos_operations WHERE id=? AND owner=?').get(id,owner) as Row|null;
   if(!row)throw new PhotosError('operation_not_found');
   const mutation=mutationSchema.parse(JSON.parse(row.mutation));if(mutation.action!=='post_to_shared_album')throw new PhotosError('wrong_operation_type');
-  if(['prepared','rejected','owner_verified_presence'].includes(row.status))return this.status(id);
+  if(['prepared','rejected','cancelled','owner_verified_presence'].includes(row.status))return this.status(id);
   if(!this.provider.reviewStatus)throw new PhotosError('native_review_unavailable');
   const result=await this.provider.reviewStatus(id) as {status:string};
   if(this.check()!==owner)throw new PhotosError('owner_changed');
@@ -71,14 +72,23 @@ export class PhotosService {
   catch{this.db.query("UPDATE photos_reviews SET status='outcome_unknown' WHERE id=?").run(id);return {reviewId:id,status:'outcome_unknown',message:'Read review status; do not assume a selection or reopen automatically.'};}
  }
  async catalogStatus(id:string){
-  const owner=this.check();const row=this.db.query('SELECT * FROM photos_reviews WHERE id=? AND owner=?').get(id,owner) as {status:string;result:string|null}|null;if(!row)throw new PhotosError('review_not_found');
+  const owner=this.check();const row=this.db.query('SELECT * FROM photos_reviews WHERE id=? AND owner=?').get(id,owner) as {status:string;result:string|null;request:string}|null;if(!row)throw new PhotosError('review_not_found');
   if(row.status==='no_review_candidates')return {reviewId:id,status:row.status,result:row.result?JSON.parse(row.result):null};
   if(['selection_reviewed','catalog_cancelled'].includes(row.status))return {reviewId:id,status:row.status,result:JSON.parse(row.result!).lastEvent};
   if(!this.provider.reviewStatus)throw new PhotosError('native_review_unavailable');
-  const result=await this.provider.reviewStatus(id) as {status:string;selectedAssetIds?:string[];manifestAssetIds?:string[]};if(this.check()!==owner)throw new PhotosError('owner_changed');
+  const result=await this.provider.reviewStatus(id) as {status:string;selectedAssetIds?:string[];manifestAssetIds?:string[];decisions?:unknown};if(this.check()!==owner)throw new PhotosError('owner_changed');
   if(result.status==='selection_reviewed'){
    const opened=row.result?JSON.parse(row.result):null;const allowed=z.array(z.string()).parse(opened?.assetIds??result.manifestAssetIds??[]);
    if(!result.selectedAssetIds||result.selectedAssetIds.some(v=>!allowed.includes(v))||new Set(result.selectedAssetIds).size!==result.selectedAssetIds.length)throw new PhotosError('invalid_review_selection');
+   if(result.decisions!==undefined){
+    const parsed=z.array(reviewDecision).max(12).safeParse(result.decisions);
+    if(!parsed.success)throw new PhotosError('invalid_review_decisions');
+    const decisions=parsed.data,kind=catalogSchema.parse(JSON.parse(row.request)).kind;
+    if(decisions.length!==allowed.length||new Set(decisions.map(d=>d.assetId)).size!==allowed.length||
+      decisions.some(d=>!allowed.includes(d.assetId)||(kind==='comparison'&&d.decision==='delete_review')||(kind==='cleanup'&&d.decision==='share_review')))throw new PhotosError('invalid_review_decisions');
+    const selected=decisions.filter(d=>['share_review','delete_review'].includes(d.decision)).map(d=>d.assetId);
+    if(selected.length!==result.selectedAssetIds.length||selected.some(id=>!result.selectedAssetIds!.includes(id)))throw new PhotosError('invalid_review_decisions');
+   }
   }
   // Retain the launch manifest/allowed IDs and finalized selection in SQLite.
   const opened=row.result?JSON.parse(row.result):{};
