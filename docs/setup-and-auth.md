@@ -1,22 +1,25 @@
 # Accepted setup and authentication flow
 
-This is the accepted behavior contract. CP3/CP4 implement it with reviewed local
-E2E; the native private setup route is live, while the real owner ceremony and
-external client integration remain pending.
+This is the accepted behavior contract. The existing single-account installation
+has completed owner enrollment and ChatGPT authorization. The multi-account
+connection change below passed application/tooling typechecks, production/browser
+builds, unit tests and built HTTP E2E. See [the current evidence](current-status.md#multi-account-source-checkpoint-2026-10-03).
+It is not deployed; rendered-browser and live ChatGPT acceptance remain separate
+checkpoints and do not follow from the existing deployment.
 The service supports native Mac/Bun and Apple Container/Linux-Bun. Tailscale stays on the host; the current private setup uses native mode. The tested container path uses separate mounted state/custody and a host-loopback proxy; broader host lifecycle acceptance remains open. The [project decisions](project.md) and [mailbox scope](mailbox-tools.md)
 continue to apply.
 
 ## Owner setup
 
 1. The owner reaches first-time setup privately through Tailscale.
-2. Setup registers the owner's Passkey and accepts the iCloud mail login and an
-   Apple app-specific password. The main Apple account password is not used.
-3. The service tests the mail connection and securely stores the mail credentials
-   server-side. Encrypted storage, external key custody and failure/retry mechanics are
-   implemented and locally tested; real account validation remains user-driven.
-4. After successful owner enrollment, bootstrap access is disabled. Later owner
+2. Setup registers the owner's Passkey and completes owner enrollment without
+   requiring an iCloud email or Apple password.
+3. After successful owner enrollment, bootstrap access is disabled. Later owner
    administration requires authentication; bootstrap must not remain a route for
    another person to enroll or replace the owner.
+4. The owner connects an iCloud account during client authorization, after clicking
+   **Connect another account** on the ChatGPT plugin details page. The Apple
+   app-specific password is entered only on the plugin's hosted connection page.
 
 Being reachable through the tailnet alone must not silently establish ownership.
 The implementation pins the expected Tailscale owner login and uses a short-lived
@@ -84,7 +87,7 @@ Owner Passkeys, OAuth grants/tokens and Apple credentials are three distinct
 revocation domains. Administration must name which domain changed and must not
 claim that local deletion revoked provider credentials or all existing tokens.
 Recovery must not bypass owner verification. Real connection validation remains
-part of setup; fake validation in a test cannot satisfy that requirement.
+part of adding an iCloud account; fake validation in a test cannot satisfy that requirement.
 
 
 The [concrete routing recommendation](architecture.md#concrete-authrouting-recommendation-pending-integration-checks)
@@ -95,11 +98,11 @@ rollback/crash recovery remains unverified.
 
 ## Guided owner setup UX (current requested change)
 
-The private setup page must guide the owner through four visible stages:
-connection checks, owner Passkey, iCloud Mail connection, and completion. Show
-one stage and one primary action at a time, with back navigation, accessible
-progress/errors, disabled duplicate submissions and server-backed resume.
-Diagnostics describe the service host, not a claim about the browser device.
+The private setup page must guide the owner through three visible stages:
+connection checks, owner Passkey, and Connect ChatGPT. Show one stage and one
+primary action at a time, with back navigation, accessible progress/errors,
+disabled duplicate submissions and server-backed resume. Diagnostics describe
+the service host, not a claim about the browser device.
 
 The owner clicks **Set up Passkey**; they must not locate, copy or enter an internal
 bootstrap proof. Internal ownership authorization still must prevent arbitrary
@@ -113,30 +116,53 @@ address; loopback alone is not protection against a compromised local account.
 Public routes never dispatch bootstrap handlers. English is the default UI;
 i18next supplies typed English and Traditional Chinese resources.
 
-Explain how to create an Apple App-specific password and why the normal Apple
-account password is inappropriate. Reveal that form only after verified Passkey
-state; a failed provider check must permit retry without losing the completed
-Passkey step. Completion means the mailbox connection is stored, not that public
-routing or ChatGPT/Codex authorization has already happened. Existing enrolled
-owners go to management instead of restarting enrollment.
+The final **Connect ChatGPT** stage means that owner enrollment is complete.
+It provides individually copyable name, description, configured public MCP URL
+and a read-only first prompt, plus OAuth/owner Passkey instructions. Public endpoint
+activation remains an explicit prerequisite; the page neither enables Funnel nor
+claims remote reachability. No client secret or Apple credential is displayed.
+Existing enrolled owners go to management instead of restarting enrollment.
 
 Passkey creation options use the account label `iCloud Plugin Admin` and relying
 party name `iCloud Plugin`. The opaque credential user ID stays stable throughout
 verification; an internal framework email is not the system-facing account label.
 A staged session resumes setup instead of creating another credential.
 
-The connection step is titled **Connect your iCloud** under the iCloud Plugin
-brand. Supporting text explicitly limits the current connection to Mail. The
-completion screen separates stored credentials from assistant authorization:
-prepare a reachable MCP/OAuth endpoint, add its `/icloud/mcp` URL in the chosen client,
-sign in with the owner Passkey, then test by listing folders. The private setup
-URL is not the MCP connector URL. Completing setup does not activate Funnel.
+### Multiple iCloud accounts through client authorization
 
-Step 4 is **Connect ChatGPT**, not a claim of verified client installation. It
-provides individually copyable name, description, configured public MCP URL and
-a read-only first prompt, plus OAuth/owner Passkey instructions. Public endpoint
-activation remains an explicit prerequisite; the page neither enables Funnel nor
-claims remote reachability. No client secret or Apple credential is displayed.
+The accepted flow stays within one service owner's installation. It does not
+add registration for unrelated owners or multi-tenant hosting.
+
+1. ChatGPT's **Connect another account** starts a fresh OAuth authorization.
+2. The owner authenticates with the existing Passkey on the public login page.
+3. The connection page always offers existing iCloud accounts and **Add iCloud
+   account**, including when the owner already has a login session.
+4. Adding an account collects its email, Apple app-specific password and optional
+   display label, explains how to create that password, validates the provider
+   connection, then encrypts the credential server-side. Failed validation retains
+   the chooser and creates no account or client grant.
+5. Selection continues to explicit OAuth consent. Canceling creates no grant.
+   Each approved grant binds exactly one selected iCloud account; access-token
+   use, refresh and repeat consent must preserve that binding.
+6. A profile tool returns that account's stable opaque ID, email and display label
+   so a client can distinguish multiple connections. Passwords remain server-side.
+
+Existing installations migrate the original credential to one stable account.
+An already-revoked original secret cannot supply its former email; its immutable
+legacy tombstone stays unusable. The owner adds the mailbox and creates a new
+connection. Older binaries require compatible restored state after this migration.
+Existing grants stay bound to that original account; adding another account must
+not redirect existing connections. New owners can finish enrollment with no mail
+accounts. Account-specific rotation/revocation affects the named account. Message
+references, attachment/draft references, cursors and operation ledgers must be
+isolated by account even when mailbox paths, UIDVALIDITY and UIDs are identical.
+
+Observable acceptance includes two approved connections selecting different
+credentials, refresh retaining each account, stable profile IDs across restart,
+rejected cross-account references without provider work, and failed/canceled
+addition creating no grant. Built HTTP fixtures provide local integration
+evidence only; actual ChatGPT account labels, selection and reconnection require
+live client acceptance after an explicitly authorized deployment.
 
 The tutorial follows the current [official ChatGPT connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt):
 Settings → Security and login → Developer mode, then [Plugins](https://chatgpt.com/plugins)
@@ -163,12 +189,12 @@ URL (rather than Tunnel), Authentication → OAuth, the acknowledgment
 OAuth settings can remain collapsed; the screenshot does not establish their
 hidden fields. Public MCP/OAuth reachability remains a prerequisite.
 
-Step-4 copy values are selectable static text with an icon-only copy control,
+Final-stage copy values are selectable static text with an icon-only copy control,
 localized accessible names, temporary success checkmark and live feedback.
 Clipboard failure selects the text and explains manual copying; these are not
 editable form fields. Long URLs wrap within the card.
 
-Within wizard step 4, six numbered sections organize the tutorial: Open ChatGPT,
+Within the final wizard stage, six numbered sections organize the tutorial: Open ChatGPT,
 Create custom MCP server, Set up authentication, Create as a plugin, Authorize
 access, Try it. The public endpoint prerequisite comes first. The copied product
 description is `Connect your AI assistant to iCloud.`; current capability
@@ -205,3 +231,7 @@ The step-up challenge includes the canonical protected-resource metadata URL and
 `mail_request_persistent_access` is an explicit opt-in authorization action. Invoke only when the user requests continued access, with `confirm: true`. It advertises mail.read and offline_access; ordinary Mail descriptors remain unchanged. Before issuing an OAuth challenge, the server rejects missing, false or unexpected confirmation input. The challenge retains the token's still-enabled Mail scopes and existing offline_access. Consent is handled by the existing provider, never by this tool. Declining leaves existing grants usable; old tokens are not upgraded. Successful invocation reports only that this token includes offline_access, not that client refresh was tested. No automatic expiration, revocation, grant migration or mailbox call is added.
 
 Existing registered clients must already permit offline_access and refresh_token. Real ChatGPT metadata refresh, scoped challenge/consent UI, credential retention and later refresh remain acceptance gates. Descriptor-driven clients may prompt before a tool call; the server cannot enforce client UI ordering. Version 0.1.18 is deployed; real ChatGPT consent/refresh acceptance remains pending.
+
+### Consent UI candidate
+
+Consent uses generic iCloud wording and displays each account address once when its label matches. Client presentation comes from the registered client name resolved by the server only after owner-session and signed-query validation; the stable client ID remains secondary detail. Requested scope rendering and consent/account-binding checks are unchanged. This UI candidate does not activate capabilities or update client registration scopes.

@@ -1,5 +1,5 @@
 import {test,expect} from 'bun:test';
-import {signedOAuthQuery} from './browser.js';
+import {signedOAuthQuery,connectionCredential} from './browser.js';
 import {renderAuthPage} from './pages.js';
 test('signed continuation filters page parameters and preserves repeated resource parameters',()=>{
  const query=signedOAuthQuery('?client_id=c&resource=a&resource=b&ba_param=client_id&ba_param=resource&sig=s&theme=dark');
@@ -58,7 +58,7 @@ test('setup and authentication share styles, branding and accessible Passkey ico
 
  test('shared visual tokens have concrete values without circular references',async()=>{
  const {pageStyles}=await import('../ui/page.js');
- expect(pageStyles).toContain('--ui-background:#f3f6f8');
+ expect(pageStyles).toContain('--ui-background:#FFFFFF');
  for(const [,name,value] of pageStyles.matchAll(/(--ui-[a-z-]+):([^;]+);/g))expect(value).not.toContain(`var(${name})`);
  });
 
@@ -93,4 +93,30 @@ test('registered Mail consent labels retain locale and unknown-module fallback t
   expect(consentScopeLabel(labels,'calendar.write')).toBe('calendar.write');
   expect(consentScopeLabel(labels,'mail.send','fr')).toBe('Send new messages and replies from your iCloud mailbox');
  }finally{await i18n.changeLanguage('en');}
+});
+
+ test('native account connection collects transient secrets and consent identifies selected account',async()=>{
+ const {i18n}=await import('../i18n/index.js');
+ try{for(const locale of ['en','zh-TW']){await i18n.changeLanguage(locale);const html=renderAuthPage('connect');expect(html).toContain('data-connect-accounts');expect(html).toContain('data-connect-form hidden');expect(html).toContain('type="password"');expect(html).toContain('autocomplete="new-password"');expect(html).not.toContain('name="appPassword" value=');expect(html).toContain('data-auth-deny');expect(renderAuthPage('consent')).toContain('data-auth-account');}}
+ finally{await i18n.changeLanguage('en');}
+ });
+
+test('adding an account with no optional name omits the label and preserves transient password',()=>{
+ const data=new FormData();data.set('user','first@icloud.com');data.set('appPassword','transient');data.set('label','   ');
+ expect(connectionCredential(data)).toEqual({user:'first@icloud.com',appPassword:'transient'});
+ data.set('label',' Work ');expect(connectionCredential(data).label).toBe('Work');
+});
+
+ test('saved-account recovery explicitly requires a fresh native connection in both locales',async()=>{
+ const {authT}=await import('./i18n.js');const {i18n}=await import('../i18n/index.js');
+ try{for(const locale of ['en','zh-TW']){await i18n.changeLanguage(locale);expect(authT('savedReconnect')).toContain('Connect another account');expect(authT('connectionExpired')).toContain('Connect another account');}}
+ finally{await i18n.changeLanguage('en');}
+ });
+
+test('account display deduplicates email labels and retains distinct names',async()=>{
+ const {accountDisplay}=await import('./browser.js');
+ expect(accountDisplay({label:' Owner@icloud.com ',user:'owner@icloud.com'})).toEqual({primary:'owner@icloud.com'});
+ expect(accountDisplay({label:'Personal',user:'owner@icloud.com'})).toEqual({primary:'Personal',secondary:'owner@icloud.com'});
+ expect(accountDisplay({label:' ',user:'owner@icloud.com'})).toEqual({primary:'owner@icloud.com'});
+ const html=renderAuthPage('consent');expect(html).toContain('Authorize iCloud access');expect(html).toContain('data-auth-client-id');expect(html).not.toContain('Authorize mailbox access');
 });

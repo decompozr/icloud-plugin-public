@@ -6,7 +6,7 @@ import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport/index.js';
 import type {
   AppendedMessage, AttachmentMetadata, MailDownload, MailGateway, MailMessageInput,
-  MailSession, MailSelectionOptions, Mailbox, MailboxLease, MessageMetadata, MessageSummary, ParsedMessage, ProviderMove, ProviderSearch, SendResult,
+  MailSession, MailSelectionOptions, Mailbox, MailboxLease, MailMoveRecovery, MessageMetadata, MessageSummary, ParsedMessage, ProviderMove, ProviderSearch, SendResult,
 } from '../domain/mail.js';
 
 export interface ICloudCredentials { user: string; password: string }
@@ -100,13 +100,44 @@ class ICloudSession implements MailSession {
       chunks: chunks(), cancel: () => downloaded.content.destroy() };
   }
   private async store(uid: number, flag: string, enabled: boolean): Promise<boolean> {
-    try { return enabled ? await this.client.messageFlagsAdd(uid, [flag], { uid: true })
-      : await this.client.messageFlagsRemove(uid, [flag], { uid: true }); }
+    if (!Number.isSafeInteger(uid) || uid < 1 || uid > 4294967295
+      || !(['\\Seen', '\\Flagged', '\\Deleted'].includes(flag) || /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(flag))) {
+      throw new MailOperationError('invalid_input', 'Invalid exact message flag update');
+    }
+    const client = this.client, mailbox = client.mailbox;
+    if (!mailbox || mailbox.readOnly) throw new MailOperationError('forbidden', 'A writable mailbox selection is required');
+    if (enabled && mailbox.permanentFlags && !mailbox.permanentFlags.has(flag)
+      && (flag.startsWith('\\') || !mailbox.permanentFlags.has('\\*'))) {
+      throw new MailOperationError('unsupported_capability', 'Mailbox does not permit this flag');
+    }
+    if (!('exec' in client) || typeof client.exec !== 'function') throw new MailOperationError('unsupported_capability', 'Checked UID STORE unavailable');
+    // The SDK's STORE convenience API conflates rejection and lost acknowledgement.
+    // Owned sessions disable auto-IDLE so this checked command cannot bypass an IDLE break.
+    try {
+      const result: unknown = await client.exec('UID STORE', [
+        { type: 'SEQUENCE', value: String(uid) },
+        { type: 'ATOM', value: enabled ? '+FLAGS' : '-FLAGS' },
+        [{ type: 'ATOM', value: flag }],
+      ]);
+      if (typeof result !== 'object' || result === null || !('next' in result) || typeof result.next !== 'function') {
+        throw new MailOperationError('outcome_unknown', 'Invalid UID STORE acknowledgement');
+      }
+      try {
+        const status = 'response' in result && typeof result.response === 'object' && result.response !== null
+          && 'command' in result.response ? result.response.command : undefined;
+        if (status === 'NO' || status === 'BAD') throw new MailOperationError('upstream_failure', 'Provider rejected the mail update');
+        if (status !== 'OK') throw new MailOperationError('outcome_unknown', 'UID STORE was not confirmed');
+        return true;
+      } finally { result.next(); }
+    }
     catch (error: unknown) { throw mutationError(error); }
   }
   mark(uid: number, seen: boolean): Promise<boolean> { return this.store(uid, '\\Seen', seen); }
   flag(uid: number, flagged: boolean): Promise<boolean> { return this.store(uid, '\\Flagged', flagged); }
-  tag(uid: number, keyword: string, enabled: boolean): Promise<boolean> { return this.store(uid, keyword, enabled); }
+  async tag(uid: number, keyword: string, enabled: boolean): Promise<boolean> {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(keyword)) throw new MailOperationError('invalid_input', 'Invalid custom keyword');
+    return this.store(uid, keyword, enabled);
+  }
   /** The SDK exposes exec at runtime but omits it from declarations. Narrow and validate
    * this one command rather than widening the SDK type or using its unsafe fallback. */
   private async expungeExactUid(uid: number): Promise<void> {
@@ -135,6 +166,7 @@ class ICloudSession implements MailSession {
     }
     // Never call messageMove without MOVE: its fallback ignores deletion failures.
     // Never call messageDelete: it ignores STORE failures and can issue global EXPUNGE.
+    let recovery: MailMoveRecovery | undefined;
     try {
       const copied = await this.client.messageCopy(uid, destination, { uid: true });
       const destinationUid = copied && copied.uidMap?.get(uid);
@@ -142,7 +174,8 @@ class ICloudSession implements MailSession {
         || destinationUid < 1 || destinationUid > 4294967295 || copied.uidValidity === undefined || copied.uidValidity <= 0n || copied.uidValidity > 4294967295n) {
         throw new MailOperationError('outcome_unknown', 'COPY destination identity was not confirmed');
       }
-      if (!await this.client.messageFlagsAdd(uid, ['\\Deleted'], { uid: true })) throw new MailOperationError('outcome_unknown', 'Source deletion flag was not confirmed');
+      recovery = { copiedTarget: { mailbox: destination, uid: destinationUid, uidValidity: copied.uidValidity.toString() } };
+      await this.store(uid, '\\Deleted', true);
       const flagged = await this.client.fetchOne(uid, { flags: true }, { uid: true });
       if (!flagged || flagged.uid !== uid || !flagged.flags?.has('\\Deleted')) throw new MailOperationError('outcome_unknown', 'Source deletion flag could not be verified');
       await this.expungeExactUid(uid);
@@ -151,7 +184,7 @@ class ICloudSession implements MailSession {
       return { uid: destinationUid, uidValidity: copied.uidValidity.toString() };
     } catch {
       // COPY may already exist at the destination. Never retry or undo blindly.
-      throw new MailOperationError('outcome_unknown', 'Safe move completion was not confirmed; inspect source and destination before retrying');
+      throw new MailOperationError('outcome_unknown', 'Safe move completion was not confirmed; inspect source and destination before retrying', recovery);
     }
   }
   async append(mailbox: string, source: Uint8Array): Promise<AppendedMessage | undefined> {
@@ -169,7 +202,7 @@ export class ICloudMailAdapter implements MailGateway {
     const task = this.queue.then(async () => {
       const client = this.dependencies.createClient?.() ?? new ImapFlow({ host: 'imap.mail.me.com', port: 993, secure: true,
         auth: { user: this.credentials.user, pass: this.credentials.password }, logger: false,
-        connectionTimeout: 15000, greetingTimeout: 15000, socketTimeout: 30000,
+        connectionTimeout: 15000, greetingTimeout: 15000, socketTimeout: 30000, disableAutoIdle: true,
         tls: { rejectUnauthorized: true } });
       try { await client.connect(); return await run(new ICloudSession(client)); }
       catch (error: unknown) { throw providerError(error); }
@@ -204,8 +237,8 @@ export class ICloudMailAdapter implements MailGateway {
     try {
       const result = await transport.sendMail(this.message(input));
       return { messageId: result.messageId,
-        accepted: result.accepted.map(address => typeof address === 'string' ? address : address.address),
-        rejected: result.rejected.map(address => typeof address === 'string' ? address : address.address) };
+        accepted: [...result.accepted],
+        rejected: [...result.rejected] };
     } catch (error: unknown) { throw providerError(error); }
     finally { transport.close(); }
   }

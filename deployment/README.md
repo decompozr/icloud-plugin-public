@@ -60,10 +60,15 @@ not authorization to enroll a new owner.
 The launch-agent template is optional and never installed automatically. Replace
 all paths and create private log directories before explicit `launchctl bootstrap`.
 It starts after user login; logout/sleep/offline interrupt availability. Stop only
-`local.icloud-plugin` using `launchctl bootout gui/$(id -u)/local.icloud-plugin`.
+`local.icloud-mail-mcp` using `launchctl bootout gui/$(id -u)/local.icloud-mail-mcp`,
+after verifying that exact label owns this installation.
 Once stopped, `bun bin/install uninstall /absolute/install`
-removes only owned releases/current/marker. It retains state, custody, config,
-logs and unknown files. Remove the optional plist separately. OAuth grant
+removes only owned releases/current. The corrected source installer retains its
+ownership marker, state, custody, config, logs and unknown files. Reinstall from
+a staged release at the same prefix requires that retained regular-file marker
+and absent current/releases; arbitrary or symlinked directories are rejected.
+Older distributions that removed the marker require explicit recovery rather
+than automatic adoption. Remove the optional plist separately. OAuth grant
 revocation and Apple app-password revocation are separate operator actions;
 uninstall does not delete mail or alter unrelated Tailscale routes.
 
@@ -291,3 +296,21 @@ Production image manifest SHA256:
 Runtime UID 10001 and absence of `test-fixtures` in installed output were checked.
 The audit image, disposable test images, extra bundled regression and temporary
 logs were removed; the builder was returned to its prior stopped state.
+
+## Single-account production preparation
+
+See [the current audit](../docs/single-account-production-readiness.md). Startup
+now rejects nonprivate, foreign-owned or symlinked state/custody directories and
+sensitive files (including existing SQLite sidecars); it never repairs permissions.
+Inspect modes before an approved upgrade. Keep state/custody in dedicated private
+directories, and preserve the existing account and OAuth databases. The preparation
+artifact retains baseline version 0.1.26 for fixture checks only: select a new
+release version and rebuild before any install or publication.
+
+Before an approved deployment, stop only the verified owned process, take a
+consistent protected backup of config, all databases and sidecars, custody and
+selected release, and verify a rollback plan against that snapshot. A live file
+copy of SQLite state is not a consistent rollback guarantee. Existing backups are
+historical; no new stopped snapshot or live rollback rehearsal was performed by
+the preparation. Login/reboot/sleep reliability of the optional LaunchAgent must
+be accepted separately; the template does not install a service.

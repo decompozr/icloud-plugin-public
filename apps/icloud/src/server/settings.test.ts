@@ -1,5 +1,5 @@
 import{test,expect}from'bun:test';
-import{mkdtempSync,writeFileSync,readFileSync,rmSync,statSync}from'node:fs';
+import{mkdtempSync,writeFileSync,readFileSync,rmSync,statSync,chmodSync,renameSync,symlinkSync}from'node:fs';
 import{tmpdir}from'node:os';
 import{join}from'node:path';
 import{readSettings}from'./settings.js';
@@ -37,4 +37,22 @@ test('Photos is opt-in, resolves explicit paths, and is unavailable in container
  const source='public_origin="https://host.example"\nprivate_origin="https://host.example:8443"\nstate_directory="state"\nmaster_key_file="custody/key"\ninstallation_marker="custody/marker"';
  const photos='\n[photos]\npython="runtime/python"\nlibrary="library.photoslibrary"\nnative_helper="runtime/helper"';
  try{writeFileSync(path,source);expect(readSettings(path).photos).toBeUndefined();writeFileSync(path,source+photos);const p=readSettings(path).photos!;expect(p.python).toBe(join(dir,'runtime/python'));expect(p.allow_writes).toBe(false);expect(p.allow_delete).toBe(false);writeFileSync(path,source+'\nruntime_mode="container"'+photos);expect(()=>readSettings(path)).toThrow('Photos requires native macOS runtime');}finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+test('startup rejects widened state/custody and symlinks without repairing them',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'icloud-custody-'));
+ try{
+  const path=join(dir,'app.toml');writeFileSync(path,'public_origin="https://host.example"\nprivate_origin="https://host.example:8443"\nstate_directory="state"\nmaster_key_file="custody/key"\ninstallation_marker="custody/marker"');
+  const settings=readSettings(path),first=installation(settings,true);first.store.close();first.masterKey.fill(0);
+  const auth=join(settings.state_directory,'auth.sqlite');writeFileSync(auth,'',{mode:0o600});
+  for(const target of [settings.state_directory,join(dir,'custody'),settings.master_key_file,settings.installation_marker,join(settings.state_directory,'owner.sqlite'),auth]){
+   const original=statSync(target).mode&0o777;chmodSync(target,original|0o040);
+   expect(()=>installation(settings)).toThrow();expect(statSync(target).mode&0o777).toBe(original|0o040);chmodSync(target,original);
+  }
+  for(const target of [settings.master_key_file,settings.installation_marker,auth,settings.state_directory]){
+   const saved=target+'.saved';renameSync(target,saved);symlinkSync(saved,target);
+   expect(()=>installation(settings)).toThrow();rmSync(target);renameSync(saved,target);
+  }
+  const reopened=installation(settings);reopened.store.close();reopened.masterKey.fill(0);
+ }finally{rmSync(dir,{recursive:true,force:true});}
 });

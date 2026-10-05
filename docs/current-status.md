@@ -1,3 +1,41 @@
+## Single-account production preparation (2026-10-04 UTC)
+
+The installed diagnostic release remains 0.1.26. The current preparation is based
+on diagnostic commit `b85c33f`, after the successful custom MCP acceptance, and
+does not change the service, accounts, credentials, grants or routes. Current
+scope and evidence supersede broad or historical claims below:
+[production audit](single-account-production-readiness.md).
+
+## Reconnect redirect diagnostic iteration 0.1.26
+
+Closes the authorization302 diagnostic gap by reducing the provider-created
+redirect to one exact allowlisted OAuth error code. Redirect URL/header/query,
+state, code, descriptions and identifiers never enter capture. Tests cover
+actual synthetic302 invalid_scope and secret canary exclusion. The original
+activation marker and30-minute deadline are preserved across this iteration.
+No grants, credentials or network routes change. GitHub publication is paused.
+
+## Reconnect diagnostic release 0.1.25
+
+Adds a disabled-by-default, owner-only local capture for known discovery,
+registration, authorization, token and MCP routes. Records only UTC timestamp,
+fixed stage/route, HTTP status and allowlisted error code; no credentials,
+headers, queries, bodies, identities or provider content. The empty private
+enable marker grants a 30-minute window and retention is capped at256 records.
+No grants or network routes change. See [activation and privacy contract](reconnect-diagnostics.md).
+Publication and production activation remain separately verified outcomes.
+
+## Readiness release 0.1.24
+
+Adds account/client-scoped readiness observations, contextual registration recovery,
+explicit unsaved capability changes and restored account chooser layout. Observations
+come from verified bearer requests and successful allowlisted read tools; Calendar
+completion requires listing plus an event read/query. They invalidate conservatively
+on expiry or relevant metadata, credential and policy changes and clear on restart.
+No grants are widened and no consent or provider operation is started by the UI.
+See [evidence contract](readiness-evidence.md). Publication and installed acceptance
+are recorded separately; fixture screenshots are not live ChatGPT acceptance.
+
 # Source architecture and evidence status
 
 ## Photos implementation (2026-10-04)
@@ -44,6 +82,120 @@ schema slices. No authenticated handle or live Photos result has been obtained.
 
 ## Production installation verified (2026-10-03 UTC)
 
+## Audit corrections integrated with multi-account source (2026-10-03 UTC)
+
+The source now preserves unknown outcomes when STORE acknowledgement is missing,
+stops remaining batch items, and carries confirmed COPY destination evidence as
+`recovery.copiedTarget` through single and batch MCP results without claiming a
+successful move. Send/reply and draft creation recheck current read and action
+policy after asynchronous preparation, immediately before provider submission;
+revoked operations retain rejected receipts, while already submitted work drains.
+Uninstall retains installation ownership proof so same-prefix reinstall preserves
+private state; arbitrary, unmarked or symlinked prefixes remain rejected.
+
+The corrections are integrated with `origin/main` at `b87f3d7` (multi-account
+release 0.1.20). A fresh `bun bin/checkpoint` passed application/tooling typechecks,
+production build, 196 application tests (887 assertions), 10 tooling tests
+(126 assertions), E2E compilation and all 11 built E2E tests (253 assertions).
+All four corrections received independent review before this integration.
+The final integration review accepted the result after 16 targeted tests
+(105 assertions).
+New production-module regressions verify that single and batch move-recovery
+identities retain the authenticated account and are rejected across accounts.
+The integration review also exposed a late annotation check that could replace
+an in-flight outcome with a rejection after credential revocation. Result
+annotation now captures account identity at admission: completed and unknown
+results retain their evidence, while new invocations still enforce current
+credentials. Single and batch regressions cover both outcomes and denied
+subsequent provider access.
+Policy revocation tests use a verified nonlegacy account context, retaining
+account-scoped operation receipts and restart replay.
+Regression fixtures cover real ImapFlow STORE responses, staged move failures,
+SQLite-backed policy changes and retained-prefix CLI reinstall. Better Auth's
+existing SQLite array/TEXT mapping warnings remain visible; the checks passed.
+The STORE adapter's private ImapFlow command boundary remains a maintenance
+dependency guarded by protocol tests and command-shape validation.
+
+These are source and synthetic-fixture results. No release archive, installed
+application, live mailbox, authorization grant or route was changed by this work.
+The full integration checkpoint exited successfully. Subsequent read-only shell
+launches briefly hit the host file-descriptor limit and recovered; that host
+condition did not invalidate the completed checkpoint. Existing live acceptance below
+is separate and does not establish live behavior of these new corrections.
+
+## Automatic renewal acceptance (2026-10-03 04:52 UTC)
+
+**PASS for one real ChatGPT renewal cycle.** The parent's single post-expiry mailbox-list call succeeded at04:52:20. Same-client, unchanged-consent metadata confirms refresh rotation and new access retaining all four scopes; the original authorization-code link was inherited, not fresh manual authorization. New access expires05:52:20 UTC. This closes the pending renewal check for the observed cycle only, not indefinite reliability. [Exact evidence and limits](oauth-request-scope-diagnosis.md#real-chatgpt-automatic-renewal--one-cycle-accepted-2026-10-03). ZIP-name matching, receiver attachment byte/hash equality, and live idempotency remain separate unresolved items.
+
+## Latest bounded Mail acceptance (2026-10-03, parent-reported)
+
+The owner-authorized 04:02 UTC live test passed draft attachment download, existing-draft replacement, draft send with retained source, and original-MIME forwarding to Gmail. Source download bytes/SHA-256 were verified; Gmail receipt and nested MIME preservation were independently reviewed. Receiver-side raw attachment download returned403, so receiver byte/hash equality remains unverified. Receipt replay was blocked before execution: live idempotency was not tested, and no retry is requested. Draft432 remains, old test draft is Trash34629, original draft430 and unrelated mail were untouched. See [the exact live receipts and limits](mailbox-tools.md#bounded-live-mail-acceptance--2026-10-03-parent-reported). Earlier pending statements below are historical for these tested paths. The subsequent post-expiry verification passed one automatic-renewal cycle at04:52:20 UTC, as recorded above.
+
+## Multi-account source checkpoint (2026-10-03)
+
+Application **0.1.20** is published as the stable native `darwin-arm64` release
+from PR #5 merge commit `b87f3d7fd7756bb176f48d3e944585412e490add`:
+[release v0.1.20](https://github.com/decompozr/icloud-plugin/releases/tag/v0.1.20).
+The authorized local upgrade completed; release and installation evidence follows
+below. The versioned candidate's full `bun bin/checkpoint` passed, including all
+190 tests summarized here.
+
+The source implements the accepted owner-only account chooser/add flow, three-stage
+owner setup without Apple credentials, per-grant account binding and stable profile
+identity. Independent source review findings are closed. Frozen dependency installs
+were explicitly approved and completed without lockfile changes.
+
+The final combined source checks passed:
+
+- `bun bin/typecheck`: application and tooling typechecks.
+- `bun bin/build`: production application and actual browser bundles.
+- `bun bin/test`: 170 application tests / 813 assertions and nine tooling tests /
+  97 assertions.
+- `bun bin/e2e`: 11 built HTTP/protocol E2E tests / 253 assertions.
+- `git diff --check`: no whitespace errors.
+
+The passing regressions cover actual legacy and new account bindings, simultaneous
+account selections, and rejecting formerly issued unbound refresh tokens when no
+legacy account exists (`invalid_grant`). Owner HTTP E2E covers two accounts with
+identical mailbox/UID identities, cross-account reference rejection, stable profiles
+and account-preserving refresh/restart. These tests use synthetic Passkeys and mail
+providers; known Better Auth SQLite TEXT/string-array mapping warnings remain.
+
+Rendered browser interaction could not be verified: CUA in-app/Chrome surfaces were
+unavailable, and native Chrome returned `cgWindowNotFound`. Narrow-layout changes
+have source review and passing HTTP/HTML integration checks, not rendered-screen
+visual or interaction acceptance. Live ChatGPT **Connect another account**,
+account-label/profile and reconnection acceptance have not been performed.
+
+## Application 0.1.20 release and installed upgrade (2026-10-03 UTC)
+
+The published native archive is 24,369,484 bytes with SHA-256
+`cc10c3bfcd3b21f087a0d0e568cae2304a85226ba90fd711e9ff11292174324d`.
+Packaging used `COPYFILE_DISABLE=1` to exclude macOS AppleDouble metadata.
+Only `darwin-arm64` is released; there is no 0.1.20 Linux release claim.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Calendar source-module acceptance complete (2026-10-03 UTC)
+
+The owner accepted a production-ready registered Calendar module, including
+closing the sharing gap and cleaning all experiments. [Production
+coverage](calendar-production.md) tracks operations, permission boundaries and
+Dev/Build/Release/Install/Update/Uninstall acceptance. The registered source passed its independent gate and final build/tests;
+production-path live smoke also passed with its resources cleaned. The user accepted disclosed recipient
+verification limits, and final sharing revocation/cleanup restored four original
+calendars with zero test markers. The accepted source-module goal is complete;
+no deployment occurred.
+
+Integration initially used an older Mail-only source base. Read-only comparison
+identified the current multi-account base; the task branch was fast-forwarded to
+`00415c6`, preserving all Calendar work. Calendar must now use verified owner and
+account context, account-bound operations and credentials, and account-isolated
+journals. Prior installed-release receipts are historical, not a deployment of
+this Calendar work.
+
+## Historical 0.1.19 production installation (2026-10-03 UTC)
+
 The released `icloud-plugin install` command installed the stable 0.1.19
 application with installer1 packaging into `~/.decompozr/plugins/icloud`.
 The detached launcher PID 15377 (parent PID 1) starts server PID 15381 from
@@ -65,8 +217,8 @@ are recorded in [deployment lifecycle](deployment-lifecycle.md).
 The source now separates the Mail feature from shared module registration, MCP,
 authentication, owner storage and server infrastructure. Current boundaries and
 extension limits are documented in [architecture](architecture.md) and the
-[source subsystem index](../apps/icloud/src/README.md). Calendar remains unimplemented
-in production. Every source subsystem has local ownership/design documentation;
+[source subsystem index](../apps/icloud/src/README.md). Calendar now has a registered source module; live production-path acceptance
+and deployment are tracked separately in [Calendar coverage](calendar-production.md). Every source subsystem has local ownership/design documentation;
 these documents are part of the implementation, not optional follow-up material.
 
 This refactor does not establish which release is currently running, migrate runtime
@@ -122,8 +274,9 @@ localization and ledger-disposal corrections:
   whitespace checks passed.
 
 The Calendar contribution is a synthetic test fixture, not a shipped Calendar
-module, CalDAV integration or evidence of real calendar access. Current enrollment
-still uses one Apple account credential form; shared copy/client artifact content
+module, CalDAV integration or evidence of real calendar access. That refactor
+retained one Apple account credential form; the subsequent accepted multi-account
+source change moves credential addition into OAuth connection. Shared copy/client artifact content
 is not a fully module-generated UI. No live mailbox operations, physical Passkey
 ceremonies, deployment/routing changes or actual client catalog refresh were run
 for this refactor. Historical acceptance records follow separately.
@@ -186,7 +339,7 @@ Historical read-only snapshot: native release **0.1.16**, owned PID **9988**. Cu
 | Send and reply | Yes; operator sending enabled | Synthetic SMTP/error/replay/threading tests. User reported iCloud→Gmail→iCloud→Gmail three-email exchange in one thread, correct reply headers: live PASS. This does not authorize additional sends. |
 | Create draft | Yes | Synthetic APPEND/identity/replay tests; user reported saved Drafts UID430/UIDVALIDITY4 with Chinese text/emoji and readback: live PASS. Editing or sending an existing draft is not implemented. |
 | Unsubscribe discovery/submission | Yes, bounded supported mechanisms | Header classification and production outbound destination/redirect/bounds policy tested with fixtures. Real subscription cancellation not live-accepted; submission is not confirmation and arbitrary browsing is not supported. |
-| Single-owner Passkey/OAuth setup | Yes | Real synthetic signed Passkey/HTTP OAuth tests; user completed actual owner enrollment and connected ChatGPT. No multi-account support. |
+| Single-owner Passkey/OAuth setup | Yes | Real synthetic signed Passkey/HTTP OAuth tests; user completed actual owner enrollment and connected ChatGPT. The deployed baseline is single-account; multi-account source acceptance is tracked below. |
 | Account management and capability controls | Yes | Private owner-session/Origin checks, credential rotation/revoke and persisted policy tests; confirmed elevation required. UI controls are deployed but post-upgrade live owner interaction has not been independently exercised. Grants are never automatically expanded. |
 | Incremental scope discovery/consent | Corrected in 0.1.16 | Actual installed auth+MCP same-client lifecycle regression passed 1 test/90 assertions, including expiry, refresh rotation, rejected scope escalation (400), rejected replay of old/successor refresh tokens (400), revocation, and an unaffected separate read-only grant; policy-enabled descriptors expose read+action scopes while calls still enforce permission. Actual ChatGPT upgrade without reinstall remains unverified; legacy clients with narrower registered ceilings are not automatically migrated. |
 | Private wizard, shared UI/i18n, monochrome icon | Yes | Typed English/Chinese resources, component checks and prior browser wizard evidence; new deployed icon hash verified. Complete latest dashboard visual/accessibility walkthrough still pending. |
@@ -195,8 +348,9 @@ Historical read-only snapshot: native release **0.1.16**, owned PID **9988**. Cu
 | Native build/release/install/update | Yes; native runtime active | Immutable artifacts, installed restart/custody checks and scoped actual updates. LaunchAgent template exists; persistent login/reboot service installation is not completed. |
 | Apple Container mode | Implemented and isolated-tested, not live | Linux UID10001 E2E11/236 and installed auth+MCP1/78 passed. Host proxy path tested; native port publishing previously failed. Real production container/Tailscale/user-account acceptance remains open. |
 | Doctor and setup-plan commands | Repository tools implemented | Read-only doctor tested and run against live service; setup-plan emits validated TOML/plist/scoped route proposals only. It does not provision, load services or change routes. |
-| Calendar | Playground only; not deployed | Synthetic parser/loopback CalDAV fixtures10/55. PROPFIND/REPORT responses are canned: these do not prove search-filter correctness or independent CalDAV interoperability. No production files, MCP tools, scopes or real iCloud calendar calls. |
-| Drive, Contacts, Photos, cross-feature workflows, multi-account | Not implemented | Deferred roadmap, not current product capabilities. |
+| Calendar | Registered source gate passed; not deployed | Independent Calendar46/181; final app243/1087 and tooling10/134, both typechecks/build and disposable artifact lifecycle pass. Registered real-iCloud smoke16invocations passed and cleaned its resources. User accepted recipient verification limits; final sharing revoke/cleanup verified four originals and zero test markers. See [production coverage](calendar-production.md). |
+| Multiple iCloud accounts | Locally verified; native 0.1.20 installed | Owner-only OAuth chooser/add, account-bound grant/refresh/profile and cross-account reference checks pass. Rendered browser and actual ChatGPT Connect another account/profile/reconnection acceptance remain open. |
+| Drive, Contacts, Photos, cross-feature workflows | Not implemented | Deferred roadmap, not current product capabilities. |
 
 ## Safe next checks
 
@@ -209,3 +363,38 @@ Evidence detail and historical receipts: [roadmap](roadmap.md), [mail contracts]
 The historical 0.1.16 Mail surface contains 14 tools: `mail_list_mailboxes`, `mail_search`, `mail_read`, `mail_mark`, `mail_move`, `mail_flag`, `mail_tag`, `mail_organize`, `mail_batch`, `mail_send`, `mail_reply`, `mail_draft_create`, `mail_unsubscribe_discover`, and `mail_unsubscribe_submit`. Release 0.1.17 adds `mail_attachment_download`, `mail_draft_read`, `mail_draft_edit`, `mail_draft_send`, and `mail_forward`, for 19 installed tools. Availability follows operator policy; invocation additionally requires the corresponding OAuth scopes.
 
 A separate read-only Dot log observation recorded a cloud-backend DNS `ENOTFOUND` at 22:55:22Z and a connected event at 22:57:34Z. These historical events have no established mapping to the user's current task. Current DNS resolution and a separate Bun service-health request returning 200 are different observations; they do not identify the exact Dot failure. No restart or configuration change was made. The OAuth fixture lifecycle results above do not establish global session revocation.
+
+Private administration UI preparation now adds an owner-protected root overview,
+Accounts, Client connections, System/diagnostics and a resumable account-only wizard.
+See [admin shell](admin-shell.md) for routes, uncertainty semantics, fixture browser
+checks and the proposed private root mapping. This candidate is local only; live
+8443 routing, runtime, credentials and supervision are unchanged. The current source
+version still collides with installed 0.1.26 and requires a new release version before
+an authorized deployment.
+
+The user reported reinstalling the custom MCP connection at 22:38 UTC on October 4.
+Earlier grant lineage and proactive refresh observations describe the previous
+connection. Do not transfer those claims to the reinstalled connection; fresh
+read-only acceptance is a separate check in the parent task.
+
+
+## Native release 0.1.27 candidate
+
+Release 0.1.27 integrates the reviewed single-account security fixes and private
+owner administration flow from 8bb6556, preserving its credential/grant/policy
+contracts. The user explicitly approved publication, a controlled native restart
+and only the private 8443 root mapping on October 4 at 23:06 UTC. No supervision
+installation, broader security setting change, connector reconnect or screenshot
+upload is included. The release is native darwin-arm64/Bun 1.4.2; Linux remains
+unvalidated. Publication and live deployment are recorded separately after checks.
+
+The repository currently has no configured GitHub Actions workflows or check runs.
+Local full-suite, artifact, fixture-browser and independent review evidence is the
+release validation; no passing remote CI claim is made.
+
+
+Native patch 0.1.28 corrects private-root navigation to enter `/icloud/admin` before
+authentication. Owner cookies retain their narrow `/icloud` scope, preserving
+existing sessions and avoiding exposure to unrelated root applications on the
+same hostname. The approved private 8443 root proxy remains unchanged. A browser
+regression uses a real fixture cookie with path `/icloud` and no owner header.

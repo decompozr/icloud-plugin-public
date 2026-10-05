@@ -16,8 +16,13 @@ only after the owner store commits that exact user ID. Interrupted enrollment ca
 leave an unowned Passkey/session; it cannot authorize clients or administer the
 installation. The admin workflow can resume eligible staged enrollment.
 
-Public sign-in and consent issue scoped OAuth access through code/PKCE and optional
-refresh flows. Bearer verification uses authenticated introspection and checks
+Public sign-in, account selection/addition and consent issue scoped OAuth access
+through code/PKCE and optional refresh flows. With an account store, every fresh
+authorization reaches `/icloud/connect`, including authenticated sessions. Signed
+OAuth continuations bind the chosen account to explicit consent and grants; bearer
+introspection returns `accountId`, and refresh preserves it. The chooser validates
+new Apple credentials before encrypted storage; clients receive no Apple password.
+Existing grants migrate only to the immutable original account identity. Bearer verification uses authenticated introspection and checks
 active token, owner, expiry, issuer and resource audience. Scope declarations and
 current allowed scopes come from application/module composition; authentication
 does not impose a Mail-specific minimum scope. The MCP host enforces each tool's
@@ -35,7 +40,7 @@ auth secret. Secret rotation requires an explicit migration, not silent replacem
 
 Provider state includes Passkeys, sessions, challenges, clients, consents and grants.
 It is distinct from the opaque owner credential store. Initialize one factory per
-auth DB at a time. `pages.ts` renders sign-in/consent pages; `browser.ts` performs
+auth DB at a time. `pages.ts` renders sign-in/consent pages and the connection handler owns account selection; `browser.ts` performs
 same-origin SimpleWebAuthn ceremonies. Scope labels are supplied by composition as a string or locale-to-description map
 and inserted as text, rather than hardcoded Mail semantics. `scope-labels.ts` selects
 the current page locale (case-insensitive), then the module default, then the scope

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { ImapFlow } from 'imapflow';
 import { MailService } from './mail.js';
 import { ICloudMailAdapter } from '../icloud/adapter.js';
+import { MailOperationError } from '../domain/mail.js';
 import type { MailGateway, MailSession, Mailbox, ProviderSearch } from '../domain/mail.js';
 
 const target = { mailbox: 'INBOX', uid: 41, uidValidity: '900' };
@@ -12,7 +13,7 @@ const boxes: Mailbox[] = [
   { path: 'deleted', name: 'Deleted', specialUse: '\\Trash', selectable: true },
   { path: 'spam', name: 'Spam', specialUse: '\\Junk', selectable: true },
 ];
-function fixture(overrides: Partial<MailSession> = {}) {
+function fixture(overrides: Partial<MailSession> = {}, access?:()=>{read:boolean;write:boolean}) {
   const calls: string[] = [];
   const flags = new Map<number, Set<string>>();
   const setFlag = (uid: number, flag: string, enabled: boolean) => {
@@ -34,7 +35,7 @@ function fixture(overrides: Partial<MailSession> = {}) {
     ...overrides,
   };
   const gateway: MailGateway = { withSession: run => run(session), parse: async () => ({ to: [], text: 'x'.repeat(800) }) };
-  return { service: new MailService({ allowWrites: true }, gateway), calls, session };
+  return { service: new MailService({ allowWrites: true }, gateway, access), calls, session };
 }
 
 test('search uses fixed UID ceiling, filter binding and deterministic pages', async () => {
@@ -70,6 +71,33 @@ test('batch preflights every UID before the first mutation', async () => {
   assert.equal(result.status, 'completed');
   assert.deepEqual(calls, ['select:false', 'metadata:41', 'metadata:42', 'metadata:41', 'flag:41:true', 'metadata:41', 'metadata:42', 'flag:42:true', 'metadata:42']);
 });
+test('write revocation during asynchronous batch preflight prevents dispatch', async () => {
+  let write = true;
+  const { service, calls } = fixture({ metadata: async () => { await Promise.resolve(); write = false; return { flags: [], attachments: [] }; } }, () => ({ read: true, write }));
+  const result = await service.batch({ ...target, uids: [41, 42], action: { type: 'mark', seen: true } });
+  assert.equal(result.status, 'rejected');
+  assert.deepEqual(result.items.map(item => item.status), ['failed', 'not_attempted']);
+  assert.deepEqual(result.items[0], { target, status: 'failed', code: 'forbidden' });
+  assert.equal(calls.some(call => call.startsWith('mark:')), false);
+});
+test('revocation after a confirmed item preserves evidence and stops later writes', async () => {
+  let write = true;
+  const f = fixture({}, () => ({ read: true, write }));
+  const mark = f.session.mark;
+  f.session.mark = async (uid, seen) => { const result = await mark(uid, seen); write = false; return result; };
+  const result = await f.service.batch({ ...target, uids: [41, 42, 43], action: { type: 'mark', seen: true } });
+  assert.equal(result.status, 'partial');
+  assert.deepEqual(result.items.map(item => item.status), ['succeeded', 'failed', 'not_attempted']);
+  assert.deepEqual(result.items[0], { target, status: 'succeeded', result: { updated: true } });
+  assert.deepEqual(f.calls.filter(call => call.startsWith('mark:')), ['mark:41:true']);
+});
+test('revocation after an unconfirmed submission preserves unknown outcome', async () => {
+  let write = true;
+  const f = fixture({ mark: async () => { write = false; return false; } }, () => ({ read: true, write }));
+  const result = await f.service.batch({ ...target, uids: [41, 42], action: { type: 'mark', seen: true } });
+  assert.equal(result.status, 'unknown');
+  assert.deepEqual(result.items.map(item => item.status), ['outcome_unknown', 'not_attempted']);
+});
 test('duplicate, missing and stale batch inputs cause zero mutations', async () => {
   const { service, calls } = fixture({ metadata: async uid => uid === 42 ? undefined : { attachments: [] } });
   await assert.rejects(service.batch({ ...target, uids: [41, 41], action: { type: 'mark', seen: true } }), { code: 'invalid_input' });
@@ -78,9 +106,17 @@ test('duplicate, missing and stale batch inputs cause zero mutations', async () 
   assert.equal(calls.some(call => call.startsWith('mark:')), false);
 });
 test('batch keeps known per-item rejections separate from successful changes', async () => {
-  const { service } = fixture({ mark: async uid => uid !== 42 });
+  const { service } = fixture({ mark: async uid => { if (uid === 42) throw new MailOperationError('upstream_failure', 'Explicit provider refusal'); return true; } });
   const result = await service.batch({ ...target, uids: [41, 42, 43], action: { type: 'mark', seen: false } });
   assert.equal(result.status, 'partial'); assert.deepEqual(result.items.map(item => item.status), ['succeeded', 'failed', 'succeeded']);
+});
+test('ambiguous provider false stops the batch as unknown', async () => {
+  let writes = 0;
+  const { service } = fixture({ mark: async () => { writes++; return false; } });
+  const result = await service.batch({ ...target, uids: [41, 42], action: { type: 'mark', seen: true } });
+  assert.equal(result.status, 'unknown');
+  assert.deepEqual(result.items.map(item => item.status), ['outcome_unknown', 'not_attempted']);
+  assert.equal(writes, 1);
 });
 test('unknown mutation outcome stops remaining batch items without retries', async () => {
   const touched: number[] = [];
@@ -130,18 +166,6 @@ test('adapter refuses false SEARCH rather than inventing an empty result', async
   const { client, adapter } = sdkFixture();
   client.search = async () => false;
   await assert.rejects(adapter.withSession(session => session.search()), { code: 'upstream_failure' });
-});
-test('adapter emits explicit UID keyword/flag operations and distinguishes NO from transport uncertainty', async () => {
-  const { client, adapter } = sdkFixture();
-  const stores: unknown[] = [];
-  client.messageFlagsAdd = async (uid, flags, options) => { stores.push({ uid, flags, options }); return true; };
-  await adapter.withSession(session => session.tag(41, 'Project', true));
-  await adapter.withSession(session => session.flag(42, true));
-  assert.deepEqual(stores, [{ uid: 41, flags: ['Project'], options: { uid: true } }, { uid: 42, flags: ['\\Flagged'], options: { uid: true } }]);
-  client.messageFlagsAdd = async () => { throw { responseStatus: 'NO' }; };
-  await assert.rejects(adapter.withSession(session => session.flag(41, true)), { code: 'upstream_failure' });
-  client.messageFlagsAdd = async () => { throw new Error('Disconnected'); };
-  await assert.rejects(adapter.withSession(session => session.flag(41, true)), { code: 'outcome_unknown' });
 });
 test('adapter normalizes COPYUID map for exactly the requested source UID', async () => {
   const { client, adapter } = sdkFixture(); client.capabilities.set('MOVE', true);

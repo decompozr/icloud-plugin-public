@@ -1,8 +1,10 @@
 /** Application-owned mail contracts. No provider SDK types cross this boundary. */
 export interface MailPolicy { allowWrites?: boolean; maxMessages?: number; maxBodyChars?: number; maxAttachmentBytes?: number }
 export interface MailConfig extends MailPolicy { user: string; password: string }
-export interface MailTarget { mailbox: string; uid: number; uidValidity: string }
-export interface SearchCursor { mailbox: string; uidValidity: string; beforeUid: number; startingUpperUid: number; query: string; unreadOnly: boolean }
+export interface MailTarget { accountId?: string; mailbox: string; uid: number; uidValidity: string }
+/** Confirmed copy evidence; does not establish successful source removal. */
+export interface MailMoveRecovery { copiedTarget: MailTarget }
+export interface SearchCursor { accountId?: string; mailbox: string; uidValidity: string; beforeUid: number; startingUpperUid: number; query: string; unreadOnly: boolean }
 export interface SearchRequest { mailbox: string; query?: string; unreadOnly?: boolean; limit?: number; cursor?: SearchCursor }
 export interface ReadRequest extends MailTarget { mode?: 'summary' | 'full' }
 export interface MarkRequest extends MailTarget { seen: boolean }
@@ -14,7 +16,7 @@ export interface OrganizeRequest extends MailTarget { action: FolderAction; dest
 export type BatchAction = { type: 'mark'; seen: boolean } | { type: 'flag'; flagged: boolean }
   | { type: 'tag'; keyword: string; enabled: boolean } | { type: 'move'; destination: string }
   | { type: 'organize'; action: FolderAction; destination?: string };
-export interface BatchRequest { mailbox: string; uidValidity: string; uids: number[]; action: BatchAction }
+export interface BatchRequest { accountId?: string; mailbox: string; uidValidity: string; uids: number[]; action: BatchAction }
 export interface MailMessageInput { to: string[]; subject: string; text: string }
 export interface MailAddress { name?: string; address?: string }
 export interface Mailbox { path: string; name: string; specialUse?: string; selectable: boolean }
@@ -70,11 +72,11 @@ export interface MailGateway {
 export type MailErrorCode = 'invalid_input' | 'stale_identity' | 'missing' | 'outcome_unknown'
   | 'unsupported_capability' | 'ambiguous_destination' | 'forbidden' | 'upstream_failure';
 export class MailOperationError extends Error {
-  constructor(readonly code: MailErrorCode, message: string) { super(message); this.name = 'MailOperationError'; }
+  constructor(readonly code: MailErrorCode, message: string, readonly recovery?: MailMoveRecovery) { super(message); this.name = 'MailOperationError'; }
 }
 export type MailItemOutcome =
   | { target: MailTarget; status: 'succeeded'; result: MailMutationResult }
   | { target: MailTarget; status: 'failed'; code: Exclude<MailErrorCode, 'outcome_unknown'> }
-  | { target: MailTarget; status: 'outcome_unknown'; code: 'outcome_unknown' }
+  | { target: MailTarget; status: 'outcome_unknown'; code: 'outcome_unknown'; recovery?: MailMoveRecovery }
   | { target: MailTarget; status: 'not_attempted' };
 export interface MailBatchOutcome { status: 'completed' | 'rejected' | 'partial' | 'unknown'; items: MailItemOutcome[] }

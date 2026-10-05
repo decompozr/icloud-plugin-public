@@ -2,7 +2,8 @@
 
 This is the authoritative lifecycle specification. Current CP1–CP5 implementation and acceptance are recorded in the roadmap; the native private setup service is live. Public routing and real client enrollment remain pending. The host is this Mac, runtime direction is Bun, and the
 [accepted setup/auth flow](setup-and-auth.md) governs private setup and client
-access. Calendar remains outside the current Mail scope.
+access. Calendar is an optional registered module with independent permissions; see
+[Calendar acceptance](calendar-production.md) for verified behavior and limitations.
 
 ## Required observable outcomes
 
@@ -92,6 +93,15 @@ requires explicit `--initialize`. Installation does not migrate data or manage
 processes implicitly. Stop the old service before migrating existing state and
 preserve configuration bytes, SQLite state, custody and owner-only permissions.
 
+Scoped uninstall retains the installation ownership marker along with private
+runtime data. Same-prefix reinstall may reuse a real directory only when its
+regular-file ownership marker matches and both `current` and `releases` are
+absent. It preserves retained bytes and permissions without initialization.
+Existing active installations require update; arbitrary, unmarked or symlinked
+prefixes must be rejected. A prefix left unmarked by an older uninstall requires
+explicit recovery, not automatic adoption. These are the source lifecycle
+requirements; the historical installer1 distribution below is unchanged.
+
 ### Installer packaging revision evidence
 
 The `0.1.19-installer1` distribution adds the standalone CLI to the previously
@@ -130,3 +140,32 @@ and extracted distributions were removed after verification. The final installer
 archive remains at project root `releases/`; the sole installed application and
 private runtime occupy approximately 155 MiB at the standard prefix. See current
 status for observed process IDs and retained distribution sizes.
+
+
+## Native 0.1.20 release and upgrade (2026-10-03 UTC)
+
+PR #5 merged at `b87f3d7fd7756bb176f48d3e944585412e490add`; stable
+[v0.1.20](https://github.com/decompozr/icloud-plugin/releases/tag/v0.1.20) publishes
+the native `darwin-arm64` application only. The archive is 24,369,484 bytes, SHA-256
+`cc10c3bfcd3b21f087a0d0e568cae2304a85226ba90fd711e9ff11292174324d`.
+Packaging uses `COPYFILE_DISABLE=1` to omit AppleDouble metadata. The earlier
+unpublished candidate remains identified as task-owned output, not the released
+archive. The previous 0.1.19 evidence above is historical.
+
+The shipped installer `update` and selected `current/icloud-plugin run` upgraded
+`/Users/scottchu/.decompozr/plugins/icloud` to `releases/0.1.20-darwin-arm64`,
+using existing configuration without `--initialize`. Launcher/server PIDs were
+25006/25010. The protected stopped backup remains at
+`runtime/backups/pre-0.1.20-20261003T144627Z` with `upgrade-receipt.json`; the previous
+release remains available. Configuration/custody bytes and modes match; both SQLite
+integrity checks pass. Owner, Passkeys and existing grants remain intact, the one
+active original credential migrated to its fixed account, and bootstrap stays
+closed. Rollback to an older binary restores compatible stopped state and release
+together, rather than changing only the symlink. Independent post-upgrade audit passed all 13 doctor checks,
+both read-only SQLite integrity checks, unchanged owner/install hashes and auth
+row counts, and 33 protected stopped backup-entry byte/mode comparisons. The
+launcher is detached (parent PID 1); the server has the exact installed working
+directory and loopback listeners on ports 4100/4101. The protected receipt is
+finalized. Task-owned controller/pointer/temporary files were removed while backup,
+previous release and release artifacts remain. Live ChatGPT account addition/profile/reconnection and rendered
+browser interaction remain unverified.

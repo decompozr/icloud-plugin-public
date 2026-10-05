@@ -12,17 +12,21 @@ if(!server.success)throw new AggregateError(server.logs,'Application build faile
 const browser=await Bun.build({entrypoints:[join(source,'auth/browser.ts'),join(source,'admin/browser.ts')],root:source,outdir:join(output,'browser'),target:'browser'});
 if(!browser.success)throw new AggregateError(browser.logs,'Browser build failed');
 await mkdir(join(output,'assets'),{recursive:true});
+const sourceMetadata=JSON.parse(await Bun.file(join(app,'package.json')).text()) as {version:string};
+await Bun.write(join(output,'assets/runtime-version.json'),JSON.stringify({version:sourceMetadata.version})+'\n');
 await Bun.write(join(output,'assets/auth-browser.js'),Bun.file(join(output,'browser/auth/browser.js')));
 await Bun.write(join(output,'assets/admin-browser.js'),Bun.file(join(output,'browser/admin/browser.js')));
 await Bun.write(join(output,'assets/plugin-icon.png'),Bun.file(join(app,'assets/plugin-icon.png')));
 await rm(join(output,'browser'),{recursive:true,force:true});
 console.log('Built private application modules and browser assets; test files excluded.');
 
-const template=join(output,'plugin-template');await mkdir(join(template,'skills/icloud-mail'),{recursive:true});await mkdir(join(template,'assets'),{recursive:true});
-for(const name of ['plugin.json','LICENSE','THIRD_PARTY_NOTICES.md','skills/icloud-mail/SKILL.md'])await cp(join(repository,name),join(template,name));
+const template=join(output,'plugin-template');await mkdir(join(template,'skills/icloud-mail'),{recursive:true});await mkdir(join(template,'skills/icloud-calendar'),{recursive:true});await mkdir(join(template,'assets'),{recursive:true});
+for(const name of ['plugin.json','LICENSE','THIRD_PARTY_NOTICES.md','skills/icloud-mail/SKILL.md','skills/icloud-calendar/SKILL.md'])await cp(join(repository,name),join(template,name));
 await cp(join(app,'assets/plugin-icon.png'),join(template,'assets/plugin-icon.png'));
 
 // Photos sidecars are application assets, not executable TypeScript entries.
 await mkdir(join(output,'photos'),{recursive:true});
 for(const name of ['reader.py','metadata-write.py'])await cp(join(source,'photos',name),join(output,'photos',name));
 await cp(join(source,'photos/native'),join(output,'photos/native'),{recursive:true});
+
+for(const name of ['inter.ttf','inter-OFL.txt'])await Bun.write(join(output,'assets',name),Bun.file(join(app,'assets',name)));

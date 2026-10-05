@@ -396,8 +396,22 @@ helper app/executable was created or launched.
 
 A read-only inspection of the actual owned installation found `current` points
 to `releases/0.1.28-darwin-arm64`; Photos is not configured. This supersedes older
-0.1.19 installation notes for the delivery decision. The Photos worktree still
-uses the older application baseline. Do not deploy this branch as a downgrade;
-reconcile current release/main changes in the task worktree before packaging.
+0.1.19 installation notes for the delivery decision. The Photos worktree used an older application baseline at inspection. The
+receiver has now integrated `origin/main` at `712ca37` (0.1.28) in this same
+task worktree, preserving Calendar registration, reconnect/readiness diagnostics,
+private administration and Photos assets/permissions. No main checkout or running
+service was changed. A Photos release needs its own immutable version/artifact;
+do not overwrite or reuse the installed 0.1.28 release directory.
 The installed artifact metadata has no source commit field, so version alone
 does not establish source provenance. No installed files were changed.
+
+
+Integration validation: after synchronizing only the declared worktree-local
+locked dependencies, 320 application tests / 1,978 assertions passed and
+10 tooling tests / 134 assertions passed. TypeScript and application build passed.
+The first application run raced an unfinished build and copied a template without
+its Calendar skill; the sequential post-build rerun passed. The initial tooling
+run lacked its declared local zod dependency; the frozen-lockfile install and
+rerun passed. These are self-checks, not an independent release review or installed
+acceptance. The installed target confirmation, native visible UI/permission gate
+and exact owner-reviewed live changes remain pending.

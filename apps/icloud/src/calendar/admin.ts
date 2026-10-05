@@ -1,0 +1,1 @@
+export const calendarAdminCapabilities=[{id:'read',label:'Read calendars'},{id:'write',label:'Manage calendars and events'},{id:'schedule',label:'Send invitations and responses'},{id:'share',label:'Share calendars'}] as const;
