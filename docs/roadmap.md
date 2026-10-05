@@ -6,6 +6,48 @@ Fixtures must be identified as fixtures; a passed local gate never claims live
 Apple, Passkey, Tailscale or client-account acceptance. No commit, publication,
 public activation or global installation follows implicitly from a checkpoint.
 
+## Dual Keychain migration roadmap (planned)
+
+The requested next custody outcome moves **both** each account's Apple
+app-specific password and the **exact existing installation master key** into
+macOS Keychain. Neither migration is optional. The
+[full migration plan](keychain-migration-plan.md) defines the current-code
+inventory, authority/state machines, caller/signing gates, recovery and observable
+acceptance. Status: documentation complete; production implementation, migration,
+signer provisioning and installed acceptance are not performed. The earlier
+implementation authorization/checkpoint history does not activate this migration.
+
+The baseline is `22acfe419189b6a37e16bc5ee812928bc4ebec6b`. PR #29's
+[closed experiment](../playground/keychain/README.md) provides bounded feasibility
+evidence, not production security/lifecycle acceptance. The master key still
+protects marker HMAC, owner/auth contexts, internal verifier credentials, Photos
+web sessions and Mail/Calendar ledgers after Apple passwords move.
+
+| Phase | Outcome and dependency | Observable completion gate |
+| --- | --- | --- |
+| K0 | Select native API/accessibility, production signing/renewal and an authenticated caller design; prototype only with synthetic values. | Dedicated signed runtime and broker distinguish this sealed application from arbitrary same-user Bun scripts. Generic Bun, path/UID checks and a plaintext-export helper are insufficient. Changed signed releases and unauthorized controls, setup authorization and supported login/lock lifecycle are tested; unverified contexts remain explicit. |
+| K1 | Build separate master-key/account-password custody ports, versioned authority/settings, CAS journals/tombstones, compatibility tooling and stable custody paths. K0 policy is a dependency; fixture-only work may proceed while external signing inputs remain pending. | Crash/concurrency tests preserve authoritative source and identities; active Keychain never falls back to file/SQLite. Unsupported old formats/signatures are rejected. Container/file mode remains explicit. No production cutover yet. |
+| K2 | Move the original master key first; preserve exact bytes and every derivation/AAD/installation context. Requires K0/K1. | Populated marker/account/session/auth/verifier/Mail/Calendar validators pass, restart succeeds without UI or owner reenrollment, protected restore/rollback is accepted before legacy file retirement. |
+| K3 | Move every connected account password with stable UUIDs/revisions and explicit per-account authority; integrate add/rotate/revoke. Requires K2. | CAS and interrupted-write recovery preserve routing/grants; real rotation/revocation invalidates Photos sessions/readiness and cannot resurrect stale credentials. Custody-only moves retain valid sessions. Revoked accounts remain tombstoned. |
+| K4 | Integrate signed artifacts, setup/doctor/LaunchAgent, ordinary update, recovery/rollback/reinstall and both uninstall modes. Requires K2/K3. | Whole-outcome acceptance and independent review pass. One-time setup authorization is observed; ordinary runtime/updates remain unattended. Retained uninstall/reinstall preserves both stores; opt-in full removal handles exact owned items/state and interrupted cleanup. Actual rollout requires separate authorization. |
+
+The next bounded slice is K0's caller/signing/API design and isolated prototype,
+as detailed in the plan. No production identity is presumed available; sealed
+Bun packaging and authenticated peer-channel feasibility are unverified. Open
+decisions are signer custody/renewal, Keychain implementation/accessibility,
+supported OS/login contexts, protected recovery retention/export, and whether
+complete removal should become the uninstall default. Keep current retained-state
+semantics until that product choice is made; explicit opt-in complete removal must
+not delete a master key while retained ciphertext needs it. Local removal does
+not revoke Apple passwords or securely erase backups.
+
+No Keychain migration or OS lifecycle tests were run by this planning change.
+The previous certificate experiment was self-checked, not independent review;
+its retained sources remain historical evidence and must not ship as a production
+helper or signer. Planning changes do not modify the historical checkpoints below.
+
+## Historical implementation checkpoints
+
 | Checkpoint | Goal and dependency | Observable completion gate |
 | --- | --- | --- |
 | CP1 | Establish the actual HTTP application test boundary and align exposed scope. | Built Streamable HTTP app → MCP → service → typed fake provider completes initialization/discovery/search/read/exact mutation; anonymous/malformed/stale/missing targets have no writes; no general send/draft/attachment tools; listeners shut down. |
