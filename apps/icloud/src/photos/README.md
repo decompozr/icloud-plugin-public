@@ -69,7 +69,10 @@ require a durable preview plan, explicit confirmation, matching owner, current
 policy and an unexpired unchanged precondition snapshot. Applied or unknown
 operation IDs cannot execute again. Native writes read back local state;
 this never proves iCloud upload completion. Metadata batches can be partially
-applied; the operation remains unknown and includes per-item outcomes.
+applied; the first write error or failed readback stops the batch immediately.
+The operation remains unknown and includes exact per-item outcomes, with remaining
+assets marked `not_attempted`. Opening a different library rejects the plan before
+any write; correct the library and prepare a newly reviewed plan.
 
 Scopes are photos.read, photos.write, photos.delete. Delete cannot be invoked
 with only ordinary write consent. Changes require explicit configuration and

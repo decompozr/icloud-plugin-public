@@ -458,3 +458,20 @@ previous preview/compiler outputs already removed at the owner's request.
 No source/selected photo was uploaded, deleted or edited. Installed 0.1.28 remains
 unchanged; service target confirmation and final immutable release identity remain
 pending before deployment.
+
+
+### Metadata failure containment (2026-10-04)
+
+Source inspection found that a metadata readback mismatch was reported unknown
+but did not stop later assets. Metadata batches now stop on either an exception
+or failed readback, preserve each reviewed UUID, and explicitly mark remaining
+assets `not_attempted`. Provider parsing retains those outcomes. A confirmed
+wrong-open-library response is rejected before writes rather than ambiguously
+locking the intent; correction requires a fresh reviewed plan.
+
+Regression evidence covers failed readback and an exception after a partial edit,
+verifying the next asset is untouched. Eight Python tests, 323 application tests /
+1,995 assertions, TypeScript checking and application build passed. No live photo
+metadata was edited. A candidate health read still reports authorization 0/false,
+and its exact setup process remains running; owner visibility/permission action
+is still pending. No setup relaunch or permission grant was inferred.

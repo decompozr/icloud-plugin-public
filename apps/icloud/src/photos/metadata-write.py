@@ -22,14 +22,19 @@ def run(request):
         if any(before[k]!=entry[k] for k in before): return {'status':'stale_plan'}
         photos.append(p)
     result=[]
-    for p in photos:
+    for index,p in enumerate(photos):
+        # Preserve the reviewed identity even if a provider property accessor fails.
+        asset_uuid=expected['assets'][index]['id'].split(':')[-1]
         try:
             for key,value in changes.items(): setattr(p,key,value)
             verified=all(getattr(p,k)==v for k,v in changes.items())
-            result.append({'uuid':p.uuid,'status':'applied' if verified else 'outcome_unknown'})
+            result.append({'uuid':asset_uuid,'status':'applied' if verified else 'outcome_unknown'})
+            if not verified: break
         except Exception:
-            result.append({'uuid':p.uuid,'status':'outcome_unknown'})
+            result.append({'uuid':asset_uuid,'status':'outcome_unknown'})
             break
+    for entry in expected['assets'][len(result):]:
+        result.append({'uuid':entry['id'].split(':')[-1],'status':'not_attempted'})
     return {'status':'applied' if len(result)==len(photos) and all(r['status']=='applied' for r in result) else 'outcome_unknown','items':result,'serverSyncVerified':False}
 
 if __name__ == "__main__":

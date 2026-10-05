@@ -120,3 +120,14 @@ test('review summary excludes pending and legacy selections rather than guessing
   expect(()=>t.service.reviewSummary({...input,assetIds:[id,id]})).toThrow();
  }finally{t.db.close();}
 });
+
+test('wrong open library rejects metadata before writes and permits a newly reviewed corrected plan',async()=>{
+ const t=setup();t.provider.apply=async()=>({status:'wrong_open_library'});
+ try{
+  const intent={action:'set_metadata',assetIds:[id],values:{title:'Reviewed'}};
+  const first=await t.service.prepare(intent);
+  expect((await t.service.apply(first.operationId,true)).status).toBe('rejected');
+  const second=await t.service.prepare(intent);expect(second.status).toBe('prepared');
+  expect(second.operationId).not.toBe(first.operationId);expect(t.calls()).toBe(0);
+ }finally{t.db.close();}
+});

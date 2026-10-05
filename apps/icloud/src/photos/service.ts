@@ -45,7 +45,7 @@ export class PhotosService {
     status=(result as {status?:string})?.status==='review_pending'?'review_pending':'outcome_unknown';
    }else{
     result=await this.provider.apply(mutation,JSON.parse(row.snapshot));
-    status=(result as {status?:string})?.status==='applied'?'applied':(result as {status?:string})?.status==='stale_plan'?'rejected':'outcome_unknown';
+    status=(result as {status?:string})?.status==='applied'?'applied':['stale_plan','wrong_open_library'].includes((result as {status?:string})?.status??'')?'rejected':'outcome_unknown';
    }
   }catch(e){const code=e instanceof PhotosError?e.code:'provider_failed';status=['stale_plan','forbidden'].includes(code)?'rejected':'outcome_unknown';result={error:code};}
   this.db.query('UPDATE photos_operations SET status=?,result=? WHERE id=? AND owner=?').run(status,JSON.stringify(result),id,owner);

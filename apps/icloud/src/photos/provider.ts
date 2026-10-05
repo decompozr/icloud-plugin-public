@@ -122,6 +122,6 @@ export class LocalPhotosProvider implements PhotosProvider {
   const result=mutation.action==='set_metadata'
    ? await runProcess([this.settings.python,join(this.settings.sidecarDirectory??base,'metadata-write.py')],{library:this.settings.library,mutation,expected:current},this.settings.timeoutMs)
    : await this.native('apply',mutation);
-  return z.object({status:z.enum(['applied','outcome_unknown','stale_plan','wrong_open_library']),localReadbackVerified:z.boolean().optional(),serverSyncVerified:z.literal(false).optional(),createdUuid:z.string().optional(),items:z.array(z.object({uuid:z.string(),status:z.enum(['applied','outcome_unknown'])}).strict()).max(50).optional()}).strict().parse(result);
+  return z.object({status:z.enum(['applied','outcome_unknown','stale_plan','wrong_open_library']),localReadbackVerified:z.boolean().optional(),serverSyncVerified:z.literal(false).optional(),createdUuid:z.string().optional(),items:z.array(z.object({uuid:z.string(),status:z.enum(['applied','outcome_unknown','not_attempted'])}).strict()).max(50).optional()}).strict().parse(result);
  }
 }

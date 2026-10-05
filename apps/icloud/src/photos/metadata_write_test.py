@@ -33,4 +33,33 @@ class WriteTests(unittest.TestCase):
         with patch.object(writer,'read',return_value=request['expected']),patch('osxphotos.utils.get_last_library_path',return_value=request['library']),patch('photoscript.Photo',return_value=p):
             result=writer.run(request);self.assertEqual(result['status'],'outcome_unknown');self.assertEqual(p.title,'after')
 
+    def test_failed_readback_stops_remaining_assets_and_records_unattempted(self):
+        request=self.request()
+        second=dict(request['expected']['assets'][0],id='asset:1234567890abcdef:22222222-2222-2222-2222-222222222222')
+        request['expected']['assets'].append(second)
+        class IgnoreTitle(Photo):
+            def __setattr__(self,name,value):
+                if name=='title' and value=='after': return
+                super().__setattr__(name,value)
+        first=IgnoreTitle('one');remaining=Photo('two')
+        with patch.object(writer,'read',return_value=request['expected']),patch('osxphotos.utils.get_last_library_path',return_value=request['library']),patch('photoscript.Photo',side_effect=[first,remaining]):
+            result=writer.run(request)
+        self.assertEqual(result['status'],'outcome_unknown')
+        self.assertEqual([item['status'] for item in result['items']],['outcome_unknown','not_attempted'])
+        self.assertEqual(result['items'][1]['uuid'],second['id'].split(':')[-1])
+        self.assertEqual(remaining.title,'before');self.assertFalse(remaining.favorite)
+    def test_exception_after_partial_edit_stops_remaining_assets(self):
+        request=self.request()
+        request['expected']['assets'].append(dict(request['expected']['assets'][0],id='asset:1234567890abcdef:22222222-2222-2222-2222-222222222222'))
+        class Fault(Photo):
+            def __setattr__(self,name,value):
+                if name=='favorite' and value is True: raise RuntimeError('private diagnostic')
+                super().__setattr__(name,value)
+        first=Fault('one');remaining=Photo('two')
+        with patch.object(writer,'read',return_value=request['expected']),patch('osxphotos.utils.get_last_library_path',return_value=request['library']),patch('photoscript.Photo',side_effect=[first,remaining]):
+            result=writer.run(request)
+        self.assertEqual(first.title,'after');self.assertEqual(remaining.title,'before')
+        self.assertEqual([item['status'] for item in result['items']],['outcome_unknown','not_attempted'])
+        self.assertNotIn('private diagnostic',str(result))
+
 if __name__=='__main__': unittest.main()
