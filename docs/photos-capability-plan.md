@@ -1,5 +1,14 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Normal Photos service comparison — 2026-10-05
+
+Installed 0.1.45 still returned an unrecognized web-access object with no known
+flags/error fields, alongside the same Shared Streams timeout. Session custody
+was unchanged and 13 doctor checks passed; no write occurred. Empty-body matching
+did not establish a fix. Stop treating transport adjustments as root-cause proof.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Deployed diagnostic result and protocol follow-up — 2026-10-05
 
 PR 42 merged as dd6ce66 and installed 0.1.44. Full application checks passed

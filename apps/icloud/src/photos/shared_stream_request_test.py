@@ -75,6 +75,24 @@ class TransportTests(unittest.TestCase):
             return SimpleNamespace(returncode=0, stdout=b'200\n2')
         self.assertEqual(actor.run(request, curl_runner=runner)['status'], 200)
 
+    def test_photos_probe_uses_only_advertised_cloudkit_and_fixed_read(self):
+        request = self.request(); request['endpoint'] = 'photosZonesList'
+        request['state']['data']['webservices']['ckdatabasews'] = {'url':'https://p37-ckdatabasews.icloud.com:443'}
+        calls = []
+        def send(session, prepared, **options):
+            calls.append(prepared)
+            self.assertEqual(urlsplit(prepared.url).hostname, 'p37-ckdatabasews.icloud.com')
+            self.assertEqual(urlsplit(prepared.url).path, '/database/1/com.apple.photos.cloud/production/private/zones/list')
+            self.assertEqual(prepared.body, b'{}'); self.assertEqual(prepared.headers['Content-Type'], 'plain/text')
+            self.assertFalse(options['allow_redirects'])
+            r = Response(); r.status_code = 200; r._content = b'{"zones":[]}'; r._content_consumed = True; return r
+        with patch.object(Session, 'send', send): actor.run(request)
+        self.assertEqual(len(calls), 1)
+        for url in ['https://evil.example', 'http://p37-ckdatabasews.icloud.com', 'https://p37-ckdatabasews.icloud.com/records/modify']:
+            request['state']['data']['webservices']['ckdatabasews']['url'] = url
+            with patch.object(Session, '__init__', side_effect=AssertionError('no transport')):
+                with self.assertRaises(ValueError): actor.run(request)
+
     def test_failure_diagnostics_expose_only_fixed_categories(self):
         from requests.exceptions import ConnectTimeout, ReadTimeout, SSLError, ConnectionError
         for kind, code in [(ConnectTimeout,'shared_album_connection_timeout'),(ReadTimeout,'shared_album_read_timeout'),(SSLError,'shared_album_tls_failed'),(ConnectionError,'shared_album_connection_failed'),(ValueError,'shared_album_transport_failed')]:
