@@ -44,3 +44,14 @@ Apple login or a physical Passkey ceremony. Browser visual/accessibility checks
 remain separate from handler tests. See [setup/auth](../../../../docs/setup-and-auth.md),
 [design language](../../../../docs/design-language.md) and
 [client artifact](../../../../docs/client-artifact.md).
+
+## Existing connection capability updates
+
+Connections exposes the generic installation-owner registration management flow
+when currently enabled scopes are missing from an eligible existing client. Review
+shows actual additional permissions and requires fresh confirmation before the
+private API changes the registration ceiling. Existing consent, tokens, client
+identity and account credentials remain unchanged. Shared/foreign or unrelated
+anonymous registrations cannot use this update. Refresh and explicitly consent on
+the same client connection afterward; installation or registration does not prove
+that the remote host loaded tools. See the [module contract](../modules/README.md).

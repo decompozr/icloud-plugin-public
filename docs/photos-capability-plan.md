@@ -5,10 +5,60 @@
 This section is authoritative for remaining work. Earlier plans and checkpoints
 below are historical evidence and are superseded wherever they require a native
 catalog reviewer or equate source/build/deployment with remote product acceptance.
-The full goal remains open. The installed service is 0.1.33, built from main merge 9dff2d0; its operation
-Helper is the reviewer-free 0.1.32 build. Generic
+The full goal remains open. The installed service is 0.1.34, built from main merge b669e7c; its operation
+Helper excludes both the catalog reviewer and posting UI research. Generic
 authorization fixtures and reviewer removal/deployment are verified; actual remote
 client acceptance and the rebuilt operation Helper's consent remain pending.
+
+### Same-connection scope upgrade correction — 2026-10-05
+
+The owner explicitly rejects creating a second custom MCP connection merely to
+add Photos. The accepted flow is the existing connection -> refreshed capability
+metadata -> explicit consent for newly requested Photos scopes -> refreshed tools
+and actual remote read. Connect another account is account selection, not a client
+scope upgrade; that must be explained without prescribing duplicate connections.
+
+The deployed failure was reproduced: the existing client requests enabled Photos
+scopes but the authorization provider rejects them against its stored registration
+ceiling. The underlying provider's owner-bound client-update API does not support
+anonymous legacy clients. This is an implementation gap to resolve, not a reason
+to require a new product connection or to silently grant new token permissions.
+
+Implement an explicit, owner-controlled registration upgrade in the project's
+shared capability administration flow. Validate the exact existing client and
+currently enabled requested capabilities; reject foreign/shared registrations,
+stale impact and disabled scopes. Record the approved registration change through
+a supported project API with audit/recovery evidence. Do not manually patch live
+OAuth tables, assign fictitious ownership, rewrite signed OAuth requests, mutate
+existing consent/token scopes or bypass provider ownership checks. Establish the
+registration-management contract before implementing its adapter. The owner then
+refreshes/reconsents on the SAME connection. Verify original client identity,
+unchanged old tokens, selected new consent and successful actual Photos invocation.
+
+This correction supersedes earlier new-registration recovery instructions in this
+plan for the owner's existing connection. Fresh DCR remains a supported test/setup
+path, not a mandatory capability-upgrade workflow. The full goal stays open.
+
+### Same-connection upgrade implementation checkpoint — 2026-10-05
+
+The generic registration-management contract is now documented in the module
+runtime contract. Connections presents a review/confirmation action for newly enabled
+permissions on an eligible existing client. The shared private owner API applies an
+atomic, audited ceiling update with a short-lived exact-impact confirmation. It
+preserves anonymous client identity, existing consent, tokens and account credentials;
+foreign/shared, disabled, unrelated and stale registrations are rejected. Existing
+OAuth validation and explicit consent remain responsible for token issuance.
+
+Self-checking fixtures cover the same legacy anonymous client obtaining Photos read
+only after new consent, with Photos write deselected and old access/refresh grants
+still lacking Photos. Transaction failure rolls back the ceiling and audit together.
+Self-checks passed: 359 application tests, 11 tooling tests, 11 built HTTP/MCP
+end-to-end tests, both TypeScript checks, production build, and 85 isolated browser
+assertions (including exact upgrade/cancel/confirmation and preserved connection).
+These checks do not establish acceptance by the owner's ChatGPT connection. The next
+installed milestone must preserve the operation Helper identity, expose this action,
+and verify owner confirmation -> SAME connection Refresh/new consent -> tools/read.
+The full product goal and remaining roadmap phases stay open.
 
 ### Goal and accepted product boundary
 
@@ -31,7 +81,7 @@ tool discovery and successful remote use are separate observations.
 
 ### Current evidence and gaps
 
-- Installed 0.1.33 registers Photos in the shared MCP and advertises read/write.
+- Installed 0.1.34 registers Photos in the shared MCP and advertises read/write.
   Library reads are verified. Previous Helper Full Access was verified, but the
   rebuilt operation Helper reports not-requested (0), not inherited consent. Deletion is
   configured off. Mail/Calendar configuration and existing grants were preserved.
@@ -41,8 +91,8 @@ tool discovery and successful remote use are separate observations.
   not proof that the owner's remote ChatGPT connection can invoke Photos tools.
 - The owner screenshot has Mail/Calendar only. Live nonsecret metadata confirms
   existing ChatGPT registration ceilings contain no Photos. Re-consenting an old
-  ceiling cannot add Photos. The host-supported route to a new registration and
-  its actual Photos consent/tool refresh still need owner-visible acceptance.
+  ceiling cannot add Photos. The same-connection owner-controlled registration upgrade and its actual
+  Photos consent/tool refresh still need implementation and owner-visible acceptance.
 - The Swift catalog reviewer and launch paths are removed in source and the
   active installed Helper. Build/signature checks and deployment readback pass.
   The superseded candidate was removed. Old releases/helper remain rollback state;
@@ -116,9 +166,9 @@ all unrelated work. Standing Git/merge/deploy authorization applies within this
 scope. Do not spawn another receiver or silently change conversation ownership.
 
 Generic Photos authorization fixtures and phase 2 reviewer removal/deployment are
-complete. Next determine the supported host route to a fresh client registration,
-then verify actual Photos consent, loaded tools and a remote read in the owner's
-conversation. Existing anonymous client ceilings contain no Photos; do not widen
+complete. Next implement owner-controlled scope upgrade for the existing client, then
+verify actual Photos consent, loaded tools and a remote read in the owner's
+conversation without adding another MCP connection. Existing anonymous client ceilings contain no Photos; do not widen
 signed requests or stored grants. The operation Helper reports authorization 0;
 owner completion of its OS consent is required before native operations. Preserve
 stopped state/custody/config and old releases for rollback. Only after the owner

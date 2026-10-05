@@ -1,7 +1,7 @@
 import {test,expect} from 'bun:test';
 import {Database} from 'bun:sqlite';
 import {createClientRecovery,withOAuthMutation} from './client-recovery.js';
-function fixture(){
+function fixture(policy=['mail.read'],declared=['mail.read','calendar.read']){
  const db=new Database(':memory:');
  db.exec(`CREATE TABLE oauthClient(clientId TEXT PRIMARY KEY,name TEXT,userId TEXT,scopes TEXT,disabled INTEGER);
  CREATE TABLE session(id TEXT,userId TEXT,expiresAt INTEGER);
@@ -18,7 +18,7 @@ function fixture(){
   db.query('INSERT INTO verification VALUES(?,?)').run(c,JSON.stringify({type:'authorization_code',userId:'owner',query:{client_id:c}}));
  }
  db.query('INSERT INTO accounts VALUES(?,?)').run('account','fixture-secret-preserved');
- const handle=createClientRecovery({database:db,origin:'https://private.example',origins:['https://private.example','http://localhost:3000'],declaredScopes:['mail.read','calendar.read'],allowedScopes:()=>['mail.read'],validAccount:(_owner,id)=>id==='account',ownerSession:async headers=>{if(headers.get('cookie')!=='owner')throw Error();return{user:{id:'owner'}};},updateClient:async()=>{}});
+ const handle=createClientRecovery({database:db,origin:'https://private.example',origins:['https://private.example','http://localhost:3000'],declaredScopes:declared,allowedScopes:()=>policy,validAccount:(_owner,id)=>id==='account',ownerSession:async headers=>{if(headers.get('cookie')!=='owner')throw Error();return{user:{id:'owner'}};},updateClient:async()=>{}});
  const request=(query='',body?:unknown,origin='https://private.example',cookie='owner',host?:string)=>handle(new Request(origin+'/icloud/admin/oauth-clients'+query,{method:body?'POST':'GET',headers:{origin,cookie,...(host?{host}:{}),...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}));
  return{db,request,handle};
 }
@@ -82,5 +82,38 @@ test('shared database queue blocks local revoke until remote in-flight issuance 
   const localRevoke=withOAuthMutation(db,async()=>{order.push('revoke');const preview=await(await request('?clientId=a&action=revoke')).json();return request('',{clientId:'a',action:'revoke',confirm:true,confirmation:preview.confirmation});});
   await Promise.resolve();expect(order).toEqual(['issuance-start']);release();await remoteIssue;expect((await localRevoke).status).toBe(200);expect(order).toEqual(['issuance-start','issuance-end','revoke']);expect(db.query("SELECT * FROM oauthAccessToken WHERE clientId='a'").all()).toHaveLength(0);
   await expect(withOAuthMutation(db,async()=>{throw Error('fixture failure');})).rejects.toThrow('fixture failure');expect(await withOAuthMutation(db,async()=>42)).toBe(42);
+ }finally{db.close();}
+});
+
+function registrationSnapshot(db:Database){return ['oauthAccessToken','oauthRefreshToken','oauthConsent','verification','accounts'].map(table=>db.query('SELECT * FROM '+table+' ORDER BY id').all());}
+test('anonymous existing connection upgrade changes only registered ceiling and has a one-use audited confirmation',async()=>{
+ const {db,request}=fixture(['mail.read','calendar.read']);try{
+  db.exec("UPDATE oauthClient SET userId=NULL,scopes='[\"mail.read\"]' WHERE clientId='a'");const before=registrationSnapshot(db);
+  const listing=await(await request()).json();expect(listing.clients.find((c:{clientId:string})=>c.clientId==='a')).toMatchObject({upgradeAvailable:true,missingEnabledScopes:['calendar.read']});
+  expect((await request('',{clientId:'a',additionalScopes:['calendar.read'],confirm:true})).status).toBe(409);
+  const preview=await(await request('?clientId=a&action=upgrade')).json();expect(preview.impact).toMatchObject({additionalScopes:['calendar.read'],registrationRemoved:false,accountsPreserved:true});
+  const body={clientId:'a',action:'upgrade',confirmation:preview.confirmation,confirm:true};expect((await request('',{...body,confirm:false})).status).toBe(400);
+  const result=await request('',body);expect(result.status).toBe(200);expect((await result.json()).impact).toMatchObject({consentRequired:true,existingGrantsChanged:false,registeredScopes:['mail.read','calendar.read']});
+  expect(db.query("SELECT clientId,userId,name,disabled FROM oauthClient WHERE clientId='a'").get()).toEqual({clientId:'a',userId:null,name:'Codex',disabled:0});expect(registrationSnapshot(db)).toEqual(before);
+  expect(db.query('SELECT owner,clientId,registeredBefore,registeredAfter FROM plugin_client_scope_audit').all()).toEqual([{owner:'owner',clientId:'a',registeredBefore:'["mail.read"]',registeredAfter:'["mail.read","calendar.read"]'}]);
+  expect((await request('',body)).status).toBe(409);expect((await request('?clientId=a&action=upgrade')).status).toBe(409);
+ }finally{db.close();}
+});
+test('upgrade rejects stale policy, foreign grants or codes, disabled and unrelated clients',async()=>{
+ const policy=['mail.read','calendar.read'];const {db,request}=fixture(policy);try{
+  db.exec("UPDATE oauthClient SET userId=NULL,scopes='[\"mail.read\"]' WHERE clientId='a'");const preview=await(await request('?clientId=a&action=upgrade')).json();policy.pop();expect((await request('',{clientId:'a',action:'upgrade',confirmation:preview.confirmation,confirm:true})).status).toBe(409);policy.push('calendar.read');
+  db.query('INSERT INTO oauthConsent VALUES(?,?,?,?,?)').run('foreign','a','other','other-account','[]');expect((await request('?clientId=a&action=upgrade')).status).toBe(409);db.exec("DELETE FROM oauthConsent WHERE id='foreign'");
+  db.query('INSERT INTO verification VALUES(?,?)').run('foreign',JSON.stringify({type:'authorization_code',userId:'other',query:{client_id:'a'}}));expect((await request('?clientId=a&action=upgrade')).status).toBe(409);db.exec("DELETE FROM verification WHERE id='foreign'");
+  db.exec("UPDATE oauthClient SET disabled=1 WHERE clientId='a'");expect((await request('?clientId=a&action=upgrade')).status).toBe(409);
+  db.query('INSERT INTO oauthClient VALUES(?,?,?,?,0)').run('unrelated','Unrelated',null,'["mail.read"]');expect((await request('?clientId=unrelated&action=upgrade')).status).toBe(404);
+  expect(db.query("SELECT scopes FROM oauthClient WHERE clientId='a'").get()).toEqual({scopes:'["mail.read"]'});expect(db.query('SELECT * FROM plugin_client_scope_audit').all()).toHaveLength(0);
+ }finally{db.close();}
+});
+test('upgrade rollback retains original ceiling and all grants if audit fails; disabled scope is excluded',async()=>{
+ const {db,request}=fixture(['mail.read','calendar.read'],['mail.read','calendar.read','photos.delete']);try{
+  db.exec("UPDATE oauthClient SET scopes='[\"mail.read\"]' WHERE clientId='a'; CREATE TRIGGER reject_scope_audit BEFORE INSERT ON plugin_client_scope_audit BEGIN SELECT RAISE(ABORT,'fixture audit failure'); END");const before=registrationSnapshot(db);
+  const preview=await(await request('?clientId=a&action=upgrade')).json();expect(preview.impact.additionalScopes).toEqual(['calendar.read']);
+  const result=await request('',{clientId:'a',action:'upgrade',confirmation:preview.confirmation,confirm:true});expect(result.status).toBe(409);expect((await result.json()).error).toBe('CLIENT_MANAGEMENT_FAILED');
+  expect(db.query("SELECT scopes FROM oauthClient WHERE clientId='a'").get()).toEqual({scopes:'["mail.read"]'});expect(registrationSnapshot(db)).toEqual(before);expect(db.query('SELECT * FROM plugin_client_scope_audit').all()).toHaveLength(0);
  }finally{db.close();}
 });
