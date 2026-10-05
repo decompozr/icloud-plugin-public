@@ -27,7 +27,7 @@ export function initializeSharedAlbumLedger(db:Database){db.exec(`CREATE TABLE I
  albumGuid TEXT NOT NULL,snapshot TEXT NOT NULL,status TEXT NOT NULL,result TEXT,expires INTEGER NOT NULL,started INTEGER NOT NULL DEFAULT 0);
  CREATE TABLE IF NOT EXISTS photos_shared_uploads(operationId TEXT PRIMARY KEY,source TEXT NOT NULL,assetGuid TEXT NOT NULL,batchGuid TEXT NOT NULL,submittedAt TEXT NOT NULL,timeZone TEXT NOT NULL,stage TEXT NOT NULL,jobId TEXT)`);}
 
-type HealthRead={id:string;identity:string;started:number;result?:unknown;promise:Promise<void>};
+type HealthRead={id:string;identity:string;started:number;completed?:number;result?:unknown;promise:Promise<void>};
 const activeOperations=new WeakMap<Database,Set<string>>();
 const healthReads=new WeakMap<Database,Map<string,HealthRead>>();
 const albumReads=new WeakMap<Database,Map<string,HealthRead>>();
@@ -46,8 +46,9 @@ export class SharedAlbumService {
   const result=await readSharedStreamAlbums(session,this.options.accountId,albumId?this.guid(albumId):undefined,!albumId);this.check();
   return {...result,accountId:this.options.accountId,experimental:true,managementReady:false,albums:result.albums.map(a=>({...a,id:this.id(a.albumGuid)}))};
  }
- albumsBackground(albumId?:string,readId?:string,refresh=false){
-  this.check();const session=this.options.session(),key=JSON.stringify([this.options.owner,this.options.accountId,albumId??null]),identity=JSON.stringify([session.generation,session.accountRevision]);
+ albumsBackground(albumId?:string,readId?:string,refresh=false,contents?:{offset:number;limit:number}){
+  if(contents&&(!albumId||!Number.isInteger(contents.offset)||contents.offset<0||!Number.isInteger(contents.limit)||contents.limit<1||contents.limit>100))throw new PhotosError('shared_album_content_arguments_invalid');
+  this.check();const session=this.options.session(),key=JSON.stringify([this.options.owner,this.options.accountId,albumId??null,!!contents]),identity=JSON.stringify([session.generation,session.accountRevision]);
   if(albumId)this.guid(albumId);
   let reads=albumReads.get(this.options.db);if(!reads){reads=new Map();albumReads.set(this.options.db,reads);}
   let read=reads.get(key);
@@ -56,10 +57,13 @@ export class SharedAlbumService {
   if(!read||read.identity!==identity||(refresh&&read.result!==undefined)){
    if(!read&&reads.size>=64)throw new PhotosError('shared_album_read_capacity');
    read={id:randomUUID(),identity,started:Date.now(),promise:Promise.resolve()};reads.set(key,read);const current=read;
-   current.promise=this.albums(albumId).then(result=>{current.result={status:'complete',...result};},()=>{current.result={status:'failed',error:'shared_album_read_failed'};});
+   current.promise=(async()=>{const result=await this.albums(albumId);const membership=contents?await readSharedStreamMembership(session,this.options.accountId,this.guid(albumId!)):undefined;this.check();return {...result,...(membership?{membership}:{})};})().then(result=>{current.result={status:'complete',...result};current.completed=Date.now();},()=>{current.result={status:'failed',error:'shared_album_read_failed'};current.completed=Date.now();});
   }
-  if(Date.now()-read.started>300000&&read.result!==undefined)read.result={status:'expired',automaticRetry:false};
-  return {readId:read.id,startedAt:read.started,automaticRetry:false,...(read.result as object??{status:'read_pending',deadlineMs:albumId?60000:180000})};
+  if(read.completed!==undefined&&Date.now()-read.completed>300000&&read.result!==undefined)read.result={status:'expired',automaticRetry:false};
+  const result=read.result as {membership?:Awaited<ReturnType<typeof readSharedStreamMembership>>}|undefined;
+  const membership=result?.membership;
+  const nextOffset=contents&&membership&&contents.offset+contents.limit<membership.total?contents.offset+contents.limit:null;
+  return {readId:read.id,startedAt:read.started,automaticRetry:false,...(result??{status:'read_pending',deadlineMs:contents?360000:albumId?60000:180000}),...(contents&&membership?{membership:{...membership,assets:membership.assets.slice(contents.offset,contents.offset+contents.limit),snapshotComplete:true,complete:contents.offset===0&&nextOffset===null,offset:contents.offset,nextOffset}}:{})};
  }
  async health(){
   this.check();

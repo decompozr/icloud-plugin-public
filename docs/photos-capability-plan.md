@@ -1,5 +1,54 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Main-MCP shared-tool discovery coverage — 2026-10-05
+
+An in-memory SDK client now exercises the actual main protocol host with the Photos
+registration. All four shared tools appear in discovery under the existing Photos
+policy. The common host advertises enabled tools independently of caller grants;
+read-only callers receive insufficient_scope when invoking writes, while callers
+with photos.read/photos.write can prepare without dispatching a mutation. This is
+the generic module flow, not a Photos-specific discovery path or new scope.
+
+Read-only installed configuration/state inspection confirms write=true/delete=false
+and owner policy read/write enabled. Actual main-MCP health also establishes that
+the shared provider is registered. Current conversation tools still omit the four
+shared lifecycle entries. This supports a client tool-loading gap, not live tool
+acceptance; do not patch credentials or replace the connection. Focused SDK/lifecycle
+checks pass 18 tests / 199 assertions. These fixture calls never contact Apple.
+
+
+## 0.1.51 remote reads recovered; shared-copy review candidate — 2026-10-05
+
+The original main-MCP health call recovered without another service restart or
+credential change. Its retained inventory job completed with Photos HTTP 200/one
+zone and 49 addressable legacy candidates plus one unsupported opaque identifier;
+osxphotos and native authorization remain verified. The earlier connection failure
+cause is unknown. Remote read acceptance for 0.1.51 is now observed; full shared
+writes remain unverified and shared lifecycle tools are still absent from this
+conversation's loaded tool set.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Installed 0.1.51; remote connection acceptance unresolved — 2026-10-05
+
+PR 49 merged and 0.1.51 installed from clean remote-main 86f63bf. Final build and
+418 app tests / 2844 assertions passed; all 13 installed doctor checks pass. Saved
+provider-session row digest, configuration and signed Helper remain unchanged.
+The primary main checkout fast-forwarded cleanly. No active Photos mutations were
+present before upgrade; no shared write or personal upload was dispatched.
+
+The actual original-MCP health call returned Connection failed on three attempts.
+The installed launcher/child remain live; the original public URL returns expected
+anonymous HTTP 401 from this Mac. Local reachability is not remote connector proof.
+No service crash or source-backed cause has been established. The owner has been
+asked to refresh/reconnect the same existing plugin, never replace it. Do not mark
+remote acceptance passed, restart to manufacture success, or bypass the MCP with
+account-bound CLI requests. Keep the retained rollback and current state intact.
+Next: diagnose the existing connection, then shared-tool discovery and live exact
+reviewed lifecycle. Other unfinished Photos requirements remain unchanged.
+
+
 ## Recovery disposition and slow inventory follow-up — 2026-10-05
 
 Candidate recovery now distinguishes never-published uploads from uncertain

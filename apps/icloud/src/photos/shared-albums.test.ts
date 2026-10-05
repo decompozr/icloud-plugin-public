@@ -242,3 +242,41 @@ test('album inventory returns promptly and polls one retained account-bound job'
   expect(()=>create().albumsBackground(undefined,fresh.readId)).toThrow('shared_album_read_not_found');
  }finally{db.close();}
 });
+
+
+test('remote content review pages retain one complete membership snapshot and exact shared-copy IDs',async()=>{
+ const f=fixture(),guid='AAAAAAAA-1111-4111-8111-111111111111',albumId=`shared-album:${accountId}:${guid}`;
+ f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Content review'},albumctag:'1',count:3,assets:['copy-a','copy-b','copy-c']});
+ try{
+  expect(()=>f.service.albumsBackground(undefined,undefined,false,{offset:0,limit:2})).toThrow('shared_album_content_arguments_invalid');
+  const pending=f.service.albumsBackground(albumId,undefined,false,{offset:0,limit:2});
+  let first:any;for(let i=0;i<30;i++){await new Promise(r=>setTimeout(r,1));first=f.service.albumsBackground(albumId,pending.readId,false,{offset:0,limit:2});if(first.status!=='read_pending')break;}
+  expect(first.status).toBe('complete');expect(first.membership.assets.map((a:any)=>a.assetGuid)).toEqual(['copy-a','copy-b']);expect(first.membership.snapshotComplete).toBe(true);expect(first.membership.complete).toBe(false);
+  const second:any=f.create().albumsBackground(albumId,pending.readId,false,{offset:first.membership.nextOffset,limit:2});
+  expect(second.membership.assets.map((a:any)=>a.assetGuid)).toEqual(['copy-c']);expect(second.membership.nextOffset).toBeNull();expect(second.membership.originalLibraryIdentityVerified).toBe(false);expect(f.writes()).toBe(0);
+  expect(()=>f.service.albumsBackground(albumId,pending.readId)).toThrow('shared_album_read_not_found');
+ }finally{f.db.close();}
+});
+
+test('main MCP discovery exposes shared lifecycle under existing Photos grants and enforces read-only denial',async()=>{
+ const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');
+ const {InMemoryTransport}=await import('@modelcontextprotocol/sdk/inMemory.js');
+ const {createServer}=await import('../mcp/server.js');
+ for(const writable of [false,true]){
+  const f=fixture(),policy=()=>({read:true,write:true,delete:false});
+  const runtime=new ModuleRuntime().register(photosRegistration(f.local,policy,()=>f.service));
+  const server=createServer(runtime,'https://fixture.test/icloud/mcp',new Set(writable?['photos.read','photos.write']:['photos.read']));
+  const client=new Client({name:'photos-discovery-fixture',version:'1'});const [a,b]=InMemoryTransport.createLinkedPair();
+  await server.connect(a);await client.connect(b);
+  try{
+   const names=(await client.listTools()).tools.map(t=>t.name);
+   expect(names).toContain('photos_shared_albums');expect(names).toContain('photos_shared_operation');
+   expect(names).toContain('photos_shared_prepare');expect(names).toContain('photos_shared_apply');
+   const listing=await client.callTool({name:'photos_shared_albums',arguments:{}});expect(listing.isError).not.toBe(true);
+   const prepare=await client.callTool({name:'photos_shared_prepare',arguments:{action:'create_shared_album',title:'Offline discovery fixture',experimental:true}});
+   expect(prepare.isError===true).toBe(!writable);if(!writable)expect(JSON.stringify(prepare._meta)).toContain('insufficient_scope');expect(f.writes()).toBe(0);
+   // Let read-only preparation settle before releasing the fixture database.
+   await new Promise(r=>setTimeout(r,5));
+  }finally{await client.close();await server.close();await runtime.dispose();f.db.close();}
+ }
+});
