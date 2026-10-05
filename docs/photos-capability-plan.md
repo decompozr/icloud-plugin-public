@@ -1,5 +1,96 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Account-bound MCP lifecycle experiment and authentication correction — 2026-10-05
+
+This supersedes provider-selection notes below. The native daemon diagnostic
+received a callback, but its transport response was failure code 1 with no body.
+The actual mstreamd log rejects this diagnostic's exact PID for lacking the correct
+entitlement. A callback did not establish access. The installed operation Helper
+has no such entitlement and is preserved unchanged. No Apple entitlement is copied
+and no rejection is bypassed. The owner-authorized web-session fallback is active.
+
+The owner completed SMS verification on the existing account. Custody readback
+confirms an authenticated session and advertised Shared Streams service; no
+password or verification code was inspected or logged. Earlier UI instructions
+incorrectly failed to distinguish SMS from a trusted-device pop-up. The saved
+challenge used SMS. Actual pinned-provider tests now verify the phone endpoint,
+nested code/phone payload and restored challenge headers, plus explicit SMS
+redelivery. Private Admin reports the source, instructs SMS users correctly and
+hides redundant sign-in while a challenge or authenticated session exists. A
+nonlegacy trusted-device bridge needs a live socket; metadata restoration alone
+cannot support it. That route remains unimplemented, not an Apple-wide limitation.
+
+The experimental remote lifecycle is now integrated into the same Photos module,
+Photos read/write scopes and verified invocation account context. Transport uses
+only this account's sealed cookies, verified TLS, fixed advertised Apple service
+routes, no credential lookup/implicit authentication/redirects/write retries, and
+bounded responses/actor lifetime. Session revocation is rechecked before and after
+dispatch. Operation IDs and creation GUIDs precede writes. Unknown results interlock
+local and shared writes; reconciliation only reads. Owner rights, legacy/modern
+collection separation, exact identifiers and an independent zero-count check gate
+empty-album deletion. Acknowledgement requires separate server readback; observed
+server metadata does not prove cross-device photo upload.
+
+Important correction to earlier source claims: the retained public client files
+establish lifecycle endpoint names and album/read models, but do not contain the
+asserted create/rename/delete request builders. Write payloads are inferred
+experimental candidates and require real acceptance. They must not be described
+as source-verified or production-ready. Main MCP exposes explicit experimental
+prepare/apply/status and remote inventory tools for the already-authorized bounded
+empty true Shared Album test. Content, invitations and access-setting writes remain
+future independently verified contracts; do not invent them or publish personal
+test content. Overall Photos production acceptance remains open.
+
+Release candidate 0.1.38 includes this experiment and the verification-source fix.
+It is not installed until clean-main deployment and live readback are recorded.
+The next gate is main-MCP remote inventory followed by the authorized empty Shared
+Album create/rename/delete experiment, if the service accepts the contract. Preserve
+the exact operation/album identity for reconciliation and cleanup on any failure.
+
+## Native Shared Album backend investigation — 2026-10-05, latest direction
+
+The owner requests implementation of full Shared Album management through the
+operation Helper, not another assessment of its existing features. Keep remote
+main-MCP operation, no computer control and no additional login as the intended
+path. The web-session implementation below is retained historical work; do not
+continue or require its login while this native route is being evaluated.
+The owner has accepted private native APIs as a candidate, provided ordinary
+permissions suffice and no system restriction is bypassed. The owner subsequently
+authorized Apple Account primary-password/2FA web-session authentication only as
+the last fallback if the existing native authorization route proves unusable.
+This is the same account and MCP; passwords remain private Admin request-only.
+Neither decision proves that either provider can perform the required lifecycle.
+
+Public PhotoKit does not expose the complete requested headless lifecycle.
+However, absence from public PhotoKit is not evidence that no native backend
+exists. A new research-only runtime-declaration probe loaded MediaStream and
+PhotoLibraryServices on the actual Mac. MSASConnection declares addAlbum,
+modifyAlbumMetadata, deleteAlbumWithGUID, addAssetCollections, access-control
+operations, public-access and multiple-contributor settings. The collection-share
+backend also declares publication and server-side asset deletion methods. These
+are undocumented private interfaces, not supported PhotoKit operations.
+
+The probe only enumerates class methods and Objective-C type encodings. It never
+constructs a service, invokes a selector, reads account/library state, opens UI or
+performs a photo operation. Swift 6 compilation and actual enumeration succeeded.
+The system Photos application's signed entitlements include mediastream daemon
+access and private collection-share/write privileges. Their presence is a possible
+access constraint, not proof the Helper must have all of them. Do not copy Apple
+restricted entitlements, impersonate a system client or bypass a service rejection.
+Neither authenticated service access nor any mutation has been verified.
+
+Implementation sequence and gates:
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+If the native route requires unavailable Apple-only privileges or lacks a usable
+contract, retain and report that concrete blocker, then use the owner-authorized
+web-session fallback. Do not require another account or MCP, or switch to UI,
+direct library-database writes or an unsupported production claim. The prototype
+is source-only under playground/photos and is excluded from the installed Helper;
+retain the existing signed Helper and consent identity. No production deployment
+is warranted by interface enumeration alone.
+
 ## Active plan — revised 2026-10-05
 
 This section is authoritative for remaining work. Earlier plans and checkpoints

@@ -3,7 +3,8 @@ import {zodToJsonSchema} from 'zod-to-json-schema';
 import type {RuntimeModule,RegisteredTool} from '../modules/runtime.js';
 import {assetId,albumId,mutationSchema,querySchema,catalogSchema,remoteDecisionsSchema,reviewSummarySchema,sharedObservationSchema,PhotosError} from './contracts.js';
 import {PhotosService,type PhotosPolicy} from './service.js';
-export function photosRegistration(service:PhotosService,policy:()=>PhotosPolicy):RuntimeModule{
+import {SharedAlbumService,remoteSharedAlbumId,sharedAlbumIntent} from './shared-albums.js';
+export function photosRegistration(service:PhotosService,policy:()=>PhotosPolicy,shared?:()=>SharedAlbumService):RuntimeModule{
  const enabled=(scope:string)=>{const p=policy();return p.read&&(scope==='photos.read'||p.write&&(scope!=='photos.delete'||p.delete));};
  const tools:RegisteredTool[]=[];
  function register<T>(name:string,description:string,schema:z.ZodType<T>,scope:string,run:(input:T)=>Promise<unknown>,preview=false){
@@ -14,7 +15,17 @@ export function photosRegistration(service:PhotosService,policy:()=>PhotosPolicy
   }});
  }
  const empty=z.object({}).strict();
- register('photos_health','Read local Photos provider health; does not prove iCloud server sync.',empty,'photos.read',a=>service.read('health',a));
+ if(shared){
+  register('photos_shared_albums','Read actual account-bound Shared Albums from Apple using the owner-authorized web session. Remote IDs differ from local Photos IDs. Experimental provider; does not verify photo uploads.',z.object({albumId:remoteSharedAlbumId.optional()}).strict(),'photos.read',a=>shared().albums(a.albumId));
+  register('photos_shared_prepare','Prepare experimental true Shared Album creation, rename, or empty-album deletion. Requires exact account-bound IDs; creates no photos or invitations. Review the returned plan before applying.',sharedAlbumIntent,'photos.write',a=>shared().prepare(a));
+  register('photos_shared_apply','Apply an exact reviewed Shared Album plan once. Verify remote readback; an unknown outcome must be reconciled instead of retried.',z.object({operationId:z.string().uuid(),confirm:z.literal(true)}).strict(),'photos.write',a=>shared().apply(a.operationId,a.confirm));
+  register('photos_shared_operation','Read a saved Shared Album operation. reconcile=true performs only remote reads, never resubmits a write. Server state and cross-device evidence are distinct.',z.object({operationId:z.string().uuid(),reconcile:z.boolean().default(false)}).strict(),'photos.read',async a=>a.reconcile?shared().reconcile(a.operationId):shared().status(a.operationId));
+ }
+ register('photos_health','Read local Photos health and, when configured, the verified account\'s experimental remote Shared Album inventory status. Does not prove photo uploads or cross-device sync.',empty,'photos.read',async a=>{
+  const local=await service.read('health',a);if(!shared)return local;
+  let remote:unknown;try{remote=await shared().health();}catch(error){remote={status:'unavailable',error:error instanceof PhotosError?error.code:'shared_album_unavailable',managementReady:false};}
+  return {...local as object,sharedAlbums:remote};
+ });
  register('photos_persons','Find existing person labels using normalized partial text. Does not recognize faces.',z.object({query:z.string().max(256).optional()}).strict(),'photos.read',a=>service.read('persons',a));
  register('photos_query','Query local synced assets by existing person label, album and capture dates. from is inclusive, to exclusive; timestamps require timezone offsets. Page offsets are snapshot-relative.',querySchema,'photos.read',a=>service.read('query',a));
  register('photos_albums','List ordinary and true Shared Albums separately. Use IDs, not names, for writes.',z.object({offset:z.number().int().min(0).default(0),limit:z.number().int().min(1).max(100).default(50)}).strict(),'photos.read',a=>service.read('albums',a));

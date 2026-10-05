@@ -26,6 +26,24 @@ dated paragraphs below preserve historical evidence, not current workflow.
 
 ## Shared Album provider setup in development
 
+The latest experimental web lifecycle is registered in the main MCP as
+photos_shared_albums, photos_shared_prepare, photos_shared_apply and
+photos_shared_operation. It uses the verified invocation account, existing Photos
+scopes and sealed web session. Remote Shared Album IDs differ from local IDs;
+never translate them by matching names. Explicit experimental prepare/apply covers
+creation, rename and deletion of empty owned legacy candidates. Separate server
+readback is required, with no blind retry. Content/member/access writes and real
+lifecycle acceptance remain pending. The lifecycle payloads are inferred candidates
+from the public endpoint/model declarations, not verified Apple request builders.
+
+The private Admin displays the actual verification method. An SMS challenge must
+use the latest SMS code for that request; trusted-device pop-up codes use a
+different verifier. New trusted-device bridge verification requires a live
+connection and is not supported by serializing socket-free metadata. The accepted
+SMS session is retained; passwords/codes are not saved. Native daemon access was
+explicitly rejected for missing entitlement in the diagnostic, so the authorized
+web fallback is used without modifying the existing operation Helper.
+
 The private owner System page includes a separate account-bound web-session
 connection for the API-only Shared Album provider. Explicit setup provisions a
 private optional Python 3.12 environment with pyicloud 2.7.0 and rich 15.0.0;
@@ -47,6 +65,15 @@ excluded from this remote/no-computer-control workflow. Installed public PhotoKi
 and Photos scripting interfaces do not expose complete headless management.
 
 ## Nonshipping posting research
+
+SharedAlbumNativeInterfaceProbe.swift in playground/photos is a separate,
+nonshipping native-backend investigation. It enumerates installed private runtime
+declarations without constructing services or invoking operations. MSASConnection
+has Shared Album lifecycle/access methods; authenticated access and usable payload
+contracts remain unverified. Private methods are not supported PhotoKit APIs and
+must not be exposed as production capabilities on this evidence alone. Follow the
+latest native-backend section of docs/photos-capability-plan.md; the existing
+signed operation Helper is unchanged.
 
 The operation Helper build includes only PhotosHelper.swift. The macOS 27
 posting-window experiment and its journal writer live under playground/photos;

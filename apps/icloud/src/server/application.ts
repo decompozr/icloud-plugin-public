@@ -6,6 +6,9 @@ import {PhotosCloudSetup,supportsProviderSessions} from '../photos/cloud-setup.j
 import {LocalPhotosProvider} from '../photos/provider.js';
 import {PhotosService} from '../photos/service.js';
 import {photosRegistration} from '../photos/module.js';
+import {SharedAlbumService} from '../photos/shared-albums.js';
+import {invocationContext} from '../modules/context.js';
+import {PhotosError} from '../photos/contracts.js';
 import {ReconnectCapture} from '../observability/reconnect.js';
 import {runtimeVersions} from './versions.js';
 import {createSystemStatus,type SystemStatus} from '../admin/system-status.js';
@@ -65,7 +68,12 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
   photosAdmin=createPhotosAdmin({database:deps.authDatabase,store:deps.store,ceiling:{read:true,write:p.allow_writes,delete:p.allow_writes&&p.allow_delete}});
   const policy=photosAdmin.policy;
   const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,reviewDirectory:join(dirname(settings.master_key_file),'photos-shared-reviews'),sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
-  runtime.register(photosRegistration(photos,policy));
+  const shared=photosCloud?()=>{
+   const context=invocationContext(),owner=deps.store.ownerId();
+   if(!context||context.ownerId!==owner||!context.accountId)throw new PhotosError('verified_account_context_required');
+   return new SharedAlbumService({db:deps.authDatabase,owner:context.ownerId,accountId:context.accountId,currentOwner:()=>deps.store.ownerId()??'',policy,session:()=>photosCloud.sharedSession(context.accountId!)});
+  }:undefined;
+  runtime.register(photosRegistration(photos,policy,shared));
  }
  await runtime.start();
  try{
