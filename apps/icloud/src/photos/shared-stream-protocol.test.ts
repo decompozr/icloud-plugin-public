@@ -92,8 +92,8 @@ test('opaque provider album identifiers remain visible but cannot become writabl
 });
 
 test('shared asset pages bind exact album and change tag, pair records and redact unrelated fields',async()=>{
- const master={recordType:'CPLMaster',recordName:'shared-master',fields:{secret:'must-not-escape'}};
- const asset={recordType:'CPLAsset',recordName:'shared-copy',fields:{masterRef:{value:{recordName:'shared-master'}},secret:'must-not-escape'}};
+ const master={recordType:'CPLMaster',recordName:'shared-master',serverErrorCode:null,fields:{secret:'must-not-escape'}};
+ const asset={recordType:'CPLAsset',recordName:'shared-copy',serverErrorCode:null,fields:{masterRef:{value:{recordName:'shared-master'}},secret:'must-not-escape'}};
  let records:any[]=[master,asset];let calls=0;
  const s=session(async(url,init)=>{calls++;expect(url.endsWith('/webgetassets')).toBe(true);expect(JSON.parse(init.body as string)).toEqual({albumguid:albumGuid,albumctag:'observed-tag',offset:'10',limit:'14'});return Response.json({records});});
  const input={albumGuid,changeTag:'observed-tag',offset:10,limit:2};
