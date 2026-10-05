@@ -137,10 +137,13 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const anonymousLocation=new URL(anonymousStart.headers.get('location')!,base);
   const anonymousSelection=await request('/icloud/connect/select',{accountId:'original-mailbox',oauth_query:anonymousLocation.search.slice(1)});
   const anonymousConsentLocation=new URL((await anonymousSelection.json() as {url:string}).url,base);
-  expect((await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:anonymousConsentLocation.search.slice(1)})).status).toBe(200);
+  const anonymousConsent=await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:anonymousConsentLocation.search.slice(1)});expect(anonymousConsent.status).toBe(200);
+  const anonymousCallback=new URL((await anonymousConsent.json() as {url:string}).url);
+  const anonymousExchange=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:anonymous.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:anonymousCallback.searchParams.get('code')!,code_verifier:verifier},true);
+  expect(anonymousExchange.status).toBe(200);const anonymousTokens=tokensSchema.parse(await anonymousExchange.json());
   const legacyBefore=snapshots();
   const legacy=await request(recoveryPath,{clientId:anonymous.client_id,additionalScopes:['calendar.read'],confirm:true},false,true);
-  expect(legacy.status).toBe(409);expect((await legacy.json() as {error:string}).error).toBe('NEW_CLIENT_REGISTRATION_REQUIRED');
+  expect(legacy.status).toBe(409);expect((await legacy.json() as {error:string}).error).toBe('REGISTRATION_IMPACT_CONFIRMATION_REQUIRED');
   expect(snapshots()).toBe(legacyBefore);
   const legacyScopeRequest=await request(authorizationPath.replace(client.client_id,anonymous.client_id).replace('mail.read+offline_access','mail.read+calendar.read+offline_access'));
   expect(new URL(legacyScopeRequest.headers.get('location')!,base).searchParams.get('error')).toBe('invalid_scope');
@@ -160,6 +163,26 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   // New capabilities traverse the same registration and signed-consent flow.
   const previousEnabled=[...enabledScopes];enabledScopes.push('photos.read','photos.write');
   config.scopes.push('photos.read','photos.write','photos.delete');component=await createOwnerAuth(config);handler=component.publicHandler;
+  // Upgrade the SAME legacy anonymous connection through the private project API.
+  // Registration changes are separate from OAuth consent and token issuance.
+  const legacyPhotosBefore=snapshots(),clientCount=db.query('SELECT count(*) AS count FROM oauthClient').get();
+  const legacyPreviewResponse=await request(recoveryPath+'?'+new URLSearchParams({clientId:anonymous.client_id,action:'upgrade'}),undefined,false,true);expect(legacyPreviewResponse.status).toBe(200);
+  const legacyPreview=await legacyPreviewResponse.json() as {confirmation:string;impact:{additionalScopes:string[]}};
+  expect(legacyPreview.impact.additionalScopes).toContain('photos.read');expect(legacyPreview.impact.additionalScopes).toContain('photos.write');expect(legacyPreview.impact.additionalScopes).not.toContain('photos.delete');
+  expect((await request(recoveryPath,{clientId:anonymous.client_id,action:'upgrade',confirmation:legacyPreview.confirmation,confirm:true},false,true)).status).toBe(200);
+  expect(snapshots()).toBe(legacyPhotosBefore);expect(db.query('SELECT count(*) AS count FROM oauthClient').get()).toEqual(clientCount);
+  expect(db.query('SELECT userId FROM oauthClient WHERE clientId=?').get(anonymous.client_id)).toEqual({userId:null});
+  expect((await component.verifyBearer('Bearer '+anonymousTokens.access_token)).scopes.has('photos.read')).toBe(false);
+  const samePath=authorizationPath.replace(client.client_id,anonymous.client_id).replace('mail.read+offline_access','mail.read+photos.read+photos.write+offline_access');
+  const sameStart=await request(samePath);const sameLocation=new URL(sameStart.headers.get('location')!,base);expect(sameLocation.pathname).toBe('/icloud/connect');
+  const sameSelection=await request('/icloud/connect/select',{accountId:'original-mailbox',oauth_query:sameLocation.search.slice(1)});const sameConsentLocation=new URL((await sameSelection.json() as {url:string}).url,base);
+  const sameConsent=await request('/icloud/auth/oauth2/consent',{accept:true,scope:'mail.read photos.read offline_access',oauth_query:sameConsentLocation.search.slice(1)});expect(sameConsent.status).toBe(200);
+  const sameCallback=new URL((await sameConsent.json() as {url:string}).url);
+  const sameExchange=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:anonymous.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:sameCallback.searchParams.get('code')!,code_verifier:verifier},true);expect(sameExchange.status).toBe(200);
+  const sameTokens=tokensSchema.parse(await sameExchange.json()),samePrincipal=await component.verifyBearer('Bearer '+sameTokens.access_token);expect(samePrincipal.clientId).toBe(anonymous.client_id);expect(samePrincipal.accountId).toBe('original-mailbox');expect(samePrincipal.scopes.has('photos.read')).toBe(true);expect(samePrincipal.scopes.has('photos.write')).toBe(false);
+  expect((await component.verifyBearer('Bearer '+anonymousTokens.access_token)).scopes.has('photos.read')).toBe(false);
+  const oldRefresh=await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:anonymous.client_id,refresh_token:anonymousTokens.refresh_token,resource:base+'/icloud/mcp'},true);expect(oldRefresh.status).toBe(200);
+  const oldRefreshTokens=tokensSchema.parse(await oldRefresh.json());expect((await component.verifyBearer('Bearer '+oldRefreshTokens.access_token)).scopes.has('photos.read')).toBe(false);
   const beforePhotosGrants=snapshots();
   const anonymousPhotosCookies=new Map(cookies);cookies.clear();
   const photosRegistrationResponse=await request('/icloud/auth/oauth2/register',{client_name:'Fresh Mail Calendar Photos fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code']});

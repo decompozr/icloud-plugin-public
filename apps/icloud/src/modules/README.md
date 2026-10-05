@@ -81,14 +81,28 @@ scopes; tools loaded in the actual assistant conversation; successful read/previ
 A build, deployment, advertised scope or reconnect alone does not close acceptance.
 
 Adding a capability never silently enlarges existing clients, consent or tokens.
-Capability upgrades must support the existing MCP connection, followed by explicit
-new consent and tool refresh. An eligible owner-bound client can use the existing
-update API. Legacy anonymous client registration management is an implementation
-gap: provide an explicit owner-approved project API with exact identity, unshared
-registration checks and audit before enabling its adapter. Preserve existing tokens
-and consent; never make duplicate MCP connections the required upgrade workflow.
-Fresh registration remains a valid initial setup and fixture path. Never
-rewrite signed authorization parameters or internal metadata to simulate approval.
+Capability upgrades support the same MCP connection through installation-owner
+registration management, followed by explicit new consent and tool refresh. Fresh
+registration remains a valid initial setup and fixture path, not an upgrade requirement.
+
+The private Connections page lists newly enabled scopes missing from the exact
+registered client. Its review action creates an owner/client/action-bound, two-minute,
+one-use impact confirmation. Confirmation updates only that client's registration
+ceiling to include currently declared and enabled scopes, with an atomic audit of
+before/after values. Eligible registrations must belong to the installation owner or
+be anonymous with an account-bound owner grant/consent relationship. Foreign/shared
+registrations, disabled clients, unrelated anonymous clients and changed impact are
+rejected. The shared OAuth mutation queue orders the update with consent and issuance.
+
+This is the project's installation-owner administration API, distinct from the
+provider's user-owned client update API. It does not assign ownership to anonymous
+clients or alter secrets, redirects, accounts, signed requests, consent or token scopes.
+The provider continues validating the registered ceiling and issuing scopes from
+explicit new consent. Do not manually patch the live database to simulate approval.
+Old tokens and refresh grants retain their original scopes. After the owner confirms
+in Admin, refresh the SAME connection in ChatGPT and approve the new requested
+permissions, then verify loaded tools and an actual read. Host refresh acceptance is
+separate from fixture coverage and server installation.
 
 A module delivery must test both fresh registration/consent and insufficient/disabled
 paths through the shared auth and MCP boundaries, then verify the intended remote

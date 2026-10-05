@@ -11,7 +11,7 @@ export async function withOAuthMutation<T>(database:Database,operation:()=>Promi
  await previous;
  try{return await operation();}finally{release();if(mutationQueues.get(database)===queued)mutationQueues.delete(database);}
 }
-const managementInput=z.object({clientId:z.string().min(1).max(256),action:z.enum(['revoke','remove']),confirm:z.literal(true),confirmation:z.string().min(32).max(128)}).strict();
+const managementInput=z.object({clientId:z.string().min(1).max(256),action:z.enum(['revoke','remove','upgrade']),confirm:z.literal(true),confirmation:z.string().min(32).max(128)}).strict();
 const input=z.object({clientId:z.string().min(1).max(256),additionalScopes:z.array(z.string().min(1).max(128)).min(1).max(32),confirm:z.literal(true)}).strict();
 const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff'}});
 const scopes=(value:string|null,fallback:readonly string[])=>value===null?[...fallback]:z.array(z.string()).parse(JSON.parse(value));
@@ -27,6 +27,7 @@ export function createClientRecovery(options:{database:Database;origin:string;or
 }){
  const db=options.database;
  db.exec('CREATE TABLE IF NOT EXISTS plugin_client_management_audit(id TEXT PRIMARY KEY,owner TEXT NOT NULL,clientId TEXT NOT NULL,action TEXT NOT NULL,occurredAt TEXT NOT NULL,accessCount INTEGER NOT NULL,refreshCount INTEGER NOT NULL,consentCount INTEGER NOT NULL,codeCount INTEGER NOT NULL)');
+ db.exec('CREATE TABLE IF NOT EXISTS plugin_client_scope_audit(id TEXT PRIMARY KEY,owner TEXT NOT NULL,clientId TEXT NOT NULL,registeredBefore TEXT NOT NULL,registeredAfter TEXT NOT NULL,occurredAt TEXT NOT NULL)');
  const confirmations=new Map<string,{owner:string;clientId:string;action:string;digest:string;expires:number}>();
  return async(request:Request):Promise<Response>=>{
   const url=new URL(request.url),allowedOrigins=options.origins??[options.origin];
@@ -43,13 +44,18 @@ export function createClientRecovery(options:{database:Database;origin:string;or
    const foreign=['oauthAccessToken','oauthRefreshToken','oauthConsent'].some(table=>Boolean(db.query('SELECT id FROM '+table+' WHERE clientId=? AND (userId IS NULL OR userId<>?) LIMIT 1').get(clientId,owner)));
    const foreignCode=db.query<{value:string},[]>('SELECT value FROM verification').all().some(row=>{try{const value=JSON.parse(row.value);return value.type==='authorization_code'&&value.query?.client_id===clientId&&value.userId!==owner;}catch{return false;}});
    const removable=(client.userId===null||client.userId===owner)&&!foreign&&!foreignCode;
-   const summary={clientId,name:client.name,action,accountIds:[...new Set([...access,...refresh,...consents].map(r=>r.referenceId).filter((v):v is string=>typeof v==='string'))],accessTokens:access.length,refreshTokens:refresh.length,consents:consents.length,authorizationCodes:pending.length,registrationRemoved:action==='remove',accountsPreserved:true as const,removable};
-   const digest=createHash('sha256').update(JSON.stringify({client,access,refresh,consents,pending,removable})).digest('hex');
+   const registeredScopes=scopes(client.scopes,options.declaredScopes),additionalScopes=options.allowedScopes().filter(scope=>options.declaredScopes.includes(scope)&&!registeredScopes.includes(scope));
+   const related=[...access,...refresh,...consents].some(row=>typeof row.referenceId==='string'&&(!options.validAccount||options.validAccount(owner,row.referenceId)));
+   const upgradable=removable&&!client.disabled&&(client.userId===owner||related);
+   const summary={clientId,name:client.name,action,registeredScopes,additionalScopes,upgradable,accountIds:[...new Set([...access,...refresh,...consents].map(r=>r.referenceId).filter((v):v is string=>typeof v==='string'))],accessTokens:access.length,refreshTokens:refresh.length,consents:consents.length,authorizationCodes:pending.length,registrationRemoved:action==='remove',accountsPreserved:true as const,removable};
+   const digest=createHash('sha256').update(JSON.stringify({client,access,refresh,consents,pending,removable,upgradable,additionalScopes})).digest('hex');
    return{summary,digest,pending};
   };
   if(request.method==='GET'){
    const action=url.searchParams.get('action'),clientId=url.searchParams.get('clientId');
-   if(action||clientId){if(!clientId||!['revoke','remove'].includes(action??''))return reply({error:'INVALID_INPUT'},400);const current=impact(clientId,action!);if(!current)return reply({error:'CLIENT_NOT_FOUND'},404);if(action==='remove'&&!current.summary.removable)return reply({error:'SHARED_CLIENT_REGISTRATION',impact:current.summary},409);
+   if(action||clientId){if(!clientId||!['revoke','remove','upgrade'].includes(action??''))return reply({error:'INVALID_INPUT'},400);const current=impact(clientId,action!);if(!current)return reply({error:'CLIENT_NOT_FOUND'},404);if(action==='remove'&&!current.summary.removable)return reply({error:'SHARED_CLIENT_REGISTRATION',impact:current.summary},409);
+    if(action==='upgrade'&&!current.summary.upgradable)return reply({error:'REGISTRATION_UPGRADE_UNAVAILABLE'},409);
+    if(action==='upgrade'&&!current.summary.additionalScopes.length)return reply({error:'NO_NEW_CAPABILITIES'},409);
     for(const [key,value] of confirmations)if(value.expires<=Date.now())confirmations.delete(key);
     if(confirmations.size>=128)return reply({error:'TOO_MANY_PENDING_CONFIRMATIONS'},429);
     const confirmation=randomBytes(32).toString('base64url');confirmations.set(confirmation,{owner,clientId,action:action!,digest:current.digest,expires:Date.now()+120000});return reply({impact:current.summary,confirmation});}
@@ -73,7 +79,7 @@ export function createClientRecovery(options:{database:Database;origin:string;or
    }
    return reply({enabledScopes:options.allowedScopes(),connections,clients:clients().map(client=>{
     const registered=scopes(client.scopes,options.declaredScopes),missing=options.allowedScopes().filter(scope=>!registered.includes(scope));
-    return{clientId:client.clientId,name:client.name,registeredScopes:registered,missingEnabledScopes:missing,recovery:missing.length?(client.userId===owner?'explicit_client_update_then_consent':'new_client_registration_then_consent'):'fresh_consent_and_tool_refresh'};
+    return{clientId:client.clientId,name:client.name,registeredScopes:registered,missingEnabledScopes:missing,upgradeAvailable:!!impact(client.clientId,'upgrade')?.summary.upgradable&&missing.length>0,recovery:missing.length?(impact(client.clientId,'upgrade')?.summary.upgradable?'explicit_client_update_then_consent':'new_client_registration_then_consent'):'fresh_consent_and_tool_refresh'};
    }),existingGrantsChanged:false});
   }
   if(request.method!=='POST')return reply({error:'METHOD_NOT_ALLOWED'},405);
@@ -88,6 +94,18 @@ export function createClientRecovery(options:{database:Database;origin:string;or
    try{
     const result=db.transaction(()=>{
      const current=impact(clientId,action);if(!current||current.digest!==saved.digest)throw Error('IMPACT_CHANGED');if(action==='remove'&&!current.summary.removable)throw Error('SHARED_CLIENT_REGISTRATION');
+     if(action==='upgrade'){
+      if(!current.summary.upgradable)throw Error('REGISTRATION_UPGRADE_UNAVAILABLE');
+      if(!current.summary.additionalScopes.length)throw Error('NO_NEW_CAPABILITIES');
+      const before=current.summary.registeredScopes,after=[...new Set([...before,...current.summary.additionalScopes])];
+      // Installation-owner capability management, not client ownership adoption or a grant.
+      // The atomic project API changes only the registration ceiling. Provider OAuth
+      // requests and consent still pass through the existing validation and issuance paths.
+      const changed=db.query('UPDATE oauthClient SET scopes=? WHERE clientId=?').run(JSON.stringify(after),clientId);
+      if(changed.changes!==1)throw Error('IMPACT_CHANGED');
+      db.query('INSERT INTO plugin_client_scope_audit VALUES(?,?,?,?,?,?)').run(randomBytes(16).toString('hex'),owner,clientId,JSON.stringify(before),JSON.stringify(after),new Date().toISOString());
+      return {...current.summary,registeredScopes:after,consentRequired:true,existingGrantsChanged:false};
+     }
      // Delete access first because it can reference refresh. Token material never enters responses or audit.
      for(const table of ['oauthAccessToken','oauthRefreshToken','oauthConsent'])db.query('DELETE FROM '+table+' WHERE userId=? AND clientId=?').run(owner,clientId);
      for(const code of current.pending)db.query('DELETE FROM verification WHERE id=?').run(code.id);
@@ -96,14 +114,14 @@ export function createClientRecovery(options:{database:Database;origin:string;or
      return i;
     }).immediate();
     return reply({completed:true,impact:result});
-   }catch(error){return reply({error:error instanceof Error&&['IMPACT_CHANGED','SHARED_CLIENT_REGISTRATION'].includes(error.message)?error.message:'CLIENT_MANAGEMENT_FAILED'},409);}
+   }catch(error){return reply({error:error instanceof Error&&['IMPACT_CHANGED','SHARED_CLIENT_REGISTRATION','REGISTRATION_UPGRADE_UNAVAILABLE','NO_NEW_CAPABILITIES'].includes(error.message)?error.message:'CLIENT_MANAGEMENT_FAILED'},409);}
   }
   const parsed=input.safeParse(body);
   if(!parsed.success)return reply({error:'EXPLICIT_SCOPE_CONFIRMATION_REQUIRED'},400);
   const {clientId,additionalScopes}=parsed.data,client=clients().find(c=>c.clientId===clientId);
   if(!client)return reply({error:'CLIENT_NOT_FOUND'},404);
   if(additionalScopes.some(scope=>!options.allowedScopes().includes(scope)))return reply({error:'CAPABILITY_DISABLED'},409);
-  if(client.userId!==owner)return reply({error:'NEW_CLIENT_REGISTRATION_REQUIRED',existingGrantsChanged:false,instructions:'Keep the existing Mail connection. Register a new OAuth client through host connection setup with the required currently enabled capability scopes, select the same saved account, and explicitly consent. Reusing the old client ID cannot increase its scope ceiling.'},409);
+  if(client.userId!==owner)return reply({error:'REGISTRATION_IMPACT_CONFIRMATION_REQUIRED',existingGrantsChanged:false,instructions:'Keep this MCP connection. In Admin Connections, review and confirm its available capability update, then refresh the same connection and explicitly consent to new permissions.'},409);
   const merged=[...new Set([...scopes(client.scopes,options.declaredScopes),...additionalScopes])];
   try{await options.updateClient(request.headers,clientId,merged);}catch{return reply({error:'CLIENT_UPDATE_FAILED',existingGrantsChanged:false},409);}
   return reply({clientId,registeredScopes:merged,consentRequired:true,existingGrantsChanged:false});

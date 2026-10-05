@@ -39,6 +39,27 @@ This correction supersedes earlier new-registration recovery instructions in thi
 plan for the owner's existing connection. Fresh DCR remains a supported test/setup
 path, not a mandatory capability-upgrade workflow. The full goal stays open.
 
+### Same-connection upgrade implementation checkpoint — 2026-10-05
+
+The generic registration-management contract is now documented in the module
+runtime contract. Connections presents a review/confirmation action for newly enabled
+permissions on an eligible existing client. The shared private owner API applies an
+atomic, audited ceiling update with a short-lived exact-impact confirmation. It
+preserves anonymous client identity, existing consent, tokens and account credentials;
+foreign/shared, disabled, unrelated and stale registrations are rejected. Existing
+OAuth validation and explicit consent remain responsible for token issuance.
+
+Self-checking fixtures cover the same legacy anonymous client obtaining Photos read
+only after new consent, with Photos write deselected and old access/refresh grants
+still lacking Photos. Transaction failure rolls back the ceiling and audit together.
+Self-checks passed: 359 application tests, 11 tooling tests, 11 built HTTP/MCP
+end-to-end tests, both TypeScript checks, production build, and 85 isolated browser
+assertions (including exact upgrade/cancel/confirmation and preserved connection).
+These checks do not establish acceptance by the owner's ChatGPT connection. The next
+installed milestone must preserve the operation Helper identity, expose this action,
+and verify owner confirmation -> SAME connection Refresh/new consent -> tools/read.
+The full product goal and remaining roadmap phases stay open.
+
 ### Goal and accepted product boundary
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
