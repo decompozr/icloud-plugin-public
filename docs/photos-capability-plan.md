@@ -301,9 +301,10 @@ remaining source, tests, packaging and review continue.
 The receiver retains `playground/photos/SharedAlbumReviewProbe.swift` as a
 compile-only API evidence artifact and integrates verified behavior into native
 product sources. Existing historical experiment reports remain historical;
-private manifests, previews and ledgers stay outside Git. Keep the authorized
-original helper and the separate preview helper until consent continuity and
-rollback are established. Do not remove them during an unfinished acceptance gate.
+private manifests, previews and ledgers stay outside Git. Keep the authorized original helper as the rollback baseline. The owner explicitly
+requested experimental-helper cleanup; the preview process was stopped and its
+app/compiler-check outputs removed. Any future runtime build must be deliberate,
+separately identified and checked for permissions; no preview remains active.
 
 Dev/Build: isolated task worktree, synthetic regression fixtures and separately
 identified native build evidence. Install: explicit selected library, existing
@@ -352,3 +353,31 @@ upload, personal metadata edit, asset add/remove, deletion, installed-service
 change, push, merge or deployment occurred. Source checks do not settle those
 gates. Continue with the owner-visible native acceptance slice before publishing
 or treating the product scenario as complete.
+
+
+### Active production goal and installation hardening (2026-10-04)
+
+The owner explicitly requested a persistent goal to finish this roadmap and make
+Photos production-ready. The goal covers phases 1–7 and remains active until the
+installed end-to-end acceptance is observed. Source/build completion alone does
+not close the goal. The receiver remains the sole product writer.
+
+Setup now rejects nonempty runtimes before executing installation/build tools,
+reserves the destination against concurrent setup, and preserves existing helpers
+even when no venv exists. An explicit `--python` reuses an environment only after
+checking Python 3.12, osxphotos 0.77.2 and photoscript 0.6.1. `--sign` selects an
+operator-provided identity; the ad-hoc default remains clearly identified. Setup
+verifies signing and writes a private source/executable hash and designated-
+requirement manifest. Failed partial runtimes remain available for diagnosis.
+No setup command or helper build was executed for this hardening slice.
+
+Current self-checking: 178 application tests / 722 assertions passed, including
+existing-helper preservation and concurrent-setup rejection; TypeScript checking
+and application build passed; the existing cached Python dependency versions were
+read back and match requirements. Native live acceptance, reviewed mutations,
+cloud evidence, installed service configuration and deployment remain pending.
+
+Production acceptance gates:
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+

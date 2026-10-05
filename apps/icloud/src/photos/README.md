@@ -10,7 +10,16 @@ SQLite is never used to mutate the Photos library.
 
 Run `bun src/photos/setup.ts /absolute/private/photos-runtime` from apps/icloud.
 This explicitly provisions an isolated uv/Python 3.12 environment and compiles a
-Swift helper; no global default changes. Configure the optional `[photos]` block
+Swift helper; no global default changes. The destination must be private and empty;
+existing runtimes are never overwritten, including helpers without a venv.
+Use `--python /absolute/existing/python` to reuse an already validated Python 3.12
+environment with osxphotos 0.77.2 and photoscript 0.6.1 without installing dependencies.
+Use `--sign "SIGNING_IDENTITY"` for an operator-selected signing identity. The default
+is ad-hoc signing; it does not establish stable update consent. Setup verifies the
+signature and writes a private `runtime-manifest.json` with source/executable hashes
+and the designated requirement. This records build provenance, not runtime acceptance.
+A failed setup retains `.setup-in-progress` and partial output for diagnosis; use a
+new destination rather than retrying over those files. Configure the optional `[photos]` block
 shown in config.example.toml. The library must be selected explicitly; writes
 require the system library, and scripting additionally requires the open library
 be that library. Full Disk Access for the host and Photos/Automation permissions
@@ -37,6 +46,9 @@ Photos/Full Disk Access shortcuts and actual authorization recheck. The launched
 setup command returned `setup_opened`, but UI automation could not observe a
 window (`cgWindowNotFound`); user-visible native UI acceptance remains pending.
 No receiver upload, personal mutation or installed service change has occurred.
+The experimental preview app and compiler-check executable were stopped/removed
+at the owner's request. Only the original authorized development helper remains;
+no preview is waiting for permission.
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
