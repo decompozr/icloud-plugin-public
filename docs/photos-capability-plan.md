@@ -1,5 +1,26 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Live main-MCP Shared Album CRUD and 0.1.53 delivery — 2026-10-05
+
+The existing main MCP completed true Shared Album creation, rename and deletion
+on installed 0.1.52. Each retained operation reached applied with independent
+Apple server readback. Creation verified a private empty owned album with only
+the owner; rename verified the exact reviewed title; deletion verified album
+absence. No photo or invitation was sent. Cross-device observation was not made.
+Private exact-ID evidence is retained in the task session's live-shared-crud-0152
+report; do not repeat this completed empty-album experiment.
+
+Release 0.1.53 from main commit 4203012 is now installed. Its synthetic upload and
+reviewed nonempty shared-album deletion remain unverified live. The former service
+exceeded the deployment's 40-second graceful-drain bound; no update occurred then.
+After independently confirming both processes had exited and ports were closed,
+deployment resumed with a private backup and rollback receipt. Configuration,
+operation Helper and session custody were preserved. All 13 local doctor checks
+passed; an actual main-MCP health call confirmed native authorization. Those checks
+do not establish upload or cross-device success.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Explicit synthetic shared-upload fixture candidate — 2026-10-05
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
