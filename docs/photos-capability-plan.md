@@ -86,6 +86,18 @@ or installed availability. Shared management readiness remains false until the
 durable operation integration and authenticated readback are verified. The
 installed runtime remains 0.1.36 until a separately verified main-source deployment.
 
+### Authentication checkpoint deployment slice — 2026-10-05
+
+Release 0.1.37 exposes the verified private owner authentication setup on the
+existing service without replacing its operation Helper or changing Photos grants.
+Build only from clean remote main after merge, retain stopped configuration/state/
+custody backups, and verify installed payload, discovery, private route protection
+and database integrity. The provider-session table may be added; existing Mail
+custody and account/client grant rows must remain intact. Do not install an optional
+provider environment or initiate Apple login implicitly. Owner setup/login remains
+an explicit private Admin action. Preserve 0.1.36 rollback and keep full Shared
+Album operation acceptance open after this deployment.
+
 ### Account-session custody integration slice — 2026-10-05
 
 The existing owner store encrypts Mail app-specific credentials and supplies stable
