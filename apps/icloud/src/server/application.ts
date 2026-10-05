@@ -1,5 +1,10 @@
 import {createLocalOwnerAccess,createRemoteOwnerPairing} from '../auth/local-owner.js';
 import {setupPage} from '../admin/page.js';
+import {createPhotosAdmin} from '../photos/admin.js';
+import {photosSetup} from '../photos/setup-ui.js';
+import {LocalPhotosProvider} from '../photos/provider.js';
+import {PhotosService} from '../photos/service.js';
+import {photosRegistration} from '../photos/module.js';
 import {ReconnectCapture} from '../observability/reconnect.js';
 import {runtimeVersions} from './versions.js';
 import {createSystemStatus,type SystemStatus} from '../admin/system-status.js';
@@ -50,6 +55,15 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  const mailModule=createMailModule(settings,{...deps,monitor});
  const calendarModule=createCalendarModule(settings,{...deps,monitor,provider:deps.calendarProvider});
  const runtime=new ModuleRuntime().register(mailModule.registration).register(calendarModule.registration);
+ let photosAdmin:ReturnType<typeof createPhotosAdmin>|undefined;
+ const photosPermissions=settings.photos?photosSetup({python:settings.photos.python,library:settings.photos.library,nativeHelper:settings.photos.native_helper}):undefined;
+ if(settings.photos){
+  const p=settings.photos;
+  photosAdmin=createPhotosAdmin({database:deps.authDatabase,store:deps.store,ceiling:{read:true,write:p.allow_writes,delete:p.allow_writes&&p.allow_delete}});
+  const policy=photosAdmin.policy;
+  const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,reviewDirectory:join(dirname(settings.master_key_file),'photos-shared-reviews'),sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
+  runtime.register(photosRegistration(photos,policy));
+ }
  await runtime.start();
  try{
  const config=mailModule.config;
@@ -69,7 +83,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  publicApp.get('/icloud/assets/auth-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'auth-browser.js'),{dotfiles:'allow'}));
  publicApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.public_origin,auth.publicHandler,lifecycle));
  const versions=runtimeVersions(deps.assetsDirectory);
- const admin=createPrivateAdmin({systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]});
+ const admin=createPrivateAdmin({...(photosPermissions?{photosSetup:photosPermissions}:{}),connectionCommands:connectionCommands(settings),systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}},...(photosAdmin?[{...photosAdmin.admin,updateCapabilities:async(...args:Parameters<typeof photosAdmin.admin.updateCapabilities>)=>{try{return await photosAdmin!.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[])]});
  const privateApp=express();privateApp.disable('x-powered-by');privateApp.use(lifecycle.admission);privateApp.use(guardHost(settings.private_origin,settings.private_port));
  privateApp.use((req,res,next)=>{
   const address=req.socket.remoteAddress?.replace(/^::ffff:/,'');
@@ -131,7 +145,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  if(settings.local_origin){
   const localOrigin=settings.local_origin,access=createLocalOwnerAccess(settings,()=>deps.store.ownerId());
   const localAuth=await createOwnerAuth({database:deps.authDatabase,publicBaseURL:localOrigin,privateOrigin:localOrigin,rpID:'localhost',sessionOnly:true,cookiePrefix:'icloud_local',accountStore:deps.store,allowedScopes:()=>runtime.allowedScopes,secret:createHash('sha256').update(deps.masterKey).update('local-owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,ownerId:()=>deps.store.ownerId(),registrationOwnerId:()=>deps.store.ownerId(),checkRegistrationProof:value=>access.checkProof(value),checkBootstrapProof:()=>{throw Error('Local proof required');}});
-  const localAdmin=createPrivateAdmin({connectionCommands:connectionCommands(settings),privateOrigin:localOrigin,setupReady:true,localOwner:true,store:deps.store,ownerAuth:localAuth,diagnostics,setupState:async request=>{let passkeyRegistered=false;try{const current=await localAuth.enrollmentSession(request.headers);passkeyRegistered=access.authorize(request).user===current.user.id;}catch{}return{bootstrapAuthorized:(()=>{try{access.authorize(request);return true;}catch{return false;}})(),passkeyRegistered,localOwner:true};},systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,...mailModule.admin,modules:[calendarModule.admin]});
+  const localAdmin=createPrivateAdmin({...(photosPermissions?{photosSetup:photosPermissions}:{}),connectionCommands:connectionCommands(settings),privateOrigin:localOrigin,setupReady:true,localOwner:true,store:deps.store,ownerAuth:localAuth,diagnostics,setupState:async request=>{let passkeyRegistered=false;try{const current=await localAuth.enrollmentSession(request.headers);passkeyRegistered=access.authorize(request).user===current.user.id;}catch{}return{bootstrapAuthorized:(()=>{try{access.authorize(request);return true;}catch{return false;}})(),passkeyRegistered,localOwner:true};},systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}},...(photosAdmin?[{...photosAdmin.admin,updateCapabilities:async(...args:Parameters<typeof photosAdmin.admin.updateCapabilities>)=>{try{return await photosAdmin!.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[])]});
   localApp=express();localApp.disable('x-powered-by');localApp.use(lifecycle.admission);
   // A local RP has exactly one Host. Remote/private proxy Hosts never reach it.
   localApp.use((req,res,next)=>{const address=req.socket.remoteAddress?.replace(/^::ffff:/,'');if(req.get('host')!==new URL(localOrigin).host||!['127.0.0.1','::1'].includes(address??'')){res.status(403).end();return;}next();});

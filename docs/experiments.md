@@ -1,5 +1,7 @@
 # Experiment register
 
+> **2026-10-04 closeout:** Experiments are closed. See [Photos capability plan](photos-capability-plan.md) for the authoritative current evidence, accepted local provider architecture, comparison limits and implementation phases. Older checkpoints below are historical.
+
 ## Calendar production follow-up (2026-10-03 UTC)
 
 Final disposition: the user accepted the registered production source module and
@@ -73,6 +75,25 @@ the remaining shared test remain open.
 
 Record questions, observable acceptance and evidence before turning an experiment
 into a product decision. Never record an unexecuted check as passing.
+
+## Photos metadata preparation (2026-10-03)
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Question: can upstream-shaped asset/master metadata preserve scoped identity,
+explicit renditions and bounded pagination in Bun? The
+[acceptance and source notes](photos-feasibility.md) define the paired-page subset
+and provider limitations; the [isolated package](../playground/photos/README.md)
+contains executable synthetic fixtures and a loopback demo. This is independent
+of the historical E/L-series counts below and does not establish live iCloud
+access or a selected production provider.
+Initial loopback result under Bun 1.4.2: **16 tests / 71 assertions passed**; the demo read three
+synthetic assets in three requests, ending on an empty page. Streaming/cumulative
+byte limits, timeout, redirect refusal and truncated reads are exercised locally.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Historical experiment register
 
 | ID | Question | Acceptance / observation | Evidence and status |
 | --- | --- | --- | --- |

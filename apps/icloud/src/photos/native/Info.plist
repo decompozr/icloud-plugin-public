@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>com.decompozr.icloud.photos-helper</string>
+<key>CFBundleExecutable</key><string>photos-helper</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>LSUIElement</key><true/>
+<key>CFBundleName</key><string>iCloud Photos Helper</string>
+<key>NSPhotoLibraryUsageDescription</key><string>Find and organize your selected photos, albums and metadata. Changes require a reviewed operation.</string>
+</dict></plist>

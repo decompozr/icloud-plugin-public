@@ -61,6 +61,16 @@ export function accountDisplay(account:{label:string;user:string}):{primary:stri
  const label=account.label.trim(),user=account.user.trim();
  return !label||label.toLowerCase()===user.toLowerCase()?{primary:user}:{primary:label,secondary:user};
 }
+/** Group only scopes returned by the signed, policy-filtered server response. */
+export function consentPermissionGroups(scopes:readonly string[]):Array<{title:string;scopes:string[]}>{
+ const known=['mail.','calendar.','photos.'];
+ return [
+  {title:authT('permissionMail'),scopes:scopes.filter(scope=>scope.startsWith('mail.'))},
+  {title:authT('permissionCalendar'),scopes:scopes.filter(scope=>scope.startsWith('calendar.'))},
+  {title:authT('permissionPhotos'),scopes:scopes.filter(scope=>scope.startsWith('photos.'))},
+  {title:authT('permissionConnection'),scopes:scopes.filter(scope=>!known.some(prefix=>scope.startsWith(prefix)))}
+ ].filter(group=>group.scopes.length>0);
+}
 function mount(){
  const mode=document.body.dataset.authMode;if(!mode)return;
  const status=document.querySelector('[data-auth-status]');
@@ -119,9 +129,10 @@ function mount(){
  function renderPermissions(scopes:string[]){
   const labels=z.record(z.string(),z.union([z.string(),z.record(z.string(),z.string())])).parse(JSON.parse(document.body.dataset.authScopeLabels??'{}'));
   labels.offline_access=authT('scopeOffline');
+  labels['photos.read']=authT('scopePhotosRead');labels['photos.write']=authT('scopePhotosWrite');labels['photos.delete']=authT('scopePhotosDelete');
+  const library=document.querySelector<HTMLElement>('[data-auth-photos-library]');if(library)library.hidden=!scopes.some(scope=>scope.startsWith('photos.'));
   const target=document.querySelector('[data-auth-scopes]');
-  for(const [prefix,title] of [['mail.',authT('permissionMail')],['calendar.',authT('permissionCalendar')],['',authT('permissionConnection')]]){
-   const group=scopes.filter(scope=>prefix?scope.startsWith(prefix):!scope.startsWith('mail.')&&!scope.startsWith('calendar.'));if(!group.length)continue;
+  for(const {title,scopes:group} of consentPermissionGroups(scopes)){
    const heading=document.createElement('h3');heading.textContent=title!;target?.append(heading);
    for(const scope of group){const label=document.createElement('label');label.className='permission-choice';const input=document.createElement('input');input.type='checkbox';input.value=scope;input.checked=true;input.dataset.authScope='';const text=document.createElement('span');text.textContent=consentScopeLabel(labels,scope,document.documentElement.lang);label.append(input,text);target?.append(label);}
   }

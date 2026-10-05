@@ -8,7 +8,7 @@ export async function exportPlugin(options:{repository:string;output:string;url:
  const url=endpoint.parse(options.url),root=resolve(options.output);
  const plugin=manifest.parse(JSON.parse(await readFile(join(options.repository,'plugin.json'),'utf8')) as unknown);
  const skills=new Map<string,string>();
- for(const name of ['icloud-mail','icloud-calendar']){
+ for(const name of ['icloud-mail','icloud-calendar','icloud-photos']){
   const skill=await readFile(join(options.repository,`skills/${name}/SKILL.md`),'utf8');
   if(!skill.startsWith(`---\nname: ${name}\n`))throw Error('Missing workflow skill');
   skills.set(name,skill);
@@ -27,7 +27,7 @@ export async function exportPlugin(options:{repository:string;output:string;url:
   await cp(join(options.repository,'LICENSE'),join(directory,'LICENSE'));
   await cp(join(options.repository,'THIRD_PARTY_NOTICES.md'),join(directory,'THIRD_PARTY_NOTICES.md'));
   const files=new Map<string,Uint8Array>();
-  for(const file of ['plugin.json','mcp.json','skills/icloud-mail/SKILL.md','skills/icloud-calendar/SKILL.md','assets/plugin-icon.png','LICENSE','THIRD_PARTY_NOTICES.md'])files.set('icloud-plugin/'+file,await readFile(join(directory,file)));
+  for(const file of ['plugin.json','mcp.json','skills/icloud-mail/SKILL.md','skills/icloud-calendar/SKILL.md','skills/icloud-photos/SKILL.md','assets/plugin-icon.png','LICENSE','THIRD_PARTY_NOTICES.md'])files.set('icloud-plugin/'+file,await readFile(join(directory,file)));
   await writeFile(join(root,'icloud-plugin.zip'),pluginZip(files));
   await writeFile(join(root,'README.md'),`# Configured iCloud plugin\n\nEndpoint: ${url}\n\nicloud-plugin.zip is the standalone private plugin package; the surrounding directory is a local Codex marketplace. Neither is an installed connection. Add this directory as a local marketplace using the supported Codex plugin workflow, then install icloud-plugin and complete owner OAuth. The service endpoint must be reachable first. No credentials are included.\n\nFor ChatGPT, import the standalone ZIP through a supported private plugin account workflow, or add the remote MCP URL manually. Complete owner OAuth after installation. This artifact does not create a ChatGPT app ID or publish/upload an app.\n`);
  }catch(error){await rm(root,{recursive:true,force:true});throw error;}

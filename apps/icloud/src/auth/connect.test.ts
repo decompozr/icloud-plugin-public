@@ -82,3 +82,12 @@ test('failed continuation retains added account and requires a fresh authorizati
  for(const scope of ['', ' mail.read','mail.read  offline_access','calendar.read','mail.read mail.read','mail.read mail.send'])expect(validConsentScopes(query,scope,['mail.read'])).toBe(false);
  expect(validConsentScopes(query,undefined,['mail.read'])).toBe(false);
  });
+
+ test('Photos consent subsets cannot add write or deletion beyond signed request or global policy',()=>{
+ const query=new URLSearchParams({scope:'mail.read photos.read photos.write photos.delete offline_access'}).toString();
+ expect(validConsentScopes(query,'photos.read offline_access',['photos.read','offline_access'])).toBe(true);
+ expect(validConsentScopes(query,'photos.delete',['photos.read','photos.write'])).toBe(false);
+ const readOnly=new URLSearchParams({scope:'photos.read offline_access'}).toString();
+ expect(validConsentScopes(readOnly,'photos.read photos.delete',['photos.read','photos.delete','offline_access'])).toBe(false);
+ expect(validConsentScopes(readOnly,'photos.read photos.write',['photos.read','photos.write','offline_access'])).toBe(false);
+ });

@@ -2,7 +2,7 @@ import type {Principal} from '../auth/verify.js';
 import type {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 export interface EvidenceRow {accountId:string;clientId:string;service:string;authorizedAt:string;expiresAt:string;reads:Record<string,string>}
 interface Stored extends EvidenceRow {ownerId:string;stamp:string}
-const readTools:Record<string,string>={mail_list_mailboxes:'mail',mail_search:'mail',mail_read:'mail',calendar_list_calendars:'calendar',calendar_query_events:'calendar',calendar_get_event:'calendar'};
+const readTools:Record<string,string>={mail_list_mailboxes:'mail',mail_search:'mail',mail_read:'mail',calendar_list_calendars:'calendar',calendar_query_events:'calendar',calendar_get_event:'calendar',photos_query:'photos',photos_albums:'photos',photos_detail:'photos',photos_persons:'photos'};
 /** Bounded process-local observations. No token, request argument or provider result is retained. */
 export class ReadinessEvidence {
  private rows=new Map<string,Stored>();
@@ -11,7 +11,7 @@ export class ReadinessEvidence {
  private identity(p:Principal){return !!p.accountId&&!!p.clientId&&!!p.expiresAt&&p.expiresAt>this.now();}
  observe(p:Principal){
   if(!this.identity(p))return;
-  for(const service of ['mail','calendar']){if(!p.scopes.has(service+'.read'))continue;const stamp=this.stamp(p,service);if(!stamp)continue;const key=this.key(p,service),old=this.rows.get(key);const now=this.now();
+  for(const service of ['mail','calendar','photos']){if(!p.scopes.has(service+'.read'))continue;const stamp=this.stamp(p,service);if(!stamp)continue;const key=this.key(p,service),old=this.rows.get(key);const now=this.now();
    this.rows.set(key,{ownerId:p.subject,accountId:p.accountId!,clientId:p.clientId!,service,stamp,authorizedAt:new Date(now).toISOString(),expiresAt:new Date(Math.min(p.expiresAt!,now+86400000)).toISOString(),reads:old?.stamp===stamp&&Date.parse(old.expiresAt)>now?old.reads:{}});
   }
   while(this.rows.size>256)this.rows.delete(this.rows.keys().next().value!);
@@ -20,7 +20,7 @@ export class ReadinessEvidence {
   return(result:CallToolResult)=>{if(result.isError||!this.identity(p)||this.stamp(p,service)!==stamp)return;
    // Missing events and explicitly incomplete/unsupported provider results are not successful reads.
    if(!result.content?.some(item=>item.type==='text'))return;
-   try{for(const item of result.content??[])if(item.type==='text'){const value=JSON.parse(item.text);if(service==='calendar'&&(!value||typeof value!=='object'||(tool==='calendar_list_calendars'&&!Array.isArray(value.calendars))||(tool==='calendar_query_events'&&!Array.isArray(value.events))||(tool==='calendar_get_event'&&(!value.event||typeof value.event!=='object'))))return;if(value&&typeof value==='object'&&(value.status==='not_found'||value.complete===false||value.error||['unknown','rejected','unsupported','incomplete'].includes(value.status)))return;}}catch{return;}
+   try{for(const item of result.content??[])if(item.type==='text'){const value=JSON.parse(item.text);if(service==='calendar'&&(!value||typeof value!=='object'||(tool==='calendar_list_calendars'&&!Array.isArray(value.calendars))||(tool==='calendar_query_events'&&!Array.isArray(value.events))||(tool==='calendar_get_event'&&(!value.event||typeof value.event!=='object'))))return;if(service==='photos'&&(!value||typeof value!=='object'||(tool==='photos_query'&&!Array.isArray(value.assets))||(tool==='photos_albums'&&!Array.isArray(value.albums))||(tool==='photos_persons'&&!Array.isArray(value.persons))||(tool==='photos_detail'&&typeof value.id!=='string')))return;if(value&&typeof value==='object'&&(value.status==='not_found'||value.complete===false||value.error||['unknown','rejected','unsupported','incomplete'].includes(value.status)))return;}}catch{return;}
    const row=this.rows.get(this.key(p,service));if(row?.stamp===stamp)row.reads[tool]=new Date(this.now()).toISOString();
   };
  }
