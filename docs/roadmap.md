@@ -35,6 +35,17 @@ web sessions and Mail/Calendar ledgers after Apple passwords move.
 | K3 | Move every connected account password with stable UUIDs/revisions and explicit per-account authority; integrate add/rotate/revoke. Requires K2. | CAS and interrupted-write recovery preserve routing/grants; real rotation/revocation invalidates Photos sessions/readiness and cannot resurrect stale credentials. Custody-only moves retain valid sessions. Revoked accounts remain tombstoned. |
 | K4 | Integrate signed artifacts, setup/doctor/LaunchAgent, ordinary update, recovery/rollback/reinstall and both uninstall modes. Requires K2/K3. | Whole-outcome acceptance and independent review pass. One-time setup authorization is observed; ordinary runtime/updates remain unattended. Retained uninstall/reinstall preserves both stores; opt-in full removal handles exact owned items/state and interrupted cleanup. Actual rollout requires separate authorization. |
 
+**Modern native query checkpoint:** [eight query construction cases](../playground/keychain/secitem-policy.md)
+compiled with warnings-as-errors and matched exact Bun/Swift selector encoding,
+including Unicode/slash/quote owners. Non-synchronizing data-protection queries
+use LAContext.interactionNotAllowed for reads/deletes and explicit setup behavior
+for adds; no deprecated UI constants or SecItem calls were executed. Initial
+password/account selector tag mismatch was reproduced then corrected.
+The placeholder access group is unprovisioned; native storage/UI/signing behavior
+is not proven. Apple requires authorized access-group entitlements and app-like
+packaging/profile in a user login context for this candidate. Keep native backend
+unselected until those actual qualification gates pass; no custom Bun requirement.
+
 **Inactive helper adapter checkpoint:** official Bun transport now enforces
 collection-time stdout/stderr caps, strict response binding and byte lengths,
 deadline/pipe cancellation and terminal child cleanup. Launch-time command is
@@ -62,10 +73,10 @@ review; operator-authenticated maintenance,
 protected recovery and native backend integration remain incomplete. Keychain
 activation continues to require K0 first; no live secrets have been migrated.
 
-The next bounded slice selects/qualifies the standard native helper/API and access
-policy after the implemented Bun transport checkpoint. Define compile/dispatch
-fixtures and remaining actual setup/signing/update/login acceptance before native
-backend implementation under applicable authority. The [stock Bun report](../playground/keychain/runtime-boundary.md)
+The next bounded slice implements scoped native helper dispatch/backend source
+using the compiled modern query policy, with strict protocol validation and injected
+memory fixtures. App-like signing/profile and actual setup/update/login acceptance
+remain unpassed prerequisites for native selection under applicable authority. The [stock Bun report](../playground/keychain/runtime-boundary.md)
 remains valid evidence against app-only isolation, which is no longer required.
 No native Keychain operation was involved, and revised K0 has not passed. K1 fixture contracts
 remain independent; K2/K3 activation remains gated. K1's first inactive foundation

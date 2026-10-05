@@ -130,6 +130,17 @@ helper/Bun protocol, setup approval, noninteractive failure behavior, signing/up
 continuity and supported login/lock contexts. Existing synthetic file-Keychain
 results do not prove production signing or untested OS lifecycle behavior.
 
+**Modern native query checkpoint:** [eight query construction cases](../playground/keychain/secitem-policy.md)
+compiled with warnings-as-errors and matched exact Bun/Swift selector encoding,
+including Unicode/slash/quote owners. Non-synchronizing data-protection queries
+use LAContext.interactionNotAllowed for reads/deletes and explicit setup behavior
+for adds; no deprecated UI constants or SecItem calls were executed. Initial
+password/account selector tag mismatch was reproduced then corrected.
+The placeholder access group is unprovisioned; native storage/UI/signing behavior
+is not proven. Apple requires authorized access-group entitlements and app-like
+packaging/profile in a user login context for this candidate. Keep native backend
+unselected until those actual qualification gates pass; no custom Bun requirement.
+
 **Inactive helper adapter checkpoint:** official Bun transport now enforces
 collection-time stdout/stderr caps, strict response binding and byte lengths,
 deadline/pipe cancellation and terminal child cleanup. Launch-time command is
@@ -605,11 +616,12 @@ phase before proceeding. No dates or production signer availability are assumed.
 | K3 | Depends on K2; migrate each account password and add/rotate/revoke flows with tombstones, readiness/session invalidation and reconciliation. | Stable account grants/routing and CAS race tests; no stale credentials/session resurrection or fallback; both connected and revoked accounts covered. |
 | K4 | Depends on K2/K3; integrate lifecycle packaging/doctor/LaunchAgent, update/rollback/reinstall, retained uninstall and opt-in full removal. | Whole-outcome acceptance below, independent review and an explicitly authorized operator rollout. Passing fixture checks do not claim live acceptance. |
 
-**Next ready slice: standard native helper/API qualification.** The Bun-side
-transport is implemented and synthetic failure-tested. Select the supported
-Keychain implementation/access policy and small helper packaging using retained
-Apple/experiment evidence. Define compile/dispatch fixtures and the remaining
-actual setup/signing/update/login checks before implementing the native backend.
+**Next ready slice: scoped native helper dispatch/backend source.** The Bun-side
+transport and modern query construction have bounded evidence. Implement the small
+Apple-framework helper with strict frame/identity/payload validation, explicit
+data-protection queries and status mapping; exercise injected memory/dispatch
+fixtures without invoking Keychain. Its app-like signing/profile design and actual
+setup/update/login checks remain necessary before native backend selection.
 Respect existing authority for real Keychain operations and production signing;
 do not install tools/identities or activate runtime as part of a source checkpoint.
 Direct-child pipe tests do not prove descendant-process, cross-user or OS lifecycle

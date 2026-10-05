@@ -62,6 +62,20 @@ Buffer wiping cannot erase every Blob/Bun transport copy. The subprocess fixture
 prove direct-child cleanup, not descendant-process, native or cross-user lifecycle
 acceptance; the native helper topology remains a separate qualification gate.
 
+The [modern SecItem query experiment](../playground/keychain/secitem-policy.md)
+compiled with warnings-as-errors and compared eight native/Bun query cases without
+Keychain calls. Read/delete use LAContext.interactionNotAllowed and the data
+protection target; non-synchronizing selector strings match Bun, including slash,
+quote and Unicode owners. Initial wire `password` versus stored `account` tag
+mismatch was caught and corrected. Query properties do not prove native UI/access
+behavior. Apple TN3137 requires authorized access-group entitlements, app-like
+packaging/profile and a user login context for this candidate. Those remain
+unqualified; compilation does not approve a production backend or signer.
+The SDK deprecates legacy Allow/Fail UI constants; the prior file-Keychain probe
+cannot be treated as equivalent evidence for this modern candidate. No silent
+backend fallback or custom Bun requirement follows. Native qualification remains
+the critical next gate.
+
 ### Historical stronger-boundary findings
 
 K0 follow-up: the [stock Bun runtime boundary experiment](../playground/keychain/runtime-boundary.md)
