@@ -10,6 +10,52 @@ Helper excludes both the catalog reviewer and posting UI research. Generic
 authorization fixtures, reviewer removal/deployment and actual remote read acceptance
 are verified; native write permission and full sharing/cleanup acceptance remain pending.
 
+### API-only provider investigation and first contract slice — 2026-10-05
+
+Read-only HTTPS retrieval of Apple's public Photos web application found the
+Shared Streams create/update/delete request builders and service routing, including
+client-generated album GUIDs and DSID-bound paths. Public sources are the
+[Photos application bundle](https://www.icloud.com/applications/photos3/2636Build18/en-us/ui.main.js)
+and [transport bundle](https://www.icloud.com/applications/photos3/2636Build18/en-us/main.js).
+This is an undocumented protocol lead, not authenticated runtime acceptance.
+No browser execution, cookies, credentials or private account data were read.
+
+The current [pyicloud source](https://github.com/timlaing/pyicloud) routes album
+creation to the primary private library; its legacy Shared Album delete returns
+false and rename is a no-op. It cannot be adopted as proof of full management.
+Modern Shared Collections also use a different CloudKit sharing path; compatibility
+with the owner's existing destination must be verified, not inferred.
+
+First implementation slice: encode source-supported create/update/delete request
+contracts with a retained exact creation GUID, strict Apple service routing,
+explicit authentication injection, no redirect or automatic write retry, bounded
+responses and unknown-write semantics. Keep this internal until account-bound
+session setup, operation ledger integration, remote readback and modern/legacy
+capability evidence are complete. Do not expose a tool that merely fails in place
+of the required Shared Album capability. Follow with source-backed participant,
+permissions and content contracts, then real MCP test-album lifecycle and cleanup.
+
+### Shared Streams internal contract implementation — 2026-10-05
+
+The first internal protocol slice now builds source-supported create/update/delete
+requests from exact saved GUIDs and routes them to a validated DSID-bound Apple
+service origin. It rejects account substitution, arbitrary endpoints, hostile
+origins and modern-protocol substitution before transport. Each mutation sends
+once with redirects disabled, an abort deadline and bounded responses. Lost,
+invalid, mismatched or failed responses preserve an unknown write outcome without
+provider-secret output. Even a successful response is only acknowledgement,
+requiring separate readback and cloud evidence.
+
+This code is not connected to owner-facing MCP tools or deployed. It does not
+supply authentication, durable operation identity, modern encrypted collection
+management or participant/content coverage; those remain required. Initial
+self-checks passed: five protocol tests, 366 application tests / 2,379 assertions,
+TypeScript and production build. A subsequent modern-protocol rejection assertion
+also passed with the five targeted tests (32 assertions); final checks are recorded
+with the implementation milestone: 366 application tests / 2,380 assertions and
+production build pass. All transport tests use synthetic responses;
+no account session, album creation or personal photo write occurred.
+
 ### Full Shared Album management requirement — 2026-10-05
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
