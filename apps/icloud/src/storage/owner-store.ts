@@ -10,6 +10,14 @@ export class OwnerStorageError extends Error {
 }
 export interface OwnerStoreOptions { databasePath: string; markerPath: string; masterKey: Uint8Array }
 export interface MailAccount { id: string; user: string; label: string; credentialStored: boolean }
+export type ProviderSessionRealm='photos_web';
+export interface ProviderSessionState {accountRevision:number;generation:number;stored:boolean}
+export interface ProviderSessionCustody {
+ providerSessionState(ownerId:string,accountId:string,realm:ProviderSessionRealm):ProviderSessionState;
+ readProviderSession(ownerId:string,accountId:string,realm:ProviderSessionRealm):{generation:number;bytes:Uint8Array}|null;
+ replaceProviderSession(ownerId:string,accountId:string,realm:ProviderSessionRealm,expected:Pick<ProviderSessionState,'accountRevision'|'generation'>,bytes:Uint8Array):ProviderSessionState;
+ revokeProviderSession(ownerId:string,accountId:string,realm:ProviderSessionRealm,expected:Pick<ProviderSessionState,'accountRevision'|'generation'>):ProviderSessionState;
+}
 export interface OwnerSecretStore {
   ownerId(): string | null;
   checkBootstrapProof(proof: string): void;
@@ -35,7 +43,7 @@ const hash = (value: string) => createHash('sha256').update(value).digest('hex')
 const fail = (code: StorageErrorCode): never => { throw new OwnerStorageError(code); };
 const equal = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
-export class SqliteOwnerStore implements OwnerSecretStore {
+export class SqliteOwnerStore implements OwnerSecretStore,ProviderSessionCustody {
   private constructor(private options: OwnerStoreOptions, private key: Buffer, private db: Database) {}
   static provision(options: OwnerStoreOptions & { bootstrapProof: string }): SqliteOwnerStore {
     if (options.masterKey.byteLength !== 32 || options.bootstrapProof.length < 32 || options.databasePath === options.markerPath) fail('INVALID_INPUT');
@@ -78,8 +86,11 @@ export class SqliteOwnerStore implements OwnerSecretStore {
     } catch { return fail('STATE_UNAVAILABLE'); }
   }
   private seal(owner: string, account: string, version: number, bytes: Uint8Array) {
+    return this.sealWithAAD(bytes,`credential:v2:${owner}:${account}:${version}`);
+  }
+  private sealWithAAD(bytes:Uint8Array,aad:string) {
     const iv = randomBytes(12), cipher = createCipheriv('aes-256-gcm', this.key, iv);
-    cipher.setAAD(Buffer.from(`credential:v2:${owner}:${account}:${version}`));
+    cipher.setAAD(Buffer.from(aad));
     const data = Buffer.concat([cipher.update(bytes), cipher.final()]);
     return JSON.stringify({ iv: iv.toString('base64'), tag: cipher.getAuthTag().toString('base64'), data: data.toString('base64') });
   }
@@ -102,6 +113,10 @@ export class SqliteOwnerStore implements OwnerSecretStore {
   private migrate(): void {
     this.db.transaction(() => {
       const row = this.state();
+      this.db.exec(`CREATE TABLE IF NOT EXISTS provider_sessions (
+       owner TEXT NOT NULL,account TEXT NOT NULL,realm TEXT NOT NULL CHECK(realm='photos_web'),
+       accountRevision INTEGER NOT NULL CHECK(accountRevision>0),generation INTEGER NOT NULL CHECK(generation>0),
+       secret TEXT,PRIMARY KEY(owner,account,realm))`);
       const columns = this.db.query('PRAGMA table_info(owner_state)').all() as { name: string }[];
       if (columns.some(column => column.name === 'legacy_account')) {
         // A migrated database must retain the registry and its fixed legacy link.
@@ -220,8 +235,49 @@ export class SqliteOwnerStore implements OwnerSecretStore {
       this.db.transaction(() => {
         const row = this.accountRow(ownerId, accountId), version = row.version + 1;
         this.db.query('UPDATE mail_accounts SET secret=?,version=? WHERE owner=? AND id=?').run(credential === null ? null : this.seal(ownerId, accountId, version, credential), version, ownerId, accountId);
+        // Account removal/credential revision also invalidates provider sessions
+        // atomically; an old Photos login must not outlive that account revision.
+        this.db.query('UPDATE provider_sessions SET secret=NULL,generation=generation+1 WHERE owner=? AND account=?').run(ownerId,accountId);
       }).immediate();
     } catch (error) { if (error instanceof OwnerStorageError) throw error; fail('STATE_UNAVAILABLE'); }
+  }
+  private sessionRow(ownerId:string,accountId:string,realm:ProviderSessionRealm){
+    if(realm!=='photos_web')fail('INVALID_INPUT');
+    const account=this.accountRow(ownerId,accountId);
+    const raw=this.db.query('SELECT accountRevision,generation,secret FROM provider_sessions WHERE owner=? AND account=? AND realm=?').get(ownerId,accountId,realm);
+    const parsed=z.object({accountRevision:z.number().int().positive().safe(),generation:z.number().int().positive().safe(),secret:z.string().nullable()}).strict().safeParse(raw);
+    if(raw!==null&&!parsed.success)fail('STATE_UNAVAILABLE');
+    return {account,row:parsed.success?parsed.data:null};
+  }
+  providerSessionState(ownerId:string,accountId:string,realm:ProviderSessionRealm):ProviderSessionState {
+    const {account,row}=this.sessionRow(ownerId,accountId,realm);
+    return {accountRevision:account.version,generation:row?.generation??0,stored:!!row?.secret&&row.accountRevision===account.version};
+  }
+  private sessionAAD(owner:string,account:string,realm:ProviderSessionRealm,revision:number,generation:number){
+    return `provider-session:v1:${JSON.stringify([owner,account,realm,revision,generation])}`;
+  }
+  readProviderSession(ownerId:string,accountId:string,realm:ProviderSessionRealm):{generation:number;bytes:Uint8Array}|null {
+    const {account,row}=this.sessionRow(ownerId,accountId,realm);
+    if(!row?.secret||row.accountRevision!==account.version)return null;
+    return {generation:row.generation,bytes:this.unseal(row.secret,this.sessionAAD(ownerId,accountId,realm,row.accountRevision,row.generation))};
+  }
+  private mutateProviderSession(ownerId:string,accountId:string,realm:ProviderSessionRealm,expected:Pick<ProviderSessionState,'accountRevision'|'generation'>,bytes:Uint8Array|null):ProviderSessionState {
+    if(!Number.isSafeInteger(expected.accountRevision)||expected.accountRevision<1||!Number.isSafeInteger(expected.generation)||expected.generation<0||bytes!==null&&(!bytes.byteLength||bytes.byteLength>65536))fail('INVALID_INPUT');
+    try{return this.db.transaction(()=>{
+      const {account,row}=this.sessionRow(ownerId,accountId,realm);
+      if(account.version!==expected.accountRevision||(row?.generation??0)!==expected.generation)fail('INVALID_INPUT');
+      const generation=(row?.generation??0)+1;
+      if(!Number.isSafeInteger(generation))fail('STATE_UNAVAILABLE');
+      const secret=bytes===null?null:this.sealWithAAD(bytes,this.sessionAAD(ownerId,accountId,realm,account.version,generation));
+      this.db.query('INSERT INTO provider_sessions(owner,account,realm,accountRevision,generation,secret) VALUES(?,?,?,?,?,?) ON CONFLICT(owner,account,realm) DO UPDATE SET accountRevision=excluded.accountRevision,generation=excluded.generation,secret=excluded.secret').run(ownerId,accountId,realm,account.version,generation,secret);
+      return this.providerSessionState(ownerId,accountId,realm);
+    }).immediate();}catch(error){if(error instanceof OwnerStorageError)throw error;return fail('STATE_UNAVAILABLE');}
+  }
+  replaceProviderSession(ownerId:string,accountId:string,realm:ProviderSessionRealm,expected:Pick<ProviderSessionState,'accountRevision'|'generation'>,bytes:Uint8Array):ProviderSessionState {
+    return this.mutateProviderSession(ownerId,accountId,realm,expected,bytes);
+  }
+  revokeProviderSession(ownerId:string,accountId:string,realm:ProviderSessionRealm,expected:Pick<ProviderSessionState,'accountRevision'|'generation'>):ProviderSessionState {
+    return this.mutateProviderSession(ownerId,accountId,realm,expected,null);
   }
   close(): void { this.db.close(); this.key.fill(0); }
 }
