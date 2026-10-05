@@ -65,7 +65,8 @@ unchanged. Public session metadata contains no token/cookie material. Pending or
 stored sessions do not establish provider readiness or authorized tool use.
 
 Self-checks pass: 16 custody/storage tests / 107 assertions, 371 application tests /
-2,410 assertions, TypeScript and production build. Fixtures cover encrypted reopen,
+2,410 assertions, 11 built HTTP/MCP tests / 259 assertions, both TypeScript checks
+and production build. Fixtures cover encrypted reopen,
 cross-owner/account/domain failures, transplanted/tampered ciphertext, stale login,
 independently opened stores and transaction rollback preserving both credentials.
 No installed database was migrated and no authentication/album mutation occurred.
