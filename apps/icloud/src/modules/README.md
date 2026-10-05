@@ -1,7 +1,7 @@
 # Feature module runtime
 
 `runtime.ts` is the application registry for independently owned feature
-contributions. Its use case is composing Mail today and another feature later
+contributions. Its use case is composing Mail, Calendar, optional Photos and future modules
 without editing the shared MCP host or Mail internals. The composition root
 constructs modules and calls `register` before `start`; this is static composition,
 not runtime package discovery, installation or hot replacement.
@@ -53,10 +53,9 @@ than a global migration engine.
 Colocated registry/host tests exercise non-Mail contributions through real HTTP/MCP,
 namespace conflicts, policy changes, unauthorized dispatch, lifecycle failure cleanup
 and waiting for active callbacks during disposal. See
-[architecture](../../../../docs/architecture.md). A synthetic Calendar
-contribution proves extension mechanics only; no production Calendar module or
-CalDAV behavior is delivered. Admin setup and generated client content still need
-explicit feature integration when another feature is implemented.
+[architecture](../../../../docs/architecture.md). Synthetic contributions prove extension mechanics only; live provider and remote
+client acceptance remain feature-specific. Admin setup and generated client content
+still need explicit integration when another feature is implemented.
 
 ## Request identity
 
@@ -66,3 +65,31 @@ principal; tool arguments cannot select or mutate this context. Concurrent clien
 share registrations and resources while keeping their account identities separate.
 Production Mail invocations require an account binding. Unscoped test/stdio callers
 may use the explicitly migrated legacy account for compatibility.
+
+
+## Generic capability onboarding and acceptance
+
+Every module uses the same application flow: explicit composition, owner policy,
+module scope descriptors, OAuth discovery/registration, signed consent, scoped
+token validation, MCP tool discovery/invocation and provider results. Provider setup
+is feature-specific; it must not create a separate authorization or MCP product.
+Photos' Mac-library permissions are distinct from its remote OAuth client consent.
+
+Track these observations separately: host availability and enabled policy; registered
+client ceiling; requested signed scopes; displayed/selected consent; issued token
+scopes; tools loaded in the actual assistant conversation; successful read/preview.
+A build, deployment, advertised scope or reconnect alone does not close acceptance.
+
+Adding a capability never silently enlarges existing clients, consent or tokens.
+An eligible owner-bound client may use the supported explicit update followed by
+fresh consent. A legacy anonymous registration with a narrower ceiling requires
+a supported new registration; preserve working connections and grants. Determine
+the host's actual supported route before instructing repeated reconnects. Never
+rewrite signed authorization parameters or internal metadata to simulate approval.
+
+A module delivery must test both fresh registration/consent and insufficient/disabled
+paths through the shared auth and MCP boundaries, then verify the intended remote
+client can discover and invoke its tools. Mutations require feature-specific exact
+review/confirmation and outcome recovery. Historical/fixture results stay distinct
+from owner-visible remote provider acceptance. See the active
+[Photos plan](../../../../docs/photos-capability-plan.md) for current gaps.

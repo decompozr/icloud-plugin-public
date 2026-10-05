@@ -5,6 +5,12 @@ import {PhotosError,type PhotosProvider} from './contracts.js';
 import {photosRegistration} from './module.js';
 const id='asset:1234567890abcdef:11111111-1111-1111-1111-111111111111';
 function setup(){const db=new Database(':memory:');let calls=0;let p={read:true,write:true,delete:true};let current:unknown={revision:1};const provider:PhotosProvider={read:async()=>({}),inspect:async()=>current,apply:async(_m,e)=>{calls++;if(JSON.stringify(current)!==JSON.stringify(e))throw new PhotosError('stale_plan');return {status:'applied'};}};const service=new PhotosService(db,provider,()=>p,()=> 'owner');return {db,service,provider,policy:()=>p,calls:()=>calls,change:()=>current={revision:2},revoke:()=>p={read:true,write:false,delete:false}};}
+function historicalCatalog(t:ReturnType<typeof setup>,request:unknown){
+ const reviewId=crypto.randomUUID();
+ const assetIds=(request as {assetIds?:string[]}).assetIds??[id];
+ t.db.query('INSERT INTO photos_reviews VALUES(?,?,?,?,?)').run(reviewId,'owner',JSON.stringify(request),'catalog_review',JSON.stringify({assetIds}));
+ return {reviewId,status:'catalog_review'};
+}
 test('prepare is read-only; reviewed plan can execute only once including concurrent retries',async()=>{const t=setup();try{const plan=await t.service.prepare({action:'create_album',title:'Test'});expect(t.calls()).toBe(0);const results=await Promise.all([t.service.apply(plan.operationId,true),t.service.apply(plan.operationId,true)]);expect(t.calls()).toBe(1);expect(t.service.status(plan.operationId).status).toBe('applied');expect(results.length).toBe(2);}finally{t.db.close();}});
 test('stale snapshot rejects mutation and revoked policy stops execution',async()=>{const t=setup();try{const plan=await t.service.prepare({action:'create_album',title:'Test'});t.change();expect((await t.service.apply(plan.operationId,true)).status).toBe('rejected');const p=await t.service.prepare({action:'create_album',title:'Another'});t.revoke();await expect(t.service.apply(p.operationId,true)).rejects.toThrow('forbidden');}finally{t.db.close();}});
 test('uncertain provider result persists across service reconstruction and is never retried',async()=>{const t=setup();try{t.provider.apply=async()=>{throw new Error('private upstream detail');};const plan=await t.service.prepare({action:'create_album',title:'Test'});expect((await t.service.apply(plan.operationId,true)).status).toBe('outcome_unknown');const next=new PhotosService(t.db,t.provider,t.policy,()=> 'owner');expect((await next.apply(plan.operationId,true)).result).toEqual({error:'provider_failed'});const other=new PhotosService(t.db,t.provider,t.policy,()=> 'other');expect(()=>other.status(plan.operationId)).toThrow('operation_not_found');}finally{t.db.close();}});
@@ -29,10 +35,10 @@ test('native sharing cancellation remains terminal for that operation, and other
  finally{t.db.close();}
 });
 test('native catalog selections are read-only and cannot substitute assets or cross owners',async()=>{
- const t=setup(),idAsset=id;t.provider.openCatalog=async(_request,id)=>({status:'catalog_review',operationId:id,assetIds:[idAsset]});let selection=[idAsset];
+ const t=setup(),idAsset=id;let selection=[idAsset];
  t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:selection});
- try{const opened=await t.service.openCatalog({kind:'comparison',assetIds:[idAsset],albumId:sharedIntent.albumId});expect(t.calls()).toBe(0);expect((await t.service.catalogStatus(opened.reviewId)).status).toBe('selection_reviewed');
-  selection=['asset:1234567890abcdef:33333333-3333-3333-3333-333333333333'];const invalid=await t.service.openCatalog({kind:'comparison',assetIds:[idAsset],albumId:sharedIntent.albumId});await expect(t.service.catalogStatus(invalid.reviewId)).rejects.toThrow('invalid_review_selection');const other=new PhotosService(t.db,t.provider,t.policy,()=> 'other');await expect(other.catalogStatus(opened.reviewId)).rejects.toThrow('review_not_found');
+ try{const opened=await historicalCatalog(t,{kind:'comparison',assetIds:[idAsset],albumId:sharedIntent.albumId});expect(t.calls()).toBe(0);expect((await t.service.catalogStatus(opened.reviewId)).status).toBe('selection_reviewed');
+  selection=['asset:1234567890abcdef:33333333-3333-3333-3333-333333333333'];const invalid=await historicalCatalog(t,{kind:'comparison',assetIds:[idAsset],albumId:sharedIntent.albumId});await expect(t.service.catalogStatus(invalid.reviewId)).rejects.toThrow('invalid_review_selection');const other=new PhotosService(t.db,t.provider,t.policy,()=> 'other');await expect(other.catalogStatus(opened.reviewId)).rejects.toThrow('review_not_found');
  }finally{t.db.close();}
 });
 test('shared presence reconciliation requires a closed native process and explicit owner evidence; never asserts server proof',async()=>{
@@ -52,17 +58,17 @@ test('previously prepared alternate-destination sharing cannot bypass unresolved
  finally{t.db.close();}
 });
 test('lost catalog launch response recovers exact selection from retained manifest and persists it across restart',async()=>{
- const t=setup();t.provider.openCatalog=async()=>{throw new Error('launch response lost');};t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:[id],manifestAssetIds:[id]});
- try{const opened=await t.service.openCatalog({kind:'comparison',assetIds:[id],albumId:sharedIntent.albumId});expect(opened.status).toBe('outcome_unknown');expect((await t.service.catalogStatus(opened.reviewId)).status).toBe('selection_reviewed');
+ const t=setup();t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:[id],manifestAssetIds:[id]});
+ try{const opened=await historicalCatalog(t,{kind:'comparison',assetIds:[id],albumId:sharedIntent.albumId});t.db.query("UPDATE photos_reviews SET status='outcome_unknown',result=NULL WHERE id=?").run(opened.reviewId);expect((await t.service.catalogStatus(opened.reviewId)).status).toBe('selection_reviewed');
   t.provider.reviewStatus=async()=>{throw new Error('temporary files no longer available');};const next=new PhotosService(t.db,t.provider,t.policy,()=> 'owner');expect((await next.catalogStatus(opened.reviewId)).result.selectedAssetIds).toEqual([id]);expect(t.calls()).toBe(0);
  }finally{t.db.close();}
 });
 
 test('catalog decisions account for every source and survive restart without authorizing writes',async()=>{
- const t=setup();t.provider.openCatalog=async(_request,operationId)=>({status:'catalog_review',operationId,assetIds:[id]});
+ const t=setup();
  t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:[],decisions:[{assetId:id,decision:'keep'}]});
  try{
-  const opened=await t.service.openCatalog({kind:'cleanup',offset:0,limit:1});
+  const opened=await historicalCatalog(t,{kind:'cleanup',offset:0,limit:1});
   expect((await t.service.catalogStatus(opened.reviewId)).result.decisions).toEqual([{assetId:id,decision:'keep'}]);
   t.provider.reviewStatus=async()=>{throw Error('journal removed');};
   const next=new PhotosService(t.db,t.provider,t.policy,()=> 'owner');
@@ -71,11 +77,11 @@ test('catalog decisions account for every source and survive restart without aut
  }finally{t.db.close();}
 });
 test('catalog rejects missing, duplicate, wrong-purpose and selection-inconsistent decisions',async()=>{
- const t=setup();t.provider.openCatalog=async(_request,operationId)=>({status:'catalog_review',operationId,assetIds:[id]});
+ const t=setup();
  try{
   for(const decisions of [[],[{assetId:id,decision:'keep'},{assetId:id,decision:'keep'}],[{assetId:id,decision:'share_review'}],[{assetId:id,decision:'delete_review'}]]){
    t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:[],decisions});
-   const opened=await t.service.openCatalog({kind:'cleanup',offset:0,limit:1});
+   const opened=await historicalCatalog(t,{kind:'cleanup',offset:0,limit:1});
    await expect(t.service.catalogStatus(opened.reviewId)).rejects.toThrow('invalid_review_decisions');
   }
   expect(t.calls()).toBe(0);
@@ -92,10 +98,10 @@ test('confirmed native cancellation is retained when journal is unavailable afte
 
 test('cross-page review summary preserves undecided and binds decisions to owner and destination',async()=>{
  const t=setup(),second='asset:1234567890abcdef:33333333-3333-3333-3333-333333333333';
- t.provider.openCatalog=async(request,operationId)=>({status:'catalog_review',operationId,assetIds:request.kind==='comparison'?request.assetIds:[id]});
+
  const save=async(albumId:string,decision:string)=>{
   t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:decision==='share_review'?[id]:[],decisions:[{assetId:id,decision}]});
-  const opened=await t.service.openCatalog({kind:'comparison',assetIds:[id],albumId});await t.service.catalogStatus(opened.reviewId);
+  const opened=await historicalCatalog(t,{kind:'comparison',assetIds:[id],albumId});await t.service.catalogStatus(opened.reviewId);
  };
  try{
   await save(sharedIntent.albumId,'keep');
@@ -112,9 +118,9 @@ test('cross-page review summary preserves undecided and binds decisions to owner
  }finally{t.db.close();}
 });
 test('review summary excludes pending and legacy selections rather than guessing keep decisions',async()=>{
- const t=setup();t.provider.openCatalog=async(_request,operationId)=>({status:'catalog_review',operationId,assetIds:[id]});t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:[id]});
+ const t=setup();t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:[id]});
  try{
-  const input={kind:'cleanup',assetIds:[id]};const opened=await t.service.openCatalog({kind:'cleanup'});
+  const input={kind:'cleanup',assetIds:[id]};const opened=await historicalCatalog(t,{kind:'cleanup'});
   expect(t.service.reviewSummary(input).counts.unreviewed).toBe(1);
   await t.service.catalogStatus(opened.reviewId);expect(t.service.reviewSummary(input).counts.unreviewed).toBe(1);
   expect(()=>t.service.reviewSummary({...input,assetIds:[id,id]})).toThrow();
@@ -134,7 +140,7 @@ test('wrong open library rejects metadata before writes and permits a newly revi
 
 function remoteFixture(){
  const t=setup();let nativeCalls=0;
- t.provider.openCatalog=async()=>{nativeCalls++;throw Error('Native review must not open');};
+
  t.provider.openReview=async()=>{nativeCalls++;throw Error('Native posting must not open');};
  t.provider.read=async(command,input)=>{
   if(command==='compare')return {album:{id:sharedIntent.albumId,title:'Fixture',kind:'shared',count:0},results:[{assetId:id,status:'not_found',candidates:[]}]};

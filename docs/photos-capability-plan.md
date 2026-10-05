@@ -1,12 +1,99 @@
-# Photos capability: experiment closeout and build plan
+# Photos capability: active remote delivery plan and evidence
 
-Status: foundational experiments closed on 2026-10-04; read/write module implemented in source, not deployed. Full product acceptance remains pending. The reconciled delivery plan below governs remaining work.
-See apps/icloud/src/photos/README.md for operator setup and current boundaries.
-PhotoKit authorization and an ordinary empty-album create/rename/delete lifecycle
-are live-verified. Shared Album upload support is not yet established.
-The user accepted local Photos access and an isolated Python dependency after
-initially preferring a cloud-only Bun implementation. This document supersedes
-older cloud-only and no-Python directions in the historical experiment records.
+## Active plan — revised 2026-10-05
+
+This section is authoritative for remaining work. Earlier plans and checkpoints
+below are historical evidence and are superseded wherever they require a native
+catalog reviewer or equate source/build/deployment with remote product acceptance.
+The full goal remains open. Source at main and the installed service are 0.1.31;
+reviewer removal and generic authorization verification are now source-validated;
+the replacement binary and actual remote client acceptance remain pending.
+
+### Goal and accepted product boundary
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Bun/TypeScript owns API/workflow, policy, review decisions and operation ledgers.
+osxphotos is the primary provider for supported reads/operations. A small native
+Helper supplies operations it cannot perform or fallback. It is not a second
+photo-management product and must not require a local review window for daily use.
+Native OS consent is an explicit setup exception. Python remains accepted and
+pinned; existing person tags are used without face recognition or identity guessing.
+
+Capability onboarding is generic across Mail, Calendar, Photos and future modules:
+composition -> module policy/scopes -> OAuth discovery and client registration ->
+explicit owner consent -> scoped token -> MCP discovery/invocation -> provider
+result. See the [shared module contract](../apps/icloud/src/modules/README.md).
+Neither enabling the host nor refreshing metadata expands an existing client
+ceiling or grant. Provider permissions, registered/requested/consented/token scopes,
+tool discovery and successful remote use are separate observations.
+
+### Current evidence and gaps
+
+- Main/installed 0.1.31 registers Photos in the shared MCP and advertises read/write.
+  Library reads and the installed Helper's Full Access were verified. Deletion is
+  configured off. Mail/Calendar configuration and existing grants were preserved.
+- Remote review preparation, previews, exact decision persistence and restart/owner
+  boundaries pass MCP SDK fixtures. A live local operator request read one real
+  source and persisted an undecided draft without UI or photo mutation. This is
+  not proof that the owner's remote ChatGPT connection can invoke Photos tools.
+- The owner screenshot has Mail/Calendar only. Live nonsecret metadata confirms
+  existing ChatGPT registration ceilings contain no Photos. Re-consenting an old
+  ceiling cannot add Photos. The host-supported route to a new registration and
+  its actual Photos consent/tool refresh still need owner-visible acceptance.
+- The Swift catalog reviewer and launch paths are removed in current WIP, with
+  source build/tests passing. The installed signed Helper still contains the old
+  reviewer. Its replacement, actual consent continuity and cleanup are pending.
+- Native empty ordinary-album create/rename/delete was previously verified; do
+  not repeat it. Personal asset writes/deletion, remote Shared Album posting and
+  cloud propagation remain unverified. Probable matches are not sharing proof.
+- Remote shared posting currently rejects before host UI. Keep that explicit limit
+  until a supported remote path is verified; the Apple UI candidate is evidence,
+  not the remote product flow or a reason to send the owner back to the Mac.
+
+### Ordered delivery and observable acceptance
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+### Immediate slice and boundaries
+
+Owner: the receiver in this existing worktree; preserve the primary checkout and
+all unrelated work. Standing Git/merge/deploy authorization applies within this
+scope. Do not spawn another receiver or silently change conversation ownership.
+
+First finish generic Photos authorization fixtures and compare against Mail and
+Calendar. Make missing registration capabilities visible with accurate recovery
+instructions; do not widen signed requests or stored grants. Then complete phase 2
+source/native validation and publish a coherent milestone through normal PR checks.
+Use clean main for deployment; preserve stopped state/custody/config and old release.
+A rebuilt helper's consent must be checked, with owner completion of any new prompt.
+Only after the owner actually receives Photos tools proceed to remote photo review.
+
+No upload, metadata change, deletion or test asset creation is implied by a build,
+registration test, stored review decision or this plan revision. No browser UI
+fallback for Photos operations. No global reinstall or dependency migration is
+needed. English repository/helper content; Traditional Chinese conversation.
+
+### Prototype and lifecycle disposition
+
+Remove the custom native catalog reviewer and current build/dispatch paths. Retain
+historical journals, manifests and exact decisions for recovery. Retain necessary
+Apple posting research as explicitly nonshipping evidence. Existing installed
+releases and the previously authorized development helper are rollback/recovery
+state until replacement validation resolves their dependency, not raw disposable
+outputs. Remove superseded task-owned candidates after verified remote preservation,
+inactivity and reference reconciliation; do not sweep shared temporary directories.
+
+Dev/Build checks establish source/protocol contracts. Release/Install must verify
+source commit, artifact bytes and actual running version. Update includes permission,
+owner/account/grant preservation and compatible rollback. Uninstall removes only
+owned capability resources and preserves Photos data. Mac sleep/offline availability
+and server/cross-device synchronization must be reported honestly.
+
+## Historical evidence and earlier plans
+
+The following dated records preserve experiments and provenance. Their former
+active next steps and source/deployment status do not override the active plan above.
 
 ## Decision
 
@@ -586,3 +673,43 @@ receives image content, saves exact read-scope review decisions and reads them b
 without native launch or Photos mutations. Large cleanup groups can be reviewed
 in exact subsets without silently claiming omitted sources. These fixture checks
 do not prove the installed client's current OAuth consent, tool refresh or images.
+
+
+### Remove the native catalog reviewer (2026-10-05)
+
+Remote review replaces the custom Swift catalog window. Remove its source, helper
+command dispatch, build input and provider/service launch paths; retain historical
+journal/selection readback for recovery. The Helper retains native authorization
+and supported photo operations; the Apple posting candidate remains isolated from
+remote tools. Replacing the signed Helper requires actual authorization readback,
+not an assumption that a rebuilt ad-hoc binary keeps consent.
+
+Live client inspection found existing ChatGPT registrations predate Photos scopes.
+Their registered ceilings and granted scopes contain Mail/Calendar, without Photos.
+Fresh consent on those registrations does not add capabilities. A new client
+registration with current Photos scopes and explicit consent is required; preserve
+existing working grants and do not mutate signed authorization queries.
+
+
+### Revised-plan phase 1–2 source acceptance (2026-10-05)
+
+The real shared owner-auth fixture now upgrades declared module scopes, creates
+a fresh anonymous client using dynamic registration defaults, traverses signed
+account selection and Photos consent, accepts a read-only subset and verifies
+the issued bearer principal. Requested Photos write is absent from the token
+when unchecked; preexisting tokens remain without Photos. The old registration
+ceiling tests remain intact. This establishes the generic server contract, not
+owner-visible ChatGPT registration/tool refresh acceptance.
+
+The custom Swift catalog reviewer, native command branch, build input and both
+provider/service launch methods are deleted. Historical catalog journals and
+selection readback remain supported using persisted fixtures; no obsolete launch
+path is kept merely to test recovery. The operation Helper compiles, links and
+passes signature verification with three native sources. The new build is a
+candidate until main deployment and actual native authorization readback.
+
+Production build, 355 application tests / 2,280 assertions and eleven built E2E
+tests / 259 assertions pass. Generic auth coverage passes three tests / 174
+assertions. An initial candidate setup rejected a relative destination before
+creating output; the explicit absolute destination build subsequently passed.
+Existing native permissions do not establish rebuilt-binary consent.

@@ -103,7 +103,7 @@ export function createClientRecovery(options:{database:Database;origin:string;or
   const {clientId,additionalScopes}=parsed.data,client=clients().find(c=>c.clientId===clientId);
   if(!client)return reply({error:'CLIENT_NOT_FOUND'},404);
   if(additionalScopes.some(scope=>!options.allowedScopes().includes(scope)))return reply({error:'CAPABILITY_DISABLED'},409);
-  if(client.userId!==owner)return reply({error:'NEW_CLIENT_REGISTRATION_REQUIRED',existingGrantsChanged:false,instructions:'Keep the existing Mail connection. Register a new OAuth client through host connection setup with required Mail and Calendar scopes, select the same saved account, and explicitly consent. Reusing the old client ID cannot increase its scope ceiling.'},409);
+  if(client.userId!==owner)return reply({error:'NEW_CLIENT_REGISTRATION_REQUIRED',existingGrantsChanged:false,instructions:'Keep the existing Mail connection. Register a new OAuth client through host connection setup with the required currently enabled capability scopes, select the same saved account, and explicitly consent. Reusing the old client ID cannot increase its scope ceiling.'},409);
   const merged=[...new Set([...scopes(client.scopes,options.declaredScopes),...additionalScopes])];
   try{await options.updateClient(request.headers,clientId,merged);}catch{return reply({error:'CLIENT_UPDATE_FAILED',existingGrantsChanged:false},409);}
   return reply({clientId,registeredScopes:merged,consentRequired:true,existingGrantsChanged:false});

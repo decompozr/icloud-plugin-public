@@ -30,5 +30,5 @@ export const reviewSummarySchema=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('cleanup'),assetIds:summaryIds}).strict()
 ]);
 export const sharedObservationSchema=z.object({operationId:z.string().uuid(),confirm:z.literal(true),albumId:albumId.refine(v=>v.includes(':shared:')),sharedAssetId:assetId,observedOn:z.enum(['service_mac','another_device']),contentReviewed:z.enum(['still','full_asset']),note:z.string().trim().min(10).max(500)}).strict();
-export interface PhotosProvider {read(command:string,input:unknown):Promise<unknown>;inspect(mutation:Mutation):Promise<unknown>;apply(mutation:Mutation,expected:unknown):Promise<unknown>;openReview?(mutation:Mutation,expected:unknown,operationId:string):Promise<unknown>;reviewStatus?(operationId:string):Promise<unknown>;openCatalog?(request:CatalogRequest,operationId:string):Promise<unknown>}
+export interface PhotosProvider {read(command:string,input:unknown):Promise<unknown>;inspect(mutation:Mutation):Promise<unknown>;apply(mutation:Mutation,expected:unknown):Promise<unknown>;openReview?(mutation:Mutation,expected:unknown,operationId:string):Promise<unknown>;reviewStatus?(operationId:string):Promise<unknown>}
 export class PhotosError extends Error {constructor(readonly code:string){super(code);}}

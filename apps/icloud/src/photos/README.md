@@ -6,6 +6,16 @@ metadata; native PhotoKit performs supported album operations and asset deletion
 Photos scripting applies title, description, keywords and favorite values.
 SQLite is never used to mutate the Photos library.
 
+## Remote workflow and helper responsibility
+
+The owner reviews photos through the assistant conversation. osxphotos is the
+primary supported provider; the Swift Helper supplies missing operations/fallback.
+The custom native catalog reviewer and its command/build/launch paths are removed.
+Historical review journals remain readable. Native system permission prompts and
+the isolated Apple posting candidate are separate from remote daily review.
+Current delivery and live acceptance follow the active capability plan; earlier
+dated paragraphs below preserve historical evidence, not current workflow.
+
 ## Setup and permissions
 
 Run `bun src/photos/setup.ts /absolute/private/photos-runtime` from apps/icloud.
