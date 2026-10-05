@@ -251,8 +251,16 @@ They share normal decryption, require baseline-approved retained namespaces,
 return counts and never create schema, repair state or replay operations. Complete
 encrypted snapshots prevent cached Bun iterator advancement after an error from
 skipping failures on retry; repeated-rejection fixtures cover auth and both ledgers.
-Baseline completeness/missing-row detection, custody-journal validation, full
-composition and actual stopped maintenance/native acceptance remain pending.
+The inactive [composed validator](../apps/icloud/src/storage/master-consumer-validation.ts)
+now also authenticates every account custody state/cleanup HMAC and registry link.
+An explicit authenticated stopped-snapshot baseline declares known consumer table
+presence and exact count reports; missing, undeclared, partial or wrong-DB tables
+and row-count omissions fail without rebaselining. Nested read snapshots require
+real cross-store stopped-maintenance exclusion supplied by the caller. Populated
+memory-port fixtures prove late internal-client corruption blocks master cutover.
+Baseline capture/authentication/persistence, same-count/historical rollback
+protection, operational maintenance, live auth/session compatibility and actual
+native acceptance remain pending; composition is not the K2 exit gate.
 The inactive [password-copy coordinator](../apps/icloud/src/storage/account-password-migration.ts)
 now drives exact noninteractive readback, create-only provisioning, verification
 and fresh-read cutover through injected ports. Lost create replies never cause

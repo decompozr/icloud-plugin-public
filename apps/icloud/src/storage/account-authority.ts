@@ -37,6 +37,38 @@ const equal=(a:string,b:string)=>timingSafeEqual(Buffer.from(a,'hex'),Buffer.fro
  * never calls Keychain or selects runtime custody; all native activation is gated.
  */
 export class AccountAuthorityJournal {
+ /** Existing-snapshot validation only. Caller has already authenticated owner
+  * marker and baseline. Authenticate every state/cleanup HMAC and registry link;
+  * do not reconcile mutations, acknowledge cleanup or access native items. */
+ static validateExistingRecords(options:{database:Database;installationId:string;masterKey:Uint8Array;ownerId:string|null}):Readonly<{format:1;records:number;cleanup:number}> {
+  const store=new AccountAuthorityJournal(options.database,options.installationId,options.masterKey,{ownerId:()=>options.ownerId});
+  try{return store.guard(()=>options.database.transaction(()=>{
+   store.binding();
+   const meta=options.database.query('SELECT singleton,format,installation FROM account_custody_meta').all();
+   if(meta.length!==1)fail('recovery_required');
+   const header=z.object({singleton:z.literal(1),format:z.literal(1),installation:installationIdentitySchema}).strict().parse(meta[0]);
+   if(header.installation!==options.installationId)fail('recovery_required');
+   const registry=new Set<string>();
+   for(const raw of options.database.query('SELECT owner,id FROM mail_accounts').all()){
+    const row=z.object({owner:z.string(),id:uuid}).strict().parse(raw);
+    if(row.owner!==options.ownerId||registry.has(row.id))fail('recovery_required');registry.add(row.id);
+   }
+   const states=options.database.query('SELECT owner,account FROM account_custody_state').all(),seen=new Set<string>();
+   let cleanup=0;
+   for(const raw of states){
+    const row=z.object({owner:z.string(),account:uuid}).strict().parse(raw);
+    if(row.owner!==options.ownerId||!registry.has(row.account)||seen.has(row.account))fail('recovery_required');seen.add(row.account);
+    store.current(row.owner,row.account);cleanup+=store.cleanup(row.owner,row.account).length;
+   }
+   if(seen.size!==registry.size)fail('recovery_required');
+   const rows=options.database.query('SELECT owner,account FROM account_custody_cleanup').all();
+   for(const raw of rows){const row=z.object({owner:z.string(),account:uuid}).strict().parse(raw);
+    if(row.owner!==options.ownerId||!seen.has(row.account))fail('recovery_required');
+   }
+   if(rows.length!==cleanup)fail('recovery_required');
+   return Object.freeze({format:1 as const,records:seen.size,cleanup});
+  })());}finally{store.close();}
+ }
  private key:Buffer;
  private closed=false;
  private constructor(private db:Database,readonly installationId:string,key:Uint8Array,private owner:Pick<OwnerSecretStore,'ownerId'>){

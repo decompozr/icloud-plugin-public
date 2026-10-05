@@ -265,6 +265,34 @@ only; process death is not power-loss/disk-full or real Keychain acceptance.
 
 ## Verification and limits
 
+`validateMasterConsumers` now composes the existing owner/marker/account/Photos,
+internal-client, Mail receipt, Calendar payload and account-custody HMAC
+validators. Caller-owned existing DB handles are held in nested read snapshots;
+the authenticated stopped-snapshot baseline declares installation/owner/format,
+retained namespaces, required internal-client slot, exact count reports and
+explicit absent consumers. Missing, undeclared, partial or misplaced known
+consumer tables fail closed. Expected counts catch omissions, including null
+Mail tombstones and orphaned/missing custody metadata; they do not establish
+same-count substitution protection or full historical rollback resistance.
+
+`AccountAuthorityJournal.validateExistingRecords` authenticates every state and
+cleanup record with existing contexts and links each retained registry account
+exactly once. It does not reconcile revisions, acknowledge cleanup, choose native
+authority or read/delete items. Derived key copies are cleared. Neither validator
+creates schema, repairs state, starts auth or closes caller DBs. These are inactive
+administrative components: real safe paths, baseline authentication/persistence,
+cross-store stopped-maintenance exclusion and native startup remain unwired.
+The maintenance assertion runs before and after validation; nested SQLite
+snapshots alone are not a shared transaction or proof that another process stopped.
+
+Populated composition fixtures gate the actual injected-port master coordinator,
+including corruption after fresh native readback before authority cutover. They
+also cover readonly preservation, every retained crypto class, repeated failures,
+deleted/hidden/partial tables and lease loss. All native items are memory fixtures.
+Full Passkey/OAuth/session/provider acceptance, protected recovery, K0 and K2
+activation are still separate gates. The master manifest's own HMAC/lease is
+verified by the coordinator, not inferred from the composition report.
+
 Colocated owner-store tests and the worker fixture cover provisioning/open behavior,
 exclusive enrollment, tamper/key failures, owner integrity, rotation/revocation and
 restart persistence. They do not prove rollback resistance or a production backup
