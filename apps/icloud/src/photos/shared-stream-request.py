@@ -26,7 +26,7 @@ def run(request, session_factory=None):
     if str(state.get('data', {}).get('dsInfo', {}).get('dsid', '')) != dsid:
         raise ValueError('identity')
     origin = urlsplit(request['serviceOrigin'])
-    if (origin.scheme != 'https' or origin.username or origin.password or origin.port or
+    if (origin.scheme != 'https' or origin.username or origin.password or origin.port not in [None, 443] or
             origin.path not in ['', '/'] or origin.query or origin.fragment or
             not re.fullmatch(r'p[0-9]+-sharedstreams\.icloud\.com(?:\.cn)?', origin.hostname or '')):
         raise ValueError('service')
@@ -40,7 +40,9 @@ def run(request, session_factory=None):
     payload = request['body']
     if not isinstance(payload, str) or len(payload.encode()) > 8192 or not isinstance(json.loads(payload), dict):
         raise ValueError('payload')
-    url = f'{origin.scheme}://{origin.netloc}/{dsid}/sharedstreams/{endpoint}'
+    # Apple may advertise the standard TLS port explicitly. Canonicalize it like
+    # URL.origin in TypeScript; nonstandard ports remain forbidden.
+    url = f'https://{origin.hostname}/{dsid}/sharedstreams/{endpoint}'
     session = (session_factory or Session)()
     try:
         # Disable netrc/proxy credential discovery. requests' default adapter has
