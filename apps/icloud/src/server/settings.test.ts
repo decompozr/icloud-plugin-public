@@ -32,6 +32,12 @@ test('container prerequisites require fresh host diagnostics and actual private 
   await server.stop(true);expect((await prerequisites(settings)).privateReachable).toBe(false);
  }finally{await server.stop(true);rmSync(dir,{recursive:true,force:true});}
 });
+test('Photos is opt-in, resolves explicit paths, and is unavailable in containers',()=>{
+ const dir=mkdtempSync(join(tmpdir(),'icloud-photos-settings-')),path=join(dir,'app.toml');
+ const source='public_origin="https://host.example"\nprivate_origin="https://host.example:8443"\nstate_directory="state"\nmaster_key_file="custody/key"\ninstallation_marker="custody/marker"';
+ const photos='\n[photos]\npython="runtime/python"\nlibrary="library.photoslibrary"\nnative_helper="runtime/helper"';
+ try{writeFileSync(path,source);expect(readSettings(path).photos).toBeUndefined();writeFileSync(path,source+photos);const p=readSettings(path).photos!;expect(p.python).toBe(join(dir,'runtime/python'));expect(p.allow_writes).toBe(false);expect(p.allow_delete).toBe(false);writeFileSync(path,source+'\nruntime_mode="container"'+photos);expect(()=>readSettings(path)).toThrow('Photos requires native macOS runtime');}finally{rmSync(dir,{recursive:true,force:true});}
+});
 
 test('startup rejects widened state/custody and symlinks without repairing them',()=>{
  const dir=mkdtempSync(join(tmpdir(),'icloud-custody-'));

@@ -1,5 +1,7 @@
 # Engineering knowledge from the experiments
 
+> Photos experiments closed 2026-10-04. The [capability plan](photos-capability-plan.md) supersedes historical cloud-only constraints and unresolved local-read claims below. No production Photos provider is implemented yet.
+
 ## Calendar integration decision (2026-10-03 UTC)
 
 Final disposition: the registered source module passed independent review,
@@ -119,6 +121,68 @@ application byte-for-byte and adds the installer, avoiding accidental deployment
 of an unrelated source refactor. See deployment lifecycle for verification and
 archive provenance. Neither build nor release should create `.flow-runtime` or
 external installation directories implicitly.
+
+## Photos metadata findings (2026-10-03)
+
+The [Photos experiment](photos-feasibility.md) preserves distinct asset identities
+when filenames collide and keeps thumbnail/original/Live Photo motion resources
+separate. Its scope includes private/shared database and every string-valued
+zone-ID field. Missing thumbnails fail explicitly rather than selecting a larger
+resource. The upstream query returns asset/master rows together; the validated
+one-to-one fixture advances ranks by pairs, with caps reported as incomplete.
+These are handwritten parser/loopback observations, not provider compatibility.
+The accepted integration target is direct HTTP cloud access; PhotoKit/local
+library work does not meet that goal. Mail credentials or grants must not be
+assumed to authorize Photos.
+
+The local semantic importer uses explicit library namespace + UUID, never cloud
+IDs or filenames. Stored people annotations, user keywords and generated labels
+remain distinct; nullable person annotations and categorized place-name maps
+follow the pinned OSXPhotos shape. Exported emptiness does not prove feature
+support. GPS validates finite ranges and permits zero without geocoding. A
+separate ten-asset read-only local sample confirmed named-people/GPS metadata
+availability and cached place blobs, but did not decode places, inspect scene
+labels, establish unique person identity or demonstrate live iCloud support.
+
+### Direct HTTP upstream knowledge
+
+[The pinned source research](photos-cloud-research.md) distinguishes icloudpd's
+vendored `pyicloud_ipd` SRP/session path from picklepete/pyicloud. Reuse service
+discovery, scoped zones, paired pagination and rendition mappings. The XMP
+exporter supplies real Base64 UTF-8 caption and Base64 plist keyword/GPS
+decoders; fields merely appearing in `desiredKeys` would be weaker evidence.
+Preserve valid zero coordinates and missing/empty/malformed distinctions.
+Neither reviewed Photos module implements person-name search; cloud metadata
+filtering must report coverage and must not be described as server-side semantic
+search. Existing MIT notices accompany substantial copied/adapted code.
+
+The initial isolated cloud-record decoder verified these formats using Python
+stdlib plist parsing alongside Bun. Its Python 3.9.6 authentication preflight
+stopped before login/session creation. The accepted continuation supersedes that
+route: Bun-native SRP, scoped cookies, bounded HTTP and plist decoding, with
+project-local exact dependencies and no Python runtime requirement. Real terminal
+account/2FA interaction is still needed. Authentication-only success will not
+prove Photos metadata or person-search capability.
+
+The native implementation's final offline verification passed 66 tests / 565
+assertions under Bun 1.4.2, including independently calculated Ruby/OpenSSL SRP
+answers and synthetic auth/2FA plus loopback reads. The current command is
+`bun run cloud:probe --read` from `playground/photos` in the user's own terminal.
+It authenticates and reads at most twenty private PrimarySync assets/two pages,
+printing aggregate evidence only; no persisted session, image download or cloud
+person search is provided. The album follow-up adds a capped one-response album
+sample with explicit incomplete coverage plus exact-record-ID membership reads.
+Neither ordinary albums nor names establish People annotations. Other library
+enumeration and real-account album acceptance remain open. The
+overall goal remains unfinished until cloud evidence and capability conclusions are
+obtained; no credential or raw-response capture is required in these docs.
+
+The finite `--people-schema` follow-up uses kei's pinned `/changes/zone` shape,
+two pages/two hundred records maximum, empty-page `moreComing` semantics and
+consistent zone ownership. It reports schema names/counts only; it never decodes
+person names or person/photo joins. Synthetic verification is complete for this
+probe. The remaining meaningful step depends on user terminal account/2FA input
+and a sanitized real response; no reusable authenticated handle is verified.
 
 ## Calendar query completeness and mutation ordering
 

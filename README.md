@@ -1,6 +1,6 @@
 # iCloud plugin
 
-The project is named **icloud-plugin**. Mail and an optional registered Calendar module share one authenticated MCP server. Calendar is disabled by default and requires separate operator permissions and client consent; see [Calendar acceptance](docs/calendar-production.md) for verified behavior and remaining limitations. Drive, Contacts and Photos remain planned.
+The project is named **icloud-plugin**. Mail and an optional registered Calendar module share one authenticated MCP server. Calendar is disabled by default and requires separate operator permissions and client consent; see [Calendar acceptance](docs/calendar-production.md) for verified behavior and remaining limitations. Drive and Contacts remain planned; Photos is implemented as an optional module pending live acceptance.
 
 The current preparation target is **one accepted iCloud account through a custom
 MCP connection**, with Mail and Calendar enabled by existing owner policy and
@@ -10,6 +10,18 @@ it. See the [single-account production audit](docs/single-account-production-rea
 for fixes, verified behavior, remaining gates and the next approval boundary.
 Sending is disabled by default in new installations and requires operator
 enablement and OAuth consent.
+
+Photos feasibility experiments are complete. The accepted implementation is a
+Bun API backed by a pinned local osxphotos provider, with a Swift/PhotoKit helper
+only where needed. Existing person labels and true Shared Album reads have been
+verified on the synced Mac library; native sharing and deletion source is implemented, with live acceptance pending.
+See the [build plan and evidence](docs/photos-capability-plan.md). Historical
+cloud protocol work remains isolated in [the experiment package](playground/photos/README.md).
+An opt-in [Photos module](apps/icloud/src/photos/README.md) now implements read tools
+and reviewed album, metadata and deletion workflows. Empty ordinary-album lifecycle writes are verified; native asset writes and
+Shared Album upload remain unverified.
+No production Photos capability is deployed.
+
 
 [Project decisions and status](docs/project.md) are the authoritative foundation.
 [Mailbox scope and expected outcomes](docs/mailbox-tools.md) define the agreed

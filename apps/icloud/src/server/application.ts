@@ -1,3 +1,7 @@
+import {photosSetup} from '../photos/setup-ui.js';
+import {LocalPhotosProvider} from '../photos/provider.js';
+import {PhotosService} from '../photos/service.js';
+import {photosRegistration} from '../photos/module.js';
 import {ReconnectCapture} from '../observability/reconnect.js';
 import {runtimeVersions} from './versions.js';
 import {createSystemStatus,type SystemStatus} from '../admin/system-status.js';
@@ -47,6 +51,12 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  const mailModule=createMailModule(settings,{...deps,monitor});
  const calendarModule=createCalendarModule(settings,{...deps,monitor,provider:deps.calendarProvider});
  const runtime=new ModuleRuntime().register(mailModule.registration).register(calendarModule.registration);
+ if(settings.photos){
+  const p=settings.photos;
+  const policy=()=>({read:true,write:p.allow_writes,delete:p.allow_delete});
+  const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,reviewDirectory:join(dirname(settings.master_key_file),'photos-shared-reviews'),sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
+  runtime.register(photosRegistration(photos,policy));
+ }
  await runtime.start();
  try{
  const config=mailModule.config;
@@ -65,7 +75,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  publicApp.get('/icloud/assets/auth-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'auth-browser.js'),{dotfiles:'allow'}));
  publicApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.public_origin,auth.publicHandler,lifecycle));
  const versions=runtimeVersions(deps.assetsDirectory);
- const admin=createPrivateAdmin({systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]});
+ const admin=createPrivateAdmin({...(settings.photos?{photosSetup:photosSetup({python:settings.photos.python,library:settings.photos.library,nativeHelper:settings.photos.native_helper})}:{}),systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]});
  const privateApp=express();privateApp.disable('x-powered-by');privateApp.use(lifecycle.admission);privateApp.use(guardHost(settings.private_origin,settings.private_port));
  privateApp.use((req,res,next)=>{
   const address=req.socket.remoteAddress?.replace(/^::ffff:/,'');
