@@ -351,8 +351,8 @@ bytes; opaque, malformed or mismatched-user legacy payloads fail closed. Native 
 passwords are losslessly wrapped in the same provider fields. Revision/custody-epoch
 snapshots fence late reads and can guard dispatch/readiness/session acceptance;
 this consistency check does not authenticate callers. Returned buffers belong to
-callers; parsed JS strings cannot be securely erased. Current admin consumers still need async/revision-aware adaptation before
-this port can be selected. Readiness evidence now accepts an optional custody
+callers; parsed JS strings cannot be securely erased. Admin credential mutations still need transactional custody adapters before
+this port can be selected in production. Readiness evidence now accepts an optional custody
 snapshot and includes authority/epoch as well as semantic revision; synthetic
 in-flight evidence checks reject late reads after custody changes even when
 revision is preserved. The current runtime factory does not select this option.
@@ -382,6 +382,17 @@ the already-admitted exact account namespace so revocation cannot discard a
 confirmed or unknown SMTP result. This is method-level/provider-call fencing, not
 proof of each internal protocol packet or sealed native caller identity. Registered
 module tests use synthetic providers; the runtime factory selects no reader.
+
+Admin dashboard status now accepts an optional custody metadata reader. It
+projects only stable account identity/display fields and stored-credential status,
+without password IO or journal metadata. Native-authoritative accounts remain
+visible after ciphertext retirement; revoked/recovery accounts are unavailable.
+Reader errors deny status without SQLite fallback. When selected, this reader
+blocks existing add/rotate/revoke routes before provider validation or legacy
+writes until transactional custody maintenance adapters are integrated. Actual
+authenticated authority fixtures cover native and revoked status and this gate.
+Production composition supplies no reader; this checkpoint does not activate
+native custody or complete account administration.
 
 Operational stopped recovery, account add/rotation adapters, settings/format gates, custody
 paths and backend integration are still required for K1 completion.

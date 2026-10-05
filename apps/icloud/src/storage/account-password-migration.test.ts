@@ -416,6 +416,7 @@ test('Calendar activation guards provider discovery requests before policy publi
 import {createMailModule} from '../mail/module.js';
 import {MailOperationError,type MailSession} from '../mail/domain/mail.js';
 import {SqliteOutboundLedger} from '../mail/storage/outbound-ledger.js';
+import {createPrivateAdmin} from '../admin/handler.js';
 async function mailCustodyFixture(){
  const f=await rotationFixture(),auth=new Database(':memory:'),{reader,sourceReads}=readerFixture(f);let calls=0,marks=0,sends=0,late:(()=>void)|undefined,afterSend:(()=>void)|undefined;
  const session:MailSession={supportsMove:true,list:async()=>{calls++;late?.();return[{path:'INBOX',name:'Inbox',selectable:true}];},select:async()=>({uidValidity:'123',uidNext:2,supportsKeywords:true,release(){}}),search:async()=>[1],summaries:async()=>[],metadata:async()=>{late?.();return{attachments:[]};},download:async()=>({contentType:'message/rfc822',chunks:(async function*(){yield Buffer.from('synthetic');})(),cancel(){}}),mark:async()=>{marks++;return true;},flag:async()=>true,tag:async()=>true,move:async()=>false};
@@ -451,4 +452,28 @@ test('Mail unknown SMTP result remains unreplayable after explicit same-UUID rec
   await addition.advance('owner',f.a,pending.epoch,op,password,{interaction:'prohibited'});const checked=await addition.advance('owner',f.a,pending.epoch,op,password,{interaction:'prohibited'});await addition.advance('owner',f.a,checked.epoch,op,password,{interaction:'prohibited'});
   f.afterSend(()=>{});const retry=await f.run('mail_send',input),receipt=JSON.parse((retry.content[0] as {text:string}).text);expect(receipt.status).toBe('unknown');expect(receipt.replayed).toBe(true);expect(f.sends()).toBe(1);
  }finally{password.fill(0);await f.dispose();}
+});
+test('Admin custody status reflects native authority without secret reads and blocks legacy mutations',async()=>{
+ const f=await rotationFixture(),{reader,sourceReads}=readerFixture(f);let validations=0;
+ try{
+  const origin='https://private.invalid',session=async()=>({user:{id:'owner'}});
+  const handler=createPrivateAdmin({privateOrigin:origin,store:f.owner,credentialReader:reader,ownerAuth:{ownerSession:session,enrollmentSession:session},diagnostics:async()=>({installed:true,authenticated:true,online:true,privateReachable:true}),validateCredential:async()=>{validations++;}});
+  const before=f.native.readOptions.length,status=await handler(new Request(origin+'/icloud/admin/status'));
+  expect(status.status).toBe(200);const body=await status.json();expect(body.accounts.find((account:{id:string})=>account.id===f.a).credentialStored).toBe(true);expect(f.owner.account('owner',f.a).credentialStored).toBe(false);
+  expect(JSON.stringify(body)).not.toContain('synthetic-a');expect(JSON.stringify(body)).not.toContain('custodyEpoch');expect(sourceReads()).toBe(0);expect(f.native.readOptions).toHaveLength(before);
+  const state=f.journal.read('owner',f.a);
+  for(const path of ['accounts/add','credential','revoke']){
+   const response=await handler(new Request(origin+'/icloud/admin/'+path,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({accountId:f.a,appPassword:'replacement'})}));
+   expect(response.status).toBe(409);expect(await response.json()).toEqual({error:'CREDENTIAL_MAINTENANCE_UNAVAILABLE'});
+  }
+  expect(validations).toBe(0);expect(f.journal.read('owner',f.a)).toEqual(state);
+  f.journal.revoke('owner',f.a,state.epoch,randomUUID());const revoked=await(await handler(new Request(origin+'/icloud/admin/status'))).json();expect(revoked.accounts.find((account:{id:string})=>account.id===f.a).credentialStored).toBe(false);
+ }finally{f.cleanup();}
+});
+test('Admin custody metadata failure never falls back to SQLite account status',async()=>{
+ const f=await rotationFixture();try{
+  const origin='https://private.invalid',session=async()=>({user:{id:'owner'}});
+  const handler=createPrivateAdmin({privateOrigin:origin,store:f.owner,credentialReader:{listAccounts(){throw new CustodyError('recovery_required');}},ownerAuth:{ownerSession:session,enrollmentSession:session},diagnostics:async()=>({installed:true,authenticated:true,online:true,privateReachable:true}),validateCredential:async()=>{}});
+  const response=await handler(new Request(origin+'/icloud/admin/status'));expect(response.status).toBe(403);expect(await response.json()).toEqual({error:'ACCESS_OR_STATE_DENIED'});
+ }finally{f.cleanup();}
 });
