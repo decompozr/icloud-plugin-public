@@ -347,3 +347,28 @@ by the same operator found the original four calendars and no experiment-marker,
 title or path matches. Ledgers were settled and all planned current-stage targets
 absent, including the never-created first attempt. No remote experiment resources
 remain; recipient mailbox history/cancellation receipt is not inferred removed.
+
+## Native Keychain custody — 2026-10-05
+
+Disposition: **closed; knowledge reconciled** in
+[engineering knowledge](knowledge.md#macos-keychain-custody-and-update-identity-2026-10-05).
+The source/report and bounded evidence are retained for deliberate reproduction.
+
+[Keychain experiment](../playground/keychain/README.md) records a synthetic native
+probe and reproducible runner. Self-checking confirmed automatic item creation,
+repeated no-UI reads through direct processes, Bun and a transient LaunchAgent,
+and exact-item deletion with absence readback. A changed ad-hoc binary with the
+same identifier/path could not read without interaction; an unchanged binary
+copied to another path could. The helper's caller boundary, certificate-signed
+updates, reboot/locked-session behavior, migration and full uninstall remain
+unverified at that first checkpoint. Production credentials/custody were untouched; synthetic items/jobs
+were removed. Source and evidence are local-only, with no deployment or publication.
+
+The subsequent isolated certificate-pinned run verified three distinct builds
+(v1/v2/v3) with matching certificate/identifier requirements: repeated unattended
+reads, same-path replacements, rollback to v1, Bun-child and LaunchAgent v3 reads
+all pass. Different signer, different identifier and ad-hoc controls are rejected.
+The disposable keychain, signing private keys and job were removed; search-list
+and default-keychain snapshots remain unchanged. This is self-checked test-certificate
+evidence, not Developer ID distribution, renewal, reboot or production migration
+acceptance. The helper caller boundary still requires a production design.

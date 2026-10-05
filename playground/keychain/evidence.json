@@ -1,0 +1,397 @@
+{
+  "format": 1,
+  "date": "2026-10-05",
+  "environment": {
+    "macos": "27.0.1",
+    "build": "26A434",
+    "architecture": "arm64",
+    "swift": "6.4",
+    "keychain": "file-based, unlocked",
+    "session": "logged-in user GUI"
+  },
+  "verification": "same-agent self-checking",
+  "scope": "Synthetic keys only; no production migration or deployment",
+  "source_sha256": {
+    "Sandbox.swift": "3bc12308d0fc129cb9df15873bac2ff82e061b18a6b2c520ecd539e870ecc6ba",
+    "run.py": "e6889d1afb1e10bd1def8988c80f5a95cd4272418181a9fee8ab9f0ebc316175",
+    "Probe.swift": "a08bdc055b9694acb83e9b73656a01450dd74bca577ad59efc6f3b9c8d39bf2d",
+    "run_signed.py": "1db279e4ea3c825d168226d5a7d659efe48a4443cddeb6ef94e59a501fec2eb9"
+  },
+  "adhoc": [
+    {
+      "case": "keychain-status",
+      "process_exit": 0,
+      "action": "status",
+      "build": "v1",
+      "status": 0,
+      "unlocked": true
+    },
+    {
+      "case": "create",
+      "process_exit": 0,
+      "action": "create",
+      "build": "v1",
+      "status": 0
+    },
+    {
+      "case": "first-read",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "repeat-read-1",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "repeat-read-2",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "repeat-read-3",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "duplicate-create",
+      "process_exit": 1,
+      "action": "create",
+      "build": "v1",
+      "status": -25299
+    },
+    {
+      "case": "same-binary-new-path",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "identity-v1",
+      "process_exit": 0
+    },
+    {
+      "case": "identity-v2",
+      "process_exit": 0
+    },
+    {
+      "case": "new-binary-same-identifier",
+      "process_exit": 1,
+      "action": "read",
+      "build": "v2",
+      "status": -25293
+    },
+    {
+      "case": "replacement-at-original-path",
+      "process_exit": 1,
+      "action": "read",
+      "build": "v2",
+      "status": -25293
+    },
+    {
+      "case": "restored-original",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "bun-child-read",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "launchagent-read",
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "launchagent-absent",
+      "process_exit": 113,
+      "absence_verified": true
+    },
+    {
+      "case": "delete",
+      "process_exit": 0,
+      "action": "delete",
+      "build": "v1",
+      "status": 0
+    },
+    {
+      "case": "read-after-delete",
+      "process_exit": 1,
+      "action": "read",
+      "build": "v1",
+      "status": -25300
+    },
+    {
+      "case": "delete-again",
+      "process_exit": 1,
+      "action": "delete",
+      "build": "v1",
+      "status": -25300
+    }
+  ],
+  "certificate_pinned": [
+    {
+      "case": "create-isolated-keychain",
+      "process_exit": 0,
+      "action": "create",
+      "status": 0
+    },
+    {
+      "case": "three-distinct-binaries",
+      "binary_sha256": [
+        "eea504e95f11380f23f63ac790559753db0fbef15063362318e042fef01192bc",
+        "ea9977cc61d81bbe75d745d36a24db4f4e0b9690b443a566f253bc184f7681e1",
+        "4a1737151bccac7e6aafd05540c1a6163b117b4801039962d842a9415cbf7ed6"
+      ]
+    },
+    {
+      "case": "create-with-v1",
+      "process_exit": 0,
+      "action": "create",
+      "build": "v1",
+      "status": 0
+    },
+    {
+      "case": "first-read-v1",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v1-repeat-1",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v1-repeat-2",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v1-repeat-3",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v1-installed-path",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v2-repeat-1",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v2",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v2-repeat-2",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v2",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v2-repeat-3",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v2",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v2-installed-path",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v2",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v3-repeat-1",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v3",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v3-repeat-2",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v3",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v3-repeat-3",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v3",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "v3-installed-path",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v3",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "rollback-v1",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v1",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "deny-other-signer-same-identifier",
+      "process_exit": 1,
+      "action": "read",
+      "build": "v3",
+      "status": -25293
+    },
+    {
+      "case": "deny-same-signer-other-identifier",
+      "process_exit": 1,
+      "action": "read",
+      "build": "v3",
+      "status": -25293
+    },
+    {
+      "case": "deny-adhoc-same-identifier",
+      "process_exit": 1,
+      "action": "read",
+      "build": "v3",
+      "status": -25293
+    },
+    {
+      "case": "v3-after-negative-controls",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v3",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "bun-child-v3",
+      "process_exit": 0,
+      "action": "read",
+      "build": "v3",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "launchagent-v3",
+      "action": "read",
+      "build": "v3",
+      "status": 0,
+      "byteCount": 32,
+      "digest_matches_baseline": true
+    },
+    {
+      "case": "launchagent-absent",
+      "process_exit": 113,
+      "absence_verified": true
+    },
+    {
+      "case": "delete-synthetic-item",
+      "process_exit": 0,
+      "action": "delete",
+      "build": "v1",
+      "status": 0
+    },
+    {
+      "case": "item-absent",
+      "process_exit": 1,
+      "action": "read",
+      "build": "v1",
+      "status": -25300
+    },
+    {
+      "case": "delete-isolated-keychain",
+      "process_exit": 0,
+      "action": "delete",
+      "status": 0
+    }
+  ],
+  "same_certificate_identifier_requirement_across_versions": true,
+  "search_list_unchanged": true,
+  "default_keychain_unchanged": true,
+  "synthetic_items_jobs_keychains_and_private_material_removed": true,
+  "unverified": [
+    "Developer ID distribution",
+    "certificate renewal/rotation",
+    "first Always Allow ceremony",
+    "reboot/login/lock behavior",
+    "production caller authentication",
+    "migration and full application uninstall"
+  ],
+  "preparation_failures": "CN length, empty-password PKCS12 compatibility, textual requirement syntax and normalized requirement assertion; all reconciled without private artifacts and not counted as passing tests"
+}
