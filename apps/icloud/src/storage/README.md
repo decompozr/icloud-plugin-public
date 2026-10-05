@@ -173,6 +173,31 @@ format/binding checks only. Account/native mutation methods remain unwired.
 The [server gate](../server/README.md) rejects native selection and unsupported
 account custody before current consumers can mistake native pointers for revoke.
 
+`MasterKeyMigration` adds an inactive exact-key copy coordinator using injected
+original-file, all-consumer validation and native ports. Its caller must establish
+K0 policy, authenticate the installation, and hold actual stopped maintenance;
+the journal lease is additionally enforced. A supplied callback is not a stopped
+service proof, and the complete consumer validator is not implemented here.
+Begin validates the original 32 bytes and bound state before copy intent. Initial
+item absence permits create-only provisioning; subsequent fresh exact reads plus
+validation advance verification and authority. Key bytes never rotate. A missing
+verified item, changed bytes, invalid original key, failed validation or lost lease
+blocks cutover. Native reads prohibit UI; only initial provisioning may use setup
+interaction. Applied write/lost reply resumes by exact read, and lost manifest
+replies reconcile authenticated phase/generation rather than replaying transitions.
+
+Authenticated uncommitted staging is preserved and blocks further native requests.
+The coordinator does not adopt/release interrupted locks, recreate missing state,
+delete files or implement backup/restore. Post-cutover calls reject before asking
+for the retained file. The future native startup/settings transition and protected
+restore acceptance remain necessary before file retirement. Owned original/read
+buffers are wiped; validator and provisioning ports borrow buffers only for the
+awaited call. Nine synthetic tests exercise injected memory ports and callback
+failures; they do not validate the full crypto inventory, Keychain durability,
+signing/API policy or installed lifecycle. No product entry point imports it.
+Independent read-only source review reran the nine tests/152 assertions and
+typecheck, found no confirmed blocker, and accepted only this inactive scope.
+
 `AccountPasswordMigration` now coordinates inactive password-copy steps using
 injected custody ports. Its caller must authenticate the owner, satisfy K0 and
 original-master K2 acceptance, and hold exclusive stopped maintenance throughout.
@@ -199,7 +224,7 @@ borrowed add buffers and caller-owned read buffers. Ten synthetic tests cover
 preservation, reopen, lost replies, exact selectors/conflicts, late mutations,
 unavailability, buffer lifetimes and unsupported bytes. Memory ports do not prove
 native item durability, real UI suppression or signed caller isolation.
-The final combined storage/startup suite passed 74 tests/520 assertions, with
+With both copy coordinators, the combined storage/startup suite passed 83 tests/672 assertions, with
 typecheck and private application build passing. Independent review reran the
 final ten coordinator tests/96 assertions; an earlier related-storage run passed
 61 tests/451 assertions before the last two cases were added. The reviewer found

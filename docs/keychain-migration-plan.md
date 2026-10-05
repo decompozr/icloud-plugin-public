@@ -221,6 +221,13 @@ custody retains authority without fallback. Synthetic tests cover competing writ
 stale results, tamper/mixed snapshots and process death before/after commit.
 Caller authentication, leases, fresh native verification/deletion and asynchronous
 read revalidation are still required; no runtime account adapter imports this component.
+The inactive [exact master-copy coordinator](../apps/icloud/src/storage/master-key-migration.ts)
+now supplies original-key intent/create/readback/fresh-validation/cutover sequencing
+through injected ports and held journal/maintenance assertions. It blocks unresolved
+staging before native requests, preserves exact bytes and rejects post-cutover file
+requests. The full consumer validator, actual stopped maintenance, native startup/
+settings transition, protected restore and file retirement remain unimplemented;
+synthetic coordinator tests are not a K2 exit gate or native activation.
 The inactive [password-copy coordinator](../apps/icloud/src/storage/account-password-migration.ts)
 now drives exact noninteractive readback, create-only provisioning, verification
 and fresh-read cutover through injected ports. Lost create replies never cause
