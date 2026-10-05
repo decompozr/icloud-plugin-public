@@ -8,7 +8,7 @@ export function photosRegistration(service:PhotosService,policy:()=>PhotosPolicy
  const tools:RegisteredTool[]=[];
  function register<T>(name:string,description:string,schema:z.ZodType<T>,scope:string,run:(input:T)=>Promise<unknown>,preview=false){
   const scopes=scope==='photos.read'?[scope]:scope==='photos.delete'?['photos.read','photos.write',scope]:['photos.read',scope];
-  tools.push({requiredScopes:scopes,enabled:()=>enabled(scope),tool:{name,description,inputSchema:zodToJsonSchema(schema) as RegisteredTool['tool']['inputSchema'],securitySchemes:[{type:'oauth2',scopes}],annotations:{readOnlyHint:scope==='photos.read',destructiveHint:scope==='photos.delete',openWorldHint:scope!=='photos.read',idempotentHint:name.endsWith('_apply')}},run:async(raw)=>{
+  tools.push({requiredScopes:scopes,enabled:()=>enabled(scope),tool:{name,description,inputSchema:{...zodToJsonSchema(schema),type:'object'} as RegisteredTool['tool']['inputSchema'],securitySchemes:[{type:'oauth2',scopes}],annotations:{readOnlyHint:scope==='photos.read',destructiveHint:scope==='photos.delete',openWorldHint:scope!=='photos.read',idempotentHint:name.endsWith('_apply')}},run:async(raw)=>{
    try{const result=await run(schema.parse(raw));if(preview){const p=result as {mimeType:string;data:string};return {content:[{type:'image',mimeType:p.mimeType,data:p.data}]};}return {content:[{type:'text',text:JSON.stringify(result)}]};}
    catch(e){return {isError:true,content:[{type:'text',text:JSON.stringify({status:'rejected',error:e instanceof PhotosError?e.code:e instanceof z.ZodError?'invalid_input':'photos_failed'})}]};}
   }});

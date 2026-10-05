@@ -170,7 +170,7 @@ test('remote review rejects cross-owner, missing, duplicate, substituted and wro
   expect(t.nativeCalls()).toBe(0);expect(t.calls()).toBe(0);
  }finally{t.db.close();}
 });
-test('remote review rechecks owner after reads and never persists mismatched source details',async()=>{
+test('remote review rechecks owner after reads before persisting a snapshot',async()=>{
  const t=remoteFixture();let owner='owner';const service=new PhotosService(t.db,t.provider,t.policy,()=>owner);try{
   const original=t.provider.read;t.provider.read=async(c,i)=>{const v=await original(c,i);if(c==='detail')owner='other';return v;};
   await expect(service.prepareCatalog({kind:'cleanup',limit:1})).rejects.toThrow('owner_changed');
@@ -215,5 +215,15 @@ test('unknown sharing interlock releases after native cancellation reconciliatio
   outcome={status:'cancelled_before_posting'};
   expect((await t.service.operationStatus(first.operationId)).status).toBe('cancelled');
   expect((await t.service.apply(alternate.operationId,true)).status).toBe('applied');
+ }finally{t.db.close();}
+});
+test('large cleanup groups support exact remote subsets without silently dropping remaining sources',async()=>{
+ const t=remoteFixture();const ids=Array.from({length:14},(_,i)=>`asset:1234567890abcdef:${String(i+1).padStart(8,'0')}-1111-1111-1111-111111111111`);const original=t.provider.read;
+ t.provider.read=async(c,i)=>c==='cleanup'?{total:1,nextOffset:null,candidates:[{reason:'same_fingerprint',assetIds:ids}]}:original(c,i);
+ try{
+  const first=await t.service.prepareCatalog({kind:'cleanup',limit:1});expect(first.result.assetIds.length).toBe(12);expect((first.result.coverage as {omittedAssets:number}).omittedAssets).toBe(2);
+  const remaining=await t.service.prepareCatalog({kind:'cleanup',limit:1,assetIds:ids.slice(12)});expect(remaining.result.assetIds).toEqual(ids.slice(12));
+  await expect(t.service.prepareCatalog({kind:'cleanup',limit:1,assetIds:[id]})).rejects.toThrow('invalid_review_sources');
+  expect(t.nativeCalls()).toBe(0);
  }finally{t.db.close();}
 });

@@ -53,3 +53,25 @@ test('local and remote Photos admin share policy while each enforces its own own
   expect(module.policy()).toEqual({read:true,write:true,delete:false});
  }finally{db.close();}
 });
+
+test('Photos read-only MCP client reviews labeled sources and receives images without host UI or library writes',async()=>{
+ const db=new Database(':memory:');const asset='asset:1234567890abcdef:11111111-1111-1111-1111-111111111111';let nativeCalls=0;
+ const policy={read:true,write:false,delete:false};
+ const provider:PhotosProvider={read:async(command)=>{
+  if(command==='cleanup')return {total:1,nextOffset:null,candidates:[{reason:'screenshot',assetIds:[asset]}]};
+  if(command==='detail')return {id:asset,filename:'fixture.png',date:null,mediaType:'photo',livePhoto:false,title:'',description:'',keywords:[],favorite:false,persons:[],width:1,height:1,shared:false};
+  if(command==='preview')return {mimeType:'image/png',data:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6nKsAAAAASUVORK5CYII='};
+  throw Error('Unexpected provider command');
+ },inspect:async()=>{throw Error('Must not inspect writes');},apply:async()=>{throw Error('Must not mutate');},openCatalog:async()=>{nativeCalls++;throw Error('Must not open native UI');}};
+ const runtime=new ModuleRuntime().register(photosRegistration(new PhotosService(db,provider,()=>policy,()=> 'owner'),()=>policy));await runtime.start();
+ const server=createServer(runtime,'https://fixture.invalid/icloud/mcp',new Set(['photos.read'])),client=new Client({name:'remote-review-fixture',version:'1'}),[a,b]=InMemoryTransport.createLinkedPair();await server.connect(a);await client.connect(b);
+ try{
+  const listed=await client.listTools();expect(listed.tools.some(t=>t.name==='photos_review_prepare')).toBe(true);expect(listed.tools.some(t=>t.name==='photos_open_review')).toBe(false);
+  const opened=await client.callTool({name:'photos_review_prepare',arguments:{kind:'cleanup',limit:1}});
+  const content=opened.content as {type:string;text?:string}[];const review=JSON.parse(content[0]!.text!);expect(review.result.sources[0].assetId).toBe(asset);
+  const preview=await client.callTool({name:'photos_preview',arguments:{assetId:asset}});expect((preview.content as {type:string}[])[0]?.type).toBe('image');
+  const saved=await client.callTool({name:'photos_review_record',arguments:{reviewId:review.reviewId,confirm:true,decisions:[{assetId:asset,decision:'keep'}]}});expect(saved.isError).not.toBe(true);
+  const status=await client.callTool({name:'photos_review_status',arguments:{reviewId:review.reviewId}});expect(JSON.parse((status.content as {text:string}[])[0]!.text).status).toBe('selection_reviewed');
+  expect((await client.callTool({name:'photos_prepare',arguments:{action:'create_album',title:'Blocked'}})).isError).toBe(true);expect(nativeCalls).toBe(0);expect(db.query('SELECT * FROM photos_operations').all()).toEqual([]);
+ }finally{await client.close();await server.close();await runtime.dispose();db.close();}
+});

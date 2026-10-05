@@ -34,7 +34,8 @@ export class PhotosService {
   }else{
    const result=await this.provider.read('cleanup',{offset:request.offset,limit:request.limit}) as {total:number;nextOffset:number|null;candidates:{reason:string;assetIds:string[]}[]};
    const seen=new Set<string>();let omittedAssets=0;
-   for(const group of result.candidates)for(const assetId of group.assetIds){if(seen.has(assetId))continue;seen.add(assetId);if(entries.length===12){omittedAssets++;continue;}entries.push({assetId,evidence:{reason:group.reason,candidateIds:group.assetIds.filter(id=>id!==assetId).slice(0,2)}});}
+   for(const group of result.candidates)for(const assetId of group.assetIds){if(seen.has(assetId))continue;seen.add(assetId);if(request.assetIds&&!request.assetIds.includes(assetId)){omittedAssets++;continue;}if(entries.length===12){omittedAssets++;continue;}entries.push({assetId,evidence:{reason:group.reason,candidateIds:group.assetIds.filter(id=>id!==assetId).slice(0,2)}});}
+   if(request.assetIds?.some(id=>!seen.has(id)))throw new PhotosError('invalid_review_sources');
    coverage={totalCandidateGroups:result.total,nextOffset:result.nextOffset,omittedAssets};
   }
   const sources=[];

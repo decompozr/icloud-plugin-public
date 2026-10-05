@@ -29,7 +29,9 @@ sources with that album: probable/ambiguous filename, date or media matches are
 not verified sharing and never authorize deletion. Review identifiable previews
 in the conversation: use `photos_review_prepare` in batches of at most twelve
 sources, then `photos_preview` for each source and relevant comparison candidate.
-Present exact IDs, evidence and labeled previews to the owner remotely. Record
+For cleanup groups exceeding twelve sources, prepare additional cleanup reviews
+with the same candidate page and explicit assetIds subsets; omitted sources remain
+unreviewed. Present exact IDs, evidence and labeled previews to the owner remotely. Record
 only explicit owner decisions with `photos_review_record` and confirm=true; account
 for every source, including keep and undecided. This saves decisions only. Read
 `photos_review_status`; keep decisions and undecided sources intact. Missing

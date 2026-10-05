@@ -578,3 +578,11 @@ remains native operator evidence, not a remotely usable shipping promise. No
 personal uploads/deletions are authorized merely by this workflow correction.
 Installed version, actual client discovery/images, remote decision persistence and
 reviewed provider mutations must be reported as separate acceptance gates.
+
+Validation for this correction: 355 application tests / 2,263 assertions, eleven
+built E2E tests / 259 assertions, eleven tooling tests / 141 assertions and the
+production build pass. The MCP SDK client lists the corrected object-root schemas,
+receives image content, saves exact read-scope review decisions and reads them back
+without native launch or Photos mutations. Large cleanup groups can be reviewed
+in exact subsets without silently claiming omitted sources. These fixture checks
+do not prove the installed client's current OAuth consent, tool refresh or images.

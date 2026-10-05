@@ -113,7 +113,9 @@ sidecar/Full Disk Access.
 `photos_review_prepare` accepts `{kind:"comparison",assetIds:[...],albumId}`
 (at most twelve exact sources), or `{kind:"cleanup",offset,limit}`. It returns
 source details and comparison/cleanup evidence for a remote conversation, with
-bounded coverage and omitted-source counts. It never opens a native window.
+bounded coverage and omitted-source counts. Cleanup accepts optional exact
+`assetIds` subsets from the requested candidate page to review large groups across
+batches; unknown or off-page IDs are rejected. It never opens a native window.
 Use `photos_preview` to display labeled source and relevant candidate images in
 that conversation. Missing previews stay unresolved; motion thumbnails cannot
 establish video/Live Photo equivalence.
