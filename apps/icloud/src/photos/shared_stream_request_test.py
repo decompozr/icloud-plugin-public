@@ -35,7 +35,7 @@ class TransportTests(unittest.TestCase):
         self.assertIn('sealed-fixture-token', req.headers['Cookie'])
         self.assertNotIn('Authorization', req.headers)
         self.assertFalse(options['allow_redirects']); self.assertTrue(options['verify'])
-        self.assertEqual(options['timeout'], (5, 20))
+        self.assertEqual(options['timeout'], (5, 50))
         self.assertFalse(sessions[0].trust_env)
         self.assertEqual(sessions[0].get_adapter(req.url).max_retries.total, 0)
 
@@ -61,7 +61,9 @@ class TransportTests(unittest.TestCase):
 
     def test_transport_failure_never_retries_or_authenticates(self):
         calls = []
-        def fail(session, request, **options): calls.append(request); raise ConnectionError('fixture transport failure')
+        def fail(session, request, **options):
+            self.assertEqual(options['timeout'], (5, 20))
+            calls.append(request); raise ConnectionError('fixture transport failure')
         request = self.request(); request['endpoint'] = 'createalbum'
         with patch.object(Session, 'send', fail), self.assertRaises(ConnectionError): actor.run(request)
         self.assertEqual(len(calls), 1)

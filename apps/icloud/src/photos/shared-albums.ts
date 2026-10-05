@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {PhotosError} from './contracts.js';
 import type {PhotosPolicy} from './service.js';
-import {SharedStreamReadError,readSharedStreamAlbums,readSharedStreamCount,executeSharedStreamMutation,type SharedStreamSession,type SharedStreamMutation} from './shared-stream-protocol.js';
+import {SHARED_RECOVERY_GRACE_MS,SharedStreamReadError,readSharedStreamAlbums,readSharedStreamCount,executeSharedStreamMutation,type SharedStreamSession,type SharedStreamMutation} from './shared-stream-protocol.js';
 
 export const remoteSharedAlbumId=z.string().regex(/^shared-album:[a-f0-9-]{36}:[A-Fa-f0-9-]{36}$/);
 const title=z.string().trim().min(1).max(200);
@@ -103,9 +103,8 @@ export class SharedAlbumService {
  async reconcile(id:string){
   this.check();const row=this.row(id);if(!['executing','outcome_unknown'].includes(row.status))return this.status(id);
   if(row.status==='executing'){
-   if(row.started+90000>Date.now())throw new PhotosError('operation_still_executing');
-   // Dispatch actors are bounded to 30 seconds. Retain a longer recovery grace
-   // before a restarted service may reconcile an interrupted call by reads.
+   if(row.started+SHARED_RECOVERY_GRACE_MS>Date.now())throw new PhotosError('operation_still_executing');
+   // Recovery covers the dispatch and all readback actors, not only the write.
    this.options.db.query("UPDATE photos_shared_operations SET status='outcome_unknown' WHERE id=? AND owner=? AND account=? AND status='executing'").run(id,this.options.owner,this.options.accountId);
   }
   const observed=await this.desiredState(this.options.session(),row);this.check();
