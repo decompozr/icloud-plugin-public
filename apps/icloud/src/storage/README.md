@@ -293,6 +293,33 @@ Full Passkey/OAuth/session/provider acceptance, protected recovery, K0 and K2
 activation are still separate gates. The master manifest's own HMAC/lease is
 verified by the coordinator, not inferred from the composition report.
 
+`MasterConsumerBaselineStore` persists that explicitly selected baseline as an
+immutable private `master-consumer-baseline.json` beside master authority. It
+uses the exact existing key with a separate HMAC context and canonical parsed
+schema, binding installation, migration operation and original master generation.
+Create requires held journal/stopped-maintenance assertions and actual consumer
+validation before and after file/directory fsync. It is create-only, not an update
+or automatic capture path. Read requires independent operation/generation-floor
+expectations, verifies HMAC/private single-link nofollow file constraints and
+returns deeply frozen metadata. The generation is the ORIGINAL snapshot anchor,
+not the incremented current manifest generation at each subsequent copy step.
+
+Read never recreates missing/corrupt records, and create never replaces an
+existing record. `O_EXCL` alone cannot distinguish first establishment from a
+previously established file deleted while authority remains `file_authoritative`.
+The future administrative lifecycle must retain establishment intent/history and
+treat established-baseline loss as recovery, never fresh capture/rebaselining.
+Once a write creates the file,
+later failure reports uncertain outcome and retains evidence; resume authenticates
+readback instead of overwriting or deleting. An authenticated file alone does not
+prove directory-fsync completion after a lost result or that current DB state
+still matches: revalidate the consumer inventory before continuing migration.
+Partial write/disk-full/power-loss and real cross-process stopped coordination
+remain operational acceptance gates. HMAC/floors do not prevent rollback of the
+record plus all other bound state. No credentials/key bytes are stored in this
+metadata. It is not a backup, runtime authority or native activation; protected
+capture/backup/restore and actual administrative integration remain pending.
+
 Colocated owner-store tests and the worker fixture cover provisioning/open behavior,
 exclusive enrollment, tamper/key failures, owner integrity, rotation/revocation and
 restart persistence. They do not prove rollback resistance or a production backup

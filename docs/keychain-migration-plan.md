@@ -258,9 +258,19 @@ presence and exact count reports; missing, undeclared, partial or wrong-DB table
 and row-count omissions fail without rebaselining. Nested read snapshots require
 real cross-store stopped-maintenance exclusion supplied by the caller. Populated
 memory-port fixtures prove late internal-client corruption blocks master cutover.
-Baseline capture/authentication/persistence, same-count/historical rollback
-protection, operational maintenance, live auth/session compatibility and actual
-native acceptance remain pending; composition is not the K2 exit gate.
+An inactive [baseline store](../apps/icloud/src/storage/master-consumer-baseline.ts)
+now validates and persists explicitly selected metadata in a create-only private
+HMAC record bound to installation, operation and original master generation.
+Read never recreates missing/tampered records, and existing files cannot be
+overwritten. A future durable administrative establishment gate must distinguish
+first capture from loss of an established file and prohibit rebaselining after
+loss; create-only filesystem flags alone do not establish that history.
+Uncertain writes retain the file for
+authenticated readback and fresh consumer validation. This is not a recovery
+backup or proof of completed directory fsync after a lost result. Baseline capture,
+protected backup/restore, same-count/historical rollback protection, operational
+maintenance, live auth/session compatibility and actual native acceptance remain
+pending; composition/persistence are not the K2 exit gate.
 The inactive [password-copy coordinator](../apps/icloud/src/storage/account-password-migration.ts)
 now drives exact noninteractive readback, create-only provisioning, verification
 and fresh-read cutover through injected ports. Lost create replies never cause
