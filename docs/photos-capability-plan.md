@@ -5,9 +5,9 @@
 This section is authoritative for remaining work. Earlier plans and checkpoints
 below are historical evidence and are superseded wherever they require a native
 catalog reviewer or equate source/build/deployment with remote product acceptance.
-The full goal remains open. Source at main and the installed service are 0.1.31;
-reviewer removal and generic authorization verification are now source-validated;
-the replacement binary and actual remote client acceptance remain pending.
+The full goal remains open. The installed service is 0.1.32, built from main merge 59154f8. Generic
+authorization fixtures and reviewer removal/deployment are verified; actual remote
+client acceptance and the rebuilt operation Helper's consent remain pending.
 
 ### Goal and accepted product boundary
 
@@ -30,8 +30,9 @@ tool discovery and successful remote use are separate observations.
 
 ### Current evidence and gaps
 
-- Main/installed 0.1.31 registers Photos in the shared MCP and advertises read/write.
-  Library reads and the installed Helper's Full Access were verified. Deletion is
+- Installed 0.1.32 registers Photos in the shared MCP and advertises read/write.
+  Library reads are verified. Previous Helper Full Access was verified, but the
+  rebuilt operation Helper reports not-requested (0), not inherited consent. Deletion is
   configured off. Mail/Calendar configuration and existing grants were preserved.
 - Remote review preparation, previews, exact decision persistence and restart/owner
   boundaries pass MCP SDK fixtures. A live local operator request read one real
@@ -41,9 +42,10 @@ tool discovery and successful remote use are separate observations.
   existing ChatGPT registration ceilings contain no Photos. Re-consenting an old
   ceiling cannot add Photos. The host-supported route to a new registration and
   its actual Photos consent/tool refresh still need owner-visible acceptance.
-- The Swift catalog reviewer and launch paths are removed in current WIP, with
-  source build/tests passing. The installed signed Helper still contains the old
-  reviewer. Its replacement, actual consent continuity and cleanup are pending.
+- The Swift catalog reviewer and launch paths are removed in source and the
+  active installed Helper. Build/signature checks and deployment readback pass.
+  The superseded candidate was removed. Old releases/helper remain rollback state;
+  no reviewer is part of the active native build. Owner authorization is pending.
 - Native empty ordinary-album create/rename/delete was previously verified; do
   not repeat it. Personal asset writes/deletion, remote Shared Album posting and
   cloud propagation remain unverified. Probable matches are not sharing proof.
@@ -61,13 +63,14 @@ Owner: the receiver in this existing worktree; preserve the primary checkout and
 all unrelated work. Standing Git/merge/deploy authorization applies within this
 scope. Do not spawn another receiver or silently change conversation ownership.
 
-First finish generic Photos authorization fixtures and compare against Mail and
-Calendar. Make missing registration capabilities visible with accurate recovery
-instructions; do not widen signed requests or stored grants. Then complete phase 2
-source/native validation and publish a coherent milestone through normal PR checks.
-Use clean main for deployment; preserve stopped state/custody/config and old release.
-A rebuilt helper's consent must be checked, with owner completion of any new prompt.
-Only after the owner actually receives Photos tools proceed to remote photo review.
+Generic Photos authorization fixtures and phase 2 reviewer removal/deployment are
+complete. Next determine the supported host route to a fresh client registration,
+then verify actual Photos consent, loaded tools and a remote read in the owner's
+conversation. Existing anonymous client ceilings contain no Photos; do not widen
+signed requests or stored grants. The operation Helper reports authorization 0;
+owner completion of its OS consent is required before native operations. Preserve
+stopped state/custody/config and old releases for rollback. Only after the owner
+actually receives Photos tools proceed to remote photo review.
 
 No upload, metadata change, deletion or test asset creation is implied by a build,
 registration test, stored review decision or this plan revision. No browser UI
@@ -713,3 +716,22 @@ tests / 259 assertions pass. Generic auth coverage passes three tests / 174
 assertions. An initial candidate setup rejected a relative destination before
 creating output; the explicit absolute destination build subsequently passed.
 Existing native permissions do not establish rebuilt-binary consent.
+
+
+### Revised-plan deployment acceptance (2026-10-05)
+
+PR #20 merged at 59154f8. The clean verified main source built application 0.1.32
+and the reduced operation Helper. The installed native manifest contains only
+PhotosHelper, SharedAlbumReview, ReviewJournal and Info.plist; no catalog reviewer.
+Owned update selects 0.1.32. Config changed only the native-helper path, preserving
+Mail/Calendar and Photos ceilings. Thirteen doctor checks pass, both databases pass
+integrity checks, and 22 existing tables plus custody bytes remain unchanged.
+Expected resource timestamps and expired diagnostic counters changed separately.
+Stopped state/config/custody and old release/helper remain compatible rollback data.
+The inactive superseded helper candidate was removed after reconciliation.
+
+Actual rebuilt Helper health reports authorization 0/not-requested; library reads
+remain ready. Explicit owner consent through admin is required before native writes.
+No permission dialog or grant was inferred. Actual ChatGPT registration/Photos
+consent/tool refresh remains pending, and remote Shared Album posting is unavailable.
+No personal Photos mutation occurred. These gates keep the full goal open.
