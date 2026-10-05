@@ -72,14 +72,23 @@ const serverAlbum=z.object({
 });
 const inventory=z.object({albums:z.array(serverAlbum).max(10000),rootctag:z.string().max(4096).optional(),callerId:z.string().max(200).optional()});
 
+/** Fixed diagnostics only: never include response text, identifiers or cookies. */
+export class SharedStreamReadError extends Error {
+ constructor(readonly diagnostic:{stage:'transport'|'http'|'decode'|'schema'|'identity';httpStatus?:number}){super('shared_album_readback_failed');}
+}
+
 /** Remote observations only; legacy_candidate never grants mutation authority. */
 export async function readSharedStreamAlbums(session:SharedStreamSession,accountId:string,albumGuid?:string){
  const exact=albumGuid===undefined?undefined:guid.parse(albumGuid).toUpperCase();
  const url=sharedStreamURL(session,accountId,exact?'webgetalbumview':'webgetalbumslist');
+ let stage:SharedStreamReadError['diagnostic']['stage']='transport',httpStatus:number|undefined;
  try{
   const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(30000),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(exact?{albumguids:[exact]}:{})});
+  stage='http';httpStatus=response.status;
   if(!response.ok)throw new Error('read_failed');
-  const parsed=inventory.parse(JSON.parse(await boundedBody(response,1024*1024)));
+  stage='decode';const decoded=JSON.parse(await boundedBody(response,1024*1024));
+  stage='schema';const parsed=inventory.parse(decoded);
+  stage='identity';
   const seen=new Set<string>();
   const albums=parsed.albums.filter(album=>!album._deleted||exact).map(album=>{
    const id=album.albumguid.toUpperCase();
@@ -94,7 +103,7 @@ export async function readSharedStreamAlbums(session:SharedStreamSession,account
   });
   if(exact&&albums.length!==1)throw new Error('exact_album_missing');
   return {source:'remote_shared_streams' as const,albums,rootChangeTag:parsed.rootctag??null,serverResponseObserved:true as const,operationCausedChangeVerified:false as const,crossDeviceObserved:false as const};
- }catch{throw new Error('shared_album_readback_failed');}
+ }catch{throw new SharedStreamReadError({stage,...(httpStatus===undefined?{}:{httpStatus})});}
 }
 
 /** Independent count read; metadata/list presence alone cannot prove emptiness. */
