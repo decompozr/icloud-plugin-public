@@ -19,7 +19,7 @@ export const sharedStreamMutationSchema=z.discriminatedUnion('action',[
 ]);
 export type SharedStreamMutation=z.infer<typeof sharedStreamMutationSchema>;
 export interface SharedStreamSession {
- webAccessState?:()=>Promise<{isICDRSDisabled:boolean|null;isDeviceConsentedForPCS:boolean|null}>;
+ webAccessState?:()=>Promise<{isICDRSDisabled:boolean|null;isDeviceConsentedForPCS:boolean|null;responseKind:'flags'|'provider_error'|'unrecognized';recognizedFields:string[]}>;
  accountId:string;
  protocol:'legacy_shared_streams';
  dsid:string;

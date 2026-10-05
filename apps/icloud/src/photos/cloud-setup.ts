@@ -72,7 +72,9 @@ export class PhotosCloudSetup implements PhotosCloudAdmin {
    const result=z.object({status:z.number().int(),body:z.string().max(1024*1024)}).parse(raw);
    if(result.status!==200)throw new PhotosError('photos_web_access_read_failed');
    const body=z.record(z.unknown()).parse(JSON.parse(result.body));
-   return {isICDRSDisabled:typeof body.isICDRSDisabled==='boolean'?body.isICDRSDisabled:null,isDeviceConsentedForPCS:typeof body.isDeviceConsentedForPCS==='boolean'?body.isDeviceConsentedForPCS:null};
+   const recognizedFields=['isICDRSDisabled','isDeviceConsentedForPCS','error','errorCode','errorReason','success','status','webAccessState'].filter(key=>Object.hasOwn(body,key));
+   const responseKind=recognizedFields.some(key=>['error','errorCode','errorReason'].includes(key))||body.success===false?'provider_error' as const:typeof body.isICDRSDisabled==='boolean'||typeof body.isDeviceConsentedForPCS==='boolean'?'flags' as const:'unrecognized' as const;
+   return {responseKind,recognizedFields,isICDRSDisabled:typeof body.isICDRSDisabled==='boolean'?body.isICDRSDisabled:null,isDeviceConsentedForPCS:typeof body.isDeviceConsentedForPCS==='boolean'?body.isDeviceConsentedForPCS:null};
   };
   sharedStreamURL(session,accountId,'webgetalbumslist');return session;
  }
