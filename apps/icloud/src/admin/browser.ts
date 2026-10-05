@@ -1,3 +1,4 @@
+import {initializePhotosCloud} from '../photos/cloud-setup-browser.js';
 import {initializePhotosSetup} from '../photos/setup-browser.js';
 import {recoverySchema,readiness,readinessServices,observedProviderRead,evidenceSchema,matchingEvidence,type ReadEvidence,type RecoveryClient, type AuthorizedConnection, clientPreviewSchema} from './readiness.js';
 import type {SystemStatus} from './system-status.js';
@@ -169,3 +170,5 @@ window.addEventListener('pageshow',event=>{if(event.persisted&&admin&&!hasDraft(
 node('remote-owner-start')?.addEventListener('click',()=>{if(!window.confirm(t('remoteOwnerConfirm')))return;void run(async()=>{const response=z.object({url:z.string().url(),expiresIn:z.number()}).parse(await post('/icloud/admin/remote-owner',{confirm:true}));const target=node('remote-owner-link')!;target.replaceChildren();const url=new URL(response.url);if(url.protocol!=='https:')throw new CopyError('statusError');const a=document.createElement('a');a.href=url.href;a.textContent=t('remoteOwnerOpen');a.rel='noreferrer';a.target='_blank';target.append(a);setTimeout(()=>target.replaceChildren(),response.expiresIn*1000);},'connectionLoading');});
 
 initializePhotosSetup();
+
+initializePhotosCloud();

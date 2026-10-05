@@ -35,6 +35,57 @@ capability evidence are complete. Do not expose a tool that merely fails in plac
 of the required Shared Album capability. Follow with source-backed participant,
 permissions and content contracts, then real MCP test-album lifecycle and cleanup.
 
+### Remote authentication implementation slice — 2026-10-05
+
+Implement owner-only private Admin setup/login/2FA/recheck/revoke endpoints and
+forms. Use an isolated optional Python environment pinned to pyicloud 2.7.0; setup
+is an explicit owner action, never an MCP-request install. Existing osxphotos and
+native Helper environments/identity remain unchanged. Login targets the selected
+stable account's stored Apple ID, takes the password only in the private request,
+uses verified TLS, never reads Keychain/browser cookies, and does not accept terms
+or enable permissions implicitly. Password/verification codes are not persisted.
+
+The Python actor restores only its own encrypted session and challenge state in a
+private short-lived directory; serialize cookies/session tokens and supported 2FA
+bridge state without a password. Store results using custody revision/generation
+CAS after rechecking owner and account identity. Public responses contain phase
+and capability advertisement only, not private material. Recheck uses the saved
+session without a password; expiration requires explicit new login. Programmatic
+2FA and real authenticated Shared Album support remain acceptance gates, not
+inferred from fixtures. Add origin/owner/input tests and secret-redaction/revocation
+checks, then integrate the operation ledger and complete content/participants/
+permissions. No browser/native computer control and no photo mutation in setup.
+
+### Remote authentication source acceptance — 2026-10-05
+
+Private owner Admin now provides explicit dependency setup, account-bound login,
+verification-code submission/request, session recheck and disconnect. Input is
+bounded and owner/origin checked. Passwords and codes stay request-only; returned
+session/challenge material is encrypted under the separate custody realm with
+revision/generation checks. Saved client identity is restored before verification.
+Expired tokens requiring a password invalidate custody; transport failures retain
+recovery state. Setup commands have deadlines and preserve incomplete environments.
+No setup operation invokes Photos, a native window, browser cookies or Keychain.
+
+The isolated pinned provider's actual import initially failed because pyicloud
+2.7.0 imports the Notes renderer and requires rich despite declaring it only as
+a CLI extra. Declare rich 15.0.0 explicitly and check the actual provider import,
+not distribution metadata alone. A task-owned Python 3.12 environment now loads
+the provider and passes six authentication tests, including actual pinned-provider
+construction/state restoration with network and Keychain access prohibited.
+Existing reader/metadata tests pass in their unchanged osxphotos environment
+(13 executed, two pinned-provider tests skipped there). An initial whole-suite run
+in the authentication-only environment lacked osxphotos; it is not a reader failure.
+
+Self-checks pass: 376 application tests / 2,439 assertions, 11 built HTTP/MCP tests /
+259 assertions, 11 tooling tests / 141 assertions, both TypeScript checks and the
+production build. An initial application test raced the build's replacement of
+its plugin template; sequencing after build passed the complete suite. These are
+source/fixture checks, not real Apple login, 2FA acceptance, Shared Album creation
+or installed availability. Shared management readiness remains false until the
+durable operation integration and authenticated readback are verified. The
+installed runtime remains 0.1.36 until a separately verified main-source deployment.
+
 ### Account-session custody integration slice — 2026-10-05
 
 The existing owner store encrypts Mail app-specific credentials and supplies stable

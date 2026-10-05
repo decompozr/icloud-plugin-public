@@ -28,7 +28,7 @@ await cp(join(app,'assets/plugin-icon.png'),join(template,'assets/plugin-icon.pn
 
 // Photos sidecars are application assets, not executable TypeScript entries.
 await mkdir(join(output,'photos'),{recursive:true});
-for(const name of ['reader.py','metadata-write.py'])await cp(join(source,'photos',name),join(output,'photos',name));
+for(const name of ['reader.py','metadata-write.py','cloud-session.py','cloud-session-requirements.txt'])await cp(join(source,'photos',name),join(output,'photos',name));
 await cp(join(source,'photos/native'),join(output,'photos/native'),{recursive:true});
 
 for(const name of ['inter.ttf','inter-OFL.txt'])await Bun.write(join(output,'assets',name),Bun.file(join(app,'assets',name)));

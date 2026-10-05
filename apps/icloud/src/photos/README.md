@@ -24,6 +24,21 @@ as a substitute or upload personal photos merely to test.
 Current delivery and live acceptance follow the active capability plan; earlier
 dated paragraphs below preserve historical evidence, not current workflow.
 
+## Shared Album provider setup in development
+
+The private owner System page includes a separate account-bound web-session
+connection for the API-only Shared Album provider. Explicit setup provisions a
+private optional Python 3.12 environment with pyicloud 2.7.0 and rich 15.0.0;
+`photos.web_python` may select an existing compatible environment instead. This
+does not modify the osxphotos environment or rebuild the signed operation Helper.
+Passwords and verification codes are accepted only in private owner requests,
+not MCP arguments, logs or storage. Sanitized session/challenge material is sealed
+in account-bound encrypted custody; disconnect and credential rotation prevent
+stale completions from restoring revoked sessions. No browser cookies or Keychain
+credentials are imported. Login and setup do not grant OAuth scopes or perform
+photo operations. Status reports authentication separately from management
+readiness; real Apple login/2FA and Shared Album operations remain unverified.
+
 ## Nonshipping posting research
 
 The operation Helper build includes only PhotosHelper.swift. The macOS 27
