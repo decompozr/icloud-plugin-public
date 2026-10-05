@@ -63,13 +63,14 @@ Owner: the receiver in this existing worktree; preserve the primary checkout and
 all unrelated work. Standing Git/merge/deploy authorization applies within this
 scope. Do not spawn another receiver or silently change conversation ownership.
 
-First finish generic Photos authorization fixtures and compare against Mail and
-Calendar. Make missing registration capabilities visible with accurate recovery
-instructions; do not widen signed requests or stored grants. Then complete phase 2
-source/native validation and publish a coherent milestone through normal PR checks.
-Use clean main for deployment; preserve stopped state/custody/config and old release.
-A rebuilt helper's consent must be checked, with owner completion of any new prompt.
-Only after the owner actually receives Photos tools proceed to remote photo review.
+Generic Photos authorization fixtures and phase 2 reviewer removal/deployment are
+complete. Next determine the supported host route to a fresh client registration,
+then verify actual Photos consent, loaded tools and a remote read in the owner's
+conversation. Existing anonymous client ceilings contain no Photos; do not widen
+signed requests or stored grants. The operation Helper reports authorization 0;
+owner completion of its OS consent is required before native operations. Preserve
+stopped state/custody/config and old releases for rollback. Only after the owner
+actually receives Photos tools proceed to remote photo review.
 
 No upload, metadata change, deletion or test asset creation is implied by a build,
 registration test, stored review decision or this plan revision. No browser UI
