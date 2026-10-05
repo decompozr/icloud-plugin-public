@@ -100,13 +100,26 @@ bytes; opaque, malformed or mismatched-user legacy payloads fail closed. Native 
 passwords are losslessly wrapped in the same provider fields. Revision/custody-epoch
 snapshots fence late reads and can guard dispatch/readiness/session acceptance;
 this consistency check does not authenticate callers. Returned buffers belong to
-callers; parsed JS strings cannot be securely erased. Current synchronous Mail,
-Calendar and admin consumers still need async/revision-aware adaptation before
+callers; parsed JS strings cannot be securely erased. Current synchronous Mail and admin consumers still need async/revision-aware
+adaptation before
 this port can be selected. Readiness evidence now accepts an optional custody
 snapshot and includes authority/epoch as well as semantic revision; synthetic
 in-flight evidence checks reject late reads after custody changes even when
 revision is preserved. The current runtime factory does not select this option.
 No runtime authority or recovery is changed.
+
+Calendar now accepts the reader as an optional module dependency and awaits
+credential loading through its registered tool factory. Injected custody metadata
+permits native-authoritative accounts with cleared SQLite ciphertext. Snapshots
+are rechecked before provider dispatch and after reads, preventing stale sync
+commits/readiness; observed write outcomes remain durable after dispatch even if
+revocation follows. Credential backend failures are bounded provider errors, not
+OAuth scheduling step-up challenges. Policy activation fences each provider discovery request and validates account
+reads, then rechecks all snapshots/owner/policy/account selection after awaited
+validation. Retained service access also rechecks the snapshot before ledger
+status/policy use.
+Synthetic registered-module checks exercise these branches; the runtime factory
+still passes no reader and K0/native activation remain unpassed.
 
 Operational stopped recovery, account add/rotation adapters and
 settings/compatibility/backend

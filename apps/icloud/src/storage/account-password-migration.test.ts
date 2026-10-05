@@ -356,3 +356,59 @@ test('pending copy and rotation retain their prior source; recovery metadata nev
   const cancelled=f.journal.cancelRotation('owner',f.a,pending.epoch,op);f.journal.markUnavailable('owner',f.a,cancelled.epoch);const count=f.native.readOptions.length;expect(reader.account('owner',f.a).account.credentialStored).toBe(true);expect(reader.account('owner',f.a).status).toBe('recovery_required');await expect(reader.read('owner',f.a)).rejects.toThrow('recovery_required');expect(f.native.readOptions).toHaveLength(count);expect(sourceReads()).toBe(0);
  }finally{bytes.fill(0);f.cleanup();}
 });
+
+import {createCalendarModule} from '../calendar/module.js';
+import {OperationMonitor} from '../observability/operations.js';
+import {withInvocationContext} from '../modules/context.js';
+import type {CalendarGateway} from '../calendar/domain/calendar.js';
+import type {AppSettings} from '../server/settings.js';
+async function calendarCustodyFixture(){
+ const f=await rotationFixture();f.journal.revoke('owner',f.b,1,randomUUID());
+ const auth=new Database(':memory:'),{reader,sourceReads}=readerFixture(f);let reads=0,writes=0,late:(()=>void)|undefined,afterDispatch:(()=>void)|undefined,readGuard:((guard:(()=>void)|undefined)=>void)|undefined;
+ const provider:CalendarGateway={async execute(command,guard){
+  if(command.operation==='create_calendar'){late?.();guard?.({scheduled:false,mutation:true});writes++;afterDispatch?.();return{operation:command.operation,calendar:{href:'https://example.test/c/',name:'synthetic'}};}
+  readGuard?.(guard?()=>guard({scheduled:false,mutation:false}):undefined);reads++;late?.();return{operation:command.operation,calendars:[]};
+ }};
+ const module=createCalendarModule({public_origin:'https://example.test'} as AppSettings,{store:f.owner,credentialReader:reader,authDatabase:auth,masterKey:f.options.masterKey,monitor:new OperationMonitor(()=>{}),provider:credential=>{if(credential.appPassword!=='synthetic-a')throw Error('wrong account password');return provider;}});
+ return {...f,module,auth,sourceReads,reads:()=>reads,writes:()=>writes,late:(fn:()=>void)=>{late=fn;},afterDispatch:(fn:()=>void)=>{afterDispatch=fn;},readGuard:(fn:(guard:(()=>void)|undefined)=>void)=>{readGuard=fn;},dispose:async()=>{await module.registration.dispose?.();auth.close();f.cleanup();}};
+}
+test('Calendar injected custody reads cleared SQLite accounts; native denial yields no provider call or scope prompt',async()=>{
+ const f=await calendarCustodyFixture();try{
+  expect(f.owner.account('owner',f.a).credentialStored).toBe(false);await f.module.admin.updateCapabilities({read:true,write:true,schedule:true,share:true},true);
+  const read=f.module.registration.tools.find(tool=>tool.tool.name==='calendar_list_calendars')!,before=f.reads();
+  expect((await withInvocationContext({ownerId:'owner',accountId:f.a},()=>read.run({},new Set(['calendar.read'])))).isError).not.toBe(true);expect(f.reads()).toBe(before+1);expect(f.sourceReads()).toBe(0);
+  f.native.beforeRead=()=>{throw new CustodyError('denied');};const update=f.module.registration.tools.find(tool=>tool.tool.name==='calendar_update_event')!;
+  const denied=await withInvocationContext({ownerId:'owner',accountId:f.a},()=>update.run({operationId:randomUUID(),identity:{calendarHref:'https://example.test/c/',href:'https://example.test/c/e.ics',uid:'event',etag:'"1"'},fields:{summary:'changed'}},new Set(['calendar.read','calendar.write'])));
+  expect(denied.isError).toBe(true);expect(denied._meta).toBeUndefined();expect(f.reads()).toBe(before+1);expect(f.writes()).toBe(0);
+ }finally{await f.dispose();}
+});
+test('Calendar custody fences immediate pre-dispatch revocation and late read result',async()=>{
+ for(const operation of ['calendar_create_calendar','calendar_list_calendars']){
+  const f=await calendarCustodyFixture();try{
+   await f.module.admin.updateCapabilities({read:true,write:true,schedule:false,share:false},true);const state=f.journal.read('owner',f.a);f.late(()=>{f.journal.revoke('owner',f.a,state.epoch,randomUUID());});
+   const tool=f.module.registration.tools.find(tool=>tool.tool.name===operation)!,result=await withInvocationContext({ownerId:'owner',accountId:f.a},()=>tool.run(operation==='calendar_create_calendar'?{operationId:randomUUID(),name:'synthetic'}:{},new Set(['calendar.read','calendar.write'])));
+   expect(result.isError).toBe(true);expect(f.writes()).toBe(0);expect(f.native.reads.every(zero)).toBe(true);
+  }finally{await f.dispose();}
+ }
+});
+test('Calendar custody preserves observed write and durable outcome after post-dispatch revocation',async()=>{
+ const f=await calendarCustodyFixture();try{
+  await f.module.admin.updateCapabilities({read:true,write:true,schedule:false,share:false},true);const state=f.journal.read('owner',f.a);f.afterDispatch(()=>{f.journal.revoke('owner',f.a,state.epoch,randomUUID());});
+  const tool=f.module.registration.tools.find(tool=>tool.tool.name==='calendar_create_calendar')!,result=await withInvocationContext({ownerId:'owner',accountId:f.a},()=>tool.run({operationId:randomUUID(),name:'synthetic'},new Set(['calendar.read','calendar.write'])));
+  expect(result.isError).not.toBe(true);expect(f.writes()).toBe(1);expect(f.journal.read('owner',f.a).phase).toBe('revoked');expect((f.auth.query('SELECT count(*) AS count FROM calendar_ledger').get() as {count:number}).count).toBeGreaterThan(1);
+ }finally{await f.dispose();}
+});
+test('retained Calendar service cannot read ledger status after credential revocation',async()=>{
+ const f=await calendarCustodyFixture();try{
+  await f.module.admin.updateCapabilities({read:true,write:true,schedule:false,share:false},true);
+  const service=await withInvocationContext({ownerId:'owner',accountId:f.a},()=>f.module.service(new Set(['calendar.read','calendar.write']))),state=f.journal.read('owner',f.a);
+  f.journal.revoke('owner',f.a,state.epoch,randomUUID());expect(()=>service.operationStatus(randomUUID())).toThrow('Account credential changed');
+ }finally{await f.dispose();}
+});
+test('Calendar activation guards provider discovery requests before policy publication',async()=>{
+ const f=await calendarCustodyFixture();try{
+  const initial=f.module.admin.capabilities(),state=f.journal.read('owner',f.a);let guardPresent=false;
+  f.readGuard(guard=>{guardPresent=!!guard;f.journal.revoke('owner',f.a,state.epoch,randomUUID());guard?.();});
+  await expect(f.module.admin.updateCapabilities({read:true,write:true,schedule:false,share:false},true)).rejects.toThrow('Account credential changed');expect(guardPresent).toBe(true);expect(f.reads()).toBe(0);expect(f.module.admin.capabilities()).toEqual(initial);
+ }finally{await f.dispose();}
+});
