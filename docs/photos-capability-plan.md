@@ -1,5 +1,16 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Shared Streams response received by background probe — 2026-10-05
+
+Installed 0.1.47 from deeafe0; 13 doctor checks passed. The actual main-MCP
+background inventory retained the same readId across calls and completed with
+HTTP 200 / HTTP 1.1. The failure stage is now schema, not transport timeout.
+Normal Photos remains HTTP 200 with one zone. This verifies an authenticated
+Shared Streams response but not a parsed inventory, lifecycle or photo upload.
+Add bounded schema error locations/types without provider values, then correct
+only observed incompatibilities; do not relax ownership/identity checks blindly.
+
+
 ## Bounded background inventory candidate — 2026-10-05
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
