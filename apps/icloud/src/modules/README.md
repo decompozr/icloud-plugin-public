@@ -81,10 +81,13 @@ scopes; tools loaded in the actual assistant conversation; successful read/previ
 A build, deployment, advertised scope or reconnect alone does not close acceptance.
 
 Adding a capability never silently enlarges existing clients, consent or tokens.
-An eligible owner-bound client may use the supported explicit update followed by
-fresh consent. A legacy anonymous registration with a narrower ceiling requires
-a supported new registration; preserve working connections and grants. Determine
-the host's actual supported route before instructing repeated reconnects. Never
+Capability upgrades must support the existing MCP connection, followed by explicit
+new consent and tool refresh. An eligible owner-bound client can use the existing
+update API. Legacy anonymous client registration management is an implementation
+gap: provide an explicit owner-approved project API with exact identity, unshared
+registration checks and audit before enabling its adapter. Preserve existing tokens
+and consent; never make duplicate MCP connections the required upgrade workflow.
+Fresh registration remains a valid initial setup and fixture path. Never
 rewrite signed authorization parameters or internal metadata to simulate approval.
 
 A module delivery must test both fresh registration/consent and insufficient/disabled
