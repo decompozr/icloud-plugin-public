@@ -22,3 +22,22 @@ Colocated policy and ledger tests cover persistence, authorization-related setti
 replay/fingerprint conflicts and encryption. Database backups may retain ciphertext;
 key custody and restore consistency remain operational responsibilities. This is
 not a generic schema/migration manager for arbitrary features.
+
+## Master-key custody validation
+
+`SqliteOutboundLedger.validateExistingReceipts` validates an existing supplied
+SQLite snapshot without constructor/schema creation, receipt finalization, new
+claims, repair or DB close. The authenticated baseline supplies all retained
+owner namespaces: legacy owner strings and current JSON owner/account strings,
+including revoked accounts. Every finalized receipt authenticates with unchanged
+`outbound-ledger-v1` derivation and owner/operation AAD, and its operation/message
+identity must match its row. Pending null receipts remain uncertain tombstones;
+they are counted and never treated as evidence that a key decrypts successfully.
+
+The validator shares normal receipt decryption, returns only counts and clears
+private decryption/key buffers. Parsed JS objects/strings cannot be reliably
+erased. Full encrypted snapshots prevent failed cached iterator retries from
+skipping earlier rows; repeated failures, wrong keys, swapped AAD and readonly
+populated fixtures are tested. Baseline completeness, deleted-row detection,
+stopped maintenance and complete installation validation are caller requirements.
+This does not enable native Keychain or establish K0/K2 acceptance.

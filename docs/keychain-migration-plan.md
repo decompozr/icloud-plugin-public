@@ -242,7 +242,17 @@ strings, hex encoding, storage ID and no-AAD envelope are preserved. It requires
 the selected baseline v2 record and decrypts all retained private clients without
 registering replacements. This establishes crypto/shape/presence checks only,
 not row-slot authentication, OAuth-registry consistency or live Passkey/token/cookie
-acceptance. Mail/Calendar, custody-journal validation and full composition remain pending.
+acceptance. Mail and Calendar now supply existing-handle snapshot validators:
+`SqliteOutboundLedger.validateExistingReceipts` checks every finalized receipt
+under unchanged owner/operation AAD and counts pending tombstones without
+claiming they authenticate the key; `SqliteCalendarLedger.validateExistingPayloads`
+checks retained policy/operation/sync ciphertext under stored owner/kind/id AAD.
+They share normal decryption, require baseline-approved retained namespaces,
+return counts and never create schema, repair state or replay operations. Complete
+encrypted snapshots prevent cached Bun iterator advancement after an error from
+skipping failures on retry; repeated-rejection fixtures cover auth and both ledgers.
+Baseline completeness/missing-row detection, custody-journal validation, full
+composition and actual stopped maintenance/native acceptance remain pending.
 The inactive [password-copy coordinator](../apps/icloud/src/storage/account-password-migration.ts)
 now drives exact noninteractive readback, create-only provisioning, verification
 and fresh-read cutover through injected ports. Lost create replies never cause

@@ -40,10 +40,10 @@ test('wrong key, corrupt retained ciphertext or client shape and missing schema 
   expect(()=>validateResourceClientCiphertexts({database:db,masterKey:key,requiredRecordId:required})).toThrow(/^recovery_required$/);
   expect(db.query('SELECT name FROM sqlite_master').all()).toEqual([]);db.exec('CREATE TABLE plugin_auth_private(id TEXT PRIMARY KEY,value TEXT NOT NULL)');
   const good=legacySeal(legacySecret(key),JSON.stringify({client_id:'synthetic',client_secret:'synthetic-secret'}));db.query('INSERT INTO plugin_auth_private VALUES(?,?)').run(required,good);
-  expect(()=>validateResourceClientCiphertexts({database:db,masterKey:randomBytes(32),requiredRecordId:required})).toThrow(/^recovery_required$/);
+  const wrong=randomBytes(32);try{for(let attempt=0;attempt<8;attempt++)expect(()=>validateResourceClientCiphertexts({database:db,masterKey:wrong,requiredRecordId:required})).toThrow(/^recovery_required$/);}finally{wrong.fill(0);}
   for(const value of ['synthetic-sensitive-diagnostic',legacySeal(legacySecret(key),JSON.stringify({client_id:'synthetic'}))]){
    db.query('INSERT OR REPLACE INTO plugin_auth_private VALUES(?,?)').run('retained-old',value);
-   expect(()=>validateResourceClientCiphertexts({database:db,masterKey:key,requiredRecordId:required})).toThrow(/^recovery_required$/);
+   for(let attempt=0;attempt<8;attempt++)expect(()=>validateResourceClientCiphertexts({database:db,masterKey:key,requiredRecordId:required})).toThrow(/^recovery_required$/);
    expect(db.query('SELECT value FROM plugin_auth_private WHERE id=?').get(required)).toEqual({value:good});
   }
  }finally{db.close();key.fill(0);}

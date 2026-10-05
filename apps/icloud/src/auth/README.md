@@ -55,6 +55,10 @@ envelope has no AAD: crypto/shape/presence validation does not establish that a
 ciphertext belongs to its row ID or verify the corresponding OAuth registry.
 It is not Passkey/token/cookie authentication or full installation acceptance.
 Migration activation still requires the complete consumer inventory and K0.
+Validation materializes the complete encrypted row snapshot before decryption:
+on Bun 1.4.2, a cached `query().iterate()` interrupted by a callback error can
+resume at a later row on the next invocation. Repeated wrong-key/corrupt-record
+fixtures ensure retries cannot skip earlier failures.
 
 Four synthetic tests cover old/new cipher interoperability, readonly retained
 records, wrong/missing/corrupt state and actual factory/reopen preservation.

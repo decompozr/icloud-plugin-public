@@ -53,6 +53,16 @@ Keep signing private keys on the release/build side, not in the distributed
 runtime. The disposable self-signed identity demonstrates continuity, not public
 distribution eligibility or a production signer.
 
+Custody validation must restart from every retained row after failure. On the
+tested Bun 1.4.2 SQLite runtime, a cached `query().iterate()` interrupted by a
+callback throw continued at later rows on subsequent calls (synthetic three-row
+control observed first rows 1, 2, 3, then none). The auth, Mail and Calendar
+validators use complete encrypted `.all()` snapshots instead; repeated wrong-key
+and corrupt-state regressions require rejection on every invocation. See
+[ledger fixtures](../apps/icloud/src/storage/ledger-validation.test.ts) and
+[auth fixtures](../apps/icloud/src/auth/key-contexts.test.ts). Empty/pending-only
+stores still do not prove a key, and these fixtures do not establish native K2.
+
 The passing result pins one exact certificate; renewal/replacement under another
 fingerprint, Developer ID releases, actual “Always Allow” approval, locked
 Keychain access, reboot/login, recovery and real application upgrades are not

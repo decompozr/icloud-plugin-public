@@ -42,7 +42,7 @@ export function validateResourceClientCiphertexts(options:{database:Database;mas
   const secret=ownerAuthSecret(options.masterKey,'remote');
   return options.database.transaction(()=>{
    let found=false,records=0;
-   for(const raw of options.database.query('SELECT id,value FROM plugin_auth_private').iterate()){
+   for(const raw of options.database.query('SELECT id,value FROM plugin_auth_private').all()){
     const row=z.object({id:z.string().min(1),value:z.string()}).strict().parse(raw);
     resourceClientSchema.parse(JSON.parse(openResourceClient(secret,row.value)));
     if(row.id===options.requiredRecordId)found=true;records++;
