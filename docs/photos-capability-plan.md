@@ -5,7 +5,8 @@
 This section is authoritative for remaining work. Earlier plans and checkpoints
 below are historical evidence and are superseded wherever they require a native
 catalog reviewer or equate source/build/deployment with remote product acceptance.
-The full goal remains open. The installed service is 0.1.32, built from main merge 59154f8. Generic
+The full goal remains open. The installed service is 0.1.33, built from main merge 9dff2d0; its operation
+Helper is the reviewer-free 0.1.32 build. Generic
 authorization fixtures and reviewer removal/deployment are verified; actual remote
 client acceptance and the rebuilt operation Helper's consent remain pending.
 
@@ -30,7 +31,7 @@ tool discovery and successful remote use are separate observations.
 
 ### Current evidence and gaps
 
-- Installed 0.1.32 registers Photos in the shared MCP and advertises read/write.
+- Installed 0.1.33 registers Photos in the shared MCP and advertises read/write.
   Library reads are verified. Previous Helper Full Access was verified, but the
   rebuilt operation Helper reports not-requested (0), not inherited consent. Deletion is
   configured off. Mail/Calendar configuration and existing grants were preserved.
@@ -79,8 +80,15 @@ Sources checked on 2026-10-05:
 Self-checks passed: 48 Admin/client-recovery tests, 451 assertions, including
 8 readiness/provider-evidence tests with 58 assertions; production TypeScript and
 browser build passed. Native UI inspection of the owner's ChatGPT app was denied
-by the computer-use surface policy, so actual host setup must be owner-observed. Deployment of this diagnostics
-correction and owner-visible UI acceptance remain pending.
+by the computer-use surface policy, so actual host setup must be owner-observed. The diagnostics correction is merged and deployed as 0.1.33 from main 9dff2d0.
+All 13 read-only deployment checks pass. Both state databases pass integrity;
+22 existing tables, owner/accounts/passkeys/credentials/grants/policies, custody
+and configuration are preserved. Expected resource timestamps and transient rate
+limit counters changed. The operation Helper was preserved, and its health still
+reports authorization 0; library reads are ready. No personal photos changed.
+The initial deployment script invocation used an older Python and failed at import
+before any mutation; the existing pinned Python completed deployment. Actual
+owner-visible diagnostics and new host registration/tool use remain pending.
 
 ### Immediate slice and boundaries
 
