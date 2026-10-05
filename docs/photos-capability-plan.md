@@ -1,5 +1,59 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Shared-copy page reader candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Background reviewed lifecycle candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Reviewed participant changes integrated in candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Reviewed permission changes integrated in candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Management request contracts extracted — 2026-10-05
+
+Fetched Apple's public management bundle directly (no account, cookies or UI):
+https://www.icloud.com/applications/photos3/2636Build18/en-us/sharedalbummanage.js
+SHA-256 6e28405c29e927dbe688d45b50a2dc19244733c319a1a8d094af05673e815416.
+Together with the retained UI bundle it establishes request builders for share,
+unshare, setalbumpublic, updatealbum contributions and deleteassets. Contribution
+updates include the current album name; removing a participant uses invitation ID,
+not person ID; removing photos uses exact shared-copy asset IDs and album routing.
+
+Added internal source-derived builders with strict input boundaries, retained
+invitation IDs, explicit notification classification and separate server-only
+organization-key context. They are not registered or dispatched. Owner checks,
+reviewed plans, durable unknown-outcome recovery, response validation and independent
+readback must be integrated before exposure. Tests cover duplicate invitations,
+empty/duplicate removal targets, permission-change boundaries and retained IDs:
+3 tests / 16 assertions plus typecheck passed. No invitations or writes occurred.
+
+
+## Live Shared Album inventory parsed — 2026-10-05
+
+Installed 0.1.49 from 387abea. Actual existing-main-MCP background health completed
+with 49 UUID-addressable legacy candidates and one unsupported opaque identifier;
+status remote_inventory_partial, HTTP 1.1 response observed. No modern/encrypted
+marker was present on those 49 parsed entries; this is classification from returned
+metadata, not write support proof. Normal Photos reads also remain verified.
+13 doctor checks passed; provider session row digests, configuration and Helper
+were preserved. No shared creation, rename, deletion or upload has been dispatched.
+The conversation still lacks the four registered shared lifecycle tools; the owner
+has been asked to refresh the existing plugin's tools, without replacing its MCP.
+Tool availability and slow-read behavior must be resolved before live lifecycle
+acceptance. All broader Photos phases remain required.
+
+
 ## Observed inventory identifier mismatch — 2026-10-05
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.

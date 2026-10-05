@@ -14,8 +14,8 @@ import signal
 from urllib.parse import urlsplit, urlencode
 from uuid import UUID
 
-ENDPOINTS = {'photosZonesList', 'requestWebAccessState', 'webgetalbumslist', 'webgetalbumview', 'webgetassetcount',
-             'createalbum', 'updatealbum', 'deletealbum'}
+ENDPOINTS = {'photosZonesList', 'requestWebAccessState', 'webgetalbumslist', 'webgetalbumview', 'webgetassetcount', 'webgetassets',
+             'createalbum', 'updatealbum', 'deletealbum', 'setalbumpublic', 'share', 'unshare'}
 
 
 def config_value(value):

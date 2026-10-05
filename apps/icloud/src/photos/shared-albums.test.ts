@@ -1,5 +1,6 @@
 import {test,expect} from 'bun:test';
 import {Database} from 'bun:sqlite';
+import {SHARED_RECOVERY_GRACE_MS} from './shared-stream-protocol.js';
 import {SharedAlbumService} from './shared-albums.js';
 import {PhotosService} from './service.js';
 import {photosRegistration} from './module.js';
@@ -17,6 +18,9 @@ function fixture(){
   writes++;
   if(endpoint==='createalbum')albums.set(body.albumguid,{albumguid:body.albumguid,ownerdsid:'123456789',attributes:body.attributes,albumctag:'1',count:0});
   else if(endpoint==='updatealbum'){const a=albums.get(body.albumguid);a.attributes={...a.attributes,...body.attributes};a.albumctag=String(Number(a.albumctag)+1);}
+  else if(endpoint==='setalbumpublic'){const a=albums.get(body.albumguid);a.attributes.ispublic=body.ispublic;a.albumctag=String(Number(a.albumctag)+1);}
+  else if(endpoint==='share'){const a=albums.get(body.albumguid);a.sharinginfo.push(...body.invitations.map((i:any)=>({...i,sharingtype:'pending'})));a.albumctag=String(Number(a.albumctag)+1);}
+  else if(endpoint==='unshare'){const a=albums.get(body.albumguid);a.sharinginfo=a.sharinginfo.filter((p:any)=>!body.invitations.includes(p.invitationguid));a.albumctag=String(Number(a.albumctag)+1);}
   else if(endpoint==='deletealbum')albums.delete(body.albumguid);
   else throw Error('unexpected endpoint');
   if(loseReply)throw Error('private-token-lost-reply');
@@ -61,7 +65,7 @@ test('participant, modern collections and nonempty albums cannot pass deletion p
    f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Fixture'},count:0,...album});
    await expect(f.service.prepare({action:'delete_empty_shared_album',albumId,experimental:true})).rejects.toThrow();
   }
-  expect(f.writes()).toBe(0);expect(f.db.query('SELECT * FROM photos_shared_operations').all()).toEqual([]);
+  expect(f.writes()).toBe(0);expect(f.db.query('SELECT status FROM photos_shared_operations').all().every((row:any)=>row.status==='rejected')).toBe(true);
  }finally{f.db.close();}
 });
 test('concurrent apply and reconstructed service never dispatch the same intent twice',async()=>{
@@ -79,7 +83,7 @@ test('crash reconciliation waits for actor deadline and cannot blindly resume di
   f.db.query('UPDATE photos_shared_operations SET started=? WHERE id=?').run(Date.now()-91000,p.operationId);
   await expect(f.create().reconcile(p.operationId)).rejects.toThrow('still_executing');
   expect(f.writes()).toBe(1);
-  f.db.query('UPDATE photos_shared_operations SET started=? WHERE id=?').run(Date.now()-241000,p.operationId);
+  f.db.query('UPDATE photos_shared_operations SET started=? WHERE id=?').run(Date.now()-SHARED_RECOVERY_GRACE_MS-1000,p.operationId);
   expect((await f.create().reconcile(p.operationId)).status).toBe('reconciled');expect(f.writes()).toBe(1);
  }finally{f.db.close();}
 });
@@ -109,4 +113,63 @@ test('health read keeps one identity across polls and service recreation without
   generation++;const next=await create().health() as any;expect(next.readId).not.toBe(a.readId);expect(calls).toBe(2);
   resolve(Response.json({albums:[]}));await new Promise(r=>setTimeout(r,5));
  }finally{db.close();}
+});
+
+test('reviewed permission changes retain album identity, warn about public exposure and reconcile lost writes',async()=>{
+ const f=fixture();const guid='33333333-3333-4333-8333-333333333333',albumId=`shared-album:${accountId}:${guid}`;
+ f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Reviewed fixture',ispublic:'0',allowcontributions:'1'},albumctag:'1',count:0});
+ try{
+  const plan=await f.service.prepare({action:'set_shared_contributions',albumId,enabled:false,experimental:true});expect(f.writes()).toBe(0);
+  expect((await f.service.apply(plan.operationId,true)).status).toBe('applied');
+  expect(f.albums.get(guid).attributes).toEqual({name:'Reviewed fixture',ispublic:'0',allowcontributions:'0'});
+  const publicPlan=await f.service.prepare({action:'set_shared_public_access',albumId,enabled:true,experimental:true});
+  expect(publicPlan.warning).toContain('anyone with its public link');
+  f.lose();expect((await f.service.apply(publicPlan.operationId,true)).status).toBe('outcome_unknown');
+  const sent=f.writes();await f.service.apply(publicPlan.operationId,true);expect(f.writes()).toBe(sent);
+  expect((await f.service.reconcile(publicPlan.operationId)).status).toBe('reconciled');expect(f.writes()).toBe(sent);
+ }finally{f.db.close();}
+});
+test('unknown access state and changed names cannot pass permission preflight',async()=>{
+ const f=fixture();const guid='44444444-4444-4444-8444-444444444444',albumId=`shared-album:${accountId}:${guid}`;
+ f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Original',ispublic:'0'},albumctag:'1',count:0});
+ try{
+  await expect(f.service.prepare({action:'set_shared_contributions',albumId,enabled:true,experimental:true})).rejects.toThrow('shared_album_access_state_unknown');
+  const plan=await f.service.prepare({action:'set_shared_public_access',albumId,enabled:true,experimental:true});
+  f.albums.get(guid).attributes.name='Changed';
+  await expect(f.service.apply(plan.operationId,true)).rejects.toThrow('stale_plan');expect(f.writes()).toBe(0);
+ }finally{f.db.close();}
+});
+
+test('participant plans retain invitation identities and never resend a lost invitation',async()=>{
+ const f=fixture();const guid='55555555-5555-4555-8555-555555555555',albumId=`shared-album:${accountId}:${guid}`;
+ f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Private fixture'},albumctag:'1',count:0,sharinginfo:[{invitationguid:'owner-id',personid:'123456789',sharingtype:'owned',email:'owner@example.test'}]});
+ try{
+  await expect(f.service.prepare({action:'remove_shared_participant',albumId,invitationId:'owner-id',experimental:true})).rejects.toThrow('shared_album_removable_participant_required');
+  await expect(f.service.prepare({action:'invite_shared_participants',albumId,emails:['owner@example.test'],experimental:true})).rejects.toThrow('shared_album_participant_exists');
+  const plan=await f.service.prepare({action:'invite_shared_participants',albumId,emails:['reviewed@example.test'],experimental:true});
+  const invitation=plan.before.preparedInvitations![0]!;expect(plan.mayNotify).toBe(true);expect(f.writes()).toBe(0);
+  f.lose();expect((await f.service.apply(plan.operationId,true)).status).toBe('outcome_unknown');
+  expect(f.albums.get(guid).sharinginfo[1].invitationguid).toBe(invitation.invitationGuid);
+  await f.service.apply(plan.operationId,true);expect(f.writes()).toBe(1);
+  expect((await f.service.reconcile(plan.operationId)).status).toBe('reconciled');expect(f.writes()).toBe(1);
+  const removal=await f.service.prepare({action:'remove_shared_participant',albumId,invitationId:invitation.invitationGuid,experimental:true});
+  expect((await f.service.apply(removal.operationId,true)).status).toBe('outcome_unknown');
+  expect((await f.service.reconcile(removal.operationId)).status).toBe('reconciled');expect(f.albums.get(guid).sharinginfo.length).toBe(1);
+ }finally{f.db.close();}
+});
+
+test('background prepare and apply retain one operation ID and never resend on polling',async()=>{
+ const f=fixture();
+ const wait=async(id:string)=>{let row:any;for(let i=0;i<100;i++){row=f.service.status(id);if(!row.inFlight)return row;await new Promise(r=>setTimeout(r,1));}throw Error('fixture operation did not settle');};
+ try{
+  const pending=f.service.prepareBackground({action:'create_shared_album',title:'Background fixture',experimental:true});
+  expect(pending.status).toBe('preparing');expect(pending.inFlight).toBe(true);expect(f.writes()).toBe(0);
+  const ready=await wait(pending.operationId);expect(ready.status).toBe('prepared');expect(ready.result.operationId).toBe(pending.operationId);
+  const applying=f.service.applyBackground(pending.operationId,true);expect(applying.inFlight).toBe(true);
+  f.service.applyBackground(pending.operationId,true);
+  const done=await wait(pending.operationId);expect(done.status).toBe('applied');expect(f.writes()).toBe(1);
+  f.service.applyBackground(pending.operationId,true);expect(f.writes()).toBe(1);
+  f.db.query("UPDATE photos_shared_operations SET status='preparing' WHERE id=?").run(pending.operationId);
+  expect(f.create().status(pending.operationId).result.error).toBe('shared_album_prepare_interrupted');expect(f.writes()).toBe(1);
+ }finally{f.db.close();}
 });
