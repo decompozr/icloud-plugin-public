@@ -1,5 +1,22 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Retained provider read parameters — 2026-10-05
+
+Deployed 0.1.43 main-MCP inventory also timed out; changing the transport has not
+established a fix. A credential-free root HTTP probe receives 400 promptly, so
+basic HTTP reachability exists independently of the account API. No album write
+was attempted and the authenticated session and existing Helper remain preserved.
+
+Inspection of installed pyicloud 2.7.0 PhotoStreamLibrary._get_albums identified
+its query parameters: retained authenticated clientId, dsid, clientBuildNumber
+2534Project66 and clientMasteringNumber 2534B22. Our earlier read omitted them.
+Candidate 0.1.44 now adds exactly those fixed provider params on read routes, using
+the sealed session's client ID and validated DSID. No fresh ID, arbitrary query,
+credential lookup or different account is introduced. Missing/malformed retained
+client identity rejects before transport. Writes remain unchanged experimental
+candidates. This source-backed difference requires actual main-MCP acceptance;
+it is not yet proof of the timeout's cause or of supported Shared Album lifecycle.
+
 ## Read-only HTTP transport comparison — 2026-10-05
 
 The deployed 0.1.42 main-MCP read also times out with the larger bounded deadline;

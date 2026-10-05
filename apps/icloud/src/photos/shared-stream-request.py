@@ -11,7 +11,8 @@ import os
 import subprocess
 import tempfile
 import signal
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode
+from uuid import UUID
 
 ENDPOINTS = {'webgetalbumslist', 'webgetalbumview', 'webgetassetcount',
              'createalbum', 'updatealbum', 'deletealbum'}
@@ -97,6 +98,16 @@ def run(request, session_factory=None, curl_runner=None):
     # Apple may advertise the standard TLS port explicitly. Canonicalize it like
     # URL.origin in TypeScript; nonstandard ports remain forbidden.
     url = f'https://{origin.hostname}/{dsid}/sharedstreams/{endpoint}'
+    if endpoint.startswith('webget'):
+        # Pinned pyicloud 2.7.0 PhotoStreamLibrary._get_albums includes these
+        # service params. Use this authenticated session's client identity;
+        # never generate a new ID or accept tool-supplied query parameters.
+        client_id = state.get('sessionData', {}).get('client_id')
+        if not isinstance(client_id, str) or str(UUID(client_id)) != client_id.lower():
+            raise ValueError('identity')
+        url += '?' + urlencode({'clientBuildNumber':'2534Project66',
+                                'clientMasteringNumber':'2534B22',
+                                'clientId':client_id, 'dsid':dsid})
     session = (session_factory or Session)()
     try:
         # Disable netrc/proxy credential discovery. requests' default adapter has

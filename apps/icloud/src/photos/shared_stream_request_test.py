@@ -3,6 +3,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
+from urllib.parse import urlsplit, parse_qs
 import os
 from requests import Response, Session
 
@@ -50,6 +51,7 @@ class TransportTests(unittest.TestCase):
     def request(self):
         return {'username': 'owner@example.test', 'dsid': '123456789', 'serviceOrigin': 'https://p37-sharedstreams.icloud.com', 'endpoint': 'webgetalbumslist', 'body': '{}', 'state': {
             'schemaVersion': 1, 'username': 'owner@example.test',
+            'sessionData': {'client_id':'11111111-1111-4111-8111-111111111111'},
             'data': {'dsInfo': {'dsid': '123456789'}, 'webservices': {'sharedstreams': {'url': 'https://p37-sharedstreams.icloud.com'}}},
             'cookies': [{'name': 'X-APPLE-WEBAUTH-TOKEN', 'value': 'sealed-fixture-token', 'domain': '.icloud.com', 'path': '/', 'secure': True, 'expires': None}]}}
 
@@ -65,7 +67,8 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         req, options = calls[0]
         self.assertEqual(req.method, 'POST')
-        self.assertEqual(req.url, 'https://p37-sharedstreams.icloud.com/123456789/sharedstreams/webgetalbumslist')
+        self.assertEqual(urlsplit(req.url)._replace(query='').geturl(), 'https://p37-sharedstreams.icloud.com/123456789/sharedstreams/webgetalbumslist')
+        self.assertEqual(parse_qs(urlsplit(req.url).query), {'clientBuildNumber':['2534Project66'],'clientMasteringNumber':['2534B22'],'clientId':['11111111-1111-4111-8111-111111111111'],'dsid':['123456789']})
         self.assertIn('sealed-fixture-token', req.headers['Cookie'])
         self.assertNotIn('Authorization', req.headers)
         self.assertFalse(options['allow_redirects']); self.assertTrue(options['verify'])
@@ -78,6 +81,12 @@ class TransportTests(unittest.TestCase):
             with self.subTest(replacement=replacement), patch.object(Session, '__init__', side_effect=AssertionError('transport must not be constructed')):
                 with self.assertRaises(ValueError): actor.run({**self.request(), **replacement})
 
+    def test_read_requires_the_retained_authenticated_client_id_before_transport(self):
+        for client_id in [None, 'bad-id', 'https://evil.example', 'fixture\nheader']:
+            request = self.request(); request['state']['sessionData']['client_id'] = client_id
+            with patch.object(Session, '__init__', side_effect=AssertionError('no transport')):
+                with self.assertRaises(ValueError): actor.run(request)
+
     def test_advertised_standard_tls_port_is_canonicalized_and_other_ports_reject(self):
         request = self.request()
         request['serviceOrigin'] += ':443'
@@ -86,7 +95,8 @@ class TransportTests(unittest.TestCase):
         def send(session, prepared, **options):
             calls.append(prepared.url); r = Response(); r.status_code = 200; r._content = b'{"albums":[]}'; r._content_consumed = True; return r
         with patch.object(Session, 'send', send): actor.run(request)
-        self.assertEqual(calls, ['https://p37-sharedstreams.icloud.com/123456789/sharedstreams/webgetalbumslist'])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(urlsplit(calls[0])._replace(query='').geturl(), 'https://p37-sharedstreams.icloud.com/123456789/sharedstreams/webgetalbumslist')
         for port in [80, 444, 8443]:
             request['serviceOrigin'] = f'https://p37-sharedstreams.icloud.com:{port}'
             request['state']['data']['webservices']['sharedstreams']['url'] = request['serviceOrigin']
