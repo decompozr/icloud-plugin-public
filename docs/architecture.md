@@ -2,8 +2,10 @@
 
 This document describes the source architecture, not the currently deployed
 release. The application is one Bun service with a shared host and registered
-feature modules. Mail is the production feature. Calendar has feasibility work
-only; no production Calendar tools, scopes or provider are implied.
+feature modules. Mail and Calendar contribute feature-owned capabilities; optional
+Photos uses the same shared host and authorization flow with a Mac-local provider.
+Installed release and live remote acceptance are separate evidence. See the
+[generic capability contract](../apps/icloud/src/modules/README.md#generic-capability-onboarding-and-acceptance).
 
 ## Feature ownership and shared infrastructure
 
