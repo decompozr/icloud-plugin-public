@@ -200,3 +200,72 @@ test('revocation cleanup retains tombstone, revised account and invalidated Phot
   expect(f.owner.readAccountSecret('owner',f.a)).toBeNull();expect(f.journal.listCleanup('owner',f.a)).toHaveLength(0);
  }finally{f.cleanup();}
 });
+
+import {AccountPasswordRotation} from './account-password-rotation.js';
+async function rotationFixture(){
+ const f=fixture(),{state,operationId}=begin(f);await advance(f,state.epoch,operationId);
+ const verified=await advance(f,state.epoch,operationId),active=await advance(f,verified.epoch,operationId);
+ let held=true;
+ const rotation=new AccountPasswordRotation(f.journal,f.native,{assertHeld(){if(!held)throw new CustodyError('denied');}});
+ return {...f,active,rotation,loseRotationLease(){held=false;}};
+}
+test('rotation creates, freshly verifies and commits exact password without erasing caller input',async()=>{
+ const f=await rotationFixture(),bytes=Buffer.from('replacement-password');try{
+  const op=randomUUID(),session=f.owner.providerSessionState('owner',f.a,'photos_web'),state=f.rotation.begin('owner',f.a,f.active.epoch,op,bytes),adds=f.native.added;
+  expect((await f.rotation.advance('owner',f.a,state.epoch,op,bytes,{interaction:'prohibited'})).phase).toBe('rotation_intent');
+  expect(f.journal.readTarget('owner',f.a,state.epoch).generation).toBe(1);expect(f.owner.providerSessionState('owner',f.a,'photos_web')).toEqual(session);
+  const checked=await f.rotation.advance('owner',f.a,state.epoch,op,bytes,{interaction:'prohibited'});
+  const moved=await f.rotation.advance('owner',f.a,checked.epoch,op,bytes,{interaction:'prohibited'});
+  expect(moved.revision).toBe(2);expect(moved.activeGeneration).toBe(2);expect(f.native.added).toBe(adds+1);expect(f.owner.readProviderSession('owner',f.a,'photos_web')).toBeNull();
+  expect(bytes.toString()).toBe('replacement-password');expect([...f.native.reads,...f.native.writes].every(zero)).toBe(true);
+  expect(f.native.items.has(accountPasswordSelector(staged(f)).account)).toBe(true);expect(f.journal.listCleanup('owner',f.a)).toHaveLength(1);
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('lost rotation create reply resumes after journal reopen and rejects changed recovery input',async()=>{
+ const f=await rotationFixture(),bytes=Buffer.from('replacement-password');let reopened:AccountAuthorityJournal|undefined;try{
+  const op=randomUUID(),state=f.rotation.begin('owner',f.a,f.active.epoch,op,bytes),adds=f.native.added;
+  f.native.afterAdd=()=>{throw new CustodyError('outcome_unknown');};
+  await expect(f.rotation.advance('owner',f.a,state.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow('outcome_unknown');
+  expect(f.journal.read('owner',f.a)).toEqual(state);f.native.afterAdd=undefined;
+  reopened=AccountAuthorityJournal.open(f.db,f.installationId,f.options.masterKey,f.owner);const resumed=new AccountPasswordRotation(reopened,f.native,{assertHeld(){}}),reads=f.native.readOptions.length;
+  await expect(resumed.advance('owner',f.a,state.epoch,op,Buffer.from('changed'),{interaction:'prohibited'})).rejects.toThrow('conflict');expect(f.native.readOptions).toHaveLength(reads);
+  expect((await resumed.advance('owner',f.a,state.epoch,op,bytes,{interaction:'prohibited'})).phase).toBe('rotation_verified');expect(f.native.added).toBe(adds+1);
+ }finally{reopened?.close();bytes.fill(0);f.cleanup();}
+});
+test('verified replacement absence or mismatch never recreates or revises the old authority',async()=>{
+ const f=await rotationFixture(),bytes=Buffer.from('replacement-password');try{
+  const op=randomUUID(),state=f.rotation.begin('owner',f.a,f.active.epoch,op,bytes);await f.rotation.advance('owner',f.a,state.epoch,op,bytes,{interaction:'prohibited'});
+  const checked=await f.rotation.advance('owner',f.a,state.epoch,op,bytes,{interaction:'prohibited'}),target=f.journal.rotationTarget('owner',f.a,checked.epoch,op,bytes),selector=accountPasswordSelector(target).account,adds=f.native.added;
+  f.native.items.delete(selector);
+  await expect(f.rotation.advance('owner',f.a,checked.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow('missing');
+  f.native.items.set(selector,Buffer.from('wrong-value'));
+  await expect(f.rotation.advance('owner',f.a,checked.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow('conflict');
+  expect(f.native.added).toBe(adds);expect(f.journal.read('owner',f.a)).toEqual(checked);expect(f.native.reads.every(zero)).toBe(true);
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('revocation during rotation write fences late success and retains both exact cleanup dependencies',async()=>{
+ const f=await rotationFixture(),bytes=Buffer.from('replacement-password');try{
+  const op=randomUUID(),state=f.rotation.begin('owner',f.a,f.active.epoch,op,bytes);f.native.afterAdd=()=>{f.journal.revoke('owner',f.a,state.epoch,randomUUID());};
+  await expect(f.rotation.advance('owner',f.a,state.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow('conflict');
+  expect(f.journal.read('owner',f.a).phase).toBe('revoked');expect(f.journal.listCleanup('owner',f.a).map(row=>[row.revision,row.generation])).toEqual([[1,1],[2,2]]);expect(f.native.writes.every(zero)).toBe(true);
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('rotation rejects invalid UTF-8 and lost lease before native access; unexpected diagnostics stay redacted',async()=>{
+ const f=await rotationFixture(),bytes=Buffer.from('replacement-password');try{
+  expect(()=>f.rotation.begin('owner',f.a,f.active.epoch,randomUUID(),Buffer.from([255]))).toThrow('invalid_input');expect(f.journal.read('owner',f.a)).toEqual(f.active);
+  const op=randomUUID(),state=f.rotation.begin('owner',f.a,f.active.epoch,op,bytes),reads=f.native.readOptions.length;f.loseRotationLease();
+  await expect(f.rotation.advance('owner',f.a,state.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow('denied');expect(f.native.readOptions).toHaveLength(reads);
+  const diagnostic=new AccountPasswordRotation(f.journal,{async read(){throw Error('private-password-detail');},addPassword:f.native.addPassword.bind(f.native)},{assertHeld(){}});
+  await expect(diagnostic.advance('owner',f.a,state.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow(/^recovery_required$/);expect(f.journal.read('owner',f.a)).toEqual(state);
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('rotation snapshots caller bytes across asynchronous reads and fences cancellation readback',async()=>{
+ const f=await rotationFixture(),bytes=Buffer.from('replacement-password');try{
+  const op=randomUUID(),state=f.rotation.begin('owner',f.a,f.active.epoch,op,bytes);
+  f.native.beforeRead=()=>{bytes.fill(0);};await f.rotation.advance('owner',f.a,state.epoch,op,bytes,{interaction:'prohibited'});
+  const target={installationId:f.installationId,ownerId:'owner',accountId:f.a,revision:2,generation:2};expect(Buffer.from(f.native.items.get(accountPasswordSelector(target).account)!).toString()).toBe('replacement-password');expect(zero(bytes)).toBe(true);
+  f.native.beforeRead=()=>{f.journal.cancelRotation('owner',f.a,state.epoch,op);};const resupplied=Buffer.from('replacement-password');
+  try{await expect(f.rotation.advance('owner',f.a,state.epoch,op,resupplied,{interaction:'prohibited'})).rejects.toThrow('conflict');}finally{resupplied.fill(0);}
+  const cancelled=f.journal.read('owner',f.a);expect(cancelled.revision).toBe(1);expect(cancelled.activeGeneration).toBe(1);expect(f.journal.listCleanup('owner',f.a).map(row=>[row.revision,row.generation])).toEqual([[2,2]]);expect(f.native.reads.every(zero)).toBe(true);
+ }finally{bytes.fill(0);f.cleanup();}
+});

@@ -323,7 +323,13 @@ Cancellation preserves the old authority and queues the next-revision staging
 selector; revocation tombstones both dependencies. The header upgrade makes old
 format-1 journal implementations refuse opening it; ordinary runtime still
 rejects all account journals. These are storage primitives: provider validation,
-resumable native copy/readback and operational add/rotation adapters remain pending.
+operational add/rotation adapters remain pending. The inactive injected-port
+rotation coordinator now creates, freshly verifies, then freshly rechecks and
+commits a replacement. Lost create replies resume by exact read; verified-item
+loss never causes recreation. Resupplied input must match the durable HMAC and
+private per-call copies prevent caller buffer changes during awaited requests.
+Synthetic tests cover reopen, cancellation/revocation races, loss/conflict and
+input ownership; no live native backend or runtime integration is selected.
 
 Operational stopped recovery, account add/rotation adapters, settings/format gates, custody
 paths and backend integration are still required for K1 completion.
