@@ -1,5 +1,141 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Experiment completion reset and existing-session research — 2026-10-05
+
+The owner resumed the full internal-API Shared Album task after rejecting an
+incorrect experiment-completion claim. Completion means demonstrated true Shared
+Album creation, rename, deletion, content add/remove, participants and permissions
+through the existing main MCP, with exact identity and readback. Ordinary album
+CRUD, successful authentication, compilation, fixtures and deployment do not satisfy
+that acceptance. Retain the overall Photos goal and owner review/cleanup phases.
+
+The existing owner-authenticated session remains the intended credential source.
+Do not ask for another password merely because a provider request timed out.
+Research of installed pyicloud 2.7.0 confirms that its Photos accessor calls
+_request_pcs_for_service("photos") before constructing the Photos service. That
+flow checks requestWebAccessState and may require service-specific PCS consent.
+Our current transport has not verified that service-access layer. This is a
+concrete missing diagnostic, not proof that this account requires new consent or
+that it caused the legacy Shared Streams timeout. Apple describes separate web
+access for protected data in https://support.apple.com/en-us/102651 . PyiCloud's
+current documentation distinguishes modern Photos/Shared Library support from its
+legacy Shared Album adapter: https://pypi.org/project/pyicloud/ . Do not equate
+Shared Library or ordinary album mutations with true Shared Album lifecycle.
+
+Next experimental sequence:
+1. Through the existing main MCP, inspect web-access/PCS status with the saved
+   session without automatically requesting device consent. Verify a minimal
+   normal Photos API read against the account's advertised CloudKit service.
+2. Compare the pinned provider's actual Shared Album request and account routing
+   with the prepared request, including retained client parameters. Establish
+   whether the target is legacy Shared Streams or modern shared collections.
+3. Once reads work, verify the owner-authorized empty true Shared Album create,
+   exact-ID readback, rename and deletion. Retain uncertain operation identities;
+   no automatic write retry or speculative alternate mutation payloads.
+4. Establish source-backed content and participant/access contracts. Obtain exact
+   owner approval for a concrete harmless test asset and recipients before upload
+   or invitations; the existing empty-album test is not blanket publication consent.
+5. Complete the real main-MCP lifecycle acceptance matrix before labeling the
+   experiment complete. Then continue full Photos production/review acceptance.
+
+The 0.1.44 retained-parameter candidate is committed/pushed but not yet deployed.
+Installed 0.1.43 remains a failed remote-inventory experiment. Avoid treating more
+transport releases as evidence that the requested lifecycle is working.
+
+## External implementation comparison and service-access contract — 2026-10-05
+
+Inspected https://github.com/sweetrb/apple-photos-mcp source, not only its README.
+Its src/utils/photos_reader.py reads album_info_shared and shared comments/likes
+through osxphotos. cmd_create_album calls photoscript.PhotosLibrary.create_album;
+its live-writes tests exercise ordinary albums and metadata. No true Shared Album
+creation, invitations or access-management implementation was found. Its
+remove-from-album rebuilds an ordinary album with a new identity, so that algorithm
+must not be adopted for shared collections. This repository is a useful local-read
+reference, not a solution or acceptance proof for the requested shared lifecycle.
+
+Pinned local pyicloud 2.7.0 source confirms the exact read route is
+/{dsid}/sharedstreams/webgetalbumslist; modern PhotosService still constructs that
+legacy adapter. The current route therefore matches the provider source; no
+alternate mutation route is justified by the timeout.
+
+Before entering the Photos accessor, pyicloud calls requestWebAccessState on its
+fixed setup service. Its subsequent flow can call enableDeviceConsentForPCS and
+requestPCS and poll. A diagnostic must not call that accessor wholesale: it can
+notify the owner and mutate consent/session state. Implement only the initial
+status read through the existing account-bound main-MCP path, with the retained
+session, bounded one-attempt transport, strict boolean projection and no raw
+response/token exposure. Missing or malformed flags must remain unknown, not be
+interpreted as permission granted. Preserve session-generation checks before and
+after dispatch. Never automatically call either consent-enabling endpoint from
+health. This contract is source-derived; actual account status is still unverified.
+
+## Apple web-client request builders located — 2026-10-05
+
+Further inspection of the retained public Apple Photos UI bundle found actual
+request builders, beyond the previously inspected endpoint catalog. Private source
+artifact: /tmp/photos-flow-handoff/apple-ui.main.js; SHA-256 389b79c2ba8630a86743e9057b7c8cf2dbcbfc3a83c0fc0cc20e044c33380796.
+Revalidate its download provenance before treating it as current production Apple
+behavior. These are source observations, not successful authenticated experiments.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Upload-to-existing-album fallback research — 2026-10-05
+
+The owner accepts considering manual Shared Album creation followed by MCP upload
+as a fallback. This does not replace full lifecycle scope or authorize a personal
+upload. Verify upload separately before promising that manual creation unblocks it.
+
+Inspected the installed pyicloud 2.7.0 class and resolved inherited methods:
+SharedPhotoStreamAlbum has no upload, add_photo, remove_photo or create_album.
+Its own delete returns False and rename returns None without sending a request.
+is_web_upload_supported is a server metadata property, not an implemented uploader.
+PhotosService.upload delegates to the root library or an album object's upload;
+passing a SharedPhotoStreamAlbum does not supply the missing method. Therefore
+this package can supply a Shared Album read baseline but not the requested upload
+or lifecycle implementation. Upstream metadata identifies
+https://github.com/timlaing/pyicloud as the installed package's source.
+Do not port ordinary CloudKit upload or treat no-op rename as success. Research
+actual Shared Streams or modern shared-collection upload contracts independently;
+require exact destination, reviewed harmless asset, membership readback and separate
+cloud evidence before claiming acceptance.
+
+## Offline pinned-provider request execution — 2026-10-05
+
+Executed pyicloud 2.7.0 PhotoStreamLibrary._get_albums against a fake session
+(no network, account data or library mutation). It emits POST to the expected
+DSID-scoped webgetalbumslist route with JSON {} and Content-Type plain/text.
+The adapter previously used text/plain;charset=UTF-8. The candidate now matches
+the provider's exact content type for inventory only, with regression assertions
+for both transports. This is a verified request difference, not a verified cause
+of the live timeout.
+
+The candidate also adds a fixed, read-only requestWebAccessState diagnostic to
+main-MCP Photos health. It uses the same sealed account custody and revocation
+checks; only two boolean-or-null flags leave the backend. Missing/malformed flags
+remain unknown. Consent-enabling endpoints are rejected. It runs concurrently
+with inventory so diagnostics do not add another sequential 60-second wait.
+Targeted checks passed: 15 TypeScript tests / 101 assertions, 10 Python transport
+tests, and TypeScript typecheck. Live account status and deployment remain pending.
+
+## Retained provider read parameters — 2026-10-05
+
+Deployed 0.1.43 main-MCP inventory also timed out; changing the transport has not
+established a fix. A credential-free root HTTP probe receives 400 promptly, so
+basic HTTP reachability exists independently of the account API. No album write
+was attempted and the authenticated session and existing Helper remain preserved.
+
+Inspection of installed pyicloud 2.7.0 PhotoStreamLibrary._get_albums identified
+its query parameters: retained authenticated clientId, dsid, clientBuildNumber
+2534Project66 and clientMasteringNumber 2534B22. Our earlier read omitted them.
+Candidate 0.1.44 now adds exactly those fixed provider params on read routes, using
+the sealed session's client ID and validated DSID. No fresh ID, arbitrary query,
+credential lookup or different account is introduced. Missing/malformed retained
+client identity rejects before transport. Writes remain unchanged experimental
+candidates. This source-backed difference requires actual main-MCP acceptance;
+it is not yet proof of the timeout's cause or of supported Shared Album lifecycle.
+
 ## Read-only HTTP transport comparison — 2026-10-05
 
 The deployed 0.1.42 main-MCP read also times out with the larger bounded deadline;

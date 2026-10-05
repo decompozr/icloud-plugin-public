@@ -96,3 +96,22 @@ test('private Admin routes require owner, exact origin and bounded strict inputs
  const result=await handle(request('login',{accountId,password:'fixture'}));expect(result.status).toBe(409);expect(await result.text()).not.toContain('private-cookie');expect(calls).toBe(1);
  expect((await handle(request('revoke',{accountId}))).status).toBe(400);
 });
+
+test('web access diagnostic projects booleans only and rejects revoked in-flight results',async()=>{
+ let body:any={isICDRSDisabled:true,isDeviceConsentedForPCS:false,token:'must-not-escape'},revoke=false,calls=0;
+ let f:ReturnType<typeof fixture>;
+ f=fixture(async input=>input.action==='check'?{dependencyReady:true}:authenticated,async input=>{
+  calls++;expect(input.endpoint).toBe('requestWebAccessState');expect(input.body).toBe('{}');
+  if(revoke)f.store.revokeProviderSession('owner',f.account.id,'photos_web',f.store.providerSessionState('owner',f.account.id,'photos_web'));
+  return {status:200,body:JSON.stringify(body)};
+ });
+ try{
+  await f.service.action({action:'login',accountId:f.account.id,password:'fixture'});
+  const session=f.service.sharedSession(f.account.id);
+  expect(await session.webAccessState!()).toEqual({isICDRSDisabled:true,isDeviceConsentedForPCS:false});
+  body={isICDRSDisabled:'true'};
+  expect(await session.webAccessState!()).toEqual({isICDRSDisabled:null,isDeviceConsentedForPCS:null});
+  revoke=true;await expect(session.webAccessState!()).rejects.toThrow('cloud_session_changed');
+  await expect(session.webAccessState!()).rejects.toThrow('cloud_session_changed');expect(calls).toBe(3);
+ }finally{f.cleanup();}
+});

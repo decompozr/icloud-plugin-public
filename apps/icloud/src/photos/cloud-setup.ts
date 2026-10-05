@@ -62,6 +62,18 @@ export class PhotosCloudSetup implements PhotosCloudAdmin {
    // retain unknown outcomes rather than treating it as a safe retry.
    unchanged();return new Response([204,205,304].includes(result.status)?null:result.body,{status:result.status,...(result.httpVersion?{headers:{'x-photos-transport-http-version':result.httpVersion}}:{})});
   }};
+  session.webAccessState=async()=>{
+   unchanged();
+   const directory=dirname(fileURLToPath(import.meta.url));
+   const script=join(existsSync(join(directory,'shared-stream-request.py'))?directory:join(directory,'photos'),'shared-stream-request.py');
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint:'requestWebAccessState',body:'{}',transport:'system_http2'};
+   const raw=await (this.options.requestActor?this.options.requestActor(input):runProcess([this.options.python,script],input,SHARED_READ_TIMEOUT_MS));
+   unchanged();
+   const result=z.object({status:z.number().int(),body:z.string().max(1024*1024)}).parse(raw);
+   if(result.status!==200)throw new PhotosError('photos_web_access_read_failed');
+   const body=z.record(z.unknown()).parse(JSON.parse(result.body));
+   return {isICDRSDisabled:typeof body.isICDRSDisabled==='boolean'?body.isICDRSDisabled:null,isDeviceConsentedForPCS:typeof body.isDeviceConsentedForPCS==='boolean'?body.isDeviceConsentedForPCS:null};
+  };
   sharedStreamURL(session,accountId,'webgetalbumslist');return session;
  }
  async status(accountId?:string){

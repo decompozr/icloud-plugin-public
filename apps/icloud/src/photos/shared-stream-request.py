@@ -11,9 +11,10 @@ import os
 import subprocess
 import tempfile
 import signal
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode
+from uuid import UUID
 
-ENDPOINTS = {'webgetalbumslist', 'webgetalbumview', 'webgetassetcount',
+ENDPOINTS = {'requestWebAccessState', 'webgetalbumslist', 'webgetalbumview', 'webgetassetcount',
              'createalbum', 'updatealbum', 'deletealbum'}
 
 
@@ -23,7 +24,7 @@ def config_value(value):
     return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
 
 
-def http2_read(url, payload, cookie, runner=None):
+def http2_read(url, payload, cookie, runner=None, content_type="text/plain;charset=UTF-8"):
     """One read-only system transport; secrets enter stdin, never argv or logs."""
     with tempfile.TemporaryDirectory(prefix='icloud-photos-http2-') as directory:
         body_path = os.path.join(directory, 'response')
@@ -31,7 +32,7 @@ def http2_read(url, payload, cookie, runner=None):
         os.close(fd)
         config = '\n'.join([
             'url = ' + config_value(url), 'request = "POST"',
-            'header = "Content-Type: text/plain;charset=UTF-8"',
+            'header = ' + config_value('Content-Type: ' + content_type),
             'header = "Origin: https://www.icloud.com"',
             'header = "Referer: https://www.icloud.com/"',
             'header = ' + config_value('Cookie: ' + cookie),
@@ -88,8 +89,9 @@ def run(request, session_factory=None, curl_runner=None):
     endpoint = request['endpoint']
     if endpoint not in ENDPOINTS:
         raise ValueError('endpoint')
+    is_read = endpoint.startswith('webget') or endpoint == 'requestWebAccessState'
     transport = request.get('transport', 'requests')
-    if transport not in ['requests', 'system_http2'] or transport == 'system_http2' and not endpoint.startswith('webget'):
+    if transport not in ['requests', 'system_http2'] or transport == 'system_http2' and not is_read:
         raise ValueError('transport')
     payload = request['body']
     if not isinstance(payload, str) or len(payload.encode()) > 8192 or not isinstance(json.loads(payload), dict):
@@ -97,6 +99,22 @@ def run(request, session_factory=None, curl_runner=None):
     # Apple may advertise the standard TLS port explicitly. Canonicalize it like
     # URL.origin in TypeScript; nonstandard ports remain forbidden.
     url = f'https://{origin.hostname}/{dsid}/sharedstreams/{endpoint}'
+    if endpoint == 'requestWebAccessState':
+        suffix = '.cn' if origin.hostname.endswith('.cn') else ''
+        url = f'https://setup.icloud.com{suffix}/setup/ws/1/requestWebAccessState'
+        if payload != '{}':
+            raise ValueError('payload')
+    if is_read:
+        # Pinned pyicloud 2.7.0 PhotoStreamLibrary._get_albums includes these
+        # service params. Use this authenticated session's client identity;
+        # never generate a new ID or accept tool-supplied query parameters.
+        client_id = state.get('sessionData', {}).get('client_id')
+        if not isinstance(client_id, str) or str(UUID(client_id)) != client_id.lower():
+            raise ValueError('identity')
+        url += '?' + urlencode({'clientBuildNumber':'2534Project66',
+                                'clientMasteringNumber':'2534B22',
+                                'clientId':client_id, 'dsid':dsid})
+    content_type = 'plain/text' if endpoint == 'webgetalbumslist' else 'text/plain;charset=UTF-8'
     session = (session_factory or Session)()
     try:
         # Disable netrc/proxy credential discovery. requests' default adapter has
@@ -110,13 +128,13 @@ def run(request, session_factory=None, curl_runner=None):
             session.cookies.set_cookie(create_cookie(**cookie))
         if transport == 'system_http2':
             prepared = session.prepare_request(Request('POST', url))
-            return http2_read(url, payload, prepared.headers.get('Cookie', ''), curl_runner)
+            return http2_read(url, payload, prepared.headers.get('Cookie', ''), curl_runner, content_type)
         with session.post(url, data=payload.encode(), headers={
-                'Content-Type': 'text/plain;charset=UTF-8',
+                'Content-Type': content_type,
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15',
                 'Origin': 'https://www.icloud.com', 'Referer': 'https://www.icloud.com/'},
                 allow_redirects=False, verify=True,
-                timeout=(5, 50 if endpoint.startswith('webget') else 20), stream=True) as response:
+                timeout=(5, 50 if is_read else 20), stream=True) as response:
             chunks = []
             size = 0
             for chunk in response.iter_content(8192):
