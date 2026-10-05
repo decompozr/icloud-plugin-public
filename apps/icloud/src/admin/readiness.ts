@@ -14,3 +14,15 @@ export function readiness(policy:Record<string,boolean>|null|undefined,service:s
 export const evidenceSchema=z.object({accountId:z.string(),clientId:z.string(),service:z.string(),authorizedAt:z.string().datetime(),expiresAt:z.string().datetime(),reads:z.record(z.string().datetime())});
 export type ReadEvidence=z.infer<typeof evidenceSchema>;
 export function matchingEvidence(rows:ReadEvidence[],accountId:string,clientId:string,service:string,now=Date.now()){return rows.find(r=>r.accountId===accountId&&r.clientId===clientId&&r.service===service&&Date.parse(r.expiresAt)>now);}
+
+/** Diagnose composed capabilities, including installed modules with read disabled. */
+export function readinessServices(modules:Record<string,Record<string,boolean>>|undefined):string[]{
+ return ['mail',...Object.keys(modules??{}).filter(id=>id!=='mail')];
+}
+/** Health, catalog discovery and review decisions do not establish a provider read. */
+export function observedProviderRead(service:string,reads:Record<string,string>):{verifiedAt?:string;listedAt?:string}{
+ const tools:Record<string,string[]>={mail:['mail_list_mailboxes','mail_search','mail_read'],calendar:['calendar_query_events','calendar_get_event'],photos:['photos_query','photos_albums','photos_detail','photos_persons']};
+ const verifiedAt=(tools[service]??[]).map(name=>reads[name]).filter((stamp):stamp is string=>!!stamp).sort().at(-1);
+ const listedAt=service==='calendar'?reads.calendar_list_calendars:undefined;
+ return {verifiedAt:service==='calendar'&&!listedAt?undefined:verifiedAt,listedAt};
+}

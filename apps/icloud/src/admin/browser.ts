@@ -1,5 +1,5 @@
 import {initializePhotosSetup} from '../photos/setup-browser.js';
-import {recoverySchema,readiness,evidenceSchema,matchingEvidence,type ReadEvidence,type RecoveryClient, type AuthorizedConnection, clientPreviewSchema} from './readiness.js';
+import {recoverySchema,readiness,readinessServices,observedProviderRead,evidenceSchema,matchingEvidence,type ReadEvidence,type RecoveryClient, type AuthorizedConnection, clientPreviewSchema} from './readiness.js';
 import type {SystemStatus} from './system-status.js';
 import { registerOwner } from '../auth/browser.js';
 import { z } from 'zod';
@@ -80,11 +80,11 @@ function renderReadiness(){
  const account=dashboard?.accounts.find(a=>a.id===(node('readiness-account') as HTMLSelectElement).value);
  const client=clients?.find(c=>c.clientId===(node('readiness-client') as HTMLSelectElement).value);
  results.replaceChildren();
- for(const service of ['mail','calendar']){
-  const state=readiness(service==='mail'?dashboard?.capabilities:dashboard?.modules?.calendar,service,account?client:undefined);
+ for(const service of readinessServices(dashboard?.modules)){
+  const state=readiness(service==='mail'?dashboard?.capabilities:dashboard?.modules?.[service],service,account?client:undefined);
   const evidence=account&&client?matchingEvidence(dashboard?.evidence??[],account.id,client.clientId,service):undefined;
-  const article=document.createElement('article'),heading=document.createElement('h3'),list=document.createElement('dl');heading.textContent=service==='mail'?'Mail':t('calendarTitle');article.append(heading,list);
-  for(const [label,key] of [['configured',state.configured],['authorization',state.authorization],['readVerified',state.tested]] as const){const term=document.createElement('dt'),value=document.createElement('dd');term.textContent=t(label);value.textContent=t(key);if(client&&account&&label==='authorization'&&connections?.some(c=>c.clientId===client.clientId&&c.accountId===account.id&&c.grantedScopes.includes(service+'.read')))value.textContent=t('authorized');if(evidence&&label==='authorization')value.textContent=t('authorizationObserved')+' '+new Date(evidence.authorizedAt).toLocaleString();if(evidence&&label==='readVerified'){const reads=evidence.reads;const names=service==='mail'?['mail_list_mailboxes','mail_search','mail_read']:['calendar_query_events','calendar_get_event'];const eventTime=names.map(n=>reads[n]).filter((v):v is string=>!!v).sort().at(-1);const listed=reads.calendar_list_calendars;if(eventTime&&(service==='mail'||listed))value.textContent=t('readObserved')+' '+new Date(eventTime).toLocaleString();else if(listed)value.textContent=t('calendarListObserved')+' '+new Date(listed).toLocaleString();}list.append(term,value);}
+  const article=document.createElement('article'),heading=document.createElement('h3'),list=document.createElement('dl');heading.textContent=service==='mail'?'Mail':service==='calendar'?t('calendarTitle'):service==='photos'?t('photosTitle'):service;article.append(heading,list);if(service==='photos'){const context=document.createElement('p');context.textContent=t('photosLibraryContext');article.append(context);}
+  for(const [label,key] of [['configured',state.configured],['authorization',state.authorization],['readVerified',state.tested]] as const){const term=document.createElement('dt'),value=document.createElement('dd');term.textContent=t(label);value.textContent=t(key);if(client&&account&&label==='authorization'&&connections?.some(c=>c.clientId===client.clientId&&c.accountId===account.id&&c.grantedScopes.includes(service+'.read')))value.textContent=t('authorized');if(evidence&&label==='authorization')value.textContent=t('authorizationObserved')+' '+new Date(evidence.authorizedAt).toLocaleString();if(evidence&&label==='readVerified'){const observed=observedProviderRead(service,evidence.reads);if(observed.verifiedAt)value.textContent=t('readObserved')+' '+new Date(observed.verifiedAt).toLocaleString();else if(observed.listedAt)value.textContent=t('calendarListObserved')+' '+new Date(observed.listedAt).toLocaleString();}list.append(term,value);}
   const granted=account&&client&&connections?.some(c=>c.accountId===account.id&&c.clientId===client.clientId&&c.grantedScopes.includes(service+'.read'));const guidance=document.createElement('p');guidance.textContent=t(diagnosticsFailed?'freshnessFailed':account&&!account.credentialStored?'readinessCredentialMissing':evidence?'observedHelp':granted?'readyForRead':state.recovery);article.append(guidance);results.append(article);
  }
 }
