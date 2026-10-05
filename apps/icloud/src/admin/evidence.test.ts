@@ -46,3 +46,18 @@ test('actual MCP tool execution records only allowed completed reads; discovery 
   await client.close();await server.close();
  }expect(calls).toBe(2);await runtime.dispose();
 });
+
+
+test('Photos evidence observes actual reads and never health, writes or incomplete results',()=>{
+ const now=100000,p={...principal(now),scopes:new Set(['photos.read'])};
+ const evidence=new ReadinessEvidence(()=> 'photos-policy',()=>now);evidence.observe(p);
+ expect(evidence.list('owner')[0]!.service).toBe('photos');
+ expect(evidence.start(p,'photos_health')).toBeUndefined();expect(evidence.start(p,'photos_apply')).toBeUndefined();
+ evidence.start(p,'photos_query')?.({content:[{type:'text',text:'{"status":"unknown"}'}]});
+ expect(evidence.list('owner')[0]!.reads).toEqual({});
+ evidence.start(p,'photos_query')?.({content:[{type:'text',text:'{"status":"person_selection_required"}'}]});
+ expect(evidence.list('owner')[0]!.reads).toEqual({});
+ evidence.start(p,'photos_query')?.({content:[{type:'text',text:'{"assets":[],"total":0}'}]});
+ expect(evidence.list('owner')[0]!.reads.photos_query).toBe(new Date(now).toISOString());
+ expect(evidence.list('owner')[0]!.reads).not.toHaveProperty('photos_health');
+});

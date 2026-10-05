@@ -131,3 +131,32 @@ test('wrong open library rejects metadata before writes and permits a newly revi
   expect(second.operationId).not.toBe(first.operationId);expect(t.calls()).toBe(0);
  }finally{t.db.close();}
 });
+
+test('unknown native mutation blocks different writes across restart while reads and outcomes remain available',async()=>{
+ const t=setup();let attempts=0;
+ t.provider.apply=async()=>{attempts++;throw new PhotosError('provider_timeout');};
+ try{
+  const first=await t.service.prepare({action:'delete_assets',assetIds:[id]});
+  const alternate=await t.service.prepare({action:'create_album',title:'Different intent'});
+  expect((await t.service.apply(first.operationId,true,true)).status).toBe('outcome_unknown');
+  const next=new PhotosService(t.db,t.provider,t.policy,()=> 'owner');
+  await expect(next.apply(alternate.operationId,true)).rejects.toThrow('another_operation_in_progress');
+  const changed=await next.prepare({action:'set_metadata',assetIds:[id],values:{title:'Overlapping intent'}});
+  await expect(next.apply(changed.operationId,true)).rejects.toThrow('another_operation_in_progress');
+  expect(attempts).toBe(1);expect((await next.operationStatus(first.operationId)).status).toBe('outcome_unknown');
+  expect(await next.read('health',{})).toEqual({});
+ }finally{t.db.close();}
+});
+
+test('unknown sharing interlock releases after native cancellation reconciliation without blocking status',async()=>{
+ const t=setup();let outcome={status:'posting_outcome_unknown'};
+ t.provider.openReview=async()=>outcome;t.provider.reviewStatus=async()=>outcome;
+ try{
+  const first=await t.service.prepare(sharedIntent),alternate=await t.service.prepare({action:'create_album',title:'After cancellation'});
+  expect((await t.service.apply(first.operationId,true)).status).toBe('outcome_unknown');
+  await expect(t.service.apply(alternate.operationId,true)).rejects.toThrow('another_operation_in_progress');
+  outcome={status:'cancelled_before_posting'};
+  expect((await t.service.operationStatus(first.operationId)).status).toBe('cancelled');
+  expect((await t.service.apply(alternate.operationId,true)).status).toBe('applied');
+ }finally{t.db.close();}
+});
