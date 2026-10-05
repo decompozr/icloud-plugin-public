@@ -35,6 +35,52 @@ capability evidence are complete. Do not expose a tool that merely fails in plac
 of the required Shared Album capability. Follow with source-backed participant,
 permissions and content contracts, then real MCP test-album lifecycle and cleanup.
 
+### Account-session custody integration slice — 2026-10-05
+
+The existing owner store encrypts Mail app-specific credentials and supplies stable
+account identity. Those credentials are not a Photos web session. Add a distinct
+provider-session realm in the same authenticated owner custody store, with no
+secret returned through MCP/Admin status, logs or capability discovery. Sessions
+must bind owner, account, credential revision and monotonically increasing session
+generation in authenticated encryption. Reconnect/login completion uses exact
+revision/generation compare-and-swap; revoke and account credential changes must
+prevent stale login completion or old session resurrection. Keep legacy Mail bytes
+and encryption unchanged. No automatic credential reuse or browser-cookie import.
+
+Acceptance for this slice: encrypted persistence across reopen; cross-owner/account
+and realm rejection; tampered/transplanted ciphertext rejection; transactional
+revocation and stale-completion rejection; unchanged Mail credential behavior.
+This is storage infrastructure, not login or Shared Album server acceptance. Follow
+with owner-only remote session setup/2FA, actual service advertisement/identity
+checks, operation recovery, full management tools and the real disposable test.
+No installation or live custody migration is implied by this source slice.
+
+### Provider session custody implementation checkpoint — 2026-10-05
+
+The owner store now implements the distinct encrypted Photos web-session realm,
+binding owner/account/revision/generation and enforcing compare-and-swap on login
+completion and revocation. Account credential changes atomically discard provider
+session ciphertext and advance its generation. Existing Mail encryption remains
+unchanged. Public session metadata contains no token/cookie material. Pending or
+stored sessions do not establish provider readiness or authorized tool use.
+
+Self-checks pass: 16 custody/storage tests / 107 assertions, 371 application tests /
+2,410 assertions, 11 built HTTP/MCP tests / 259 assertions, both TypeScript checks
+and production build. Fixtures cover encrypted reopen,
+cross-owner/account/domain failures, transplanted/tampered ciphertext, stale login,
+independently opened stores and transaction rollback preserving both credentials.
+No installed database was migrated and no authentication/album mutation occurred.
+
+Read-only source inspection confirms pyicloud has explicit non-authenticating
+construction, cached session validation and programmatic 2FA entry points. Its
+session material normally persists to files; the integration must keep those files
+in private short-lived directories and seal sanitized session bytes in custody.
+Do not import arbitrary browser cookies, read the user's Keychain implicitly or
+reuse Mail credentials. The cached osxphotos Python has no pyicloud dependency;
+provision a separately declared optional environment rather than altering/rebuilding
+the existing Photos Helper. Owner-only remote login/2FA and full management remain
+next, with actual server/account identity and modern/legacy evidence still required.
+
 ### Shared Streams internal contract implementation — 2026-10-05
 
 The first internal protocol slice now builds source-supported create/update/delete

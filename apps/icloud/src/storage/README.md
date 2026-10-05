@@ -55,6 +55,24 @@ copy of the user's mailbox or storage within Apple iCloud. Actual mutable files 
 the configured installation state/custody paths. `ports.ts` retains a separate
 credential-store type sketch; it is not the concrete owner store API.
 
+## Provider session custody
+
+Photos web authentication has a separate provider-session realm; Mail's app-specific
+password is never treated as a Photos session. The owner store can seal bounded
+session bytes against owner, stable account ID, account revision, realm and session
+generation. Public status contains only revision, generation and stored state,
+not tokens/cookies. Callers must authenticate the owner, verify the actual provider
+identity and sanitize serialized session material before storage; stored state is
+not proof of provider reachability or a ready Shared Album capability.
+
+Session replacement/revocation requires exact account revision and session
+generation. Tombstones survive reopen, so delayed login results cannot resurrect
+revoked sessions. Account credential rotation/removal invalidates session ciphertext
+and increments session generations in the same transaction. Account ciphertext
+and existing Mail encryption remain unchanged. Session persistence adds a separate
+table under established custody; it does not create accounts, approve OAuth scopes,
+read browser cookies or install authentication dependencies.
+
 ## Verification and limits
 
 Colocated owner-store tests and the worker fixture cover provisioning/open behavior,
