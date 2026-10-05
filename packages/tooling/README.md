@@ -20,6 +20,29 @@ Both skills use the same configured MCP endpoint. Exports contain only the
 manifest, these skills, the configured MCP connection, icon and license notices;
 playground experiments, credentials, state and recovery ledgers are excluded.
 
+New artifacts declare `custodyCompatibility`: current support is format-1 master
+file authority and SQLite-only accounts, with no account custody journal. Before
+deployment writes, install/update/reinstall inspect default `runtime/config.toml`
+or explicit `--config PATH` (inspection only, never a config write). Initialized
+state requires that candidate declaration; legacy candidates cannot be selected
+over it. Unsupported master authority/format, account journals, missing selected
+config/partial state and a running cooperating runtime reject without changing
+`current` or adding a release. Maintenance exclusion is held through selection.
+
+The installer reads metadata/schema only, not original key bytes or credential
+rows. It refuses owner-DB companion files and WAL mode before readonly schema
+inspection: operators must stop/recover/checkpoint separately. It does not prove
+manifest HMAC, artifact signatures/provenance, authenticated operator identity or
+that old/custom writers stopped. Other private configs are not auto-discovered;
+pass the actual config explicitly. Fresh configurations hold exclusion when a
+custody namespace already exists, including before owner creation; only absent
+namespaces have no existing lease. Auth-only state, DB companions and retained
+custody evidence are partial state, never fresh. Old installers do not
+retroactively acquire this gate.
+After a successful switch, a lease-release error is an uncertain result: inspect
+`current` before retrying; no automatic rollback is performed. Synthetic lifecycle
+tests do not establish qualified signed rollback, installed or native acceptance.
+
 Install/update switch local versioned releases while preserving state, custody
 and owner policy outside those releases. Uninstall removes only the marked
 installation's release entries, never remote calendars or events. Artifact

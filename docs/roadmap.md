@@ -62,7 +62,13 @@ The product startup path now checks explicit file authority/format/UUID/generati
 and unfinished custody intent, and refuses native selection or unsupported account
 journals before current consumers can reinterpret them. Proof/review paths use a
 stable custody-directory setting with unchanged defaults. This is no native backend
-or operational maintenance/installer compatibility gate.
+or complete operational maintenance/qualified installer compatibility acceptance.
+Current installer tooling now declares candidate custody compatibility and
+inspects the selected/default config under maintenance exclusion before release
+selection. Unsupported metadata/account journals and recovery-required owner DB
+state reject without deployment writes. This is metadata/schema compatibility,
+not HMAC/signature verification, operator authentication or native acceptance;
+old installers and custom config/writer boundaries remain explicit.
 No production identity is presumed available; sealed
 Bun packaging and authenticated peer-channel feasibility are unverified. Open
 decisions are signer custody/renewal, Keychain implementation/accessibility,

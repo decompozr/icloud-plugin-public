@@ -93,6 +93,19 @@ requires explicit `--initialize`. Installation does not migrate data or manage
 processes implicitly. Stop the old service before migrating existing state and
 preserve configuration bytes, SQLite state, custody and owner-only permissions.
 
+Current installer tooling additionally inspects the selected config
+before deployment writes: default `runtime/config.toml`, or `install/update
+--config PATH` for compatibility inspection only. Initialized state requires the
+candidate's explicit current custody declaration (format-1 master file authority,
+SQLite-only accounts). Unsupported authority/format/account journals, active
+cooperating runtime, partial state or owner-DB recovery/checkpoint requirements
+reject without switching `current`. The maintenance lease remains held through
+selection. No key bytes are read and no configuration, schema or recovery repair
+is performed. Metadata declarations are not signature/HMAC/operator verification;
+old/custom writers and old installers require separate lifecycle qualification.
+External configurations must be selected explicitly. A release error after
+selection requires readback before retry, rather than blind rollback.
+
 Scoped uninstall retains the installation ownership marker along with private
 runtime data. Same-prefix reinstall may reuse a real directory only when its
 regular-file ownership marker matches and both `current` and `releases` are

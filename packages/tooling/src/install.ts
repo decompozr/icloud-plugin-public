@@ -1,6 +1,7 @@
 import {artifactSchema,type Artifact} from './artifact.js';
 import {cp,mkdir,readFile,readdir,rename,rm,symlink,lstat} from 'node:fs/promises';
 import {resolve,join,relative,parse,dirname} from 'node:path';
+import {acquireInstallCustodyGuard} from './install-custody.js';
 export async function inspectArtifact(path:string):Promise<Artifact>{
  const value=artifactSchema.parse(JSON.parse(await readFile(join(path,'artifact.json'),'utf8')) as unknown);
  if(value.bun!==Bun.version)throw Error('Artifact requires its recorded Bun version');
@@ -14,11 +15,13 @@ async function assertOwnedPrefix(prefix:string){
  const path=join(prefix,'.icloud-install');
  if(!(await lstat(path)).isFile()||await readFile(path,'utf8')!==marker)throw Error('Not an owned installation');
 }
-export async function installArtifact(source:string,prefix:string,update=false){
+export async function installArtifact(source:string,prefix:string,update=false,configPath?:string){
  source=resolve(source);prefix=resolve(prefix);
  if(prefix===parse(prefix).root)throw Error('Installation requires a dedicated application directory');
  if(!relative(source,prefix).startsWith('..'))throw Error('Installation must be outside artifact');
  const metadata=await inspectArtifact(source);
+ const guard=acquireInstallCustodyGuard(metadata,prefix,configPath?resolve(configPath):undefined);
+ try{
  if(update)await assertOwnedPrefix(prefix);
  else{
   await mkdir(dirname(prefix),{recursive:true});
@@ -41,10 +44,13 @@ export async function installArtifact(source:string,prefix:string,update=false){
  }catch{throw Error('Release exists; refusing overwrite');}
  try{
   await cp(source,release,{recursive:true,verbatimSymlinks:true,errorOnExist:true});
+  guard?.assertStoppedMaintenance();
   await symlink(`releases/${id}`,pending);
+  guard?.assertStoppedMaintenance();
   await rename(pending,join(prefix,'current'));
  }catch(error){await rm(pending,{force:true});await rm(release,{recursive:true,force:true});throw error;}
  return id;
+ }finally{guard?.release();}
 }
 export async function uninstallArtifact(prefix:string){
  prefix=resolve(prefix);
@@ -56,8 +62,8 @@ export async function uninstallArtifact(prefix:string){
  await rm(join(prefix,'releases'),{recursive:true,force:true});
 }
 if(import.meta.main){
- const [action,first,second]=process.argv.slice(2);
- if(action==='uninstall'&&first)await uninstallArtifact(first);
- else if((action==='install'||action==='update')&&first&&second)console.log(await installArtifact(first,second,action==='update'));
- else throw Error('Usage: install.ts install|update artifact-directory install-prefix; uninstall install-prefix');
+ const args=process.argv.slice(2),[action,first,second]=args;
+ if(action==='uninstall'&&first&&args.length===2)await uninstallArtifact(first);
+ else if((action==='install'||action==='update')&&first&&second&&(args.length===3||args.length===5&&args[3]==='--config'&&args[4]&&!args[4].startsWith('--')))console.log(await installArtifact(first,second,action==='update',args[4]));
+ else throw Error('Usage: install.ts install|update artifact-directory install-prefix [--config PATH]; uninstall install-prefix');
 }

@@ -320,7 +320,17 @@ verifies the original-key manifest before owner open, and rejects unsupported
 account custody tables. Keychain selection remains disabled before file/DB access,
 never a fallback; containers reject it at parsing. No automatic migration or
 manifest provisioning occurs. Operational maintenance coordination, native account
-adapters and installer/release format compatibility are still pending.
+adapters and qualified installer/release compatibility acceptance remain pending.
+The current installer now requires a candidate custody declaration for initialized
+state and inspects selected/default configuration before deployment writes.
+Format-2/native master authority, account custody journals, partial installations,
+running cooperating runtimes and owner-DB recovery/checkpoint requirements reject.
+Successful metadata/schema inspection holds maintenance exclusion through release
+selection; it reads no key bytes and does not repair state. It does not verify
+manifest HMAC, artifact signatures or operator authentication, discover other
+custom configs, or prove old/custom writers stopped. Old installers do not gain
+these protections. Qualified signed update/rollback/reinstall and native lifecycle
+acceptance remain K0/K4 gates, not conclusions from synthetic installer checks.
 
 `credentialStored` means an active authoritative pointer, not `secret != null`.
 Expose distinct redacted states for locked, denied, missing, migration-pending,
