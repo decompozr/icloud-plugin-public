@@ -233,8 +233,16 @@ The owner portion of that validator now exists as
 authenticate marker, explicit legacy-v1/accounts-v2 format, all account ciphertext
 and all retained Photos ciphertext using stored AAD, without schema repair or
 plaintext output. Populated fixtures prove corrupted Photos state prevents
-synthetic master cutover. Full auth/internal-client, Mail/Calendar and custody
+synthetic master cutover. Complete auth compatibility, Mail/Calendar and custody
 journal validation/composition plus product maintenance wiring are still required.
+The auth/internal-client crypto portion now has a supplied-handle snapshot validator
+in [shared key contexts](../apps/icloud/src/auth/key-contexts.ts), also used by the
+actual application derivations and private-client writer/reader. Original context
+strings, hex encoding, storage ID and no-AAD envelope are preserved. It requires
+the selected baseline v2 record and decrypts all retained private clients without
+registering replacements. This establishes crypto/shape/presence checks only,
+not row-slot authentication, OAuth-registry consistency or live Passkey/token/cookie
+acceptance. Mail/Calendar, custody-journal validation and full composition remain pending.
 The inactive [password-copy coordinator](../apps/icloud/src/storage/account-password-migration.ts)
 now drives exact noninteractive readback, create-only provisioning, verification
 and fresh-read cutover through injected ports. Lost create replies never cause

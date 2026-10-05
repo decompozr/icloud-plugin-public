@@ -5,7 +5,8 @@ import { APIError,createAuthMiddleware } from 'better-auth/api';
 import { getMigrations } from 'better-auth/db/migration';
 import { passkey } from '@better-auth/passkey';
 import { oauthProvider } from '@better-auth/oauth-provider';
-import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import {resourceClientSchema as clientSchema,resourceClientStorageId,sealResourceClient,openResourceClient} from './key-contexts.js';
 import { z } from 'zod';
 import type { Principal } from './verify.js';
 import { authRateLimit } from './rate-limit.js';
@@ -34,9 +35,7 @@ export interface OwnerAuthOptions {
 }
 const bootstrapPaths = new Set(['/icloud/auth/passkey/generate-register-options','/icloud/auth/passkey/verify-registration']);
 const publicPaths = new Set(['/icloud/auth/passkey/generate-authenticate-options','/icloud/auth/passkey/verify-authentication','/icloud/auth/get-session','/icloud/auth/sign-out','/icloud/auth/oauth2/authorize','/icloud/auth/oauth2/continue','/icloud/auth/oauth2/consent','/icloud/auth/oauth2/token','/icloud/auth/oauth2/register','/icloud/auth/oauth2/revoke','/icloud/auth/.well-known/oauth-authorization-server','/.well-known/oauth-authorization-server/icloud/auth']);
-const clientSchema=z.object({client_id:z.string(),client_secret:z.string()});
 const tokenSchema=z.object({active:z.literal(true),sub:z.string(),iss:z.string(),aud:z.union([z.string(),z.array(z.string())]),scope:z.string(),exp:z.number(),account_id:z.string().optional(),client_id:z.string().optional()});
-const cipherSchema=z.object({nonce:z.string(),tag:z.string(),value:z.string()});
 
 export async function createOwnerAuth(options:OwnerAuthOptions) {
  if(options.secret.length<32)throw Error('Auth secret must contain at least 32 characters');
@@ -113,10 +112,9 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
  await(await getMigrations(config)).runMigrations();
  const auth=betterAuth(config);
  options.database.exec('CREATE TABLE IF NOT EXISTS plugin_auth_private (id TEXT PRIMARY KEY, value TEXT NOT NULL)');
- const key=createHash('sha256').update(options.secret).update('icloud-resource-client-v1').digest();
- const seal=(value:string)=>{const nonce=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,nonce),encrypted=Buffer.concat([cipher.update(value,'utf8'),cipher.final()]);return JSON.stringify({nonce:nonce.toString('base64'),tag:cipher.getAuthTag().toString('base64'),value:encrypted.toString('base64')});};
- const open=(value:string)=>{const item=cipherSchema.parse(JSON.parse(value)),decipher=createDecipheriv('aes-256-gcm',key,Buffer.from(item.nonce,'base64'));decipher.setAuthTag(Buffer.from(item.tag,'base64'));return Buffer.concat([decipher.update(Buffer.from(item.value,'base64')),decipher.final()]).toString('utf8');};
- const resourceClientKey='resource-client-v2:'+createHash('sha256').update(issuer+'\n'+options.resource).digest('hex');
+ const seal=(value:string)=>sealResourceClient(options.secret,value);
+ const open=(value:string)=>openResourceClient(options.secret,value);
+ const resourceClientKey=resourceClientStorageId(issuer,options.resource);
  let resourceClient:z.infer<typeof clientSchema>|undefined;
  if(!options.sessionOnly){
  const stored=options.database.query<{value:string},[string]>("SELECT value FROM plugin_auth_private WHERE id=?").get(resourceClientKey);

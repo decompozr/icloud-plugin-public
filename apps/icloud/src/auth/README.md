@@ -38,6 +38,31 @@ is enabled. Opaque tokens permit provider introspection/revocation; internal res
 client secrets remain encrypted server-side under a key derived from the persistent
 auth secret. Secret rotation requires an explicit migration, not silent replacement.
 
+`key-contexts.ts` shares the existing remote/local auth derivations, issuer/resource
+storage ID and resource-client AES envelope with the actual writer/reader. The
+contexts and hex intermediate encoding remain unchanged. Temporary encryption/
+decryption buffers are cleared; returned auth-secret/client strings cannot be
+reliably erased in JS. Stored-client decode failure stops startup rather than
+registering a replacement verifier.
+
+The administrative `validateResourceClientCiphertexts` uses a supplied existing
+SQLite handle and read snapshot. It requires the authenticated baseline's selected
+v2 record ID and decrypts every retained row, including inactive legacy records,
+using the original master-derived remote secret. It returns only counts, never
+creates schema, registers clients, repairs records or closes the caller's DB.
+Unsupported/corrupt retained records require explicit remediation. The historical
+envelope has no AAD: crypto/shape/presence validation does not establish that a
+ciphertext belongs to its row ID or verify the corresponding OAuth registry.
+It is not Passkey/token/cookie authentication or full installation acceptance.
+Migration activation still requires the complete consumer inventory and K0.
+
+Four synthetic tests cover old/new cipher interoperability, readonly retained
+records, wrong/missing/corrupt state and actual factory/reopen preservation.
+The actual factory fixture awaits a real handler to settle Better Auth's lazy
+context before closing its DB. Initial fixture lifetime failure was corrected;
+no passing result is inferred from that failed run. Existing auth regressions
+also pass; this does not access live accounts or native Keychain.
+
 Provider state includes Passkeys, sessions, challenges, clients, consents and grants.
 It is distinct from the opaque owner credential store. Initialize one factory per
 auth DB at a time. `pages.ts` renders sign-in/consent pages and the connection handler owns account selection; `browser.ts` performs
