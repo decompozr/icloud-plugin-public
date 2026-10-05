@@ -6,6 +6,10 @@ production gates are reconciled into [engineering knowledge](../../docs/knowledg
 paths or signing secrets. These recipes are retained for deliberate reproduction;
 they are not scheduled or automatically run during setup/build/runtime.
 
+The later [Bun peer-boundary probe](peer-boundary.md) reproduced a Unix socket
+message-origin gap without using Keychain. It adds caller-channel evidence,
+not a repeat of this experiment's create/read/delete or signing-continuity cases.
+
 This is an isolated experiment, not a production credential backend, migration,
 installer or uninstaller. It tests whether automated provisioning, unattended
 reads and deletion are feasible with the current Bun/native service topology.

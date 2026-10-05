@@ -1,6 +1,6 @@
 # Dual macOS Keychain migration plan
 
-Status: **K0 investigation and inactive K1 foundations started; migrations not implemented or deployed**
+Status: **K0 investigation, K1 storage foundations and product startup compatibility started; migrations not implemented or deployed**
 (2026-10-05). This plan covers
 both required migrations: every connected account's Apple app-specific password,
 and the exact existing 32-byte installation master encryption key. These are
@@ -100,6 +100,15 @@ No generic CLI returns plaintext to arbitrary callers, and no endpoint accepts
 arbitrary Keychain selectors, item deletion targets, code, shell commands or a
 path supplied as identity.
 
+**Bounded peer-channel finding (2026-10-05):** the
+[Bun-run native fixture](../playground/keychain/peer-boundary.md) rejects unapproved
+same-user programs using a socket audit token and exact CDHash. A controlled
+shared-FD interleaving nevertheless authenticates a later approved writer for an
+earlier unapproved request. Do not treat this Unix socket lookup as message-origin
+authentication. Message-bound XPC identity, mutual authentication and the actual
+sealed application remain unverified; K0 has not passed. No Keychain operation
+or production signer was involved, and no product runtime was adopted.
+
 The authorized runtime must distinguish this application from another script:
 
 - Ship a dedicated executable/app bundle with the JS payload, native dependencies
@@ -179,7 +188,7 @@ Manifest tamper/loss never permits reprovisioning or file fallback. Backend mode
 and a format/version gate also prevent old binaries from interpreting removed
 SQLite secrets as account revocation or recreating a missing key file.
 
-**K1 foundation implemented, inactive (2026-10-05):**
+**K1 storage foundation implemented, native activation inactive (2026-10-05):**
 [custody contracts](../apps/icloud/src/storage/custody-contract.ts) define both
 secret ports and exact installation/account/revision/generation selectors.
 The [master authority journal](../apps/icloud/src/storage/master-authority.ts)
@@ -190,7 +199,8 @@ expectations can reject an authentic older file-mode snapshot. Complete snapshot
 rollback is not detected if its independent policy is rolled back too. The HMAC
 uses a new metadata-only context without changing any existing consumer context.
 Lost replies require readback; unresolved staging and interrupted locks stop new
-writers. Runtime does not import these modules or select Keychain. Synthetic
+writers. Runtime does not select Keychain; startup now imports master discovery/
+verification for file-mode compatibility checks only. Synthetic
 process-death and cross-process lock tests are retained in
 [storage verification](../apps/icloud/src/storage/master-authority.test.ts).
 The inactive [account journal](../apps/icloud/src/storage/account-authority.ts)
@@ -202,7 +212,7 @@ before external cleanup. Missing pointers cannot be rebaselined; unavailable nat
 custody retains authority without fallback. Synthetic tests cover competing writers,
 stale results, tamper/mixed snapshots and process death before/after commit.
 Caller authentication, leases, fresh native verification/deletion and asynchronous
-read revalidation are still required; no runtime adapter imports this component.
+read revalidation are still required; no runtime account adapter imports this component.
 Read-only master interruption inspection now distinguishes the committed manifest
 from one authenticated next staging record, retaining all evidence and locks.
 It never proves a writer stopped, grants a lease, reconstructs a missing manifest
@@ -213,6 +223,16 @@ revoked access or changes credential revision/session state.
 Operational stopped recovery, account add/rotation adapters, settings/format gates, custody
 paths and backend integration are still required for K1 completion.
 No all-consumer or Keychain validation is implied by advancing a fixture phase.
+
+**Product startup compatibility slice (2026-10-05):** stable `custody_directory`
+now routes retained proofs/reviews without changing their default location.
+Explicit `[custody]` format-1 file selection binds installation UUID and a minimum
+manifest generation. Startup checks authority/unfinished intent before key access,
+verifies the original-key manifest before owner open, and rejects unsupported
+account custody tables. Keychain selection remains disabled before file/DB access,
+never a fallback; containers reject it at parsing. No automatic migration or
+manifest provisioning occurs. Operational maintenance coordination, native account
+adapters and installer/release format compatibility are still pending.
 
 `credentialStored` means an active authoritative pointer, not `secret != null`.
 Expose distinct redacted states for locked, denied, missing, migration-pending,

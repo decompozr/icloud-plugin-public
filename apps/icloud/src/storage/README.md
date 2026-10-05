@@ -77,7 +77,7 @@ read browser cookies or install authentication dependencies.
 
 `custody-contract.ts` defines separate master-key/account-password read ports and
 an administrative provisioning view. Runtime reads require prohibited interaction;
-there is no selected backend, fallback, credential parsing or runtime import.
+there is no selected Keychain backend, fallback or credential parsing.
 Exact schema-1 selectors bind installation UUID and, for account passwords,
 owner/account/revision/item generation. This does not authenticate the caller or
 establish a native signing/API boundary; K0 remains unpassed.
@@ -168,11 +168,16 @@ Independent delta review reran the 53 tests and typecheck, found no confirmed
 blocker, and confirmed that inspection neither proves stopped service nor creates
 operational recovery authority.
 
+Startup now imports master-journal discovery/verification for explicit file-mode
+format/binding checks only. Account/native mutation methods remain unwired.
+The [server gate](../server/README.md) rejects native selection and unsupported
+account custody before current consumers can mistake native pointers for revoke.
+
 These are K1 slices, not the K1 exit gate. Pending pieces include stopped
 operational stopped lock/staging resolution, add/rotation adapters, settings/format and installer
 compatibility gates, stable custody
-paths and actual backend wiring. No journal is provisioned in the installation;
-runtime remains file-based. No native item, provider action, live credential or
+paths and actual backend wiring. No journal is automatically provisioned;
+successful runtime remains file-based. No native item, provider action, live credential or
 existing installation state is accessed by the tests. Colocated master-authority
 tests plus existing owner-store/provider-session tests exercise synthetic state
 only; process death is not power-loss/disk-full or real Keychain acceptance.

@@ -48,6 +48,11 @@ staging evidence; account cancellation/exact-selector availability recovery now 
 CAS without revising credentials or sessions. Operational stopped recovery,
 account add/rotation adapters and settings/compatibility/backend
 integration remain pending; K1 is not complete and runtime custody is unchanged.
+The product startup path now checks explicit file authority/format/UUID/generation
+and unfinished custody intent, and refuses native selection or unsupported account
+journals before current consumers can reinterpret them. Proof/review paths use a
+stable custody-directory setting with unchanged defaults. This is no native backend
+or operational maintenance/installer compatibility gate.
 No production identity is presumed available; sealed
 Bun packaging and authenticated peer-channel feasibility are unverified. Open
 decisions are signer custody/renewal, Keychain implementation/accessibility,

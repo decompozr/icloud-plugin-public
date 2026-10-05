@@ -21,6 +21,7 @@ import {HttpLifecycle} from './lifecycle.js';
 import{Database}from'bun:sqlite';
 import{createHash}from'node:crypto';
 import{join,dirname}from'node:path';
+import{custodyDirectory}from'./settings.js';
 import{readFileSync}from'node:fs';
 import{createBootstrapAccess}from'../auth/bootstrap.js';
 import{z}from'zod';
@@ -64,7 +65,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
   const p=settings.photos;
   photosAdmin=createPhotosAdmin({database:deps.authDatabase,store:deps.store,ceiling:{read:true,write:p.allow_writes,delete:p.allow_writes&&p.allow_delete}});
   const policy=photosAdmin.policy;
-  const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,reviewDirectory:join(dirname(settings.master_key_file),'photos-shared-reviews'),sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
+  const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,reviewDirectory:join(custodyDirectory(settings),'photos-shared-reviews'),sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
   runtime.register(photosRegistration(photos,policy));
  }
  await runtime.start();
@@ -75,7 +76,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  const pairing=settings.local_origin?createRemoteOwnerPairing(settings.private_origin,()=>deps.store.ownerId()):undefined;
  const auth=await createOwnerAuth({database:deps.authDatabase,...(pairing?{registrationOwnerId:()=>deps.store.ownerId(),checkRegistrationProof:(proof:string)=>{if(deps.store.ownerId()!==null){if(proof!==pairing.proof)throw Error('Remote owner pairing required');}else deps.store.checkBootstrapProof(proof);}}:{}),onOAuthError:reconnect.noteError,publicBaseURL:settings.public_origin,privateOrigin:settings.private_origin,rpID:new URL(settings.public_origin).hostname,secret:createHash('sha256').update(deps.masterKey).update('owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,allowedScopes:()=>runtime.allowedScopes,ownerId:()=>deps.store.ownerId(),checkBootstrapProof:proof=>deps.store.checkBootstrapProof(proof),accountStore:deps.store,validateCredential:mailModule.admin.validateCredential});
  const bootstrap=createBootstrapAccess({login:settings.bootstrap_owner_login,origin:settings.private_origin,isEnrolled:()=>deps.store.ownerId()!==null});
- const internalProof=deps.bootstrapProof??(()=>readFileSync(join(dirname(settings.master_key_file),'bootstrap-proof'),'utf8'));
+ const internalProof=deps.bootstrapProof??(()=>readFileSync(join(custodyDirectory(settings),'bootstrap-proof'),'utf8'));
  const setupState=async(request:Request)=>{let passkeyRegistered=false;try{const session=await auth.enrollmentSession(request.headers);passkeyRegistered=bootstrap.resumed(request,session.user.id);}catch{}return{bootstrapAuthorized:bootstrap.allowed(request),passkeyRegistered};};
  let policyEpoch=0;
  const evidence=new ReadinessEvidence(evidenceState(deps.authDatabase,deps.store,()=>runtime.allowedScopes,()=>policyEpoch));

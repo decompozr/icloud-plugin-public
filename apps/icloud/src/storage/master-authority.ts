@@ -49,7 +49,8 @@ const payload=(record:MasterAuthorityRecord)=>({format:record.format,installatio
 /**
  * Pre-owner-store authority metadata. Discover is UNTRUSTED routing metadata:
  * validate it with the original key before opening bound DBs or serving requests.
- * Not imported by runtime; no secret or actual Keychain item is stored here.
+ * Startup uses discover/verify for file-mode compatibility checks only;
+ * administrative mutation APIs remain unwired. No secret/native item lives here.
  */
 export class MasterAuthorityJournal {
  readonly directory:string;
