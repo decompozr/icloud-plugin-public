@@ -28,10 +28,10 @@ export type MasterBaselineSelection=z.infer<typeof selectionSchema>;
  * be stopped. Every registry account (including revoked) is inventoried. Existing
  * format-2 intent/established history rejects capture; resume consumes the exact
  * retained record through MasterConsumerBaselineStore instead. */
-export function captureAndEstablishMasterBaseline(options:{journal:MasterAuthorityJournal;lease:AuthorityLease;access:InstallationAccess;masterKey:Uint8Array;minimumMasterGeneration:number;ownerDatabase:Database;authDatabase:Database;markerPath:string;selection:MasterBaselineSelection}):MasterConsumerBaseline {
+export function captureAndEstablishMasterBaseline(options:{journal:MasterAuthorityJournal;lease:AuthorityLease;access:InstallationAccess;masterKey:Uint8Array;minimumMasterGeneration:number;ownerDatabase:Database;authDatabase:Database;markerPath:string;selection:MasterBaselineSelection;assertSnapshotFiles?:()=>void}):MasterConsumerBaseline {
  try{
   const {journal,lease,access,masterKey,ownerDatabase,authDatabase,markerPath}=options;
-  const assertStoppedMaintenance=()=>{access.assertStoppedMaintenanceFor(journal.directory);journal.assertLease(lease);};
+  const assertStoppedMaintenance=()=>{access.assertStoppedMaintenanceFor(journal.directory);journal.assertLease(lease);options.assertSnapshotFiles?.();};
   assertStoppedMaintenance();
   if(!Number.isSafeInteger(options.minimumMasterGeneration)||options.minimumMasterGeneration<1)throw new CustodyError('invalid_input');
   const expectation={requiredAuthority:'file' as const,minimumGeneration:options.minimumMasterGeneration};

@@ -281,8 +281,16 @@ Mail/Calendar namespaces. Independently approved historical identities cover
 retained namespaces outside that registry without reviving accounts/sessions.
 Each consumer validates before its counts are captured, full presence checks
 apply, and durable baseline establishment follows with fresh state checks.
-Format-2 history forbids recapture. Safe handle opening and operator selection/
-authentication command,
+Format-2 history forbids recapture. The inactive
+[existing-file adapter](../apps/icloud/src/server/master-baseline-preparation.ts)
+now opens and authenticates the private nofollow single-link original key under
+maintenance exclusion, then acquires authority mutation access before marker/DB
+opens and capture. It supplies held inode/key/marker checks throughout
+capture. SQLite create:false/readwrite permits normal hot-journal recovery; no
+application factories/schema repair/provisioning/native backend run. Owned
+handles/key buffers are closed/cleared before release. Bun/SQLite pathname opens
+do not exclude hostile same-user filesystem races. The operator selection/
+authentication command and exclusion of old/custom writers,
 protected backup/restore, same-count/historical rollback protection, operational
 maintenance, live auth/session compatibility and actual native acceptance remain
 pending; composition/persistence are not the K2 exit gate.

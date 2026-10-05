@@ -69,6 +69,26 @@ command. Synthetic subprocess tests cover exclusion, crash evidence, initializat
 and actual listener lifetime through graceful shutdown; no live credentials or
 Keychain are involved.
 
+`prepareExistingMasterBaseline` is an inactive administrative adapter for an
+already configured format-1 installation. It discovers authority before reading
+the exact original key, acquires maintenance/authority leases, and opens only
+existing private nofollow single-link key/marker/DB files. Held inode checks and
+fresh key/marker bytes accompany capture's maintenance assertions. Sidecars are
+checked before and after SQLite opens. SQLite uses create:false/readwrite to
+permit ordinary hot-journal recovery; no owner/auth factories, enrollment,
+schema repair, key generation or native backend are invoked. Owned handles and
+key buffers are closed/cleared before lease release; uncertain teardown does not
+certify completed maintenance. Only immutable baseline metadata is returned.
+
+Container mode is rejected before state access; separate authorized host design
+is still required. The caller must authenticate operator selection and independently stop older/
+custom writers. This adapter is not exposed as a CLI or an authorization bypass.
+Bun/SQLite opens by pathname: the checks do not establish filesystem isolation
+against a hostile same-user replacement race. Format-2 recovery uses retained
+metadata, not this initial format-1 capture path. Safe existing-file tests cover
+missing/unsafe paths, replacement/key-change rejection and genuine SQLite crash
+recovery; native operation and full installed acceptance remain separate gates.
+
 Shutdown stops new work and waits for accepted operations; losing an HTTP client
 must not automatically cancel a write already accepted by a provider. The runtime starts before auth/UI assembly; later application-construction failure
 unwinds started modules. Database connection ownership remains with the application

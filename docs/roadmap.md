@@ -13,9 +13,10 @@ app-specific password and the **exact existing installation master key** into
 macOS Keychain. Neither migration is optional. The
 [full migration plan](keychain-migration-plan.md) defines the current-code
 inventory, authority/state machines, caller/signing gates, recovery and observable
-acceptance. Status: documentation complete and K0 investigation started; production implementation, migration,
-signer provisioning and installed acceptance are not performed. The earlier
-implementation authorization/checkpoint history does not activate this migration.
+acceptance. Status: planning complete; product storage/compatibility implementation
+and synthetic verification are underway under user authorization. K0 is unpassed
+and K1 is incomplete; native activation, actual credential migration, production
+signer provisioning and installed acceptance have not occurred.
 
 The baseline is `22acfe419189b6a37e16bc5ee812928bc4ebec6b`. PR #29's
 [closed experiment](../playground/keychain/README.md) provides bounded feasibility
@@ -30,6 +31,15 @@ web sessions and Mail/Calendar ledgers after Apple passwords move.
 | K2 | Move the original master key first; preserve exact bytes and every derivation/AAD/installation context. Requires K0/K1. | Populated marker/account/session/auth/verifier/Mail/Calendar validators pass, restart succeeds without UI or owner reenrollment, protected restore/rollback is accepted before legacy file retirement. |
 | K3 | Move every connected account password with stable UUIDs/revisions and explicit per-account authority; integrate add/rotate/revoke. Requires K2. | CAS and interrupted-write recovery preserve routing/grants; real rotation/revocation invalidates Photos sessions/readiness and cannot resurrect stale credentials. Custody-only moves retain valid sessions. Revoked accounts remain tombstoned. |
 | K4 | Integrate signed artifacts, setup/doctor/LaunchAgent, ordinary update, recovery/rollback/reinstall and both uninstall modes. Requires K2/K3. | Whole-outcome acceptance and independent review pass. One-time setup authorization is observed; ordinary runtime/updates remain unattended. Retained uninstall/reinstall preserves both stores; opt-in full removal handles exact owned items/state and interrupted cleanup. Actual rollout requires separate authorization. |
+
+Current verified checkpoints include original-key consumer validators, format-2
+baseline intent/establishment with no loss recapture, actual Bun runtime/maintenance
+exclusion, and initial all-account baseline capture (`5d26a13`, `26e80b0`,
+`3145f8d`). These are K1/K2 preparation, not completed phase acceptance. The current
+file-opening adapter now has synthetic existing-file/crash checks and independent
+review; operator-authenticated maintenance,
+protected recovery and native backend integration remain incomplete. Keychain
+activation continues to require K0 first; no live secrets have been migrated.
 
 The next bounded slice is K0's caller/signing/API design and isolated prototype,
 as detailed in the plan. The [stock Bun boundary experiment](../playground/keychain/runtime-boundary.md)
