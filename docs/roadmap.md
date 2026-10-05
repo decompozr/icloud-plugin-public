@@ -91,6 +91,23 @@ format-3 headers. Provider validation, authenticated stopped operation, custody-
 aware account availability and native/runtime routes remain unintegrated. All
 acceptance here uses synthetic state and an injected memory backend.
 
+The inactive async account credential reader derives stored-credential metadata
+from authenticated authority rather than SQLite ciphertext presence. Its status
+describes authority/pending/revoked/recovery, not native reachability. It reads the
+exact native selector noninteractively after cutover, never SQLite or another
+account on failure. Supported strict UTF-8 Apple provider envelopes (at most 65536 bytes) retain exact
+bytes; opaque, malformed or mismatched-user legacy payloads fail closed. Native raw UTF-8
+passwords are losslessly wrapped in the same provider fields. Revision/custody-epoch
+snapshots fence late reads and can guard dispatch/readiness/session acceptance;
+this consistency check does not authenticate callers. Returned buffers belong to
+callers; parsed JS strings cannot be securely erased. Current synchronous Mail,
+Calendar and admin consumers still need async/revision-aware adaptation before
+this port can be selected. Readiness evidence now accepts an optional custody
+snapshot and includes authority/epoch as well as semantic revision; synthetic
+in-flight evidence checks reject late reads after custody changes even when
+revision is preserved. The current runtime factory does not select this option.
+No runtime authority or recovery is changed.
+
 Operational stopped recovery, account add/rotation adapters and
 settings/compatibility/backend
 integration remain pending; K1 is not complete and runtime custody is unchanged.

@@ -301,3 +301,58 @@ test('addition verified-item loss cannot recreate; invalid input and maintenance
   await expect(denied.advance('owner',state.accountId,checked.epoch,op,bytes,{interaction:'prohibited'})).rejects.toThrow(/^recovery_required$/);
  }finally{bytes.fill(0);f.cleanup();}
 });
+
+import {AccountCredentialReader} from './account-credential-reader.js';
+function readerFixture(f:ReturnType<typeof fixture>){let sourceReads=0;const sourceBuffers:Uint8Array[]=[];const reader=new AccountCredentialReader(f.journal,{account:f.owner.account.bind(f.owner),listAccounts:f.owner.listAccounts.bind(f.owner),readAccountSecret(owner,id){sourceReads++;const bytes=f.owner.readAccountSecret(owner,id);if(bytes)sourceBuffers.push(bytes);return bytes;}},f.native,{assertHeld(){}});return{reader,sourceBuffers,sourceReads:()=>sourceReads};}
+test('custody reader preserves SQLite bytes and native account metadata despite cleared ciphertext',async()=>{
+ const original=Buffer.from('{ "user": "a@example.test", "appPassword": "synthetic-a" }'),f=fixture(original);try{
+  const {reader,sourceBuffers,sourceReads}=readerFixture(f),metadata=f.owner.account('owner',f.a),old=reader.account('owner',f.a),read=await reader.read('owner',f.a);
+  try{expect(Buffer.from(read.bytes)).toEqual(original);}finally{read.bytes.fill(0);}expect(sourceBuffers.every(zero)).toBe(true);expect(sourceReads()).toBe(1);
+  const {state,operationId}=begin(f);await advance(f,state.epoch,operationId);const checked=await advance(f,state.epoch,operationId),active=await advance(f,checked.epoch,operationId);
+  const current=reader.account('owner',f.a);expect(current.account).toEqual(metadata);expect(current.revision).toBe(old.revision);expect(current.custodyEpoch).toBe(active.epoch);expect(current.status).toBe('active');
+  expect(()=>reader.assertCurrent(old)).toThrow('conflict');const native=await reader.read('owner',f.a);try{expect(JSON.parse(Buffer.from(native.bytes).toString())).toEqual({user:'a@example.test',appPassword:'synthetic-a'});}finally{native.bytes.fill(0);}expect(sourceReads()).toBe(1);expect(f.native.reads.every(zero)).toBe(true);
+ }finally{f.cleanup();}
+});
+test('native reader missing or denied never reads SQLite or changes authority, revision or another account',async()=>{
+ const f=await rotationFixture();try{
+  const {reader,sourceReads}=readerFixture(f),before=f.journal.read('owner',f.a);f.native.items.delete(accountPasswordSelector(staged(f)).account);
+  await expect(reader.read('owner',f.a)).rejects.toThrow('missing');expect(sourceReads()).toBe(0);expect(f.journal.read('owner',f.a)).toEqual(before);
+  f.native.beforeRead=()=>{throw new CustodyError('denied');};await expect(reader.read('owner',f.a)).rejects.toThrow('denied');expect(sourceReads()).toBe(0);expect(f.journal.read('owner',f.a)).toEqual(before);
+  expect(reader.listAccounts('owner').map(row=>row.account.id)).toEqual([f.a,f.b]);
+ }finally{f.cleanup();}
+});
+test('pending addition and revoked accounts expose distinct custody status without credential reads',async()=>{
+ const f=fixture(),bytes=Buffer.from('new-password');try{
+  const {reader,sourceReads}=readerFixture(f),op=randomUUID(),pending=f.journal.beginAddition('owner',{user:'c@example.test',operationId:op,password:bytes});
+  expect(reader.account('owner',pending.accountId).status).toBe('migration_pending');expect(reader.account('owner',pending.accountId).account.credentialStored).toBe(false);
+  await expect(reader.read('owner',pending.accountId)).rejects.toThrow('migration_pending');
+  f.journal.cancelAddition('owner',pending.accountId,pending.epoch,op);expect(reader.account('owner',pending.accountId).status).toBe('revoked');await expect(reader.read('owner',pending.accountId)).rejects.toThrow('revoked');expect(sourceReads()).toBe(0);expect(f.native.readOptions).toHaveLength(0);
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('native read fences revocation and read failure races, clearing owned buffers',async()=>{
+ const f=await rotationFixture();try{
+  const {reader,sourceReads}=readerFixture(f),state=f.journal.read('owner',f.a);
+  f.native.beforeRead=()=>{f.journal.revoke('owner',f.a,state.epoch,randomUUID());};await expect(reader.read('owner',f.a)).rejects.toThrow('conflict');expect(f.native.reads.every(zero)).toBe(true);expect(sourceReads()).toBe(0);
+ }finally{f.cleanup();}
+ const second=await rotationFixture();try{
+  const {reader}=readerFixture(second),state=second.journal.read('owner',second.a);second.native.beforeRead=()=>{second.journal.revoke('owner',second.a,state.epoch,randomUUID());throw new CustodyError('denied');};await expect(reader.read('owner',second.a)).rejects.toThrow('conflict');
+ }finally{second.cleanup();}
+});
+test('reader preserves BOM password bytes, fails closed on malformed native UTF8, and redacts access errors',async()=>{
+ const f=await rotationFixture();try{
+  const {reader}=readerFixture(f),selector=accountPasswordSelector(staged(f)).account;f.native.items.set(selector,Buffer.from('\uFEFFsynthetic-password'));
+  const read=await reader.read('owner',f.a);try{expect(JSON.parse(Buffer.from(read.bytes).toString()).appPassword).toBe('\uFEFFsynthetic-password');}finally{read.bytes.fill(0);}
+  f.native.items.set(selector,Buffer.from([255]));await expect(reader.read('owner',f.a)).rejects.toThrow(/^recovery_required$/);expect(f.native.reads.every(zero)).toBe(true);
+  const denied=new AccountCredentialReader(f.journal,f.owner,f.native,{assertHeld(){throw Error('private-detail');}});expect(()=>denied.account('owner',f.a)).toThrow(/^recovery_required$/);
+ }finally{f.cleanup();}
+});
+test('pending copy and rotation retain their prior source; recovery metadata never authorizes a read',async()=>{
+ const sqlite=fixture();try{
+  const {reader}=readerFixture(sqlite);begin(sqlite);expect(reader.account('owner',sqlite.a).status).toBe('migration_pending');const read=await reader.read('owner',sqlite.a);try{expect(JSON.parse(Buffer.from(read.bytes).toString()).appPassword).toBe('synthetic-a');}finally{read.bytes.fill(0);}
+  await expect(reader.read('owner',sqlite.b)).rejects.toThrow(/^recovery_required$/);expect(sqlite.native.readOptions).toHaveLength(0);
+ }finally{sqlite.cleanup();}
+ const f=await rotationFixture(),bytes=Buffer.from('replacement-password');try{
+  const {reader,sourceReads}=readerFixture(f),op=randomUUID(),pending=f.rotation.begin('owner',f.a,f.active.epoch,op,bytes);expect(reader.account('owner',f.a).status).toBe('migration_pending');const read=await reader.read('owner',f.a);try{expect(JSON.parse(Buffer.from(read.bytes).toString()).appPassword).toBe('synthetic-a');expect(read.state.revision).toBe(1);}finally{read.bytes.fill(0);}
+  const cancelled=f.journal.cancelRotation('owner',f.a,pending.epoch,op);f.journal.markUnavailable('owner',f.a,cancelled.epoch);const count=f.native.readOptions.length;expect(reader.account('owner',f.a).account.credentialStored).toBe(true);expect(reader.account('owner',f.a).status).toBe('recovery_required');await expect(reader.read('owner',f.a)).rejects.toThrow('recovery_required');expect(f.native.readOptions).toHaveLength(count);expect(sourceReads()).toBe(0);
+ }finally{bytes.fill(0);f.cleanup();}
+});
