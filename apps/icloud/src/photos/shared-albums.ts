@@ -4,7 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {PhotosError} from './contracts.js';
 import type {PhotosPolicy} from './service.js';
-import {publishSharedUpload,readSharedUploadJob,SHARED_RECOVERY_GRACE_MS,SharedStreamReadError,readSharedStreamMembership,readSharedStreamAlbums,readSharedStreamCount,executeSharedStreamMutation,type SharedStreamSession,type SharedStreamMutation} from './shared-stream-protocol.js';
+import {publishSharedUpload,readSharedUploadJob,SHARED_RECOVERY_GRACE_MS,sharedReadDiagnostic,SharedStreamReadError,readSharedStreamMembership,readSharedStreamAlbums,readSharedStreamCount,executeSharedStreamMutation,type SharedStreamSession,type SharedStreamMutation} from './shared-stream-protocol.js';
 
 export const remoteSharedAlbumId=z.string().regex(/^shared-album:[a-f0-9-]{36}:[A-Fa-f0-9-]{36}$/);
 const title=z.string().trim().min(1).max(200);
@@ -59,7 +59,7 @@ export class SharedAlbumService {
   if(!read||read.identity!==identity||(refresh&&read.result!==undefined)){
    if(!read&&reads.size>=64)throw new PhotosError('shared_album_read_capacity');
    read={id:randomUUID(),identity,started:Date.now(),promise:Promise.resolve()};reads.set(key,read);const current=read;
-   current.promise=(async()=>{const result=await this.albums(albumId);const membership=contents?await readSharedStreamMembership(session,this.options.accountId,this.guid(albumId!)):undefined;this.check();return {...result,...(membership?{membership}:{})};})().then(result=>{current.result={status:'complete',...result};current.completed=Date.now();},()=>{current.result={status:'failed',error:'shared_album_read_failed'};current.completed=Date.now();});
+   current.promise=(async()=>{const result=await this.albums(albumId);const membership=contents?await readSharedStreamMembership(session,this.options.accountId,this.guid(albumId!)):undefined;this.check();return {...result,...(membership?{membership}:{})};})().then(result=>{current.result={status:'complete',...result};current.completed=Date.now();},error=>{current.result={status:'failed',error:'shared_album_read_failed',diagnostic:sharedReadDiagnostic(error)};current.completed=Date.now();});
   }
   if(read.completed!==undefined&&Date.now()-read.completed>300000&&read.result!==undefined)read.result={status:'expired',automaticRetry:false};
   const result=read.result as {membership?:Awaited<ReturnType<typeof readSharedStreamMembership>>}|undefined;
@@ -230,7 +230,7 @@ export class SharedAlbumService {
     else result={...observed,error:'shared_album_readback_pending',serverReadbackVerified:false,crossDeviceObserved:false};
    }
    }
-  }catch{result={error:'shared_album_write_outcome_unknown'};}
+  }catch(error){result={error:'shared_album_write_outcome_unknown',diagnostic:sharedReadDiagnostic(error)};}
   this.options.db.query('UPDATE photos_shared_operations SET status=?,result=? WHERE id=? AND owner=? AND account=?').run(status,JSON.stringify(result),id,this.options.owner,this.options.accountId);
   if(status==='applied')await this.cleanupUpload(id);
   return this.status(id);
@@ -259,7 +259,7 @@ export class SharedAlbumService {
  reconcileBackground(id:string){
   this.check();
   if(!['executing','outcome_unknown'].includes(this.row(id).status)||activeOperations.get(this.options.db)?.has(id))return this.status(id);
-  void this.track(id,()=>this.reconcile(id,true)).catch(()=>{});
+  void this.track(id,()=>this.reconcile(id,true)).catch(error=>{this.options.db.query("UPDATE photos_shared_operations SET result=? WHERE id=? AND owner=? AND account=? AND status='outcome_unknown'").run(JSON.stringify({error:'shared_album_readback_failed',diagnostic:sharedReadDiagnostic(error)}),id,this.options.owner,this.options.accountId);});
   return this.status(id);
  }
  /** Reconciliation only reads. A matching state does not prove a lost write caused it. */
