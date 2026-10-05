@@ -90,6 +90,23 @@ The initial deployment script invocation used an older Python and failed at impo
 before any mutation; the existing pinned Python completed deployment. Actual
 owner-visible diagnostics and new host registration/tool use remain pending.
 
+### Sharing provider/build boundary audit — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The active Helper build still includes the isolated posting UI candidate even
+though remote MCP preparation/application reject it. This contradicts the
+nonshipping-research disposition above. The next correction will exclude that UI
+and its launch path from the operation Helper, retaining research source outside
+the production native build and preserving historical journal/status readback.
+Compile the operation Helper and isolated research independently; remote posting
+must remain explicitly unsupported. Preserve installed Helper identity on a
+TypeScript-only update; change native identity only with actual consent recheck.
+
+Latest live acceptance observations: no registered client, consent, access grant
+or refresh grant includes Photos; Helper authorization is still 0. The library is
+readable. Owner connection and native permission gates remain open.
+
 ### Immediate slice and boundaries
 
 Owner: the receiver in this existing worktree; preserve the primary checkout and
