@@ -1,6 +1,6 @@
 import {Database} from 'bun:sqlite';
 import {randomUUID} from 'node:crypto';
-import {mutationSchema,catalogSchema,reviewSummarySchema,sharedObservationSchema,assetSchema,PhotosError,type PhotosProvider,type Mutation} from './contracts.js';
+import {mutationSchema,catalogSchema,remoteDecisionsSchema,reviewSummarySchema,sharedObservationSchema,assetSchema,PhotosError,type PhotosProvider,type Mutation} from './contracts.js';
 import {z} from 'zod';
 import {reviewDecision} from './shared-review.js';
 export interface PhotosPolicy {read:boolean;write:boolean;delete:boolean}
@@ -13,6 +13,55 @@ export class PhotosService {
  }
  private check(write=false,destructive=false){const p=this.policy();if(!p.read||write&&!p.write||destructive&&!p.delete)throw new PhotosError('forbidden');return this.owner();}
  async read(command:string,input:unknown){this.check();return this.provider.read(command,input);}
+ async prepareRemote(raw:unknown){
+  if(mutationSchema.parse(raw).action==='post_to_shared_album')throw new PhotosError('remote_shared_album_posting_unavailable');
+  return this.prepare(raw);
+ }
+ async applyRemote(id:string,confirm:boolean,allowDelete=false){
+  const owner=this.check(true),row=this.db.query('SELECT mutation FROM photos_operations WHERE id=? AND owner=?').get(id,owner) as {mutation:string}|null;
+  if(!row)throw new PhotosError('operation_not_found');
+  if(mutationSchema.parse(JSON.parse(row.mutation)).action==='post_to_shared_album')throw new PhotosError('remote_shared_album_posting_unavailable');
+  return this.apply(id,confirm,allowDelete);
+ }
+ /** Remote review reads metadata only. Images use photos_preview in the conversation. */
+ async prepareCatalog(raw:unknown){
+  const owner=this.check(),request=catalogSchema.parse(raw);
+  let entries:{assetId:string;evidence:unknown}[]=[],coverage:unknown;
+  if(request.kind==='comparison'){
+   const result=await this.provider.read('compare',{assetIds:request.assetIds,albumId:request.albumId}) as {album:unknown;results:{assetId:string;status:string;candidates:unknown[]}[]};
+   if(result.results.length!==request.assetIds.length||new Set(result.results.map(r=>r.assetId)).size!==request.assetIds.length||result.results.some(r=>!request.assetIds.includes(r.assetId)))throw new PhotosError('invalid_review_sources');
+   entries=result.results.map(r=>({assetId:r.assetId,evidence:r}));coverage={album:result.album,totalSources:entries.length};
+  }else{
+   const result=await this.provider.read('cleanup',{offset:request.offset,limit:request.limit}) as {total:number;nextOffset:number|null;candidates:{reason:string;assetIds:string[]}[]};
+   const seen=new Set<string>();let omittedAssets=0;
+   for(const group of result.candidates)for(const assetId of group.assetIds){if(seen.has(assetId))continue;seen.add(assetId);if(entries.length===12){omittedAssets++;continue;}entries.push({assetId,evidence:{reason:group.reason,candidateIds:group.assetIds.filter(id=>id!==assetId).slice(0,2)}});}
+   coverage={totalCandidateGroups:result.total,nextOffset:result.nextOffset,omittedAssets};
+  }
+  const sources=[];
+  for(const entry of entries){const detail=assetSchema.parse(await this.provider.read('detail',{assetId:entry.assetId}));if(detail.id!==entry.assetId)throw new PhotosError('invalid_review_sources');sources.push({...entry,detail,previewTool:'photos_preview',motionReviewRequired:detail.livePhoto||detail.mediaType==='video'});}
+  if(this.check()!==owner)throw new PhotosError('owner_changed');
+  const reviewId=randomUUID(),result={mode:'remote_conversation',assetIds:entries.map(e=>e.assetId),sources,coverage,createdAt:new Date().toISOString(),writeApproved:false,sharingVerified:false,serverSyncVerified:false};
+  const status=entries.length?'remote_review_pending':'no_review_candidates';
+  this.db.query('INSERT INTO photos_reviews (id,owner,request,status,result) VALUES (?,?,?,?,?)').run(reviewId,owner,JSON.stringify(request),status,JSON.stringify(result));
+  return {reviewId,status,result,message:'Show exact source previews in the conversation. Record only explicit owner decisions. Saving decisions changes no photos; further write review and confirmation are required.'};
+ }
+ recordCatalog(raw:unknown){
+  const owner=this.check(),input=remoteDecisionsSchema.parse(raw);
+  const row=this.db.query('SELECT * FROM photos_reviews WHERE id=? AND owner=?').get(input.reviewId,owner) as {request:string;status:string;result:string}|null;if(!row)throw new PhotosError('review_not_found');
+  const opened=JSON.parse(row.result),request=catalogSchema.parse(JSON.parse(row.request));
+  if(opened.mode!=='remote_conversation')throw new PhotosError('remote_review_required');
+  const ids=z.array(z.string()).parse(opened.assetIds),decisions=input.decisions;
+  if(decisions.length!==ids.length||new Set(decisions.map(d=>d.assetId)).size!==ids.length||decisions.some(d=>!ids.includes(d.assetId)||(request.kind==='comparison'&&d.decision==='delete_review')||(request.kind==='cleanup'&&d.decision==='share_review')))throw new PhotosError('invalid_review_decisions');
+  if(row.status==='selection_reviewed'){
+   const saved=opened.lastEvent.decisions as typeof decisions;
+   if(decisions.some(d=>!saved.some(s=>s.assetId===d.assetId&&s.decision===d.decision)))throw new PhotosError('review_already_finalized');
+   return {reviewId:input.reviewId,status:row.status,result:opened.lastEvent};
+  }
+  if(row.status!=='remote_review_pending')throw new PhotosError('wrong_review_state');
+  const result={status:'selection_reviewed',decisions,selectedAssetIds:decisions.filter(d=>['share_review','delete_review'].includes(d.decision)).map(d=>d.assetId),recordedAt:new Date().toISOString(),writeApproved:false,sharingVerified:false,serverSyncVerified:false};
+  this.db.query("UPDATE photos_reviews SET status='selection_reviewed',result=? WHERE id=? AND owner=? AND status='remote_review_pending'").run(JSON.stringify({...opened,lastEvent:result}),input.reviewId,owner);
+  return {reviewId:input.reviewId,status:'selection_reviewed',result};
+ }
  async prepare(raw:unknown){const mutation=mutationSchema.parse(raw);const owner=this.check(true,mutation.action==='delete_assets');if(this.db.query("SELECT id FROM photos_operations WHERE owner=? AND mutation=? AND status IN ('executing','outcome_unknown','review_pending','posting_completed_membership_unverified','different_destination_membership_unverified') LIMIT 1").get(owner,JSON.stringify(mutation)))throw new PhotosError('unresolved_operation');
   if(mutation.action==='post_to_shared_album'){
    const unresolved=this.db.query("SELECT mutation FROM photos_operations WHERE status IN ('executing','outcome_unknown','review_pending','posting_completed_membership_unverified','different_destination_membership_unverified') AND json_extract(mutation,'$.action')='post_to_shared_album'").all() as {mutation:string}[];
@@ -73,7 +122,7 @@ export class PhotosService {
  }
  async catalogStatus(id:string){
   const owner=this.check();const row=this.db.query('SELECT * FROM photos_reviews WHERE id=? AND owner=?').get(id,owner) as {status:string;result:string|null;request:string}|null;if(!row)throw new PhotosError('review_not_found');
-  if(row.status==='no_review_candidates')return {reviewId:id,status:row.status,result:row.result?JSON.parse(row.result):null};
+  if(['no_review_candidates','remote_review_pending'].includes(row.status))return {reviewId:id,status:row.status,result:row.result?JSON.parse(row.result):null};
   if(['selection_reviewed','catalog_cancelled'].includes(row.status))return {reviewId:id,status:row.status,result:JSON.parse(row.result!).lastEvent};
   if(!this.provider.reviewStatus)throw new PhotosError('native_review_unavailable');
   const result=await this.provider.reviewStatus(id) as {status:string;selectedAssetIds?:string[];manifestAssetIds?:string[];decisions?:unknown};if(this.check()!==owner)throw new PhotosError('owner_changed');

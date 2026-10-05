@@ -23,6 +23,7 @@ export const catalogSchema=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('cleanup'),offset:z.number().int().min(0).max(1000000).default(0),limit:z.number().int().min(1).max(12).default(6)}).strict()
 ]);
 export type CatalogRequest=z.infer<typeof catalogSchema>;
+export const remoteDecisionsSchema=z.object({reviewId:z.string().uuid(),confirm:z.literal(true),decisions:z.array(z.object({assetId,decision:z.enum(['undecided','keep','share_review','delete_review'])}).strict()).min(1).max(12)}).strict();
 const summaryIds=z.array(assetId).min(1).max(500).refine(v=>new Set(v).size===v.length,'Duplicate asset IDs');
 export const reviewSummarySchema=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('comparison'),assetIds:summaryIds,albumId}).strict(),
