@@ -1,5 +1,5 @@
 import {describe,expect,test} from 'bun:test';
-import {executeSharedStreamMutation,sharedStreamRequest,sharedStreamURL,type SharedStreamSession} from './shared-stream-protocol.js';
+import {executeSharedStreamMutation,sharedStreamRequest,sharedStreamURL,readSharedStreamAlbums,type SharedStreamSession} from './shared-stream-protocol.js';
 const albumGuid='11111111-1111-4111-8111-111111111111';
 const mutation={action:'create_shared_album' as const,albumGuid,title:'Disposable protocol fixture'};
 function session(request:SharedStreamSession['request']):SharedStreamSession{return {accountId:'owner-account',protocol:'legacy_shared_streams',dsid:'123456789',serviceOrigin:'https://p37-sharedstreams.icloud.com',request};}
@@ -36,5 +36,34 @@ describe('internal API-only Shared Album contract',()=>{
   const captured:any[]=[];const s=session(async(url,init)=>{captured.push({url,body:JSON.parse(init.body as string)});return new Response('',{status:200});});
   for(const change of [{action:'rename_shared_album' as const,albumGuid,title:'Renamed fixture'},{action:'delete_shared_album' as const,albumGuid}])expect((await executeSharedStreamMutation(s,'owner-account',change)).status).toBe('acknowledged_readback_required');
   expect(captured.map(v=>v.body)).toEqual([{albumguid:albumGuid,attributes:{name:'Renamed fixture'}},{albumguid:albumGuid}]);
+ });
+});
+
+describe('remote Shared Album readback identity and boundaries',()=>{
+ const album={albumguid:albumGuid,ownerdsid:'123456789',albumctag:'fixture-change-tag',attributes:{name:'Fixture Shared Album',ispublic:'0',allowcontributions:'1'},sharinginfo:[{personid:'fixture-owner',sharingtype:'Owner',email:'owner@example.test'}]};
+ test('reads exact GUID once, retains ownership/change evidence and strips arbitrary private fields',async()=>{
+  let calls=0;const s=session(async(url,init)=>{calls++;expect(url.endsWith('/webgetalbumview')).toBe(true);expect(JSON.parse(init.body as string)).toEqual({albumguids:[albumGuid]});expect(init.redirect).toBe('error');return Response.json({albums:[{...album,providerSecret:'must-not-leak'}],sessionToken:'must-not-leak'});});
+  const result=await readSharedStreamAlbums(s,'owner-account',albumGuid);
+  expect(calls).toBe(1);expect(result.albums[0]?.rights).toBe('owner');expect(result.albums[0]?.protocol).toBe('legacy_candidate');expect(result.albums[0]?.changeTag).toBe('fixture-change-tag');expect(result.albums[0]?.participants).toHaveLength(1);
+  expect(result.operationCausedChangeVerified).toBe(false);expect(result.crossDeviceObserved).toBe(false);expect(JSON.stringify(result)).not.toContain('must-not-leak');
+ });
+ test('inventory distinguishes modern/participant state and omits deleted entries without asserting write support',async()=>{
+  const s=session(async(url,init)=>{expect(url.endsWith('/webgetalbumslist')).toBe(true);expect(init.body).toBe('{}');return Response.json({albums:[{...album,ownerdsid:'987654321',requiresminimumos:true},{...album,albumguid:'22222222-2222-4222-8222-222222222222',_deleted:true}]});});
+  const result=await readSharedStreamAlbums(s,'owner-account');expect(result.albums).toHaveLength(1);expect(result.albums[0]?.rights).toBe('participant');expect(result.albums[0]?.protocol).toBe('modern_or_encrypted');
+ });
+ test('wrong account and malformed exact IDs reject before transport',async()=>{
+  let calls=0;const s=session(async()=>{calls++;return Response.json({albums:[album]});});
+  await expect(readSharedStreamAlbums(s,'other-account',albumGuid)).rejects.toThrow('account_mismatch');
+  await expect(readSharedStreamAlbums(s,'owner-account','not-an-id')).rejects.toThrow();expect(calls).toBe(0);
+ });
+ test('missing/substituted/duplicate/deleted identities and incomplete models cannot satisfy exact readback',async()=>{
+  for(const albums of [[],[{...album,albumguid:'22222222-2222-4222-8222-222222222222'}],[album,album],[{...album,_deleted:true}],[{albumguid:albumGuid}]]){
+   await expect(readSharedStreamAlbums(session(async()=>Response.json({albums})),'owner-account',albumGuid)).rejects.toThrow('shared_album_readback_failed');
+  }
+ });
+ test('bounds failures, sends once and exposes no server diagnostic or credential',async()=>{
+  for(const response of [new Response('secret-fixture',{status:401}),new Response('not-json'),new Response('x'.repeat(1024*1024+1))]){
+   let calls=0;await expect(readSharedStreamAlbums(session(async()=>{calls++;return response;}),'owner-account')).rejects.toThrow('shared_album_readback_failed');expect(calls).toBe(1);
+  }
  });
 });

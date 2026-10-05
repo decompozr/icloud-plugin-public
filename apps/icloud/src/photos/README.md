@@ -38,6 +38,13 @@ stale completions from restoring revoked sessions. No browser cookies or Keychai
 credentials are imported. Login and setup do not grant OAuth scopes or perform
 photo operations. Status reports authentication separately from management
 readiness; real Apple login/2FA and Shared Album operations remain unverified.
+This is additional authorization on the existing account, not a second account
+or custom MCP. It is an experimental web-provider choice, not a requirement for
+local Photos reads. The existing Admin sign-in uses the owner's passkey and has
+no Apple password field. macOS 27 provides native Shared Album creation,
+customization and posting sheets, but those require user-operated UI and are
+excluded from this remote/no-computer-control workflow. Installed public PhotoKit
+and Photos scripting interfaces do not expose complete headless management.
 
 ## Nonshipping posting research
 
