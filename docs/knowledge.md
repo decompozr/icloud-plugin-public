@@ -15,6 +15,15 @@ evidence before this runtime can be authorized to receive secrets. The
 [migration plan](keychain-migration-plan.md#api-signing-and-caller-boundary-k0)
 and roadmap retain both migrations behind K0; stock compilation alone is rejected.
 
+The later Bun-first runner also embedded the documented strict string-code flag.
+On revision `1.4.2+744846f84` it appears in `execArgv`, but the tested indirect eval
+still succeeds; external CLI and file preload also run. This version-specific
+negative finding was independently reviewed from source/raw evidence, not rerun
+by the reviewer. See the report's embedded-strict follow-up. Current documentation
+or an accepted flag string must not substitute for observed policy enforcement.
+Dedicated-runtime build/maintenance scope remains a user decision; no new runtime
+or toolchain was installed.
+
 The Keychain experiment is closed as a feasibility investigation. Its
 [report and reproduction recipes](../playground/keychain/README.md) and
 [bounded acceptance evidence](../playground/keychain/evidence.json) retain the

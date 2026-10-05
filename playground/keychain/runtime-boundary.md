@@ -68,10 +68,12 @@ without asserting a viable native backend. Existing file custody remains active.
 ## Reproduction and artifact ownership
 
 ```sh
-python3 playground/keychain/run_runtime_boundary.py
+bun playground/keychain/run-runtime-boundary.ts
 ```
 
-Requires existing macOS `bun`, `codesign` and Python; installs nothing. Output
+The current runner uses existing macOS Bun and `codesign`; installs nothing. The
+earlier `run_runtime_boundary.py` remains historical experiment provenance, not
+the default runner for new work. Output
 identifies an owner-private external temporary directory with `record.json`,
 `results.json` and `summary.json`. Unexpected runtime output or a negative control
 that no longer reproduces fails the run; it must not be reclassified as secure.
@@ -84,3 +86,58 @@ documents the CLI switch, and its
 [runtime-options section](https://bun.sh/docs/bundler/executables#runtime-arguments-via-bun_options)
 documents environment-driven runtime flags. Local reproduction, rather than the
 documentation alone, establishes the observed boundary failure above.
+
+## Embedded strict option follow-up — 2026-10-05
+
+The Bun-first runner checks baseline and strict-option executables, with the
+same disabled configuration loading and hardened ad-hoc/JIT signing. The
+[retained follow-up evidence](strict-runtime-boundary-evidence.json) records
+same-agent execution on **Bun 1.4.2+744846f84, macOS 27.0.1**:
+
+| Case | Baseline | Embedded `--disallow-code-generation-from-strings=strict` |
+| --- | --- | --- |
+| Normal entry, indirect `eval("1 + 1")` | Allowed; result 2. | Also allowed; exact flag is present in `process.execArgv`. |
+| `BUN_BE_BUN=1`, external entry | External code runs. | External code runs. |
+| `BUN_OPTIONS=--preload=<file>` | External code runs before guard exits 64. | External code runs before guard exits 64. |
+| Bytes, designated requirement, strict signature validation | Unchanged/passes. | Unchanged/passes. |
+
+Bun's current [string-code restriction documentation](https://bun.sh/docs/runtime/code-generation-from-strings#what-the-flag-does-not-cover)
+explicitly excludes file startup/preloads and CLI mode. Its stated strict `eval`
+behavior was **not enforced by the installed revision in this reproduction**.
+An option appearing in `execArgv` is not proof that its policy is effective.
+Do not treat current web documentation as a local-version acceptance result, or
+install/upgrade Bun automatically to obtain it. Even the documented policy does
+not close the already observed fixed-entry gaps.
+
+The runner asserts these version-specific observations; if they change it fails
+and calls for investigation. It never changes `k0_passed` to true. Its first
+preparation run rejected the `# designated =>` display prefix before functional
+checks; the second rejected the assumption that the strict option enforces eval
+denial. Neither is counted as a completed matrix. No credential or Keychain
+operation occurred. This is additional code-loading evidence, not a repeat of
+the prior Keychain/signing-continuity experiment.
+
+An independent read-only source/raw-evidence review found no confirmed blocker
+in the runner or these bounded claims. The reviewer did not rerun the probe.
+Standalone TypeScript checking passed using Bun and the existing local compiler;
+these checks do not establish product/native migration acceptance.
+
+### Required runtime scope decision
+
+**Proposed next scope, not adopted:** investigate a dedicated Bun build with a
+native startup boundary that fixes the embedded entry, rejects generic CLI,
+preloads/inspector and unsealed code-loading inputs before JS execution. Keep
+application code and orchestration in Bun. A bounded first deliverable is a
+pinned-source patch/build design and explicit dependency/maintenance inventory;
+building a new runtime or installing build dependencies requires the user's
+scope decision. No production signer or release transition belongs to that slice.
+
+Acceptance must exercise direct same-user invocations, modified resources,
+environment/argv/config injection, worker/addon/FFI loading and authenticated
+message-bound IPC on the actual runtime. Scrubbing an external launcher's
+environment, using a JS entry guard, or simply embedding more flags is insufficient.
+The decision must also name the release owner for maintaining the restricted
+runtime across Bun security updates. A compatible native embedded host remains
+unverified; do not switch the product to Python or Swift by default. If the
+runtime scope is declined, revise the architecture explicitly before dependent
+native migration activation. The full dual migration objective remains open.

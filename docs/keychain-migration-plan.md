@@ -160,6 +160,14 @@ compatible native embedded host remains an unverified architecture candidate;
 new-runtime build/maintenance scope requires an explicit decision. K2/K3 activation
 remains gated, while K1 fixture-only work is independent of native feasibility.
 
+The Bun-first embedded-strict follow-up also reproduced external CLI/preload
+execution. On the tested `1.4.2+744846f84` revision the exact strict string-code
+option is present in `execArgv`, yet indirect eval succeeds. This source/raw-evidence
+reviewed result is version-specific; it rejects a flags-only workaround rather
+than establishing a new runtime policy. The report records the proposed bounded
+dedicated-Bun scope; building/maintaining that runtime has not been authorized or
+adopted by this result.
+
 ### Shared storage contract: K1
 
 Propose distinct `MasterKeyCustody` and `AccountPasswordCustody` ports behind the
