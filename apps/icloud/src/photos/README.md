@@ -16,6 +16,19 @@ the isolated Apple posting candidate are separate from remote daily review.
 Current delivery and live acceptance follow the active capability plan; earlier
 dated paragraphs below preserve historical evidence, not current workflow.
 
+## Nonshipping posting research
+
+The operation Helper build includes only PhotosHelper.swift. The macOS 27
+posting-window experiment and its journal writer live under playground/photos;
+neither is compiled into or dispatched by the production Helper. Historical
+journal readback remains supported in TypeScript. The standalone picker probe
+and posting experiment are research evidence, not a supported remote upload.
+Typecheck the retained experiment without launching it:
+
+```sh
+xcrun swiftc -parse-as-library -swift-version 6 -typecheck apps/icloud/src/photos/native/PhotosHelper.swift playground/photos/SharedAlbumReviewExperiment.swift playground/photos/SharedReviewJournalExperiment.swift -framework Photos -framework PhotosUI -framework AppKit
+```
+
 ## Setup and permissions
 
 Run `bun src/photos/setup.ts /absolute/private/photos-runtime` from apps/icloud.

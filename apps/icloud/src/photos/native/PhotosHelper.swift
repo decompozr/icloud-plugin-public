@@ -21,10 +21,11 @@ func fetchAlbum(_ id: String) throws -> PHAssetCollection {
 }
 func run(_ input: [String: Any]) throws -> [String: Any] {
     let command = input["command"] as? String ?? ""
+    if command == "shared_review" { try fail("remote_shared_album_posting_unavailable") }
     if command == "authorize" {
-        var done = false
-        PHPhotoLibrary.requestAuthorization(for: .readWrite) { _ in done = true }
-        while !done { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05)) }
+        let completed = DispatchSemaphore(value: 0)
+        PHPhotoLibrary.requestAuthorization(for: .readWrite) { _ in completed.signal() }
+        while completed.wait(timeout: .now()) == .timedOut { RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05)) }
     }
     let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
     if command == "authorize" || command == "health" { return ["authorization": status.rawValue, "authorized": status == .authorized] }
@@ -34,12 +35,7 @@ func run(_ input: [String: Any]) throws -> [String: Any] {
     let assets = try fetchAssets(ids)
     let album = try (mutation["albumId"] as? String).map { try fetchAlbum($0) }
     let isShared = (mutation["albumId"] as? String)?.contains(":shared:") ?? false
-    if action == "post_to_shared_album" {
-        guard command == "probe", ids.count == 1, isShared,
-              album?.assetCollectionSubtype == .albumCloudShared else { try fail("native_review_required") }
-        guard #available(macOS 27.0, *) else { try fail("shared_review_requires_macos_27") }
-        return ["supported": true, "shared": true, "serverSyncVerified": false]
-    }
+    if action == "post_to_shared_album" { try fail("remote_shared_album_posting_unavailable") }
     // Never substitute an ordinary album if a Shared Album cannot be resolved.
     if let album = album {
         if isShared && album.assetCollectionSubtype != .albumCloudShared { try fail("shared_album_write_unsupported") }
@@ -100,19 +96,6 @@ do {
     if CommandLine.arguments.contains("--authorize") { _ = NSApplication.shared }
     let data = CommandLine.arguments.contains("--authorize") ? Data("{\"command\":\"authorize\"}".utf8) : FileHandle.standardInput.readDataToEndOfFile()
     guard data.count <= 65536, let input = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { try fail("invalid_request") }
-    if input["command"] as? String == "shared_review" {
-        guard #available(macOS 27.0, *) else { try fail("shared_review_requires_macos_27") }
-        let app = NSApplication.shared
-        guard app.setActivationPolicy(.regular) else { try fail("native_ui_policy_failed") }
-        let review = try SharedAlbumReview(input: input)
-        app.finishLaunching()
-        review.show()
-        let result: [String: Any] = ["status": "review_pending", "operationId": input["operationId"]!, "localReadbackVerified": false, "serverSyncVerified": false]
-        let output = try JSONSerialization.data(withJSONObject: ["ok": true, "result": result], options: [.sortedKeys])
-        FileHandle.standardOutput.write(output + Data([0x0A]))
-        withExtendedLifetime(review) { app.run() }
-        exit(0)
-    }
     let output = try run(input)
     print(String(data: try JSONSerialization.data(withJSONObject: ["ok": true, "result": output], options: [.sortedKeys]), encoding: .utf8)!)
 } catch {

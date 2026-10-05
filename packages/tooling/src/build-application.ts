@@ -2,6 +2,9 @@ import{resolve,join}from'node:path';
 import{mkdir,rm,cp}from'node:fs/promises';
 import{command,repository}from'./command.js';
 const app=join(repository,'apps/icloud'),source=join(app,'src'),output=join(app,'dist');
+const sourceMetadata=JSON.parse(await Bun.file(join(app,'package.json')).text()) as {version:string};
+const pluginMetadata=JSON.parse(await Bun.file(join(repository,'plugin.json')).text()) as {version:string};
+if(pluginMetadata.version!==sourceMetadata.version)throw Error('Application and downloadable plugin versions must match before building.');
 await command([process.execPath,'run','--cwd',app,'typecheck']);
 await rm(output,{recursive:true,force:true});await mkdir(output,{recursive:true});
 await command([process.execPath,'run','--cwd',app,'build:types']);
@@ -12,7 +15,6 @@ if(!server.success)throw new AggregateError(server.logs,'Application build faile
 const browser=await Bun.build({entrypoints:[join(source,'auth/browser.ts'),join(source,'admin/browser.ts')],root:source,outdir:join(output,'browser'),target:'browser'});
 if(!browser.success)throw new AggregateError(browser.logs,'Browser build failed');
 await mkdir(join(output,'assets'),{recursive:true});
-const sourceMetadata=JSON.parse(await Bun.file(join(app,'package.json')).text()) as {version:string};
 await Bun.write(join(output,'assets/runtime-version.json'),JSON.stringify({version:sourceMetadata.version})+'\n');
 await Bun.write(join(output,'assets/auth-browser.js'),Bun.file(join(output,'browser/auth/browser.js')));
 await Bun.write(join(output,'assets/admin-browser.js'),Bun.file(join(output,'browser/admin/browser.js')));

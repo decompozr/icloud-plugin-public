@@ -1,3 +1,4 @@
+// Nonshipping research. Never included in the operation Helper build.
 import Foundation
 import Darwin
 
