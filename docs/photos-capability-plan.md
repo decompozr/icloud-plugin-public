@@ -1,5 +1,22 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Main-MCP shared-tool discovery coverage — 2026-10-05
+
+An in-memory SDK client now exercises the actual main protocol host with the Photos
+registration. All four shared tools appear in discovery under the existing Photos
+policy. The common host advertises enabled tools independently of caller grants;
+read-only callers receive insufficient_scope when invoking writes, while callers
+with photos.read/photos.write can prepare without dispatching a mutation. This is
+the generic module flow, not a Photos-specific discovery path or new scope.
+
+Read-only installed configuration/state inspection confirms write=true/delete=false
+and owner policy read/write enabled. Actual main-MCP health also establishes that
+the shared provider is registered. Current conversation tools still omit the four
+shared lifecycle entries. This supports a client tool-loading gap, not live tool
+acceptance; do not patch credentials or replace the connection. Focused SDK/lifecycle
+checks pass 18 tests / 199 assertions. These fixture calls never contact Apple.
+
+
 ## 0.1.51 remote reads recovered; shared-copy review candidate — 2026-10-05
 
 The original main-MCP health call recovered without another service restart or

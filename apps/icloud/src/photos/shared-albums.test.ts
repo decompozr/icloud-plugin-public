@@ -257,3 +257,26 @@ test('remote content review pages retain one complete membership snapshot and ex
   expect(()=>f.service.albumsBackground(albumId,pending.readId)).toThrow('shared_album_read_not_found');
  }finally{f.db.close();}
 });
+
+test('main MCP discovery exposes shared lifecycle under existing Photos grants and enforces read-only denial',async()=>{
+ const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');
+ const {InMemoryTransport}=await import('@modelcontextprotocol/sdk/inMemory.js');
+ const {createServer}=await import('../mcp/server.js');
+ for(const writable of [false,true]){
+  const f=fixture(),policy=()=>({read:true,write:true,delete:false});
+  const runtime=new ModuleRuntime().register(photosRegistration(f.local,policy,()=>f.service));
+  const server=createServer(runtime,'https://fixture.test/icloud/mcp',new Set(writable?['photos.read','photos.write']:['photos.read']));
+  const client=new Client({name:'photos-discovery-fixture',version:'1'});const [a,b]=InMemoryTransport.createLinkedPair();
+  await server.connect(a);await client.connect(b);
+  try{
+   const names=(await client.listTools()).tools.map(t=>t.name);
+   expect(names).toContain('photos_shared_albums');expect(names).toContain('photos_shared_operation');
+   expect(names).toContain('photos_shared_prepare');expect(names).toContain('photos_shared_apply');
+   const listing=await client.callTool({name:'photos_shared_albums',arguments:{}});expect(listing.isError).not.toBe(true);
+   const prepare=await client.callTool({name:'photos_shared_prepare',arguments:{action:'create_shared_album',title:'Offline discovery fixture',experimental:true}});
+   expect(prepare.isError===true).toBe(!writable);if(!writable)expect(JSON.stringify(prepare._meta)).toContain('insufficient_scope');expect(f.writes()).toBe(0);
+   // Let read-only preparation settle before releasing the fixture database.
+   await new Promise(r=>setTimeout(r,5));
+  }finally{await client.close();await server.close();await runtime.dispose();f.db.close();}
+ }
+});
