@@ -347,3 +347,10 @@ unvalidated. Publication and live deployment are recorded separately after check
 The repository currently has no configured GitHub Actions workflows or check runs.
 Local full-suite, artifact, fixture-browser and independent review evidence is the
 release validation; no passing remote CI claim is made.
+
+
+Native patch 0.1.28 corrects private-root navigation to enter `/icloud/admin` before
+authentication. Owner cookies retain their narrow `/icloud` scope, preserving
+existing sessions and avoiding exposure to unrelated root applications on the
+same hostname. The approved private 8443 root proxy remains unchanged. A browser
+regression uses a real fixture cookie with path `/icloud` and no owner header.
