@@ -73,6 +73,56 @@ and existing Mail encryption remain unchanged. Session persistence adds a separa
 table under established custody; it does not create accounts, approve OAuth scopes,
 read browser cookies or install authentication dependencies.
 
+## Keychain custody contract foundation (K1, inactive)
+
+`custody-contract.ts` defines separate master-key/account-password read ports and
+an administrative provisioning view. Runtime reads require prohibited interaction;
+there is no selected backend, fallback, credential parsing or runtime import.
+Exact schema-1 selectors bind installation UUID and, for account passwords,
+owner/account/revision/item generation. This does not authenticate the caller or
+establish a native signing/API boundary; K0 remains unpassed.
+
+`MasterAuthorityJournal` stores nonsecret pre-owner-store metadata in an existing
+owner-private custody directory. `discover` is untrusted routing metadata; the
+caller must verify its HMAC using the original 32-byte key before opening bound
+owner/auth state. The new manifest HMAC context does not alter existing marker,
+credential/session/auth/ledger cryptography or generate a replacement key.
+An independently selected backend/generation floor can reject an older snapshot
+before fetching custody. An authentic whole snapshot verifies without such a
+floor; the journal is not a tamper-proof monotonic counter and does not protect
+rollback of all bound state/policy. Format/settings gating is still future work.
+
+Explicit baseline provisioning requires prior validation of the existing file,
+marker and bound state by its future caller. Ordinary discovery never creates
+missing files. Phase changes require original-key authentication, exact generation
+CAS, one operation ID and an exclusive installation lease. Authority changes
+only at the verified-to-authoritative transition; ordinary reverse transitions
+and skipped cutover are rejected. The state machine records a caller's validation
+decision; it does not perform the K2 all-consumer/Keychain validation itself.
+
+Writes fsync a unique private staging file, rename it atomically, then fsync the
+directory. Any uncertain write reports `outcome_unknown`; read actual state before
+deciding the next step. An uncommitted `.pending` file blocks another write/lease,
+even when the old manifest remains readable. Committed writes with a lost reply
+are reconciled by verified read and generation CAS. No unknown staging file is
+deleted automatically. Existing/incomplete locks cannot be stolen by age or a
+reopened process. The fixture worker actually exits at each write checkpoint;
+reopen preserves the atomic old/new record and retains the lock.
+Pathname checks and lease inode checks support cooperative writer coordination;
+they do not establish race-free filesystem access against malicious same-user
+replacement or satisfy K0 caller isolation. An independent review verified the
+inactive scope and reran the 15 new master-authority tests successfully. The
+owner's targeted suite also passed all 31 master/owner/provider-session tests.
+
+This is the first K1 slice, not the K1 exit gate. Pending pieces include stopped
+lock/staging reconciliation, account pointer/tombstone SQLite transactions,
+custody epochs, settings/format and installer compatibility gates, stable custody
+paths and actual backend wiring. No journal is provisioned in the installation;
+runtime remains file-based. No native item, provider action, live credential or
+existing installation state is accessed by the tests. Colocated master-authority
+tests plus existing owner-store/provider-session tests exercise synthetic state
+only; process death is not power-loss/disk-full or real Keychain acceptance.
+
 ## Verification and limits
 
 Colocated owner-store tests and the worker fixture cover provisioning/open behavior,

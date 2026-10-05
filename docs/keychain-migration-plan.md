@@ -1,6 +1,6 @@
 # Dual macOS Keychain migration plan
 
-Status: **K0 feasibility investigation started; migrations not implemented or deployed**
+Status: **K0 investigation and inactive K1 foundations started; migrations not implemented or deployed**
 (2026-10-05). This plan covers
 both required migrations: every connected account's Apple app-specific password,
 and the exact existing 32-byte installation master encryption key. These are
@@ -178,6 +178,24 @@ No exported key/password or public password digest belongs in either record.
 Manifest tamper/loss never permits reprovisioning or file fallback. Backend mode
 and a format/version gate also prevent old binaries from interpreting removed
 SQLite secrets as account revocation or recreating a missing key file.
+
+**K1 foundation implemented, inactive (2026-10-05):**
+[custody contracts](../apps/icloud/src/storage/custody-contract.ts) define both
+secret ports and exact installation/account/revision/generation selectors.
+The [master authority journal](../apps/icloud/src/storage/master-authority.ts)
+implements strict nonsecret metadata, original-key HMAC verification, phase and
+generation CAS, exclusive installation leases and fsynced atomic replacement.
+Discovery is untrusted until original-key verification; backend/generation
+expectations can reject an authentic older file-mode snapshot. Complete snapshot
+rollback is not detected if its independent policy is rolled back too. The HMAC
+uses a new metadata-only context without changing any existing consumer context.
+Lost replies require readback; unresolved staging and interrupted locks stop new
+writers. Runtime does not import these modules or select Keychain. Synthetic
+process-death and cross-process lock tests are retained in
+[storage verification](../apps/icloud/src/storage/master-authority.test.ts).
+Account SQLite authority/tombstones/epochs, stopped recovery, settings/format
+gates, custody paths and backend integration are still required for K1 completion.
+No all-consumer or Keychain validation is implied by advancing a fixture phase.
 
 `credentialStored` means an active authoritative pointer, not `secret != null`.
 Expose distinct redacted states for locked, denied, missing, migration-pending,

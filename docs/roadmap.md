@@ -37,7 +37,12 @@ reproduced external-script/preload execution under an unchanged signed standalon
 executable. Stock compilation plus signing is insufficient; K0 now requires a
 native pre-JS code-loading boundary before any broker can release credentials.
 No Keychain operation was involved, and K0 has not passed. K1 fixture contracts
-remain independent; K2/K3 activation remains gated.
+remain independent; K2/K3 activation remains gated. K1's first inactive foundation
+now provides both custody ports/exact selectors and a master authority journal
+with original-key HMAC, atomic fsynced writes, phase/generation CAS and exclusive
+leases. Synthetic process-death/lock tests cover metadata only. Account SQLite
+pointers/tombstones/epochs, stopped recovery and settings/compatibility/backend
+integration remain pending; K1 is not complete and runtime custody is unchanged.
 No production identity is presumed available; sealed
 Bun packaging and authenticated peer-channel feasibility are unverified. Open
 decisions are signer custody/renewal, Keychain implementation/accessibility,
