@@ -108,10 +108,12 @@ test('web access diagnostic projects booleans only and rejects revoked in-flight
  try{
   await f.service.action({action:'login',accountId:f.account.id,password:'fixture'});
   const session=f.service.sharedSession(f.account.id);
-  expect(await session.webAccessState!()).toEqual({isICDRSDisabled:true,isDeviceConsentedForPCS:false});
+  expect(await session.webAccessState!()).toEqual({responseKind:'flags',recognizedFields:['isICDRSDisabled','isDeviceConsentedForPCS'],isICDRSDisabled:true,isDeviceConsentedForPCS:false});
   body={isICDRSDisabled:'true'};
-  expect(await session.webAccessState!()).toEqual({isICDRSDisabled:null,isDeviceConsentedForPCS:null});
+  expect(await session.webAccessState!()).toEqual({responseKind:'unrecognized',recognizedFields:['isICDRSDisabled'],isICDRSDisabled:null,isDeviceConsentedForPCS:null});
+  body={errorCode:'secret-error',secretField:'secret'};
+  const error=await session.webAccessState!();expect(error.responseKind).toBe('provider_error');expect(JSON.stringify(error)).not.toContain('secret');
   revoke=true;await expect(session.webAccessState!()).rejects.toThrow('cloud_session_changed');
-  await expect(session.webAccessState!()).rejects.toThrow('cloud_session_changed');expect(calls).toBe(3);
+  await expect(session.webAccessState!()).rejects.toThrow('cloud_session_changed');expect(calls).toBe(4);
  }finally{f.cleanup();}
 });

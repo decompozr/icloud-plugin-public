@@ -1,5 +1,23 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Deployed diagnostic result and protocol follow-up — 2026-10-05
+
+PR 42 merged as dd6ce66 and installed 0.1.44. Full application checks passed
+(395 tests / 2564 assertions); 13 installed doctor checks passed. Actual main-MCP
+health returned authorized native access, a JSON web-access response without the
+two expected boolean flags, and another Shared Streams read timeout. Session row
+digests, configuration and Helper binary were preserved. No Shared Album write
+was sent. Neither a 200 JSON response nor missing flags establishes consent.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Apple's retained web wrapper confirms owned albums use the DSID base route;
+subscribed albums may use their server-provided albumlocation. The organization
+key helper simply adds clientOrgKey when present, but obtaining the correct key
+and checking collection migration state still require real metadata. Current
+owned-empty lifecycle scope avoids substituting a subscriber's route. A future
+upload implementation must retain and validate the destination's actual routing.
+
 ## Experiment completion reset and existing-session research — 2026-10-05
 
 The owner resumed the full internal-API Shared Album task after rejecting an

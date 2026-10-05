@@ -24,7 +24,7 @@ def config_value(value):
     return '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
 
 
-def http2_read(url, payload, cookie, runner=None, content_type="text/plain;charset=UTF-8"):
+def http2_read(url, payload, cookie, runner=None, content_type="text/plain;charset=UTF-8", empty_body=False):
     """One read-only system transport; secrets enter stdin, never argv or logs."""
     with tempfile.TemporaryDirectory(prefix='icloud-photos-http2-') as directory:
         body_path = os.path.join(directory, 'response')
@@ -32,12 +32,12 @@ def http2_read(url, payload, cookie, runner=None, content_type="text/plain;chars
         os.close(fd)
         config = '\n'.join([
             'url = ' + config_value(url), 'request = "POST"',
-            'header = ' + config_value('Content-Type: ' + content_type),
+            *([] if empty_body else ['header = ' + config_value('Content-Type: ' + content_type)]),
             'header = "Origin: https://www.icloud.com"',
             'header = "Referer: https://www.icloud.com/"',
             'header = ' + config_value('Cookie: ' + cookie),
             'user-agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15"',
-            'data-binary = ' + config_value(payload),
+            *([] if empty_body else ['data-binary = ' + config_value(payload)]),
         ]) + '\n'
         completed = (runner or subprocess.run)([
             '/usr/bin/curl', '--disable', '--config', '-', '--http2',
@@ -111,9 +111,10 @@ def run(request, session_factory=None, curl_runner=None):
         client_id = state.get('sessionData', {}).get('client_id')
         if not isinstance(client_id, str) or str(UUID(client_id)) != client_id.lower():
             raise ValueError('identity')
-        url += '?' + urlencode({'clientBuildNumber':'2534Project66',
-                                'clientMasteringNumber':'2534B22',
-                                'clientId':client_id, 'dsid':dsid})
+        params = {'clientBuildNumber':'2534Project66', 'clientMasteringNumber':'2534B22', 'clientId':client_id}
+        if endpoint != 'requestWebAccessState':
+            params['dsid'] = dsid
+        url += '?' + urlencode(params)
     content_type = 'plain/text' if endpoint == 'webgetalbumslist' else 'text/plain;charset=UTF-8'
     session = (session_factory or Session)()
     try:
@@ -128,9 +129,9 @@ def run(request, session_factory=None, curl_runner=None):
             session.cookies.set_cookie(create_cookie(**cookie))
         if transport == 'system_http2':
             prepared = session.prepare_request(Request('POST', url))
-            return http2_read(url, payload, prepared.headers.get('Cookie', ''), curl_runner, content_type)
-        with session.post(url, data=payload.encode(), headers={
-                'Content-Type': content_type,
+            return http2_read(url, payload, prepared.headers.get('Cookie', ''), curl_runner, content_type, endpoint == 'requestWebAccessState')
+        with session.post(url, data=None if endpoint == 'requestWebAccessState' else payload.encode(), headers={
+                **({} if endpoint == 'requestWebAccessState' else {'Content-Type': content_type}),
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3.1 Safari/605.1.15',
                 'Origin': 'https://www.icloud.com', 'Referer': 'https://www.icloud.com/'},
                 allow_redirects=False, verify=True,

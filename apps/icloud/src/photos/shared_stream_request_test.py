@@ -51,6 +51,9 @@ class TransportTests(unittest.TestCase):
             calls.append(prepared)
             self.assertEqual(urlsplit(prepared.url).path, '/setup/ws/1/requestWebAccessState')
             self.assertEqual(urlsplit(prepared.url).hostname, 'setup.icloud.com')
+            self.assertNotIn('dsid', parse_qs(urlsplit(prepared.url).query))
+            self.assertIsNone(prepared.body)
+            self.assertNotIn('Content-Type', prepared.headers)
             self.assertIn('sealed-fixture-token', prepared.headers['Cookie'])
             self.assertFalse(options['allow_redirects']); self.assertTrue(options['verify'])
             r = Response(); r.status_code = 200; r._content = b'{}'; r._content_consumed = True; return r
@@ -61,6 +64,16 @@ class TransportTests(unittest.TestCase):
             with self.assertRaises(ValueError): actor.run(request)
         request['endpoint'] = 'requestWebAccessState'; request['body'] = '{"consent":true}'
         with self.assertRaises(ValueError): actor.run(request)
+
+    def test_web_access_http2_has_no_body_or_content_type(self):
+        request = self.request(); request.update(endpoint='requestWebAccessState', transport='system_http2')
+        def runner(argv, **options):
+            config = options['input'].decode()
+            self.assertNotIn('data-binary', config); self.assertNotIn('Content-Type', config)
+            self.assertNotIn('dsid=', config); self.assertIn('/setup/ws/1/requestWebAccessState?', config)
+            Path(argv[argv.index('--output')+1]).write_text('{}')
+            return SimpleNamespace(returncode=0, stdout=b'200\n2')
+        self.assertEqual(actor.run(request, curl_runner=runner)['status'], 200)
 
     def test_failure_diagnostics_expose_only_fixed_categories(self):
         from requests.exceptions import ConnectTimeout, ReadTimeout, SSLError, ConnectionError
