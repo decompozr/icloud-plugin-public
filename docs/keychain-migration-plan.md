@@ -321,6 +321,17 @@ exact items; it never steals a lock by age or blindly retries an ambiguous write
 Hold no SQLite transaction across interactive Keychain work. Use transaction/CAS
 checks on expected IDs, revisions and authority after every external operation.
 
+The current Bun runtime entry point additionally holds an installation-wide
+`InstallationAccess` lease before installation/database opens and until shutdown
+drain, module disposal, database closure and key clearing finish. Maintenance
+acquires the same exclusive namespace before the authority mutation lease and
+supplies its verified maintenance callback. Crashed/unfinished leases remain
+blocking; no PID-based theft or automatic deletion is implemented. This excludes
+cooperating new runtimes, including a second process, but cannot establish that
+older releases/direct storage users/custom writers stopped. Explicit operator
+exclusion, protected crash reconciliation, safe capture and the administrative
+command remain required. This does not satisfy K0 or authorize native activation.
+
 ### Exact master key: K2
 
 | Durable state | Transition and restart rule |

@@ -47,6 +47,28 @@ Origin for mutations. OAuth authorization, owner sessions, bootstrap proof and
 provider credentials remain distinct boundaries. See [setup/auth](../../../../docs/setup-and-auth.md)
 and [deployment lifecycle](../../../../docs/deployment-lifecycle.md).
 
+The Bun entry point acquires `InstallationAccess` before opening installation
+credentials or databases, including initialize/local-owner commands. Runtime and
+maintenance share a private `installation-access.lock` directory with a durable
+unique proof; a second cooperating runtime cannot start. Runtime retains access
+through listener drain, module disposal, database closure and key-buffer clearing.
+Concurrent shutdown signals await the same shutdown promise. Failed cleanup or
+unclassified startup failure retains evidence instead of releasing access early.
+Initialization/local-owner command completion and closed auth-database-open
+failures release their own lease. Application-factory errors retain exclusion:
+its best-effort cleanup does not establish that all started modules disposed.
+
+Maintenance must acquire this lease before the master-authority mutation lease;
+its `assertStoppedMaintenance` callback verifies purpose, inode and exact proof.
+It does not prove old releases, direct storage users or custom writers stopped:
+operators must establish that before administrative capture/migration. No PID
+liveness heuristic, automatic crash-lock stealing or recovery deletion exists.
+A SIGKILL leaves blocking evidence for explicit protected recovery. This is
+cooperative exclusion, not K0 caller authentication or a complete maintenance
+command. Synthetic subprocess tests cover exclusion, crash evidence, initialization
+and actual listener lifetime through graceful shutdown; no live credentials or
+Keychain are involved.
+
 Shutdown stops new work and waits for accepted operations; losing an HTTP client
 must not automatically cancel a write already accepted by a provider. The runtime starts before auth/UI assembly; later application-construction failure
 unwinds started modules. Database connection ownership remains with the application
