@@ -82,7 +82,7 @@ const inventory=z.object({albums:z.array(serverAlbum).max(10000),rootctag:z.stri
 
 /** Fixed diagnostics only: never include response text, identifiers or cookies. */
 export class SharedStreamReadError extends Error {
- constructor(readonly diagnostic:{stage:'transport'|'http'|'decode'|'schema'|'identity';httpStatus?:number;httpVersion?:string;cause?:string}){super('shared_album_readback_failed');}
+ constructor(readonly diagnostic:{stage:'transport'|'http'|'decode'|'schema'|'identity';httpStatus?:number;httpVersion?:string;cause?:string;schemaIssues?:Array<{path:string;code:string;expected?:string;received?:string}>}){super('shared_album_readback_failed');}
 }
 
 /** Remote observations only; legacy_candidate never grants mutation authority. */
@@ -117,7 +117,8 @@ export async function readSharedStreamAlbums(session:SharedStreamSession,account
  }catch(error){
   const code=error&&typeof error==='object'&&'code' in error?error.code:undefined;
   const safeCause=typeof code==='string'&&['shared_album_connection_timeout','shared_album_read_timeout','shared_album_tls_failed','shared_album_connection_failed','shared_album_transport_failed','provider_timeout','provider_unavailable','request_too_large','invalid_provider_response'].includes(code)?code:undefined;
-  throw new SharedStreamReadError({stage,...(httpStatus===undefined?{}:{httpStatus}),...(httpVersion?{httpVersion}:{}),...(safeCause?{cause:safeCause}:{})});
+  const schemaIssues=stage==='schema'&&error instanceof z.ZodError?error.issues.slice(0,12).map(issue=>({path:issue.path.join('.').slice(0,200),code:issue.code,...(issue.code==='invalid_type'?{expected:issue.expected,received:issue.received}:{})})):undefined;
+  throw new SharedStreamReadError({stage,...(schemaIssues?{schemaIssues}:{}),...(httpStatus===undefined?{}:{httpStatus}),...(httpVersion?{httpVersion}:{}),...(safeCause?{cause:safeCause}:{})});
  }
 }
 

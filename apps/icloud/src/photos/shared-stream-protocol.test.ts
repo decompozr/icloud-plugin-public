@@ -45,7 +45,7 @@ describe('remote Shared Album readback identity and boundaries',()=>{
    [async()=>{throw new Error('secret-token');},{stage:'transport'}],
    [async()=>new Response('secret-token',{status:403}),{stage:'http',httpStatus:403}],
    [async()=>new Response('secret-token'),{stage:'decode',httpStatus:200}],
-   [async()=>Response.json({secretToken:'secret-token'}),{stage:'schema',httpStatus:200}],
+   [async()=>Response.json({secretToken:'secret-token'}),{stage:'schema',httpStatus:200,schemaIssues:[{path:'albums',code:'invalid_type',expected:'array',received:'undefined'}]}],
   ];
   for(const [request,expected] of cases){
    let caught:unknown;try{await readSharedStreamAlbums(session(request),'owner-account');}catch(error){caught=error;}
