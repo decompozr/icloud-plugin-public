@@ -117,12 +117,6 @@ export class PhotosService {
   this.db.query('UPDATE photos_operations SET status=?,result=? WHERE id=? AND owner=?').run(status,JSON.stringify(result),id,owner);
   return this.status(id);
  }
- async openCatalog(raw:unknown){
-  const owner=this.check(),request=catalogSchema.parse(raw);if(!this.provider.openCatalog)throw new PhotosError('native_review_unavailable');
-  const id=randomUUID();this.db.query('INSERT INTO photos_reviews (id,owner,request,status) VALUES (?,?,?,?)').run(id,owner,JSON.stringify(request),'opening');
-  try{const result=await this.provider.openCatalog(request,id);if(this.check()!==owner)throw new PhotosError('owner_changed');this.db.query('UPDATE photos_reviews SET status=?,result=? WHERE id=?').run((result as {status:string}).status,JSON.stringify(result),id);return {reviewId:id,result};}
-  catch{this.db.query("UPDATE photos_reviews SET status='outcome_unknown' WHERE id=?").run(id);return {reviewId:id,status:'outcome_unknown',message:'Read review status; do not assume a selection or reopen automatically.'};}
- }
  async catalogStatus(id:string){
   const owner=this.check();const row=this.db.query('SELECT * FROM photos_reviews WHERE id=? AND owner=?').get(id,owner) as {status:string;result:string|null;request:string}|null;if(!row)throw new PhotosError('review_not_found');
   if(['no_review_candidates','remote_review_pending'].includes(row.status))return {reviewId:id,status:row.status,result:row.result?JSON.parse(row.result):null};

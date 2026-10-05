@@ -100,18 +100,6 @@ do {
     if CommandLine.arguments.contains("--authorize") { _ = NSApplication.shared }
     let data = CommandLine.arguments.contains("--authorize") ? Data("{\"command\":\"authorize\"}".utf8) : FileHandle.standardInput.readDataToEndOfFile()
     guard data.count <= 65536, let input = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { try fail("invalid_request") }
-    if input["command"] as? String == "review_catalog" {
-        let app = NSApplication.shared
-        guard app.setActivationPolicy(.regular) else { try fail("native_ui_policy_failed") }
-        let review = try ReviewCatalog(input: input)
-        app.finishLaunching()
-        try review.show()
-        let result: [String: Any] = ["status": "catalog_review", "operationId": input["operationId"]!, "localReadbackVerified": false, "serverSyncVerified": false]
-        let output = try JSONSerialization.data(withJSONObject: ["ok": true, "result": result], options: [.sortedKeys])
-        FileHandle.standardOutput.write(output + Data([0x0A]))
-        withExtendedLifetime(review) { app.run() }
-        exit(0)
-    }
     if input["command"] as? String == "shared_review" {
         guard #available(macOS 27.0, *) else { try fail("shared_review_requires_macos_27") }
         let app = NSApplication.shared

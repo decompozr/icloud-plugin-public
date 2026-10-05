@@ -21,7 +21,7 @@ if(!python){
 }
 const app=join(target,'iCloud Photos Helper.app','Contents');await mkdir(join(app,'MacOS'),{recursive:true});await copyFile(join(source,'Info.plist'),join(app,'Info.plist'));
 const helper=join(app,'MacOS','photos-helper');
-const names=['PhotosHelper.swift','SharedAlbumReview.swift','ReviewCatalog.swift','ReviewJournal.swift'];
+const names=['PhotosHelper.swift','SharedAlbumReview.swift','ReviewJournal.swift'];
 await command(['swiftc',...names.map(name=>join(source,name)),'-o',helper,'-framework','Photos','-framework','PhotosUI','-framework','AppKit','-Xlinker','-sectcreate','-Xlinker','__TEXT','-Xlinker','__info_plist','-Xlinker',join(source,'Info.plist')]);
 await command(['codesign','--sign',options.sign,join(target,'iCloud Photos Helper.app')]);
 await command(['codesign','--verify','--strict',join(target,'iCloud Photos Helper.app')]);

@@ -62,7 +62,7 @@ test('Photos read-only MCP client reviews labeled sources and receives images wi
   if(command==='detail')return {id:asset,filename:'fixture.png',date:null,mediaType:'photo',livePhoto:false,title:'',description:'',keywords:[],favorite:false,persons:[],width:1,height:1,shared:false};
   if(command==='preview')return {mimeType:'image/png',data:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6nKsAAAAASUVORK5CYII='};
   throw Error('Unexpected provider command');
- },inspect:async()=>{throw Error('Must not inspect writes');},apply:async()=>{throw Error('Must not mutate');},openCatalog:async()=>{nativeCalls++;throw Error('Must not open native UI');}};
+ },inspect:async()=>{throw Error('Must not inspect writes');},apply:async()=>{throw Error('Must not mutate');}};
  const runtime=new ModuleRuntime().register(photosRegistration(new PhotosService(db,provider,()=>policy,()=> 'owner'),()=>policy));await runtime.start();
  const server=createServer(runtime,'https://fixture.invalid/icloud/mcp',new Set(['photos.read'])),client=new Client({name:'remote-review-fixture',version:'1'}),[a,b]=InMemoryTransport.createLinkedPair();await server.connect(a);await client.connect(b);
  try{

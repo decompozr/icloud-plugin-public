@@ -6,7 +6,8 @@ This section is authoritative for remaining work. Earlier plans and checkpoints
 below are historical evidence and are superseded wherever they require a native
 catalog reviewer or equate source/build/deployment with remote product acceptance.
 The full goal remains open. Source at main and the installed service are 0.1.31;
-reviewer removal is currently uncommitted work, not a deployed result.
+reviewer removal and generic authorization verification are now source-validated;
+the replacement binary and actual remote client acceptance remain pending.
 
 ### Goal and accepted product boundary
 
@@ -688,3 +689,27 @@ Their registered ceilings and granted scopes contain Mail/Calendar, without Phot
 Fresh consent on those registrations does not add capabilities. A new client
 registration with current Photos scopes and explicit consent is required; preserve
 existing working grants and do not mutate signed authorization queries.
+
+
+### Revised-plan phase 1–2 source acceptance (2026-10-05)
+
+The real shared owner-auth fixture now upgrades declared module scopes, creates
+a fresh anonymous client using dynamic registration defaults, traverses signed
+account selection and Photos consent, accepts a read-only subset and verifies
+the issued bearer principal. Requested Photos write is absent from the token
+when unchecked; preexisting tokens remain without Photos. The old registration
+ceiling tests remain intact. This establishes the generic server contract, not
+owner-visible ChatGPT registration/tool refresh acceptance.
+
+The custom Swift catalog reviewer, native command branch, build input and both
+provider/service launch methods are deleted. Historical catalog journals and
+selection readback remain supported using persisted fixtures; no obsolete launch
+path is kept merely to test recovery. The operation Helper compiles, links and
+passes signature verification with three native sources. The new build is a
+candidate until main deployment and actual native authorization readback.
+
+Production build, 355 application tests / 2,280 assertions and eleven built E2E
+tests / 259 assertions pass. Generic auth coverage passes three tests / 174
+assertions. An initial candidate setup rejected a relative destination before
+creating output; the explicit absolute destination build subsequently passed.
+Existing native permissions do not establish rebuilt-binary consent.
