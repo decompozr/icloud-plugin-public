@@ -180,6 +180,19 @@ rotation, reconnect identity, input mutation and staged advancement. Caller
 authentication, real stopped-operation orchestration, K0/K2 and HTTP/command
 integration remain required; no runtime route selects this adapter.
 
+Stopped owner authorization now has an inactive read-only verifier using the
+installed Better Auth HMAC-SHA256 signed session cookie and existing session/user
+rows. It requires the real InstallationAccess maintenance lease for the exact
+custody directory, configured origin/cookie name/auth derivation and authenticated
+owner binding. Reusable guards reject expiry, deletion, owner/session replacement
+or lost exclusion without invoking auth migrations, session refresh/cache or
+enrollment. Genuine local Passkey/OAuth fixtures stop HTTP and validate their
+issued cookie while preserving persisted session rows; synthetic negative cases
+cover scope/signature/duplicate-cookie/schema failures and runtime-lock denial.
+This is a session-authorization primitive, not a sealed native caller or an
+operational migration command. Safe retained DB/key/marker opening, operator
+selection, older-writer exclusion, K0 and command composition remain required.
+
 Operational stopped recovery, account add/rotation adapters and
 settings/compatibility/backend
 integration remain pending; K1 is not complete and runtime custody is unchanged.

@@ -8,6 +8,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createOwnerAuth} from './owner.js';
 import type {AccountCredentialState} from '../storage/account-credential-reader.js';
+import {createStoppedOwnerAuthorization} from './stopped-owner.js';
+import {InstallationAccess} from '../server/installation-access.js';
 const hash=(v:string|Uint8Array)=>createHash('sha256').update(v).digest();
 const b64=(v:Uint8Array)=>Buffer.from(v).toString('base64url');
 const encoder=new Encoder({useRecords:false,mapsAsObjects:false});
@@ -323,6 +325,15 @@ for(const custody of [false,true])test(`owner component actual private Passkey e
    expect(denied.status).not.toBe(200);expect(await denied.text()).not.toContain('access_token');
    await expect(component.verifyBearer('Bearer '+legacyRefresh.access_token)).rejects.toThrow();
   }
+  // Authenticate the genuine resumed Passkey session after stopping HTTP,
+  // without invoking the Better Auth factory or refreshing its session.
+  await server.stop(true);
+  const access=InstallationAccess.acquire(directory,'maintenance');
+  try{
+   const before=db.query('SELECT * FROM session').all(),authorization=createStoppedOwnerAuthorization({database:db,access,custodyDirectory:directory,request:new Request(base+'/icloud/maintenance',{headers:{origin:base,cookie:[...cookies].map(([key,value])=>key+'='+value).join('; ')}}),origin:base,cookieName:'icloud.session_token',secret:config.secret,ownerId:()=>owner});
+   expect(authorization.ownerId).toBe(owner);authorization.assertAuthorized();expect(db.query('SELECT * FROM session').all()).toEqual(before);
+   db.query('DELETE FROM session WHERE userId=?').run(owner!);expect(()=>authorization.assertAuthorized()).toThrow('denied');
+  }finally{access.release();}
 
  }finally{await server.stop(true);db.close();rmSync(directory,{recursive:true,force:true});}
 });

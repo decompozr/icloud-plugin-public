@@ -121,3 +121,18 @@ These custody ports are synthetic metadata, not real Keychain availability or
 sealed caller proof. Snapshot checks do not establish atomicity between provider
 token issuance and concurrent custody mutation; operational exclusion/acceptance
 remains required. Production application composition still supplies no reader.
+
+## Stopped owner session authorization
+
+Stopped owner authorization now has an inactive read-only verifier using the
+installed Better Auth HMAC-SHA256 signed session cookie and existing session/user
+rows. It requires the real InstallationAccess maintenance lease for the exact
+custody directory, configured origin/cookie name/auth derivation and authenticated
+owner binding. Reusable guards reject expiry, deletion, owner/session replacement
+or lost exclusion without invoking auth migrations, session refresh/cache or
+enrollment. Genuine local Passkey/OAuth fixtures stop HTTP and validate their
+issued cookie while preserving persisted session rows; synthetic negative cases
+cover scope/signature/duplicate-cookie/schema failures and runtime-lock denial.
+This is a session-authorization primitive, not a sealed native caller or an
+operational migration command. Safe retained DB/key/marker opening, operator
+selection, older-writer exclusion, K0 and command composition remain required.
