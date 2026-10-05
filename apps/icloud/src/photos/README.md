@@ -8,8 +8,13 @@ SQLite is never used to mutate the Photos library.
 
 ## Remote workflow and helper responsibility
 
-The owner reviews photos through the assistant conversation. osxphotos is the
-primary supported provider; the Swift Helper supplies missing operations/fallback.
+The owner reviews photos through the assistant conversation. For true Shared Albums,
+use the account-bound iCloud API first; osxphotos/PhotoKit reads are fallback and
+must be labeled as local synced snapshots. For local-library metadata and person
+queries, osxphotos remains primary; the Swift Helper supplies missing operations.
+Unknown writes are reconciled by reading the retained operation, never resubmitted
+through a different backend. Cloud membership verification is distinct from binary
+download and independent device observation.
 The custom native catalog reviewer and its command/build/launch paths are removed.
 Historical review journals remain readable. Native system permission prompts and
 the isolated Apple posting candidate are separate from remote daily review.
@@ -17,7 +22,9 @@ All photo/album operations must enter through the main MCP. Computer control,
 GUI scripting and browser/native UI automation are excluded. The Helper is a
 programmatic operation backend; provider scripting is not permission to drive UI.
 create_album creates an ordinary album, not a Shared Album. True Shared Album
-creation/posting has no verified API-only path in the current implementation.
+creation, rename, synthetic upload, content read/removal and deletion have been
+verified through the existing MCP and account-bound API on runtime 0.1.56.
+Participant/access operations still require separate live acceptance.
 A disposable test album means an artifact we clean up by its recorded exact ID
 afterward, not Apple's automatic-expiry option. Do not create an ordinary album
 as a substitute or upload personal photos merely to test.
