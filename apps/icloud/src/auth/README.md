@@ -96,3 +96,18 @@ string-array column mapping on reopen. Do not suppress these diagnostics or patc
 installed library code merely to silence them; repeat reopen/consent/introspection
 checks when upgrading. See [setup/auth](../../../../docs/setup-and-auth.md) and
 [scope diagnosis](../../../../docs/oauth-request-scope-diagnosis.md).
+
+## Optional custody metadata
+
+OAuth account connection now accepts an optional custody metadata reader for
+chooser listing, selection and persisted consent lookup. It retains existing
+account UUID/session/request binding and one-time consent consumption without
+secret IO or journal fields. Snapshot fences after awaited continuation and signed
+consent verification reject late publication after revocation/custody changes.
+Unavailable authority cannot use SQLite status as fallback. Account addition
+with this reader returns CREDENTIAL_MAINTENANCE_UNAVAILABLE until a transactional
+custody writer is integrated. Synthetic signed OAuth requests with actual journal
+state cover successful native selection and revocation during continuation.
+Production auth composition still supplies no reader. Owner-auth grant creation,
+refresh, bearer validation and client recovery account checks still need custody
+integration; chooser acceptance does not prove those downstream paths.

@@ -417,6 +417,8 @@ import {createMailModule} from '../mail/module.js';
 import {MailOperationError,type MailSession} from '../mail/domain/mail.js';
 import {SqliteOutboundLedger} from '../mail/storage/outbound-ledger.js';
 import {createPrivateAdmin} from '../admin/handler.js';
+import {createAccountConnection} from '../auth/connect.js';
+import {makeSignature} from 'better-auth/crypto';
 async function mailCustodyFixture(){
  const f=await rotationFixture(),auth=new Database(':memory:'),{reader,sourceReads}=readerFixture(f);let calls=0,marks=0,sends=0,late:(()=>void)|undefined,afterSend:(()=>void)|undefined;
  const session:MailSession={supportsMove:true,list:async()=>{calls++;late?.();return[{path:'INBOX',name:'Inbox',selectable:true}];},select:async()=>({uidValidity:'123',uidNext:2,supportsKeywords:true,release(){}}),search:async()=>[1],summaries:async()=>[],metadata:async()=>{late?.();return{attachments:[]};},download:async()=>({contentType:'message/rfc822',chunks:(async function*(){yield Buffer.from('synthetic');})(),cancel(){}}),mark:async()=>{marks++;return true;},flag:async()=>true,tag:async()=>true,move:async()=>false};
@@ -476,4 +478,22 @@ test('Admin custody metadata failure never falls back to SQLite account status',
   const handler=createPrivateAdmin({privateOrigin:origin,store:f.owner,credentialReader:{listAccounts(){throw new CustodyError('recovery_required');}},ownerAuth:{ownerSession:session,enrollmentSession:session},diagnostics:async()=>({installed:true,authenticated:true,online:true,privateReachable:true}),validateCredential:async()=>{}});
   const response=await handler(new Request(origin+'/icloud/admin/status'));expect(response.status).toBe(403);expect(await response.json()).toEqual({error:'ACCESS_OR_STATE_DENIED'});
  }finally{f.cleanup();}
+});
+test('OAuth selection retains native account UUID/session binding and fences late consent after revocation',async()=>{
+ for(const revokeDuringContinuation of [false,true]){
+  const f=await rotationFixture(),db=new Database(':memory:'),{reader,sourceReads}=readerFixture(f);
+  try{
+   const secret='synthetic-custody-connection-secret',origin='https://icloud.invalid';let validations=0;
+   const signed=async(extras:Record<string,string>={})=>{const params=new URLSearchParams({client_id:'client',redirect_uri:'https://client.invalid/callback',response_type:'code',scope:'mail.read',state:'native-selection',code_challenge:'synthetic-pkce',exp:String(Math.floor(Date.now()/1000)+600),ba_iat:String(Date.now()),...extras});params.set('sig',await makeSignature(new URLSearchParams([...params].sort(([a,b],[c,d])=>a<c?-1:a>c?1:b<d?-1:b>d?1:0)).toString(),secret));return params.toString();};
+   const component=createAccountConnection({database:db,secret,origin,store:f.owner,credentialReader:reader,ownerSession:async()=>({user:{id:'owner'},session:{id:'session'}}),validateCredential:async()=>{validations++;},continueAuthorization:async()=>{if(revokeDuringContinuation){const state=f.journal.read('owner',f.a);f.journal.revoke('owner',f.a,state.epoch,randomUUID());}return Response.json({url:'/icloud/consent?'+await signed({ba_pl:'session',prompt:'consent'})});}});
+   const query=await signed(),before=f.native.readOptions.length;
+   const status=await component.handle(new Request(origin+'/icloud/connect/status?oauth_query='+encodeURIComponent(query)));expect(status.status).toBe(200);expect((await status.json()).accounts.find((account:{id:string})=>account.id===f.a).credentialStored).toBe(true);
+   const post=(path:string,body:object)=>component.handle(new Request(origin+'/icloud/connect/'+path,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({oauth_query:query,...body})}));
+   expect((await post('add',{user:'new@example.test',appPassword:'synthetic-new'})).status).toBe(409);expect(validations).toBe(0);
+   const selected=await post('select',{accountId:f.a});expect(selected.status).toBe(revokeDuringContinuation?409:200);
+   if(revokeDuringContinuation){expect(await selected.json()).toEqual({error:'CONNECT_RESTART_REQUIRED'});expect(component.selected(query,'owner','session')).toBeUndefined();expect((db.query('SELECT count(*) AS count FROM plugin_account_selection').get() as {count:number}).count).toBe(1);}
+   else{expect(component.selected(query,'owner','session')?.id).toBe(f.a);expect(component.selected(query,'owner','other-session')).toBeUndefined();const consentQuery=new URL((await selected.json()).url,origin).search.slice(1);expect(component.selected(consentQuery,'owner','session')?.id).toBe(f.a);expect(component.consume(consentQuery,'owner','session')).toBe(true);expect(component.selected(consentQuery,'owner','session')).toBeUndefined();}
+   expect(sourceReads()).toBe(0);expect(f.native.readOptions).toHaveLength(before);
+  }finally{db.close();f.cleanup();}
+ }
 });

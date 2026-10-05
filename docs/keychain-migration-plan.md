@@ -394,6 +394,19 @@ authenticated authority fixtures cover native and revoked status and this gate.
 Production composition supplies no reader; this checkpoint does not activate
 native custody or complete account administration.
 
+OAuth account connection now accepts an optional custody metadata reader for
+chooser listing, selection and persisted consent lookup. It retains existing
+account UUID/session/request binding and one-time consent consumption without
+secret IO or journal fields. Snapshot fences after awaited continuation and signed
+consent verification reject late publication after revocation/custody changes.
+Unavailable authority cannot use SQLite status as fallback. Account addition
+with this reader returns CREDENTIAL_MAINTENANCE_UNAVAILABLE until a transactional
+custody writer is integrated. Synthetic signed OAuth requests with actual journal
+state cover successful native selection and revocation during continuation.
+Production auth composition still supplies no reader. Owner-auth grant creation,
+refresh, bearer validation and client recovery account checks still need custody
+integration; chooser acceptance does not prove those downstream paths.
+
 Operational stopped recovery, account add/rotation adapters, settings/format gates, custody
 paths and backend integration are still required for K1 completion.
 No all-consumer or Keychain validation is implied by advancing a fixture phase.
