@@ -553,3 +553,28 @@ compile/link passed. The earlier English-only build had a syntax error and was
 not launched; the corrected admin-flow build passed. Existing held server/native
 candidates with the old setup flow are superseded and must not be deployed.
 Actual admin deployment and owner-triggered permission/readback remain pending.
+
+
+### Remote conversation workflow correction (2026-10-05)
+
+The owner clarified that daily Photos management must work remotely through the
+agent. The Mac hosts the service; osxphotos is the primary supported provider,
+and the native Helper supplies operations osxphotos cannot perform or fallback.
+A host-side review window is not the owner product workflow. Initial OS consent
+remains an explicit setup step. Earlier native catalog acceptance does not satisfy
+remote review acceptance.
+
+Remote review preparation now reads exact comparison sources or a bounded cleanup
+page, with source details and evidence. Previews are returned through the existing
+image tool in the conversation. Explicit owner decisions are saved durably, bound
+to the review owner, purpose, exact source set and comparison destination. Keep and
+undecided remain preserved; candidates still need separate write plans and explicit
+confirmation. The public native catalog launch tool is removed while historical
+review and uncertain-operation recovery remain available.
+
+Remote Shared Album posting is unsupported and rejected before launching host UI,
+including previously prepared posting plans. The Apple user-presented candidate
+remains native operator evidence, not a remotely usable shipping promise. No
+personal uploads/deletions are authorized merely by this workflow correction.
+Installed version, actual client discovery/images, remote decision persistence and
+reviewed provider mutations must be reported as separate acceptance gates.

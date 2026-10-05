@@ -12,7 +12,7 @@ test('released CLI installs itself at standard prefix and runs preserved configu
   expect(build.success).toBe(true);
   await cp(join(import.meta.dir,'icloud-plugin.sh'),join(artifact,'icloud-plugin'));await chmod(join(artifact,'icloud-plugin'),0o755);
   await Bun.write(join(artifact,'runtime.sh'),'#!/bin/sh\n');
-  await Bun.write(join(artifact,'apps/icloud/dist/index.js'),'console.log(await Bun.file(process.argv[process.argv.indexOf("--config")+1]).text());');
+  await Bun.write(join(artifact,'apps/icloud/dist/index.js'),'console.log(await Bun.file(process.argv[process.argv.indexOf("--config")+1]).text());if(process.argv.includes("--prepare-local-owner"))console.log(process.argv.includes("--no-open")?"fixture-local-proof-no-open":"fixture-local-proof-open");');
   await Bun.write(join(artifact,'artifact.json'),JSON.stringify({format:1,name:'icloud-plugin',version:'0.1.20',platform:process.platform,arch:process.arch,bun:Bun.version}));
   const execute=async(executable:string,...args:string[])=>{
    const child=Bun.spawn([executable,...args],{cwd:dir,env:{...process.env,HOME:home},stdout:'pipe',stderr:'pipe'});
@@ -29,7 +29,7 @@ test('released CLI installs itself at standard prefix and runs preserved configu
   }
   const before=await Promise.all(preserved.map(async file=>({file,bytes:await Bun.file(join(prefix,'runtime',file)).text(),mode:(await stat(join(prefix,'runtime',file))).mode&0o777})));
   expect((await execute(join(prefix,'current/icloud-plugin'),'run')).out.trim()).toBe('preserved-config');
-  expect((await execute(cli,'install')).code).not.toBe(0);
+  expect((await execute(join(prefix,'current/icloud-plugin'),'run','--prepare-local-owner','--no-open')).out.trim()).toBe('preserved-config\nfixture-local-proof-no-open');expect((await execute(cli,'install','--prepare-local-owner')).code).not.toBe(0);expect((await execute(cli,'install')).code).not.toBe(0);
   expect((await execute(cli,'update')).code).not.toBe(0);
   expect((await execute(cli,'install','--initialize')).code).not.toBe(0);
   expect(await Bun.file(join(prefix,'runtime/config.toml')).text()).toBe('preserved-config');

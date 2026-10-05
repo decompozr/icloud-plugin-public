@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "icloud-plugin",
-  "version": "0.1.30",
-  "description": "Manage iCloud Mail and optional Calendar and local Mac Photos through one locally hosted MCP server.",
+  "version": "0.1.31",
+  "description": "Manage iCloud Mail, optional Calendar and local Mac Photos through one locally hosted MCP server.",
   "license": "MIT",
   "keywords": [
     "email",

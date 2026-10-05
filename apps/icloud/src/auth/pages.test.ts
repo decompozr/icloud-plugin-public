@@ -120,3 +120,21 @@ test('account display deduplicates email labels and retains distinct names',asyn
  expect(accountDisplay({label:' ',user:'owner@icloud.com'})).toEqual({primary:'owner@icloud.com'});
  const html=renderAuthPage('consent');expect(html).toContain('Authorize iCloud access');expect(html).toContain('data-auth-client-id');expect(html).not.toContain('Authorize mailbox access');
 });
+
+ test('Photos consent distinguishes local library and groups only explicitly requested permissions',async()=>{
+ const {consentPermissionGroups}=await import('./browser.js');
+ const {authT}=await import('./i18n.js');
+ const {i18n}=await import('../i18n/index.js');
+ try{
+  for(const locale of ['en','zh-TW']){
+   await i18n.changeLanguage(locale);
+   const groups=consentPermissionGroups(['mail.read','photos.read','photos.delete','offline_access']);
+   expect(groups.map(group=>group.scopes)).toEqual([['mail.read'],['photos.read','photos.delete'],['offline_access']]);
+   expect(groups[1]!.title).toBe(authT('permissionPhotos'));
+   expect(groups.flatMap(group=>group.scopes)).not.toContain('photos.write');
+   expect(renderAuthPage('consent')).toContain('data-auth-photos-library hidden');
+   expect(renderAuthPage('consent')).toContain(authT('photosLibrary'));
+   expect(authT('scopePhotosDelete')).not.toBe('photos.delete');
+  }
+ }finally{await i18n.changeLanguage('en');}
+ });

@@ -110,18 +110,24 @@ prompts and supported review/posting flows. The admin checks both selected-libra
 readability and native authorization; Photos permission alone does not prove
 sidecar/Full Disk Access.
 
-`photos_open_review` accepts either `{kind:"comparison",assetIds:[...],albumId}`
-(at most twelve exact source assets), or `{kind:"cleanup",offset,limit}`. The
-native window shows source previews, up to two candidate previews and reasons.
-Missing previews remain explicit and sources without previews cannot be selected.
-If candidate groups exceed the twelve-asset window, the response reports omitted
-assets; use their exact IDs in subsequent comparison reviews rather than silently
-claiming the whole group was reviewed. `photos_review_status` returns durable
-selected IDs and per-source decisions: undecided, keep, review sharing (comparison)
-or review deletion (cleanup). Every source is accounted for; missing previews
-remain undecided. Saving decisions changes no photo and does not approve writes
-or deletion. Only sharing/deletion review candidates populate selected IDs.
-The service rejects missing, duplicate, wrong-purpose or inconsistent decisions.
+`photos_review_prepare` accepts `{kind:"comparison",assetIds:[...],albumId}`
+(at most twelve exact sources), or `{kind:"cleanup",offset,limit}`. It returns
+source details and comparison/cleanup evidence for a remote conversation, with
+bounded coverage and omitted-source counts. It never opens a native window.
+Use `photos_preview` to display labeled source and relevant candidate images in
+that conversation. Missing previews stay unresolved; motion thumbnails cannot
+establish video/Live Photo equivalence.
+
+`photos_review_record` saves explicit owner decisions with `reviewId`,
+`confirm:true` and one decision per exact source: undecided, keep, share_review
+(comparison) or delete_review (cleanup). It rejects substitutions, duplicates,
+missing sources, wrong-purpose decisions and other owners. Finalized decisions
+are immutable; identical retries return the saved result. Use a new prepared
+review for an owner-requested revision. No decision executes or approves a write.
+`photos_review_status` reads remote drafts and finalized records without native
+access, and continues to reconcile historical native sessions. The public
+`photos_open_review` tool is removed; historical state remains retained.
+
 `photos_review_summary` accounts for up to 500 exact IDs across batches. It
 separates unreviewed, undecided, keep and further-review decisions, using the latest
 finalized review creation for the same owner, purpose and comparison destination.
@@ -134,13 +140,12 @@ confirmation/recovery boundaries.
 Finalized selections persist in SQLite; a retained private manifest recovers
 allowed selections if the launch response was lost.
 
-Prepare sharing using `{action:"post_to_shared_album",assetIds:[ONE_ID],albumId}`
-with a real Shared Album ID. `photos_apply` with explicit confirmation opens a
-native preview, exact preselected picker and final posting review. The owner
-presses Post in Apple's sheet after checking its actual destination. Changed
-selection or pre-post cancellation ends the operation. No bulk posting is enabled.
-Preselected picker results have empty item providers; live acceptance by the
-posting controller is still unverified.
+Remote `post_to_shared_album` preparation and apply are rejected with
+`remote_shared_album_posting_unavailable` before opening any native UI, including
+older prepared plans. The user-presented Apple posting implementation remains
+an operator candidate for missing provider capabilities, not an accepted remote
+workflow. Ordinary album and metadata tools retain their reviewed prepare/apply
+contract. Never substitute an ordinary album or claim cloud posting acceptance.
 
 `photos_operation` or `photos_shared_review_status` reads persistent UI progress
 and the actual destination. Native records are exclusive 0600 append-only journals

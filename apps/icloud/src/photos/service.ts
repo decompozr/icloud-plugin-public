@@ -77,8 +77,10 @@ export class PhotosService {
   const mutation=mutationSchema.parse(JSON.parse(row.mutation));if(mutation.action==='delete_assets'&&!allowDelete)throw new PhotosError('delete_scope_required');if(allowDelete&&mutation.action!=='delete_assets')throw new PhotosError('wrong_operation_type');this.check(true,mutation.action==='delete_assets');
   if(row.status!=='prepared')return this.status(id);
   if(row.expires<Date.now())throw new PhotosError('plan_expired');
+  // A timed-out native helper may still be running. Unknown outcomes interlock
+  // the whole library, so changing the intent cannot bypass reconciliation.
   const claimed=this.db.query(`UPDATE photos_operations SET status='executing' WHERE id=? AND owner=? AND status='prepared'
-   AND NOT EXISTS (SELECT 1 FROM photos_operations WHERE status IN ('executing','review_pending') OR (status='outcome_unknown' AND json_extract(mutation,'$.action')='post_to_shared_album'))
+   AND NOT EXISTS (SELECT 1 FROM photos_operations WHERE status IN ('executing','review_pending','outcome_unknown'))
    AND (? != 'post_to_shared_album' OR NOT EXISTS (SELECT 1 FROM photos_operations p
     WHERE p.id != ? AND json_extract(p.mutation,'$.action')='post_to_shared_album'
      AND p.status IN ('executing','outcome_unknown','review_pending','posting_completed_membership_unverified','different_destination_membership_unverified')
