@@ -1,5 +1,16 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Confirmed cloud content parsing defect — 2026-10-05
+
+Through the existing MCP on deployed 0.1.55, the retained synthetic album read
+reported serverErrorCode=null on an asset record. The parser incorrectly rejected
+any presence of that field. The 0.1.56 candidate accepts null error fields while
+continuing to reject substantive error values and verify exact master/asset pairing.
+The regression fixture now includes the observed null shape; real error values
+remain rejection cases. No upload retry is needed. Live reconciliation and exact
+cleanup remain required after deployment.
+
+
 ## Shared content readback diagnosis — 2026-10-05
 
 The owner observed the synthetic test image on iPhone. The existing main MCP also
