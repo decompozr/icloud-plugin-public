@@ -80,3 +80,12 @@ describe('remote Shared Album readback identity and boundaries',()=>{
   }
  });
 });
+
+test('opaque provider album identifiers remain visible but cannot become writable UUID targets',async()=>{
+ const s=session(async()=>Response.json({albums:[{albumguid:'opaque-fixture-id',ownerdsid:'123456789'},{albumguid:albumGuid,ownerdsid:'123456789'}]}));
+ const result=await readSharedStreamAlbums(s,'owner-account');
+ expect(result.albums.length).toBe(1);expect(result.inventoryFullySupported).toBe(false);
+ expect(result.unsupportedAlbums).toEqual([{albumIdentifier:'opaque-fixture-id',reason:'unsupported_identifier_format',writable:false}]);
+ expect(()=>sharedStreamRequest({...mutation,albumGuid:'opaque-fixture-id'})).toThrow();
+ await expect(readSharedStreamAlbums(s,'owner-account',albumGuid)).rejects.toThrow();
+});
