@@ -7,15 +7,16 @@ import {photosRegistration} from './module.js';
 import {ModuleRuntime} from '../modules/runtime.js';
 const accountId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 function fixture(){
- const db=new Database(':memory:');let generation=1,owner='owner',writes=0,loseReply=false,allow=true;
+ const db=new Database(':memory:');let generation=1,owner='owner',writes=0,uploads=0,cleanups=0,loseUpload=false,loseReply=false,allow=true;
  const albums=new Map<string,any>();
  const local=new PhotosService(db,{read:async()=>({}),inspect:async()=>({}),apply:async()=>({status:'applied'})},()=>({read:true,write:allow,delete:false}),()=>owner);
- const session=()=>({accountId,dsid:'123456789',protocol:'legacy_shared_streams' as const,serviceOrigin:'https://p37-sharedstreams.icloud.com',generation,accountRevision:1,request:async(url:string,init:RequestInit)=>{
+ const session=()=>({accountId,dsid:'123456789',protocol:'legacy_shared_streams' as const,serviceOrigin:'https://p37-sharedstreams.icloud.com',generation,accountRevision:1,uploadBytes:async()=>{uploads++;if(loseUpload)throw Error('lost binary response');return {fileChecksum:'fixture',size:3,referenceChecksum:'fixture',receipt:'private-receipt'};},request:async(url:string,init:RequestInit)=>{
   const endpoint=new URL(url).pathname.split('/').at(-1),body=JSON.parse(init.body as string);
   if(endpoint==='webgetalbumslist')return Response.json({albums:[...albums.values()]});
   if(endpoint==='webgetalbumview')return Response.json({albums:body.albumguids.flatMap((id:string)=>albums.has(id)?[albums.get(id)]:[])});
   if(endpoint==='webgetassetcount')return Response.json({albumassetcount:albums.get(body.albumguid)?.count??0});
   if(endpoint==='webgetassets'){const a=albums.get(body.albumguid);return Response.json({records:(a.assets??[]).slice(Number(body.offset),Number(body.offset)+100).flatMap((id:string)=>[{recordType:'CPLMaster',recordName:`master-${id}`,fields:{}},{recordType:'CPLAsset',recordName:id,fields:{masterRef:{value:{recordName:`master-${id}`}}}}])});}
+  if(endpoint==='webuploadstatus')return Response.json(body.uploadjobids.map((id:string)=>({uploadjobid:id,status:'COMPLETED'})));
   writes++;
   if(endpoint==='createalbum')albums.set(body.albumguid,{albumguid:body.albumguid,ownerdsid:'123456789',attributes:body.attributes,albumctag:'1',count:0});
   else if(endpoint==='updatealbum'){const a=albums.get(body.albumguid);a.attributes={...a.attributes,...body.attributes};a.albumctag=String(Number(a.albumctag)+1);}
@@ -23,13 +24,14 @@ function fixture(){
   else if(endpoint==='share'){const a=albums.get(body.albumguid);a.sharinginfo.push(...body.invitations.map((i:any)=>({...i,sharingtype:'pending'})));a.albumctag=String(Number(a.albumctag)+1);}
   else if(endpoint==='unshare'){const a=albums.get(body.albumguid);a.sharinginfo=a.sharinginfo.filter((p:any)=>!body.invitations.includes(p.invitationguid));a.albumctag=String(Number(a.albumctag)+1);}
   else if(endpoint==='deleteassets'){const a=albums.get(body.albumguid);const targets=a.partialRemoval?body.assets.slice(0,1):body.assets;a.assets=a.assets.filter((id:string)=>!targets.includes(id));if(a.dropUnselected)a.assets=[];a.count=a.assets.length;a.albumctag=String(Number(a.albumctag)+1);}
+  else if(endpoint==='webputasset'){const a=albums.get(body.albumguid);a.assets??=[];a.assets.push(body.assetguid);a.count=a.assets.length;a.albumctag=String(Number(a.albumctag)+1);}
   else if(endpoint==='deletealbum')albums.delete(body.albumguid);
   else throw Error('unexpected endpoint');
   if(loseReply)throw Error('private-token-lost-reply');
-  return Response.json(endpoint==='createalbum'?{albumguid:body.albumguid}:{});
+  return Response.json(endpoint==='createalbum'?{albumguid:body.albumguid}:endpoint==='webputasset'?{albumguid:body.albumguid,assetguid:body.assetguid,uploadjobid:'retained-job'}:{});
  }});
- const create=(account=accountId,currentOwner=owner)=>new SharedAlbumService({db,owner:currentOwner,accountId:account,currentOwner:()=>owner,policy:()=>({read:true,write:allow,delete:false}),session});
- return {db,local,service:create(),create,albums,writes:()=>writes,lose:()=>loseReply=true,revoke:()=>generation++,owner:()=>owner='other',disable:()=>allow=false};
+ const create=(account=accountId,currentOwner=owner)=>new SharedAlbumService({db,owner:currentOwner,accountId:account,currentOwner:()=>owner,policy:()=>({read:true,write:allow,delete:false}),session,stageUpload:async(assetId,representation)=>({assetId,representation,filename:'fixture.jpg',livePhotoStillOnly:false,mediaType:'photo',bytes:3,sha256:'a'.repeat(64),privatePath:'/private/fixture/content'}),releaseUpload:async()=>{cleanups++;}});
+ return {db,local,service:create(),create,albums,cleanups:()=>cleanups,uploads:()=>uploads,loseBinary:()=>loseUpload=true,writes:()=>writes,lose:()=>loseReply=true,revoke:()=>generation++,owner:()=>owner='other',disable:()=>allow=false};
 }
 test('experimental true Shared Album lifecycle requires review and separate exact server readback',async()=>{
  const f=fixture();try{
@@ -191,4 +193,35 @@ test('shared-copy removal verifies exact membership and preserves unselected cop
    if(mode==='success'||mode==='lost')expect(f.albums.get(guid).assets).toEqual(['copy-c']);
   }finally{f.db.close();}
  }
+});
+
+
+test('reviewed upload retains source digest and dispatch stages; recovery never uploads or publishes twice',async()=>{
+ for(const mode of ['success','lost-publication','lost-binary'] as const){
+  const f=fixture(),guid='77777777-7777-4777-8777-777777777777',albumId=`shared-album:${accountId}:${guid}`;
+  f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Upload fixture'},albumctag:'1',count:0,assets:[]});
+  try{
+   const plan=await f.service.prepare({action:'upload_shared_asset',albumId,assetId:'asset:1234567890abcdef:88888888-8888-4888-8888-888888888888',representation:'original',experimental:true});
+   expect('upload' in plan.before&&plan.before.upload?.sha256).toBe('a'.repeat(64));expect(JSON.stringify(plan)).not.toContain('/private/');expect(f.uploads()).toBe(0);
+   if(mode==='lost-publication')f.lose();if(mode==='lost-binary')f.loseBinary();
+   const result=await f.service.apply(plan.operationId,true);expect(result.status).toBe(mode==='success'?'applied':'outcome_unknown');
+   expect(f.uploads()).toBe(1);expect(f.writes()).toBe(mode==='lost-binary'?0:1);
+   await f.create().apply(plan.operationId,true);expect(f.uploads()).toBe(1);
+   if(mode==='lost-publication'){expect((await f.create().reconcile(plan.operationId)).status).toBe('reconciled');expect(f.writes()).toBe(1);}
+   if(mode==='lost-binary'){expect((await f.create().reconcile(plan.operationId)).status).toBe('outcome_unknown');expect(f.writes()).toBe(0);}
+   expect(JSON.stringify(f.service.status(plan.operationId))).not.toContain('private-receipt');expect(f.uploads()).toBe(1);
+   expect(f.cleanups()).toBe(mode==='lost-binary'?0:1);expect(f.service.status(plan.operationId).upload).not.toHaveProperty('source');
+  }finally{f.db.close();}
+ }
+});
+
+
+test('cancelling an unexecuted upload discards only its staged source and cannot resume',async()=>{
+ const f=fixture(),guid='99999999-9999-4999-8999-999999999999',albumId=`shared-album:${accountId}:${guid}`;
+ f.albums.set(guid,{albumguid:guid,ownerdsid:'123456789',attributes:{name:'Cancel fixture'},albumctag:'1',count:0,assets:[]});
+ try{
+  const p=await f.service.prepare({action:'upload_shared_asset',albumId,assetId:'asset:1234567890abcdef:88888888-8888-4888-8888-888888888888',representation:'original',experimental:true});
+  expect((await f.service.cancel(p.operationId)).status).toBe('cancelled');expect(f.cleanups()).toBe(1);
+  await f.service.apply(p.operationId,true);await f.service.cancel(p.operationId);expect(f.uploads()).toBe(0);expect(f.writes()).toBe(0);expect(f.cleanups()).toBe(1);
+ }finally{f.db.close();}
 });

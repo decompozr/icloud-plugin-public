@@ -1,5 +1,33 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Reviewed upload lifecycle integrated in candidate — 2026-10-05
+
+upload_shared_asset now uses the existing shared prepare/apply/operation flow and
+Photos scopes. Prepare binds exact local asset, explicit representation, remote
+owned album snapshot and private staged bytes; only digest/size/representation are
+review data, never paths or receipts. A private companion ledger retains generated
+asset/batch IDs, timestamp, stage and eventual job ID. Apply revalidates the album
+and custody snapshot, claims the common operation interlock, durably claims binary
+transfer and publication separately, and sends each once. Receipts stay in memory.
+
+Readback polls retained jobs and independently searches complete stable membership
+for the retained asset GUID; job-read failure does not prevent membership recovery.
+Interrupted/lost writes never resume binary transfer or publication. Unknown binary
+outcomes retain evidence and cannot yet be cleared automatically. Recovery grace
+covers transfer, publication and all readback deadlines. Successful/read-reconciled
+uploads remove only their exact private staged file; failed cleanup retains its
+path for recovery. Unexecuted plans support explicit cancellation through shared
+apply(cancel=true), which releases staged bytes without Photos mutations. Full Live
+Photo pairing, subscriber writes and real provider acceptance remain open.
+
+Self-check: full app suite 417 tests / 2828 assertions and typecheck passed.
+16 Python transport tests and production build passed before the final cancellation
+case; final production build is required before release. These
+are fixtures, not live uploads. Candidate is not deployed; runtime remains 0.1.49.
+Next: full final checks, release/merge/deploy, existing-MCP tool discovery and exact
+owner-reviewed live acceptance. No personal upload or invitation has occurred.
+
+
 ## Account-bound binary upload transport candidate — 2026-10-05
 
 Added a private binary-stage actor, packaged with the application. Before account

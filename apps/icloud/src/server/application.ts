@@ -67,11 +67,12 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
   const p=settings.photos;
   photosAdmin=createPhotosAdmin({database:deps.authDatabase,store:deps.store,ceiling:{read:true,write:p.allow_writes,delete:p.allow_writes&&p.allow_delete}});
   const policy=photosAdmin.policy;
-  const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,reviewDirectory:join(dirname(settings.master_key_file),'photos-shared-reviews'),sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
+  const photosProvider=new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,stateDirectory:join(settings.state_directory,'photos'),reviewDirectory:join(dirname(settings.master_key_file),'photos-shared-reviews'),sidecarDirectory:join(deps.assetsDirectory,'../photos')});
+  const photos=new PhotosService(deps.authDatabase,photosProvider,policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
   const shared=photosCloud?()=>{
    const context=invocationContext(),owner=deps.store.ownerId();
    if(!context||context.ownerId!==owner||!context.accountId)throw new PhotosError('verified_account_context_required');
-   return new SharedAlbumService({db:deps.authDatabase,owner:context.ownerId,accountId:context.accountId,currentOwner:()=>deps.store.ownerId()??'',policy,session:()=>photosCloud.sharedSession(context.accountId!)});
+   return new SharedAlbumService({db:deps.authDatabase,owner:context.ownerId,accountId:context.accountId,currentOwner:()=>deps.store.ownerId()??'',policy,session:()=>photosCloud.sharedSession(context.accountId!),stageUpload:(assetId,representation,livePhotoMode)=>photosProvider.stageUpload(assetId,representation,livePhotoMode),releaseUpload:source=>photosProvider.releaseUpload(source)});
   }:undefined;
   runtime.register(photosRegistration(photos,policy,shared));
  }

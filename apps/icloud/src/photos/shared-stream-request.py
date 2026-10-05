@@ -15,7 +15,7 @@ from urllib.parse import urlsplit, urlencode
 from uuid import UUID
 
 ENDPOINTS = {'photosZonesList', 'requestWebAccessState', 'webgetalbumslist', 'webgetalbumview', 'webgetassetcount', 'webgetassets',
-             'createalbum', 'updatealbum', 'deletealbum', 'setalbumpublic', 'share', 'unshare', 'deleteassets', 'webuploadstatus', 'webgetuploadurl'}
+             'createalbum', 'updatealbum', 'deletealbum', 'setalbumpublic', 'share', 'unshare', 'deleteassets', 'webuploadstatus', 'webgetuploadurl', 'webputasset'}
 
 
 def config_value(value):
@@ -97,7 +97,7 @@ def run(request, session_factory=None, curl_runner=None):
     if transport not in ['requests', 'system_http2'] or transport == 'system_http2' and not is_read:
         raise ValueError('transport')
     payload = request['body']
-    if not isinstance(payload, str) or len(payload.encode()) > 8192 or not isinstance(json.loads(payload), dict):
+    if not isinstance(payload, str) or len(payload.encode()) > (32768 if endpoint == 'webputasset' else 8192) or not isinstance(json.loads(payload), dict):
         raise ValueError('payload')
     # Apple may advertise the standard TLS port explicitly. Canonicalize it like
     # URL.origin in TypeScript; nonstandard ports remain forbidden.

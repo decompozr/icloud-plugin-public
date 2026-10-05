@@ -1,4 +1,4 @@
-import {parseSharedUploadReceipt,parseSharedUploadStatus,sharedUploadStatusRequest} from './shared-upload-contract.js';
+import {parseSharedUploadReceipt,parseSharedUploadAcknowledgement,sharedUploadPublicationRequest,parseSharedUploadStatus,sharedUploadStatusRequest} from './shared-upload-contract.js';
 import {z} from 'zod';
 import {sharedManagementRequest} from './shared-management-contract.js';
 
@@ -7,7 +7,7 @@ export const SHARED_INVENTORY_PROBE_TIMEOUT_MS=180000;
 export const SHARED_WRITE_TIMEOUT_MS=30000;
 export const SHARED_MEMBERSHIP_TIMEOUT_MS=300000;
 // One write plus inventory, exact metadata and count readback, with recovery margin.
-export const SHARED_RECOVERY_GRACE_MS=SHARED_WRITE_TIMEOUT_MS+SHARED_INVENTORY_PROBE_TIMEOUT_MS+2*SHARED_READ_TIMEOUT_MS+SHARED_MEMBERSHIP_TIMEOUT_MS+30000;
+export const SHARED_RECOVERY_GRACE_MS=SHARED_WRITE_TIMEOUT_MS+SHARED_INVENTORY_PROBE_TIMEOUT_MS+2*SHARED_READ_TIMEOUT_MS+SHARED_MEMBERSHIP_TIMEOUT_MS+240000+SHARED_READ_TIMEOUT_MS+30000;
 
 // Undocumented Shared Streams endpoint catalog and read contracts observed in
 // Apple's public Photos client. Lifecycle write payloads are experimental
@@ -66,7 +66,7 @@ export function sharedStreamURL(session:SharedStreamSession,accountId:string,end
  // similar album name/UUID is not evidence that the legacy protocol applies.
  if(session.protocol!=='legacy_shared_streams')throw new Error('unsupported_shared_album_protocol');
  if(!/^[0-9]{1,30}$/.test(session.dsid))throw new Error('invalid_shared_album_session');
- if(!['createalbum','updatealbum','deletealbum','setalbumpublic','share','unshare','deleteassets','webgetalbumslist','webgetalbumview','webgetassetcount','webgetassets','webuploadstatus'].includes(endpoint))throw new Error('invalid_shared_album_endpoint');
+ if(!['createalbum','updatealbum','deletealbum','setalbumpublic','share','unshare','deleteassets','webgetalbumslist','webgetalbumview','webgetassetcount','webgetassets','webuploadstatus','webputasset'].includes(endpoint))throw new Error('invalid_shared_album_endpoint');
  const url=new URL(session.serviceOrigin);
  if(url.protocol!=='https:'||url.username||url.password||url.port||url.search||url.hash||url.pathname!=='/'||
   !/^p[0-9]+-sharedstreams\.icloud\.com(?:\.cn)?$/.test(url.hostname))throw new Error('invalid_shared_album_service');
@@ -233,4 +233,15 @@ export async function executeSharedStreamMutation(session:SharedStreamSession,ac
   }
   return {status:'acknowledged_readback_required',albumGuid,serverSyncVerified:false};
  }catch{return unknown();}
+}
+
+
+/** Caller must retain a publication claim before dispatch. Never retry. */
+export async function publishSharedUpload(session:SharedStreamSession,accountId:string,plan:Parameters<typeof sharedUploadPublicationRequest>[0],receipt:unknown,bytes:number){
+ const request=sharedUploadPublicationRequest(plan,receipt,bytes),url=sharedStreamURL(session,accountId,request.endpoint);
+ try{
+  const response=await session.request(url,{method:'POST',redirect:'error',signal:AbortSignal.timeout(SHARED_WRITE_TIMEOUT_MS),headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify(request.payload)});
+  if(!response.ok)throw Error('publication_failed');
+  return parseSharedUploadAcknowledgement(JSON.parse(await boundedBody(response)),{albumGuid:request.payload.albumguid,assetGuid:request.payload.assetguid});
+ }catch{throw Error('shared_upload_publication_outcome_unknown');}
 }

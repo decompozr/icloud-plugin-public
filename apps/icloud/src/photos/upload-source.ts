@@ -1,6 +1,6 @@
 import {constants} from 'node:fs';
-import {open,mkdir,mkdtemp,realpath,rm,chmod} from 'node:fs/promises';
-import {join,relative,isAbsolute} from 'node:path';
+import {open,mkdir,mkdtemp,realpath,rm,chmod,unlink,rmdir,lstat} from 'node:fs/promises';
+import {join,relative,isAbsolute,dirname,basename} from 'node:path';
 import {createHash} from 'node:crypto';
 import {z} from 'zod';
 
@@ -39,4 +39,14 @@ export async function stageUploadSource(raw:unknown,options:{library:string;dire
    return {assetId:source.assetId,filename:source.filename,representation:source.representation,livePhotoStillOnly:source.livePhotoStillOnly,mediaType:source.mediaType,bytes,sha256:hash.digest('hex'),privatePath};
   }finally{await input.close();}
  }catch(error){await rm(directory,{recursive:true,force:true});throw error;}
+}
+
+
+/** Remove only this retained staged file; never sweep a directory or library. */
+export async function releaseUploadSource(source:StagedUploadSource,directory:string){
+ const root=await realpath(directory),parent=dirname(source.privatePath);
+ if(basename(source.privatePath)!=='content'||dirname(parent)!==root||!basename(parent).startsWith('upload-'))throw Error('upload_cleanup_path_invalid');
+ if(await realpath(parent)!==parent)throw Error('upload_cleanup_path_invalid');
+ try{const file=await lstat(source.privatePath);if(!file.isFile()||file.isSymbolicLink())throw Error('upload_cleanup_path_invalid');await unlink(source.privatePath);}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}
+ await rmdir(parent);
 }
