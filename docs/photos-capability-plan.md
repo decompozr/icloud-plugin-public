@@ -10,6 +10,35 @@ Helper excludes both the catalog reviewer and posting UI research. Generic
 authorization fixtures, reviewer removal/deployment and actual remote read acceptance
 are verified; native write permission and full sharing/cleanup acceptance remain pending.
 
+### MCP-only operation boundary and test-album disposition — 2026-10-05
+
+The owner explicitly requires Photos operations through this project's main MCP
+only. No computer control, native UI automation, browser automation or manual
+clicking by the agent may create, post to or clean up albums. The Swift Helper
+remains an operation backend invoked by MCP, not a reviewer or a substitute UI
+workflow. Direct native app launch/observation is not remote MCP acceptance.
+Programmatic provider calls must preserve the same exact prepare/confirm/apply,
+owner, scope, permission and unknown-outcome boundaries.
+
+The owner requests a disposable test Shared Album. “Temporary” means our own test
+artifact, explicitly cleaned up afterward; it does not request Apple's automatic
+expiry setting. Create a true Shared Album with a distinct test name only through
+a verified API reachable from MCP. Retain its exact scoped identity, verify its
+shared type and empty membership, and keep invitations/link distribution out of
+this test. Do not substitute an ordinary album. No personal photo upload is
+implied; test content and any asset import/upload must be concretely reviewed
+before execution. Cleanup must target only the recorded test artifact, after
+outcome reconciliation and evidence preservation, leaving existing albums intact.
+
+Current create_album is an ordinary PhotoKit collection operation. Installed SDK
+headers expose Shared Album creation within a user-presented posting controller;
+that does not establish a headless creation API. osxphotos album automation resolves
+ordinary albums. No supported API-only Shared Album create/post path has yet been
+verified. The earlier attempted native observation created no album and is now
+excluded by the owner boundary. Resolving that observation is not a product step.
+Continue provider/API investigation and independent read/review/lifecycle work;
+retain actual Shared Album creation/sharing as unmet until verified.
+
 ### Same-connection scope upgrade correction — 2026-10-05
 
 The owner explicitly rejects creating a second custom MCP connection merely to
@@ -209,19 +238,21 @@ Owner: the receiver in this existing worktree; preserve the primary checkout and
 all unrelated work. Standing Git/merge/deploy authorization applies within this
 scope. Do not spawn another receiver or silently change conversation ownership.
 
-Generic Photos authorization fixtures and phase 2 reviewer removal/deployment are
-complete. Next implement owner-controlled scope upgrade for the existing client, then
-verify actual Photos consent, loaded tools and a remote read in the owner's
-conversation without adding another MCP connection. Existing anonymous client ceilings contain no Photos; do not widen
-signed requests or stored grants. The operation Helper reports authorization 0;
-owner completion of its OS consent is required before native operations. Preserve
-stopped state/custody/config and old releases for rollback. Only after the owner
-actually receives Photos tools proceed to remote photo review.
+Same-client Photos consent, loaded tools and actual remote reads are verified.
+Continue exact remote review: first three sources are kept without sharing,
+next three explicitly undecided, and six of the twelve not-found sources still
+await displayed review, including four Live Photos requiring motion evidence.
+Do not substitute probable matches or cached stills for sharing/motion proof.
+Investigate an API-only true Shared Album create/post path before the requested
+disposable-album test. Current ordinary album creation is not that path. Native
+operations still require explicit OS permission; keep configuration, grants,
+custody and installed rollback state preserved.
 
 No upload, metadata change, deletion or test asset creation is implied by a build,
-registration test, stored review decision or this plan revision. No browser UI
-fallback for Photos operations. No global reinstall or dependency migration is
-needed. English repository/helper content; Traditional Chinese conversation.
+registration test, saved review decision or this plan revision. No computer control
+or browser/native UI automation for Photos operations. No global reinstall or
+dependency migration is needed. English repository/helper content; Traditional
+Chinese conversation. The full goal remains active and incomplete.
 
 ### Prototype and lifecycle disposition
 
