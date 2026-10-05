@@ -1,5 +1,6 @@
+import {z} from 'zod';
 import {describe,expect,test} from 'bun:test';
-import {readSharedStreamMembership,readSharedStreamAssetPage,SharedStreamReadError,executeSharedStreamMutation,sharedStreamRequest,sharedStreamURL,readSharedStreamAlbums,type SharedStreamSession} from './shared-stream-protocol.js';
+import {sharedReadDiagnostic,readSharedStreamMembership,readSharedStreamAssetPage,SharedStreamReadError,executeSharedStreamMutation,sharedStreamRequest,sharedStreamURL,readSharedStreamAlbums,type SharedStreamSession} from './shared-stream-protocol.js';
 const albumGuid='11111111-1111-4111-8111-111111111111';
 const mutation={action:'create_shared_album' as const,albumGuid,title:'Disposable protocol fixture'};
 function session(request:SharedStreamSession['request']):SharedStreamSession{return {accountId:'owner-account',protocol:'legacy_shared_streams',dsid:'123456789',serviceOrigin:'https://p37-sharedstreams.icloud.com',request};}
@@ -116,4 +117,12 @@ test('complete shared membership rejects changed snapshots, repeated pages and t
  });
  const result=await readSharedStreamMembership(s,'owner-account',albumGuid);expect(result.assets.length).toBe(101);expect(result.complete).toBe(true);expect(result.originalLibraryIdentityVerified).toBe(false);
  for(const failure of ['changed','repeated','truncated']){mode=failure;metadataReads=0;await expect(readSharedStreamMembership(s,'owner-account',albumGuid)).rejects.toThrow();}
+});
+
+test('read diagnostics retain schema location without unknown keys or response values',()=>{
+ const parsed=z.object({records:z.array(z.object({recordType:z.enum(['CPLAsset'])}))}).safeParse({records:[{recordType:'private-secret-value'}]});
+ expect(parsed.success).toBe(false);
+ if(!parsed.success){const diagnostic=sharedReadDiagnostic(parsed.error);expect(JSON.stringify(diagnostic)).toContain('records.[].recordType');expect(JSON.stringify(diagnostic)).not.toContain('private-secret-value');}
+ expect(sharedReadDiagnostic(new Error('https://private.example/cookie-secret'))).toEqual({stage:'read',cause:'unclassified_read_failure'});
+ expect(sharedReadDiagnostic(new Error('shared_album_asset_identity_mismatch'))).toEqual({stage:'read',cause:'shared_album_asset_identity_mismatch'});
 });

@@ -1,5 +1,22 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Shared content readback diagnosis — 2026-10-05
+
+The owner observed the synthetic test image on iPhone. The existing main MCP also
+read the exact operation marker from the shared image on the Mac and returned its
+preview. This establishes successful synthetic delivery and local/cross-device
+observation, while the remote operation remains unknown because its independent
+cloud membership read throws. Do not resubmit the upload or manually overwrite the
+ledger. The exact test album and staged upload remain retained for reconciliation
+and cleanup.
+
+A confirmed diagnostic gap discarded all content-read errors, including schema and
+identity failures. The next runtime preserves bounded structural diagnostics via
+the same MCP read/operation tools. No response values, credentials or arbitrary
+exception messages are exposed. This is diagnostic instrumentation, not yet a fix
+for the underlying cloud membership failure.
+
+
 ## Live main-MCP Shared Album CRUD and 0.1.53 delivery — 2026-10-05
 
 The existing main MCP completed true Shared Album creation, rename and deletion

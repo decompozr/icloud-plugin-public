@@ -100,6 +100,15 @@ export class SharedStreamReadError extends Error {
  constructor(readonly diagnostic:{stage:'transport'|'http'|'decode'|'schema'|'identity';httpStatus?:number;httpVersion?:string;cause?:string;schemaIssues?:Array<{path:string;code:string;expected?:string;received?:string}>}){super('shared_album_readback_failed');}
 }
 
+/** Bounded structural diagnostics; never include values, URLs, identifiers or messages. */
+export function sharedReadDiagnostic(error:unknown){
+ if(error instanceof SharedStreamReadError)return error.diagnostic;
+ if(error instanceof z.ZodError)return {stage:'schema',issues:error.issues.slice(0,12).map(issue=>({code:issue.code,path:issue.path.map(part=>typeof part==='number'?'[]':['records','recordName','recordType','fields','masterRef','value','albumassetcount'].includes(part)?part:'?').join('.'),...(issue.code==='invalid_type'?{expected:issue.expected,received:issue.received}:{})}))};
+ const message=error instanceof Error?error.message:'';
+ const allowed=['shared_album_assets_read_failed','shared_album_asset_record_error','shared_album_asset_identity_mismatch','shared_album_asset_page_mismatch','shared_album_count_failed','shared_album_membership_unsupported','shared_album_membership_limit','shared_album_membership_incomplete','shared_album_membership_duplicate','shared_album_membership_changed'];
+ return {stage:'read',cause:allowed.includes(message)?message:'unclassified_read_failure'};
+}
+
 /** Remote observations only; legacy_candidate never grants mutation authority. */
 export async function readSharedStreamAlbums(session:SharedStreamSession,accountId:string,albumGuid?:string,longProbe=false){
  const exact=albumGuid===undefined?undefined:guid.parse(albumGuid).toUpperCase();
