@@ -5,19 +5,22 @@ import {CustodyError,accountCustodyIdentitySchema,installationIdentitySchema,typ
 import type {OwnerSecretStore} from './owner-store.js';
 
 const number=z.number().int().positive().safe(),uuid=z.string().uuid();
-const stateSchema=z.object({format:z.literal(1),installationId:installationIdentitySchema,
+const stateSchema=z.object({format:z.union([z.literal(1),z.literal(2)]),installationId:installationIdentitySchema,
  ownerId:z.string().min(1).max(2048),accountId:uuid,user:z.string().min(1),revision:number,epoch:number,
- authority:z.enum(['sqlite','keychain','none']),phase:z.enum(['sqlite_authoritative','copy_intent','keychain_verified','keychain_authoritative','revoked','recovery_required']),
+ authority:z.enum(['sqlite','keychain','none']),phase:z.enum(['sqlite_authoritative','copy_intent','keychain_verified','keychain_authoritative','revoked','recovery_required','rotation_intent','rotation_verified']),
+ rotationDigest:z.string().regex(/^[a-f0-9]{64}$/).optional(),
  operationId:uuid.nullable(),activeGeneration:number.nullable(),stagedGeneration:number.nullable(),nextGeneration:number,mac:z.string().regex(/^[a-f0-9]{64}$/),
 }).strict().superRefine((v,c)=>{
  const pending=v.phase==='copy_intent'||v.phase==='keychain_verified';
- const valid=v.phase==='recovery_required'
+ const rotation=v.phase==='rotation_intent'||v.phase==='rotation_verified';
+ const valid=rotation?v.format===2&&v.authority==='keychain'&&v.activeGeneration!==null&&v.stagedGeneration!==null&&v.operationId!==null&&v.rotationDigest!==undefined&&Number.isSafeInteger(v.revision+1)
+  :v.rotationDigest!==undefined?false:v.phase==='recovery_required'
   ?v.authority==='keychain'&&v.activeGeneration!==null&&v.stagedGeneration===null
   :pending?v.authority==='sqlite'&&v.activeGeneration===null&&v.stagedGeneration!==null&&v.operationId!==null
   :v.phase==='sqlite_authoritative'?v.authority==='sqlite'&&v.activeGeneration===null&&v.stagedGeneration===null
   :v.phase==='keychain_authoritative'?v.authority==='keychain'&&v.activeGeneration!==null&&v.stagedGeneration===null&&v.operationId!==null
   :v.phase==='revoked'&&v.authority==='none'&&v.activeGeneration===null&&v.stagedGeneration===null;
- if(!valid||v.activeGeneration!==null&&v.activeGeneration>=v.nextGeneration||v.stagedGeneration!==null&&v.stagedGeneration>=v.nextGeneration)c.addIssue({code:'custom',message:'Invalid custody state'});
+ if(!valid||rotation&&v.activeGeneration===v.stagedGeneration||v.activeGeneration!==null&&v.activeGeneration>=v.nextGeneration||v.stagedGeneration!==null&&v.stagedGeneration>=v.nextGeneration)c.addIssue({code:'custom',message:'Invalid custody state'});
 });
 export type AccountAuthorityState=Readonly<z.infer<typeof stateSchema>>;
 const cleanupSchema=accountCustodyIdentitySchema.extend({operationId:uuid,mac:z.string().regex(/^[a-f0-9]{64}$/)}).strict();
@@ -26,7 +29,7 @@ const registrySchema=z.object({id:uuid,user:z.string().min(1),secret:z.string().
 function fail(code:'invalid_input'|'denied'|'missing'|'conflict'|'recovery_required'|'revoked'):never {throw new CustodyError(code);}
 const sign=(key:Uint8Array,context:string,payload:unknown)=>createHmac('sha256',key).update(context+'\0').update(JSON.stringify(payload)).digest('hex');
 const payload=(s:AccountAuthorityState)=>({format:s.format,installationId:s.installationId,ownerId:s.ownerId,accountId:s.accountId,user:s.user,
- revision:s.revision,epoch:s.epoch,authority:s.authority,phase:s.phase,operationId:s.operationId,activeGeneration:s.activeGeneration,stagedGeneration:s.stagedGeneration,nextGeneration:s.nextGeneration});
+ revision:s.revision,epoch:s.epoch,authority:s.authority,phase:s.phase,operationId:s.operationId,activeGeneration:s.activeGeneration,stagedGeneration:s.stagedGeneration,nextGeneration:s.nextGeneration,...(s.rotationDigest===undefined?{}:{rotationDigest:s.rotationDigest})});
 const cleanupPayload=(s:AccountCleanupItem)=>({installationId:s.installationId,ownerId:s.ownerId,accountId:s.accountId,revision:s.revision,generation:s.generation,operationId:s.operationId});
 const equal=(a:string,b:string)=>timingSafeEqual(Buffer.from(a,'hex'),Buffer.from(b,'hex'));
 
@@ -46,7 +49,7 @@ export class AccountAuthorityJournal {
    store.binding();
    const meta=options.database.query('SELECT singleton,format,installation FROM account_custody_meta').all();
    if(meta.length!==1)fail('recovery_required');
-   const header=z.object({singleton:z.literal(1),format:z.literal(1),installation:installationIdentitySchema}).strict().parse(meta[0]);
+   const header=z.object({singleton:z.literal(1),format:z.union([z.literal(1),z.literal(2)]),installation:installationIdentitySchema}).strict().parse(meta[0]);
    if(header.installation!==options.installationId)fail('recovery_required');
    const registry=new Set<string>();
    for(const raw of options.database.query('SELECT owner,id FROM mail_accounts').all()){
@@ -113,7 +116,7 @@ export class AccountAuthorityJournal {
   try{return store.guard(()=>{
    store.binding();
    const meta=db.query('SELECT format,installation FROM account_custody_meta WHERE singleton=1').get() as {format:number;installation:string}|null;
-   if(!meta||meta.format!==1||meta.installation!==installationId)fail('recovery_required');
+   if(!meta||(meta.format!==1&&meta.format!==2)||meta.installation!==installationId)fail('recovery_required');
    db.query('SELECT record FROM account_custody_state LIMIT 1').get();db.query('SELECT record FROM account_custody_cleanup LIMIT 1').get();
    return store;
   });}catch(error){store.close();throw error;}
@@ -129,6 +132,8 @@ export class AccountAuthorityJournal {
   const row=this.db.query('SELECT record FROM account_custody_state WHERE owner=? AND account=?').get(ownerId,accountId) as {record:string}|null;
   if(!row)fail('missing');
   const state=stateSchema.parse(JSON.parse(row.record));
+  const meta=this.db.query('SELECT format,installation FROM account_custody_meta WHERE singleton=1').get() as {format:number;installation:string}|null;
+  if(!meta||meta.installation!==this.installationId||(meta.format!==1&&meta.format!==2)||state.format>meta.format)fail('recovery_required');
   if(state.installationId!==this.installationId||state.ownerId!==ownerId||state.accountId!==accountId||!equal(state.mac,sign(this.key,'icloud-account-custody-state-v1',payload(state))))fail('recovery_required');
   return Object.freeze(state);
  }
@@ -196,14 +201,14 @@ export class AccountAuthorityJournal {
   return this.guard(()=>this.db.transaction(()=>{
    const state=this.current(ownerId,accountId);this.expect(state,expectedEpoch);
    if(state.phase==='revoked')fail('revoked');
-   if(state.phase!=='keychain_authoritative'||state.activeGeneration===null)fail('recovery_required');
+   if(!['keychain_authoritative','rotation_intent','rotation_verified'].includes(state.phase)||state.activeGeneration===null)fail('recovery_required');
    return Object.freeze({installationId:this.installationId,ownerId,accountId,revision:state.revision,generation:state.activeGeneration});
   })());
  }
- private queue(state:AccountAuthorityState,generation:number,operationId:string):void {
-  const item={installationId:this.installationId,ownerId:state.ownerId,accountId:state.accountId,revision:state.revision,generation,operationId};
+ private queue(state:AccountAuthorityState,generation:number,operationId:string,revision=state.revision):void {
+  const item={installationId:this.installationId,ownerId:state.ownerId,accountId:state.accountId,revision,generation,operationId};
   const signed={...item,mac:sign(this.key,'icloud-account-custody-cleanup-v1',item)};
-  const changed=this.db.query('INSERT INTO account_custody_cleanup VALUES(?,?,?,?,?)').run(state.ownerId,state.accountId,state.revision,generation,JSON.stringify(signed));
+  const changed=this.db.query('INSERT INTO account_custody_cleanup VALUES(?,?,?,?,?)').run(state.ownerId,state.accountId,revision,generation,JSON.stringify(signed));
   if(changed.changes!==1)fail('conflict');
  }
  /** Explicit reconciliation of a competing legacy SQLite rotation/revocation. */
@@ -223,14 +228,73 @@ export class AccountAuthorityJournal {
    if(state.phase==='revoked')fail('conflict');
    if(!Number.isSafeInteger(state.revision+1))fail('recovery_required');
    if(state.activeGeneration!==null)this.queue(state,state.activeGeneration,operationId);
-   if(state.stagedGeneration!==null)this.queue(state,state.stagedGeneration,operationId);
+   if(state.stagedGeneration!==null)this.queue(state,state.stagedGeneration,operationId,state.rotationDigest===undefined?state.revision:state.revision+1);
    const changed=this.db.query('UPDATE mail_accounts SET secret=NULL,version=? WHERE owner=? AND id=? AND version=?').run(state.revision+1,ownerId,accountId,state.revision);
    if(changed.changes!==1)fail('conflict');
    const sessions=this.db.query('SELECT generation FROM provider_sessions WHERE owner=? AND account=?').all(ownerId,accountId) as {generation:number}[];
    if(sessions.some(row=>!Number.isSafeInteger(row.generation)||row.generation<1||!Number.isSafeInteger(row.generation+1)))fail('recovery_required');
    const invalidated=this.db.query('UPDATE provider_sessions SET secret=NULL,generation=generation+1 WHERE owner=? AND account=?').run(ownerId,accountId);
    if(invalidated.changes!==sessions.length)fail('conflict');
-   return this.next(state,{revision:state.revision+1,authority:'none',phase:'revoked',operationId,activeGeneration:null,stagedGeneration:null});
+   return this.next(state,{revision:state.revision+1,authority:'none',phase:'revoked',operationId,activeGeneration:null,stagedGeneration:null,rotationDigest:undefined});
+  }).immediate());
+ }
+ /** Format-2 intent pins the replacement bytes with original-key HMAC.
+  * Provider validation is caller-owned; no password is persisted in metadata.
+  * Older format-1 journal implementations refuse the upgraded header.
+  */
+ private replacementDigest(state:AccountAuthorityState,bytes:Uint8Array):string {
+  if(!bytes.byteLength||bytes.byteLength>65536)fail('invalid_input');
+  return createHmac('sha256',this.key).update('icloud-account-rotation-v2\0').update(JSON.stringify([this.installationId,state.ownerId,state.accountId,state.revision+1,state.stagedGeneration,state.operationId])).update(bytes).digest('hex');
+ }
+ beginRotation(ownerId:string,accountId:string,epoch:number,operationId:string,bytes:Uint8Array):AccountAuthorityState {
+  return this.guard(()=>this.db.transaction(()=>{
+   if(!uuid.safeParse(operationId).success)fail('invalid_input');
+   const state=this.current(ownerId,accountId);this.expect(state,epoch);
+   if(state.phase!=='keychain_authoritative'||!Number.isSafeInteger(state.revision+1)||!Number.isSafeInteger(state.nextGeneration+1))fail('conflict');
+   const draft={...state,format:2 as const,phase:'rotation_intent' as const,operationId,stagedGeneration:state.nextGeneration,nextGeneration:state.nextGeneration+1};
+   const digest=this.replacementDigest(draft,bytes);
+   const updated=this.db.query('UPDATE account_custody_meta SET format=2 WHERE singleton=1 AND installation=? AND format IN (1,2)').run(this.installationId);
+   if(updated.changes!==1)fail('recovery_required');
+   return this.next(state,{format:2,phase:'rotation_intent',operationId,stagedGeneration:draft.stagedGeneration,nextGeneration:draft.nextGeneration,rotationDigest:digest});
+  }).immediate());
+ }
+ rotationTarget(ownerId:string,accountId:string,epoch:number,operationId:string,bytes:Uint8Array):AccountCustodyIdentity {
+  return this.guard(()=>this.db.transaction(()=>{
+   const state=this.current(ownerId,accountId);this.expect(state,epoch,operationId);
+   if((state.phase!=='rotation_intent'&&state.phase!=='rotation_verified')||state.stagedGeneration===null||state.rotationDigest===undefined||!equal(state.rotationDigest,this.replacementDigest(state,bytes)))fail('conflict');
+   return Object.freeze({installationId:this.installationId,ownerId,accountId,revision:state.revision+1,generation:state.stagedGeneration});
+  })());
+ }
+ /** Caller freshly verifies exact target bytes externally before marking. */
+ markRotationVerified(ownerId:string,accountId:string,epoch:number,operationId:string,bytes:Uint8Array):AccountAuthorityState {
+  return this.guard(()=>this.db.transaction(()=>{
+   this.rotationTarget(ownerId,accountId,epoch,operationId,bytes);
+   const state=this.current(ownerId,accountId);if(state.phase!=='rotation_intent')fail('conflict');
+   return this.next(state,{phase:'rotation_verified'});
+  }).immediate());
+ }
+ /** Caller freshly rechecks exact target; registry revision, pointer, sessions
+  * and old-generation cleanup commit together. Never writes SQLite ciphertext.
+  */
+ commitRotation(ownerId:string,accountId:string,epoch:number,operationId:string,bytes:Uint8Array):AccountAuthorityState {
+  return this.guard(()=>this.db.transaction(()=>{
+   this.rotationTarget(ownerId,accountId,epoch,operationId,bytes);
+   const state=this.current(ownerId,accountId);if(state.phase!=='rotation_verified'||state.activeGeneration===null)fail('conflict');
+   this.queue(state,state.activeGeneration,operationId);
+   const changed=this.db.query('UPDATE mail_accounts SET version=? WHERE owner=? AND id=? AND version=? AND secret IS NULL').run(state.revision+1,ownerId,accountId,state.revision);
+   if(changed.changes!==1)fail('conflict');
+   const sessions=this.db.query('SELECT generation FROM provider_sessions WHERE owner=? AND account=?').all(ownerId,accountId) as {generation:number}[];
+   if(sessions.some(row=>!Number.isSafeInteger(row.generation)||row.generation<1||!Number.isSafeInteger(row.generation+1)))fail('recovery_required');
+   if(this.db.query('UPDATE provider_sessions SET secret=NULL,generation=generation+1 WHERE owner=? AND account=?').run(ownerId,accountId).changes!==sessions.length)fail('conflict');
+   return this.next(state,{revision:state.revision+1,phase:'keychain_authoritative',activeGeneration:state.stagedGeneration,stagedGeneration:null,rotationDigest:undefined});
+  }).immediate());
+ }
+ cancelRotation(ownerId:string,accountId:string,epoch:number,operationId:string):AccountAuthorityState {
+  return this.guard(()=>this.db.transaction(()=>{
+   const state=this.current(ownerId,accountId);this.expect(state,epoch,operationId);
+   if((state.phase!=='rotation_intent'&&state.phase!=='rotation_verified')||state.stagedGeneration===null)fail('conflict');
+   this.queue(state,state.stagedGeneration,operationId,state.revision+1);
+   return this.next(state,{phase:'keychain_authoritative',stagedGeneration:null,rotationDigest:undefined});
   }).immediate());
  }
  markUnavailable(ownerId:string,accountId:string,expectedEpoch:number):AccountAuthorityState {
@@ -259,7 +323,7 @@ export class AccountAuthorityJournal {
   return rows.map(row=>{
    const item=cleanupSchema.parse(JSON.parse(row.record));
    if(item.installationId!==this.installationId||item.ownerId!==ownerId||item.accountId!==accountId||item.revision!==row.revision||item.generation!==row.generation||!equal(item.mac,sign(this.key,'icloud-account-custody-cleanup-v1',cleanupPayload(item))))fail('recovery_required');
-   if(current.revision===item.revision&&(current.activeGeneration===item.generation||current.stagedGeneration===item.generation))fail('recovery_required');
+   if(current.revision===item.revision&&current.activeGeneration===item.generation||(current.rotationDigest===undefined?current.revision:current.revision+1)===item.revision&&current.stagedGeneration===item.generation)fail('recovery_required');
    return Object.freeze(item);
   });
  }
@@ -270,7 +334,7 @@ export class AccountAuthorityJournal {
    const state=this.current(ownerId,accountId);
    const found=this.cleanup(ownerId,accountId).find(row=>row.revision===item.revision&&row.generation===item.generation&&row.operationId===item.operationId&&row.mac===item.mac);
    if(!found)fail('conflict');
-   if(state.revision===item.revision&&(state.activeGeneration===item.generation||state.stagedGeneration===item.generation))fail('recovery_required');
+   if(state.revision===item.revision&&state.activeGeneration===item.generation||(state.rotationDigest===undefined?state.revision:state.revision+1)===item.revision&&state.stagedGeneration===item.generation)fail('recovery_required');
    const changed=this.db.query('DELETE FROM account_custody_cleanup WHERE owner=? AND account=? AND revision=? AND generation=?').run(ownerId,accountId,item.revision,item.generation);
    if(changed.changes!==1)fail('conflict');
   }).immediate());

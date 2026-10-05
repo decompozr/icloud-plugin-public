@@ -63,6 +63,17 @@ intent; only a separate noninteractive read reporting exact-item absence
 acknowledges it. Synthetic cancellation, revocation, lost-result and concurrency
 checks do not authorize a live backend or prove operator exclusion.
 
+The inactive account journal additionally supports explicit format-2 rotation
+intent and verification. An original-key HMAC pins replacement bytes to the exact
+next revision/generation/operation without storing the password. Pending rotation
+retains the old active pointer and provider sessions; commit atomically advances
+the registry revision/pointer, invalidates sessions and queues the old selector.
+Cancellation preserves the old authority and queues the next-revision staging
+selector; revocation tombstones both dependencies. The header upgrade makes old
+format-1 journal implementations refuse opening it; ordinary runtime still
+rejects all account journals. These are storage primitives: provider validation,
+resumable native copy/readback and operational add/rotation adapters remain pending.
+
 Operational stopped recovery, account add/rotation adapters and
 settings/compatibility/backend
 integration remain pending; K1 is not complete and runtime custody is unchanged.

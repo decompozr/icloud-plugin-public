@@ -265,3 +265,48 @@ test('unavailable recovery requires exact fresh identity and epoch, retaining na
   expect(()=>f.journal.restoreAvailable('owner',f.a,revoked.epoch,identity)).toThrow('conflict');
  }finally{f.cleanup();}
 });
+
+function nativeActive(f:ReturnType<typeof fixture>){const {state,operationId}=verified(f);return f.journal.activate('owner',f.a,state.epoch,operationId);}
+test('format-2 rotation atomically advances native pointer and revision, invalidates sessions and queues old generation',()=>{
+ const f=fixture(),bytes=Buffer.from('synthetic-replacement');try{
+  const active=nativeActive(f),before=f.owner.providerSessionState('owner',f.a,'photos_web'),op=randomUUID();
+  const intent=f.journal.beginRotation('owner',f.a,active.epoch,op,bytes);
+  expect(intent.format).toBe(2);expect(AccountAuthorityJournal.validateExistingRecords({database:f.db,installationId:f.installationId,masterKey:f.options.masterKey,ownerId:'owner'})).toEqual({format:1,records:2,cleanup:0});expect(intent.revision).toBe(1);expect(f.journal.readTarget('owner',f.a,intent.epoch).generation).toBe(1);
+  const target=f.journal.rotationTarget('owner',f.a,intent.epoch,op,bytes);expect(target.revision).toBe(2);expect(target.generation).toBe(2);
+  expect(f.owner.providerSessionState('owner',f.a,'photos_web')).toEqual(before);
+  expect(()=>f.journal.rotationTarget('owner',f.a,intent.epoch,op,Buffer.from('other'))).toThrow('conflict');
+  const checked=f.journal.markRotationVerified('owner',f.a,intent.epoch,op,bytes),moved=f.journal.commitRotation('owner',f.a,checked.epoch,op,bytes);
+  expect(moved.revision).toBe(2);expect(moved.activeGeneration).toBe(2);expect(moved.rotationDigest).toBeUndefined();expect(f.owner.readProviderSession('owner',f.a,'photos_web')).toBeNull();
+  expect(f.journal.listCleanup('owner',f.a).map(row=>[row.revision,row.generation])).toEqual([[1,1]]);
+  expect(f.db.query('SELECT secret,version FROM mail_accounts WHERE id=?').get(f.a)).toEqual({secret:null,version:2});
+  expect(()=>f.journal.commitRotation('owner',f.a,checked.epoch,op,bytes)).toThrow('conflict');
+  expect((f.db.query('SELECT record FROM account_custody_state WHERE account=?').get(f.a) as {record:string}).record).not.toContain('synthetic-replacement');
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('rotation intent survives reopen, cancellation retains old sessions and fences generation reuse',()=>{
+ const f=fixture(),bytes=Buffer.from('synthetic-replacement');let reopened:AccountAuthorityJournal|undefined;try{
+  const active=nativeActive(f),before=f.owner.providerSessionState('owner',f.a,'photos_web'),op=randomUUID();
+  const intent=f.journal.beginRotation('owner',f.a,active.epoch,op,bytes);
+  reopened=AccountAuthorityJournal.open(f.db,f.installationId,f.options.masterKey,f.owner);expect(reopened.read('owner',f.a)).toEqual(intent);
+  const cancelled=reopened.cancelRotation('owner',f.a,intent.epoch,op);expect(cancelled.revision).toBe(1);expect(cancelled.activeGeneration).toBe(1);expect(f.owner.providerSessionState('owner',f.a,'photos_web')).toEqual(before);
+  expect(reopened.listCleanup('owner',f.a).map(row=>[row.revision,row.generation])).toEqual([[2,2]]);
+  const next=reopened.beginRotation('owner',f.a,cancelled.epoch,randomUUID(),bytes);expect(next.stagedGeneration).toBe(3);
+  expect(()=>reopened!.markRotationVerified('owner',f.a,intent.epoch,op,bytes)).toThrow('conflict');
+ }finally{reopened?.close();bytes.fill(0);f.cleanup();}
+});
+test('revocation during rotation queues old and replacement selectors and blocks stale verification',()=>{
+ const f=fixture(),bytes=Buffer.from('synthetic-replacement');try{
+  const active=nativeActive(f),op=randomUUID(),intent=f.journal.beginRotation('owner',f.a,active.epoch,op,bytes);
+  const revoked=f.journal.revoke('owner',f.a,intent.epoch,randomUUID());expect(revoked.phase).toBe('revoked');expect(revoked.rotationDigest).toBeUndefined();
+  expect(f.journal.listCleanup('owner',f.a).map(row=>[row.revision,row.generation])).toEqual([[1,1],[2,2]]);
+  expect(()=>f.journal.markRotationVerified('owner',f.a,intent.epoch,op,bytes)).toThrow('conflict');
+ }finally{bytes.fill(0);f.cleanup();}
+});
+test('rotation commit rollback preserves old pointer, revision, sessions and intent when session update is ignored',()=>{
+ const f=fixture(),bytes=Buffer.from('synthetic-replacement');try{
+  const active=nativeActive(f),op=randomUUID(),intent=f.journal.beginRotation('owner',f.a,active.epoch,op,bytes),checked=f.journal.markRotationVerified('owner',f.a,intent.epoch,op,bytes),session=f.owner.providerSessionState('owner',f.a,'photos_web');
+  f.db.exec('CREATE TRIGGER ignore_rotation_session BEFORE UPDATE ON provider_sessions BEGIN SELECT RAISE(IGNORE); END');
+  expect(()=>f.journal.commitRotation('owner',f.a,checked.epoch,op,bytes)).toThrow('conflict');expect(f.journal.read('owner',f.a)).toEqual(checked);expect(f.journal.listCleanup('owner',f.a)).toHaveLength(0);expect(f.owner.providerSessionState('owner',f.a,'photos_web')).toEqual(session);
+  f.db.query('UPDATE account_custody_meta SET format=1').run();expect(()=>f.journal.read('owner',f.a)).toThrow('recovery_required');
+ }finally{bytes.fill(0);f.cleanup();}
+});
