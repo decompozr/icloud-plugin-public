@@ -89,3 +89,34 @@ test('confirmed native cancellation is retained when journal is unavailable afte
   expect((await next.operationStatus(plan.operationId)).status).toBe('cancelled');expect(t.calls()).toBe(0);
  }finally{t.db.close();}
 });
+
+test('cross-page review summary preserves undecided and binds decisions to owner and destination',async()=>{
+ const t=setup(),second='asset:1234567890abcdef:33333333-3333-3333-3333-333333333333';
+ t.provider.openCatalog=async(request,operationId)=>({status:'catalog_review',operationId,assetIds:request.kind==='comparison'?request.assetIds:[id]});
+ const save=async(albumId:string,decision:string)=>{
+  t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:decision==='share_review'?[id]:[],decisions:[{assetId:id,decision}]});
+  const opened=await t.service.openCatalog({kind:'comparison',assetIds:[id],albumId});await t.service.catalogStatus(opened.reviewId);
+ };
+ try{
+  await save(sharedIntent.albumId,'keep');
+  await save('album:1234567890abcdef:shared:44444444-4444-4444-4444-444444444444','share_review');
+  const input={kind:'comparison',assetIds:[id,second],albumId:sharedIntent.albumId};
+  let summary=t.service.reviewSummary(input);
+  expect(summary.counts).toEqual({unreviewed:1,undecided:0,keep:1,share_review:0,delete_review:0});
+  expect(summary.allSourcesReviewed).toBe(false);expect(summary.writeApproved).toBe(false);
+  await save(sharedIntent.albumId,'undecided');summary=t.service.reviewSummary({...input,assetIds:[id]});
+  expect(summary.allSourcesReviewed).toBe(true);expect(summary.allSourcesDecided).toBe(false);expect(summary.counts.undecided).toBe(1);
+  const other=new PhotosService(t.db,t.provider,t.policy,()=> 'other');expect(other.reviewSummary(input).counts.unreviewed).toBe(2);
+  const restarted=new PhotosService(t.db,t.provider,t.policy,()=> 'owner');expect(restarted.reviewSummary(input).counts.undecided).toBe(1);
+  expect(t.calls()).toBe(0);
+ }finally{t.db.close();}
+});
+test('review summary excludes pending and legacy selections rather than guessing keep decisions',async()=>{
+ const t=setup();t.provider.openCatalog=async(_request,operationId)=>({status:'catalog_review',operationId,assetIds:[id]});t.provider.reviewStatus=async()=>({status:'selection_reviewed',selectedAssetIds:[id]});
+ try{
+  const input={kind:'cleanup',assetIds:[id]};const opened=await t.service.openCatalog({kind:'cleanup'});
+  expect(t.service.reviewSummary(input).counts.unreviewed).toBe(1);
+  await t.service.catalogStatus(opened.reviewId);expect(t.service.reviewSummary(input).counts.unreviewed).toBe(1);
+  expect(()=>t.service.reviewSummary({...input,assetIds:[id,id]})).toThrow();
+ }finally{t.db.close();}
+});

@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {zodToJsonSchema} from 'zod-to-json-schema';
 import type {RuntimeModule,RegisteredTool} from '../modules/runtime.js';
-import {assetId,albumId,mutationSchema,querySchema,catalogSchema,sharedObservationSchema,PhotosError} from './contracts.js';
+import {assetId,albumId,mutationSchema,querySchema,catalogSchema,reviewSummarySchema,sharedObservationSchema,PhotosError} from './contracts.js';
 import {PhotosService,type PhotosPolicy} from './service.js';
 export function photosRegistration(service:PhotosService,policy:()=>PhotosPolicy):RuntimeModule{
  const enabled=(scope:string)=>{const p=policy();return p.read&&(scope==='photos.read'||p.write&&(scope!=='photos.delete'||p.delete));};
@@ -31,6 +31,7 @@ export function photosRegistration(service:PhotosService,policy:()=>PhotosPolicy
  register('photos_shared_review_status','Read the durable native Shared Album review result. Posting completion is not destination membership or cross-device sync proof. Never relaunch an uncertain operation.',z.object({operationId:z.string().uuid()}).strict(),'photos.read',a=>service.reviewStatus(a.operationId));
  register('photos_open_review','Open a native review window on the service Mac for exact comparison assets or a cleanup candidate page. Shows previews and evidence. Saving selections does not upload or delete.',catalogSchema,'photos.read',a=>service.openCatalog(a));
  register('photos_review_status','Read the saved exact selections from a native review. A selection requests further review, not approval to delete or upload.',z.object({reviewId:z.string().uuid()}).strict(),'photos.read',a=>service.catalogStatus(a.reviewId));
+ register('photos_review_summary','Account for up to 500 exact source IDs across saved native reviews. Separates unreviewed, undecided, keep and further-review candidates; comparison decisions are bound to the exact album. No write approval or sharing proof.',reviewSummarySchema,'photos.read',async a=>service.reviewSummary(a));
  register('photos_record_shared_observation','Record only the owner\'s explicit report that the exact source corresponds to a shared asset seen in the specified album/device. Rechecks local membership; owner report is not direct server proof or proof this operation uploaded it. Never infer this report from probable matches.',sharedObservationSchema,'photos.write',a=>service.recordSharedObservation(a));
  return {id:'photos',scopes:[{name:'photos.read',title:'Read Photos',description:'Read the selected Mac Photos library, existing people labels and albums.',enabled:()=>enabled('photos.read')},{name:'photos.write',title:'Organize Photos',description:'Apply reviewed album and metadata changes to your Photos library.',enabled:()=>enabled('photos.write')},{name:'photos.delete',title:'Delete Photos',description:'Delete specifically reviewed photos from the synced Photos library.',enabled:()=>enabled('photos.delete')}],tools};
 }

@@ -112,6 +112,15 @@ or review deletion (cleanup). Every source is accounted for; missing previews
 remain undecided. Saving decisions changes no photo and does not approve writes
 or deletion. Only sharing/deletion review candidates populate selected IDs.
 The service rejects missing, duplicate, wrong-purpose or inconsistent decisions.
+`photos_review_summary` accounts for up to 500 exact IDs across batches. It
+separates unreviewed, undecided, keep and further-review decisions, using the latest
+finalized review creation for the same owner, purpose and comparison destination.
+Pending/cancelled and legacy selected-only records make no decision. Coverage
+refers only to supplied IDs and saved decisions, not a fresh library snapshot or
+proof of sharing. `allSourcesReviewed` can be true while undecided sources remain.
+The packaged `icloud-photos` client skill documents this workflow and exact
+confirmation/recovery boundaries.
+
 Finalized selections persist in SQLite; a retained private manifest recovers
 allowed selections if the launch response was lost.
 

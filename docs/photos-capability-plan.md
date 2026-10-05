@@ -415,3 +415,24 @@ run lacked its declared local zod dependency; the frozen-lockfile install and
 rerun passed. These are self-checks, not an independent release review or installed
 acceptance. The installed target confirmation, native visible UI/permission gate
 and exact owner-reviewed live changes remain pending.
+
+
+### Cross-batch accountability and client delivery (2026-10-04)
+
+`photos_review_summary` now accounts for an explicit source set across finalized
+reviews, separating unreviewed, undecided, keep and purpose-specific further-review
+candidates. It binds comparison decisions to the owner and exact album, survives
+restart, and excludes pending/cancelled/legacy selected-only results. The latest
+finalized review creation controls each source decision. Saved decisions never
+claim current library state, sharing success or write authorization.
+
+The `icloud-photos` skill is included in immutable application templates, configured
+server downloads and exported client ZIPs alongside Mail and Calendar. It explains
+service-Mac permission setup, tagged person queries, complete source accounting,
+exact native posting review, unknown-outcome recovery and explicit deletion scope.
+No user asset IDs or previews enter these artifacts.
+
+Validation: application build/typechecking passed, 322 application tests / 1,991
+assertions passed, and 10 tooling tests / 135 assertions passed. The archive tests
+verify the Photos skill is present while unrelated files are excluded. These remain
+source/packaging self-checks; installed and live native acceptance are pending.

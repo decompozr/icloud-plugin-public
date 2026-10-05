@@ -1,6 +1,6 @@
 import {Database} from 'bun:sqlite';
 import {randomUUID} from 'node:crypto';
-import {mutationSchema,catalogSchema,sharedObservationSchema,assetSchema,PhotosError,type PhotosProvider,type Mutation} from './contracts.js';
+import {mutationSchema,catalogSchema,reviewSummarySchema,sharedObservationSchema,assetSchema,PhotosError,type PhotosProvider,type Mutation} from './contracts.js';
 import {z} from 'zod';
 import {reviewDecision} from './shared-review.js';
 export interface PhotosPolicy {read:boolean;write:boolean;delete:boolean}
@@ -94,6 +94,26 @@ export class PhotosService {
   const opened=row.result?JSON.parse(row.result):{};
   this.db.query('UPDATE photos_reviews SET status=?,result=? WHERE id=? AND owner=?').run(result.status,JSON.stringify({...opened,assetIds:opened.assetIds??result.manifestAssetIds,lastEvent:result}),id,owner);
   return {reviewId:id,status:result.status,result};
+ }
+ reviewSummary(raw:unknown){
+  const owner=this.check(),request=reviewSummarySchema.parse(raw);
+  // The latest finalized review creation wins, for this owner and destination only.
+  // Pending/cancelled reviews and legacy selected-only records make no decision.
+  const rows=this.db.query(`WITH ranked AS (
+   SELECT json_extract(d.value,'$.assetId') AS assetId,
+    json_extract(d.value,'$.decision') AS decision, r.id AS reviewId,
+    row_number() OVER (PARTITION BY json_extract(d.value,'$.assetId') ORDER BY r.rowid DESC) AS position
+   FROM photos_reviews r, json_each(r.result,'$.lastEvent.decisions') d
+   WHERE r.owner=? AND r.status='selection_reviewed'
+    AND json_extract(r.request,'$.kind')=?
+    AND (? IS NULL OR json_extract(r.request,'$.albumId')=?)
+    AND json_extract(d.value,'$.assetId') IN (SELECT value FROM json_each(?))
+  ) SELECT assetId,decision,reviewId FROM ranked WHERE position=1`).all(owner,request.kind,request.kind==='comparison'?request.albumId:null,request.kind==='comparison'?request.albumId:null,JSON.stringify(request.assetIds)) as {assetId:string;decision:string;reviewId:string}[];
+  const saved=new Map(rows.map(row=>[row.assetId,row]));
+  const results=request.assetIds.map(assetId=>saved.get(assetId)??{assetId,decision:'unreviewed',reviewId:null});
+  const counts={unreviewed:0,undecided:0,keep:0,share_review:0,delete_review:0};
+  for(const row of results){if(!Object.hasOwn(counts,row.decision))throw new PhotosError('invalid_review_decisions');counts[row.decision as keyof typeof counts]++;}
+  return {source:'saved_owner_review_decisions',kind:request.kind,...(request.kind==='comparison'?{albumId:request.albumId}:{}),total:results.length,counts,results,allSourcesReviewed:counts.unreviewed===0,allSourcesDecided:counts.unreviewed===0&&counts.undecided===0,writeApproved:false,sharingVerified:false,serverSyncVerified:false,message:'Summary covers only supplied IDs and saved decisions, not current library state. Review candidates require a separate exact prepare/confirmation; they do not prove upload or authorize deletion.'};
  }
  async operationStatus(id:string){
   const owner=this.check();const row=this.db.query('SELECT mutation FROM photos_operations WHERE id=? AND owner=?').get(id,owner) as {mutation:string}|null;
