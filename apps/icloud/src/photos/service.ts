@@ -1,6 +1,6 @@
 import {Database} from 'bun:sqlite';
 import {randomUUID} from 'node:crypto';
-import {mutationSchema,catalogSchema,remoteDecisionsSchema,reviewSummarySchema,sharedObservationSchema,assetSchema,PhotosError,type PhotosProvider,type Mutation} from './contracts.js';
+import {mutationSchema,catalogSchema,remoteDecisionsSchema,reviewSummarySchema,sharedObservationSchema,assetSchema,PhotosError,type PhotosProvider,type Mutation,type CleanupCandidate} from './contracts.js';
 import {z} from 'zod';
 import {reviewDecision} from './shared-review.js';
 export interface PhotosPolicy {read:boolean;write:boolean;delete:boolean}
@@ -32,9 +32,9 @@ export class PhotosService {
    if(result.results.length!==request.assetIds.length||new Set(result.results.map(r=>r.assetId)).size!==request.assetIds.length||result.results.some(r=>!request.assetIds.includes(r.assetId)))throw new PhotosError('invalid_review_sources');
    entries=result.results.map(r=>({assetId:r.assetId,evidence:r}));coverage={album:result.album,totalSources:entries.length};
   }else{
-   const result=await this.provider.read('cleanup',{offset:request.offset,limit:request.limit}) as {total:number;nextOffset:number|null;candidates:{reason:string;assetIds:string[]}[]};
+   const result=await this.provider.read('cleanup',{offset:request.offset,limit:request.limit}) as {total:number;nextOffset:number|null;candidates:CleanupCandidate[]};
    const seen=new Set<string>();let omittedAssets=0;
-   for(const group of result.candidates)for(const assetId of group.assetIds){if(seen.has(assetId))continue;seen.add(assetId);if(request.assetIds&&!request.assetIds.includes(assetId)){omittedAssets++;continue;}if(entries.length===12){omittedAssets++;continue;}entries.push({assetId,evidence:{reason:group.reason,candidateIds:group.assetIds.filter(id=>id!==assetId).slice(0,2)}});}
+   for(const group of result.candidates)for(const assetId of group.assetIds){if(seen.has(assetId))continue;seen.add(assetId);if(request.assetIds&&!request.assetIds.includes(assetId)){omittedAssets++;continue;}if(entries.length===12){omittedAssets++;continue;}entries.push({assetId,evidence:{reason:group.reason,candidateIds:group.assetIds.filter(id=>id!==assetId).slice(0,2),...(group.groupAssetCount===undefined?{}:{groupAssetCount:group.groupAssetCount,groupPart:group.groupPart,groupParts:group.groupParts})}});}
    if(request.assetIds?.some(id=>!seen.has(id)))throw new PhotosError('invalid_review_sources');
    coverage={totalCandidateGroups:result.total,nextOffset:result.nextOffset,omittedAssets};
   }

@@ -111,7 +111,7 @@ def main(request):
         return {'source':'local_synced_snapshot','album':album(a,k),'results':rows}
     if command == 'cleanup':
         groups={}; candidates=[]
-        for p in db.photos():
+        for p in sorted(db.photos(), key=lambda photo: photo.uuid):
             if p.shared: continue
             fingerprint=p._info.get('masterFingerprint')
             if fingerprint:
@@ -122,7 +122,18 @@ def main(request):
             name=p.original_filename or p.filename or ''
             if re.match(r'^(WhatsApp (Image|Video)|(?:IMG|VID)-\d{8}-WA\d{4})',name,re.IGNORECASE):
                 candidates.append({'reason':'messaging_filename','assetIds':[aid(p)]})
-        duplicate=[{'reason':'same_fingerprint','assetIds':v[:1000]} for v in groups.values() if len(v)>1]
+        duplicate=[]
+        for values in groups.values():
+            if len(values)<2: continue
+            # Every continuation retains a reference to the first asset. Never
+            # truncate a group and then report its review coverage as complete.
+            parts=[values[:1000]]
+            parts.extend([values[0]]+values[offset:offset+999]
+                         for offset in range(1000,len(values),999))
+            for number, assets in enumerate(parts,1):
+                duplicate.append({'reason':'same_fingerprint','assetIds':assets,
+                                  'groupAssetCount':len(values),'groupPart':number,
+                                  'groupParts':len(parts)})
         candidates=duplicate+candidates; limit=data.get('limit',50); offset=data.get('offset',0)
         return {'source':'local_synced_snapshot','reviewOnly':True,'total':len(candidates),'candidates':candidates[offset:offset+limit],
                 'complete':offset+limit>=len(candidates),'nextOffset':offset+limit if offset+limit<len(candidates) else None}

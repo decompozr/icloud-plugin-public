@@ -18,6 +18,11 @@ export type Mutation=z.infer<typeof mutationSchema>;
 export const assetSchema=z.object({id:assetId,filename:z.string(),date:z.string().nullable(),mediaType:z.enum(['photo','video']),livePhoto:z.boolean().default(false),title:z.string(),description:z.string(),keywords:z.array(z.string()),favorite:z.boolean(),persons:z.array(z.string()),width:z.number(),height:z.number(),shared:z.boolean()}).strict();
 export const albumSchema=z.object({id:albumId,title:z.string(),kind:z.enum(['ordinary','shared']),count:z.number().int().nonnegative()}).strict();
 export type Asset=z.infer<typeof assetSchema>;
+export const cleanupCandidateSchema=z.object({reason:z.enum(['same_fingerprint','screenshot','messaging_filename']),assetIds:z.array(assetId).min(1).max(1000),groupAssetCount:z.number().int().min(2).optional(),groupPart:z.number().int().positive().optional(),groupParts:z.number().int().positive().optional()}).strict().refine(value=>{
+ const supplied=[value.groupAssetCount,value.groupPart,value.groupParts].filter(v=>v!==undefined).length;
+ return supplied===0||(value.reason==='same_fingerprint'&&value.groupPart!==undefined&&value.groupParts!==undefined&&value.groupAssetCount!==undefined&&value.groupPart<=value.groupParts&&value.groupAssetCount>=value.assetIds.length&&value.assetIds.length>=2);
+},'Invalid duplicate group coverage');
+export type CleanupCandidate=z.infer<typeof cleanupCandidateSchema>;
 export const catalogSchema=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('comparison'),assetIds:z.array(assetId).min(1).max(12).refine(v=>new Set(v).size===v.length),albumId}).strict(),
  z.object({kind:z.literal('cleanup'),assetIds:z.array(assetId).min(1).max(12).refine(v=>new Set(v).size===v.length).optional(),offset:z.number().int().min(0).max(1000000).default(0),limit:z.number().int().min(1).max(12).default(6)}).strict()

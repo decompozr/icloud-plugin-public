@@ -91,6 +91,18 @@ and all remaining end-to-end phases remain open.
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
+### Cleanup review completeness implementation — 2026-10-05
+
+Fingerprint groups now have bounded review parts (at most 1,000 IDs), with an
+explicit original group size, part index and part count. Continuations keep the
+first source as context; an exact remote subset can exclude that already-reviewed
+reference. All source IDs remain retrievable by following the candidate-page
+continuation. UUID order is stable when the local library is unchanged. Group
+size/part metadata survives into durable remote review evidence; it is not exact
+byte/motion equivalence or write approval.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ### Goal and accepted product boundary
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.

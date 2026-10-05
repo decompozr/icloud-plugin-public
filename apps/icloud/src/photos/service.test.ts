@@ -233,3 +233,12 @@ test('large cleanup groups support exact remote subsets without silently droppin
   expect(t.nativeCalls()).toBe(0);
  }finally{t.db.close();}
 });
+test('remote review retains continuation evidence and can select a final part without re-reviewing its reference',async()=>{
+ const t=remoteFixture(),original=t.provider.read,ids=Array.from({length:2},(_,i)=>`asset:1234567890abcdef:${String(i+1).padStart(8,'0')}-1111-1111-1111-111111111111`);
+ t.provider.read=async(c,i)=>c==='cleanup'?{total:2,nextOffset:null,candidates:[{reason:'same_fingerprint',assetIds:ids,groupAssetCount:1001,groupPart:2,groupParts:2}]}:original(c,i);
+ try{
+  const opened=await t.service.prepareCatalog({kind:'cleanup',offset:1,limit:1,assetIds:[ids[1]]});
+  expect(opened.result.assetIds).toEqual([ids[1]!]);expect(opened.result.sources[0]!.evidence).toEqual({reason:'same_fingerprint',candidateIds:[ids[0]],groupAssetCount:1001,groupPart:2,groupParts:2});
+  expect(opened.result.coverage).toEqual({totalCandidateGroups:2,nextOffset:null,omittedAssets:1});expect(t.nativeCalls()).toBe(0);expect(opened.result.writeApproved).toBe(false);
+ }finally{t.db.close();}
+});

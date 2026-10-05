@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {join,dirname,isAbsolute} from 'node:path';
 import {z} from 'zod';
-import {assetSchema,albumSchema,mutationSchema,PhotosError,type Mutation,type PhotosProvider} from './contracts.js';
+import {assetSchema,albumSchema,mutationSchema,cleanupCandidateSchema,PhotosError,type Mutation,type PhotosProvider} from './contracts.js';
 import {readReview} from './shared-review.js';
 const moduleDirectory=dirname(fileURLToPath(import.meta.url));
 const base=existsSync(join(moduleDirectory,'reader.py'))?moduleDirectory:join(moduleDirectory,'photos');
@@ -68,7 +68,7 @@ export class LocalPhotosProvider implements PhotosProvider {
   if(command==='persons')return z.object({persons:z.array(z.object({name:z.string(),count:z.number().int().nonnegative()})).max(100),total:z.number().int().nonnegative(),complete:z.boolean()}).strict().parse(value);
   if(command==='preview')return z.object({assetId:z.string(),mimeType:z.enum(['image/jpeg','image/png']),data:z.string().max(2800000)}).strict().parse(value);
   if(command==='compare')return z.object({source:z.literal('local_synced_snapshot'),album:albumSchema,results:z.array(z.object({assetId:z.string(),status:z.enum(['confirmed','probable','ambiguous','not_found']),candidates:z.array(z.object({assetId:z.string(),sameFilename:z.boolean(),secondsApart:z.number().nullable(),sameMediaType:z.boolean(),sameDimensions:z.boolean(),sameIdentity:z.boolean()}).strict()).max(1000)}).strict()).max(50)}).strict().parse(value);
-  if(command==='cleanup')return z.object({source:z.literal('local_synced_snapshot'),reviewOnly:z.literal(true),total:z.number().int(),candidates:z.array(z.object({reason:z.enum(['same_fingerprint','screenshot','messaging_filename']),assetIds:z.array(z.string()).max(1000)}).strict()).max(100),complete:z.boolean(),nextOffset:z.number().int().nonnegative().nullable()}).strict().parse(value);
+  if(command==='cleanup')return z.object({source:z.literal('local_synced_snapshot'),reviewOnly:z.literal(true),total:z.number().int().nonnegative(),candidates:z.array(cleanupCandidateSchema).max(100),complete:z.boolean(),nextOffset:z.number().int().nonnegative().nullable()}).strict().parse(value);
   if(command==='health'){
    const health=z.object({provider:z.literal('osxphotos'),version:z.literal('0.77.2'),libraryScope:z.string(),systemLibrary:z.boolean(),source:z.literal('local_synced_snapshot'),serverSyncVerified:z.literal(false)}).strict().parse(value);
    let native:unknown;try{native=z.object({authorization:z.number().int(),authorized:z.boolean()}).strict().parse(await runNative(this.settings.nativeHelper,{command:'health'},this.settings.timeoutMs));}catch{native={authorized:false,error:'native_helper_unavailable'};}
