@@ -6,7 +6,7 @@ import {z} from 'zod';
 import type {OwnerSecretStore,ProviderSessionCustody} from '../storage/owner-store.js';
 import {PhotosError} from './contracts.js';
 import {runProcess} from './provider.js';
-import {SHARED_READ_TIMEOUT_MS,SHARED_WRITE_TIMEOUT_MS,sharedStreamURL,type SharedStreamSession} from './shared-stream-protocol.js';
+import {SHARED_INVENTORY_PROBE_TIMEOUT_MS,SHARED_READ_TIMEOUT_MS,SHARED_WRITE_TIMEOUT_MS,sharedStreamURL,type SharedStreamSession} from './shared-stream-protocol.js';
 import {verificationMethod} from './cloud-verification.js';
 
 const actorResult=z.object({phase:z.enum(['awaiting_2fa','authenticated','verification_failed','delivery_failed','unsupported_authentication','authentication_required']),privateState:z.record(z.unknown()).optional(),sharedServiceAdvertised:z.boolean().optional(),dsid:z.string().optional(),serviceOrigin:z.string().nullable().optional()}).strict();
@@ -55,8 +55,10 @@ export class PhotosCloudSetup implements PhotosCloudAdmin {
    if(url!==sharedStreamURL(session,accountId,endpoint))throw new PhotosError('invalid_shared_album_request');
    const directory=dirname(fileURLToPath(import.meta.url));
    const script=join(existsSync(join(directory,'shared-stream-request.py'))?directory:join(directory,'photos'),'shared-stream-request.py');
-   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint,body:init.body,...(endpoint.startsWith('webget')?{transport:'system_http2'}:{})};
-   const deadline=endpoint.startsWith('webget')?SHARED_READ_TIMEOUT_MS:SHARED_WRITE_TIMEOUT_MS;
+   const longProbe=new Headers(init.headers).get('x-photos-inventory-probe')==='true';
+   if(longProbe&&(endpoint!=='webgetalbumslist'||init.body!=='{}'))throw new PhotosError('invalid_shared_album_request');
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint,body:init.body,...(longProbe?{longProbe:true}:{}),...(endpoint.startsWith('webget')?{transport:'system_http2'}:{})};
+   const deadline=longProbe?SHARED_INVENTORY_PROBE_TIMEOUT_MS:endpoint.startsWith('webget')?SHARED_READ_TIMEOUT_MS:SHARED_WRITE_TIMEOUT_MS;
    const result=z.object({status:z.number().int().min(200).max(599),body:z.string().max(1024*1024),httpVersion:z.enum(['1.0','1.1','2','3']).optional()}).strict().parse(await (this.options.requestActor?this.options.requestActor(input):runProcess([this.options.python,script],input,deadline,init.signal??undefined)));
    // A revocation during dispatch may follow an actual server write: callers
    // retain unknown outcomes rather than treating it as a safe retry.

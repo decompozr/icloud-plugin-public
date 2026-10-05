@@ -19,6 +19,9 @@ export function initializeSharedAlbumLedger(db:Database){db.exec(`CREATE TABLE I
  id TEXT PRIMARY KEY,owner TEXT NOT NULL,account TEXT NOT NULL,intent TEXT NOT NULL,
  albumGuid TEXT NOT NULL,snapshot TEXT NOT NULL,status TEXT NOT NULL,result TEXT,expires INTEGER NOT NULL,started INTEGER NOT NULL DEFAULT 0)`);}
 
+type HealthRead={id:string;identity:string;started:number;result?:unknown;promise:Promise<void>};
+const healthReads=new WeakMap<Database,Map<string,HealthRead>>();
+
 /** Account-bound experimental lifecycle with durable dispatch and server readback. */
 export class SharedAlbumService {
  constructor(private options:{db:Database;owner:string;accountId:string;currentOwner:()=>string;policy:()=>PhotosPolicy;session:()=>Session}){
@@ -35,11 +38,26 @@ export class SharedAlbumService {
  }
  async health(){
   this.check();
+  const session=this.options.session(),key=JSON.stringify([this.options.owner,this.options.accountId]),identity=JSON.stringify([session.generation,session.accountRevision]);
+  let reads=healthReads.get(this.options.db);if(!reads){reads=new Map();healthReads.set(this.options.db,reads);}
+  let read=reads.get(key);
+  if(!read||read.identity!==identity){
+   if(!read&&reads.size>=64)throw new PhotosError('health_read_capacity');
+   read={id:randomUUID(),identity,started:Date.now(),promise:Promise.resolve()};reads.set(key,read);
+   const current=read;
+   current.promise=this.performHealth().then(result=>{current.result=result;},()=>{current.result={status:'unavailable',error:'shared_album_read_failed'};});
+  }
+  const age=Date.now()-read.started;
+  if(age>300000&&read.result!==undefined){read.result={status:'read_expired',automaticRetry:false};}
+  return {readId:read.id,startedAt:read.started,...(read.result===undefined?{status:'read_pending',deadlineMs:180000,automaticRetry:false}:read.result as object)};
+ }
+ private async performHealth(){
+  this.check();
   const diagnosticSession=this.options.session(),access=diagnosticSession.webAccessState;
   const photosService=diagnosticSession.photosServiceState?diagnosticSession.photosServiceState().catch(()=>({status:'unavailable'})):Promise.resolve({status:'not_configured'});
   const webAccess=access?access().then(value=>({status:'observed',...value}),()=>({status:'unavailable'})):Promise.resolve({status:'not_configured'});
   try{
-   const result=await this.albums();
+   const result=await readSharedStreamAlbums(diagnosticSession,this.options.accountId,undefined,true);this.check();
    return {photosService:await photosService,webAccess:await webAccess,status:'remote_inventory_verified',accountId:this.options.accountId,authenticated:true,total:result.albums.length,legacyCandidates:result.albums.filter(a=>a.protocol==='legacy_candidate').length,modernOrEncrypted:result.albums.filter(a=>a.protocol==='modern_or_encrypted').length,serverResponseObserved:true,...(result.serverHTTPVersion?{serverHTTPVersion:result.serverHTTPVersion}:{}),managementReady:false,experimental:true};
   }catch(error){return {photosService:await photosService,webAccess:await webAccess,status:'unavailable',error:error instanceof PhotosError?error.code:'shared_album_readback_failed',...(error instanceof SharedStreamReadError?{diagnostic:error.diagnostic}:{}),serverResponseObserved:error instanceof SharedStreamReadError&&error.diagnostic.httpStatus!==undefined,managementReady:false,experimental:true};}
  }

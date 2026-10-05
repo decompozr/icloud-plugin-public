@@ -1,5 +1,44 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Bounded background inventory candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Upstream latency evidence and bounded read experiment — 2026-10-05
+
+Read upstream primary-source PR https://github.com/timlaing/pyicloud/pull/27
+(merged 2025-02-09). Its shared-stream example explicitly warns that the initial
+listing takes a while because the server responds slowly. This is historical
+latency evidence, not proof of the current account's timeout cause. Its historical
+app-password claim must not override the verified current session/auth path.
+
+Offline inspection of our sealed session (no network) found no expired cookies
+and retained Photos, CloudKit and Sharing PCS cookies. A separately named
+SharedStreams cookie was absent; no source establishes that such a cookie is
+required, so do not infer missing authorization or request another login.
+
+The existing actor ends reads after 50 seconds. A longer inventory experiment
+must use a bounded background read with an observable identity/status through the
+same main MCP, not repeatedly extend a synchronous tool call beyond its host
+window. One in-flight read per owner/account/session generation, no implicit retry,
+strict revocation checks and bounded cache lifetime are required. Preserve the
+operation's pending state until completion or verified timeout; do not restart
+because the caller stopped observing. This can establish whether slow initial
+inventory is the cause before changing routing or authentication again.
+
+## Actual normal Photos access verified — 2026-10-05
+
+PR 44 merged as 8b4d21b and installed 0.1.46 with retained session/config/Helper.
+Actual main-MCP health using the same saved account session returned Photos
+CloudKit zones_observed, HTTP 200 and zoneCount 1. This verifies access to normal
+Photos service metadata, not photo content, sharing, upload or cross-device sync.
+Shared Streams inventory still times out; web-access flags remain unrecognized.
+13 installed doctor checks passed and provider-session row digests were unchanged.
+Investigate service-specific Shared Streams routing/protocol and modern collection
+metadata next. The observed normal Photos response does not support asking the
+owner to repeat login as the next remedy. Full Shared Album lifecycle remains open.
+
+
 ## Normal Photos service comparison — 2026-10-05
 
 Installed 0.1.45 still returned an unrecognized web-access object with no known
