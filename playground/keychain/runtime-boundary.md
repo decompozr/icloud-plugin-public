@@ -1,5 +1,10 @@
 # K0 stock Bun runtime boundary
 
+Current policy note: the accepted 2026-10-05 revision trusts the local macOS user
+and uses official Bun. This report retains historical app-only boundary findings;
+its earlier policy conclusions are superseded by the [revised plan](../../docs/keychain-migration-plan.md#api-signing-and-caller-boundary-k0).
+It neither requires a custom Bun runtime nor proves revised K0 acceptance.
+
 Status: **negative finding reproduced; K0 gate not passed** (2026-10-05).
 This is a bounded code-loading experiment, not a Keychain access test or product
 implementation. The [dual migration plan](../../docs/keychain-migration-plan.md)
@@ -123,6 +128,11 @@ Standalone TypeScript checking passed using Bun and the existing local compiler;
 these checks do not establish product/native migration acceptance.
 
 ### Required runtime scope decision
+
+**Historical proposal, superseded by the accepted 2026-10-05 user-level trust
+boundary:** a restricted Bun build is no longer required. The observations below
+still rule out app-only isolation claims; they do not block standard helper access
+by the trusted local user. See the [revised plan](../../docs/keychain-migration-plan.md#api-signing-and-caller-boundary-k0).
 
 **Proposed next scope, not adopted:** investigate a dedicated Bun build with a
 native startup boundary that fixes the embedded entry, rejects generic CLI,

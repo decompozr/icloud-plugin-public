@@ -12,8 +12,11 @@ The requested next custody outcome moves **both** each account's Apple
 app-specific password and the **exact existing installation master key** into
 macOS Keychain. Neither migration is optional. The
 [full migration plan](keychain-migration-plan.md) defines the current-code
-inventory, authority/state machines, caller/signing gates, recovery and observable
-acceptance. Status: planning complete; product storage/compatibility implementation
+inventory, authority/state machines, helper/signing gates, recovery and observable
+acceptance. The accepted revision uses official Bun and trusts the same macOS user
+locally; remote owner/account isolation remains mandatory. App-only caller sealing
+and a custom Bun build are outside scope. Work follows experiment -> knowledge ->
+plan -> implementation. Status: revised planning complete; product storage/compatibility implementation
 and synthetic verification are underway under user authorization. K0 is unpassed
 and K1 is incomplete; native activation, actual credential migration, production
 signer provisioning and installed acceptance have not occurred.
@@ -26,7 +29,7 @@ web sessions and Mail/Calendar ledgers after Apple passwords move.
 
 | Phase | Outcome and dependency | Observable completion gate |
 | --- | --- | --- |
-| K0 | Select native API/accessibility, production signing/renewal and an authenticated caller design; prototype only with synthetic values. | Dedicated signed runtime and broker distinguish this sealed application from arbitrary same-user Bun scripts. Generic Bun, path/UID checks and a plaintext-export helper are insufficient. Changed signed releases and unauthorized controls, setup authorization and supported login/lock lifecycle are tested; unverified contexts remain explicit. |
+| K0 | Qualify standard native API/accessibility, helper signing/renewal and official Bun integration under the trusted local-user boundary. | Exact scoped operations; cross-user/remote denial; setup approval, unattended reads/changed signed releases/rollback and supported login/lock contexts observed. Same-user helper calls are accepted, with no app-only or custom Bun requirement. |
 | K1 | Build separate master-key/account-password custody ports, versioned authority/settings, CAS journals/tombstones, compatibility tooling and stable custody paths. K0 policy is a dependency; fixture-only work may proceed while external signing inputs remain pending. | Crash/concurrency tests preserve authoritative source and identities; active Keychain never falls back to file/SQLite. Unsupported old formats/signatures are rejected. Container/file mode remains explicit. No production cutover yet. |
 | K2 | Move the original master key first; preserve exact bytes and every derivation/AAD/installation context. Requires K0/K1. | Populated marker/account/session/auth/verifier/Mail/Calendar validators pass, restart succeeds without UI or owner reenrollment, protected restore/rollback is accepted before legacy file retirement. |
 | K3 | Move every connected account password with stable UUIDs/revisions and explicit per-account authority; integrate add/rotate/revoke. Requires K2. | CAS and interrupted-write recovery preserve routing/grants; real rotation/revocation invalidates Photos sessions/readiness and cannot resurrect stale credentials. Custody-only moves retain valid sessions. Revoked accounts remain tombstoned. |
@@ -41,12 +44,12 @@ review; operator-authenticated maintenance,
 protected recovery and native backend integration remain incomplete. Keychain
 activation continues to require K0 first; no live secrets have been migrated.
 
-The next bounded slice is K0's caller/signing/API design and isolated prototype,
-as detailed in the plan. The [stock Bun boundary experiment](../playground/keychain/runtime-boundary.md)
-reproduced external-script/preload execution under an unchanged signed standalone
-executable. Stock compilation plus signing is insufficient; K0 now requires a
-native pre-JS code-loading boundary before any broker can release credentials.
-No Keychain operation was involved, and K0 has not passed. K1 fixture contracts
+The next bounded slice is the revised K0 standard-helper contract: exact owned
+selectors, local official-Bun transport, secret buffer ownership, runtime UI
+suppression and administrative setup policy, followed by synthetic protocol
+checks and knowledge/plan reconciliation. The [stock Bun report](../playground/keychain/runtime-boundary.md)
+remains valid evidence against app-only isolation, which is no longer required.
+No Keychain operation was involved, and revised K0 has not passed. K1 fixture contracts
 remain independent; K2/K3 activation remains gated. K1's first inactive foundation
 now provides both custody ports/exact selectors and a master authority journal
 with original-key HMAC, atomic fsynced writes, phase/generation CAS and exclusive
@@ -207,8 +210,9 @@ selection. Unsupported metadata/account journals and recovery-required owner DB
 state reject without deployment writes. This is metadata/schema compatibility,
 not HMAC/signature verification, operator authentication or native acceptance;
 old installers and custom config/writer boundaries remain explicit.
-No production identity is presumed available; sealed
-Bun packaging and authenticated peer-channel feasibility are unverified. Open
+No production identity is presumed available; standard helper packaging/access
+and unattended update behavior still require qualification. The older sealed-Bun
+and message-origin investigations remain historical, not activation dependencies. Open
 decisions are signer custody/renewal, Keychain implementation/accessibility,
 supported OS/login contexts, protected recovery retention/export, and whether
 complete removal should become the uninstall default. Keep current retained-state

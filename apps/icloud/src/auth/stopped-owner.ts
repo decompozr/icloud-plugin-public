@@ -9,7 +9,7 @@ import {CustodyError} from '../storage/custody-contract.js';
  * binding and safely opened retained DB. No enrollment, schema migrations,
  * session refresh/cache, native API or runtime factory is invoked here.
  * Requires real cooperative stopped exclusion; excludes neither hostile same-
- * user writers nor older custom writers. K0 caller sealing remains required.
+ * user writers nor older custom writers. Revised K0 backend acceptance remains required.
  */
 export function createStoppedOwnerAuthorization(options:{
  database:Database;access:InstallationAccess;custodyDirectory:string;

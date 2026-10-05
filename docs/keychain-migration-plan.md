@@ -1,6 +1,6 @@
 # Dual macOS Keychain migration plan
 
-Status: **K0 investigation, K1 storage foundations and product startup compatibility started; migrations not implemented or deployed**
+Status: **Revised K0 under the accepted user-level trust boundary; K1 foundations/preparation slices implemented, K1 incomplete; native custody unselected and real migrations not performed**
 (2026-10-05). This plan covers
 both required migrations: every connected account's Apple app-specific password,
 and the exact existing 32-byte installation master encryption key. These are
@@ -90,83 +90,45 @@ continuity but does not resolve renewal or distribution.
 [Apple requirement language](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/RequirementLang/RequirementLang.html),
 [Apple signing tasks](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html)
 
-**Recommended caller design, feasibility unverified:** a native broker accepts
-requests only from a dedicated, signed application runtime over a peer-identity
-channel. Evaluate XPC/audit-token based identity with the chosen API, rather than
-assuming support. Validate the peer's live code identity against the approved
-signer, identifier and release policy; same UID, caller-provided PID/path, a socket
-permission or checking a generic signed Bun executable cannot establish it.
-No generic CLI returns plaintext to arbitrary callers, and no endpoint accepts
-arbitrary Keychain selectors, item deletion targets, code, shell commands or a
-path supplied as identity.
+**Accepted design revision (2026-10-05):** official Bun remains the application
+runtime. The same macOS user is the local trust boundary; app-only isolation from
+arbitrary same-user programs is not an acceptance requirement. Remote owner and
+account authorization remain unchanged. This product decision supersedes the
+previous mandatory sealed-runtime/authenticated-caller proposal.
 
-**Bounded peer-channel finding (2026-10-05):** the
-[Bun-run native fixture](../playground/keychain/peer-boundary.md) rejects unapproved
-same-user programs using a socket audit token and exact CDHash. A controlled
-shared-FD interleaving nevertheless authenticates a later approved writer for an
-earlier unapproved request. Do not treat this Unix socket lookup as message-origin
-authentication. Message-bound XPC identity, mutual authentication and the actual
-sealed application remain unverified; K0 has not passed. No Keychain operation
-or production signer was involved, and no product runtime was adopted.
+Use a small native custody component for the selected standard Keychain API.
+Authenticate the helper to Keychain using its approved code/signing policy, and
+allow the trusted local Bun application to invoke bounded operations. A helper
+returning plaintext to the same local user is permitted under this boundary; it
+must never be represented as protecting against other same-user programs. Do not
+accept remote connections or expose secrets through HTTP/MCP, argv, environment,
+logs or artifacts. Exact installation/account/revision selectors, separate runtime
+reads and administrative mutations, caller-owned buffers and explicit unavailable
+errors remain required. No generic arbitrary-item Keychain interface is added.
 
-The authorized runtime must distinguish this application from another script:
+The local channel and helper packaging must be designed against realistic
+accidental exposure and cross-user/remote access. Private OS-user access and fixed
+protocol operations can implement the accepted boundary; they do not prove app
+identity. Helper substitution/signing and ordinary update continuity still need
+qualification, without requiring that macOS identify the executing JS payload.
+The application retains its own owner/account authorization and journal CAS.
 
-- Ship a dedicated executable/app bundle with the JS payload, native dependencies
-  and runtime sealed under its release signature; verify sealed resources before
-  credential access. The generic installed Bun plus mutable `dist/index.js` is
-  insufficient. A launcher that later executes arbitrary Bun is insufficient.
-- Use fixed application entry points; reject `eval`, alternate scripts, inspector,
-  preload hooks, unsealed plugin/module loading and caller-selected library paths.
-  Sanitize environment and code-loading inputs; use hardened execution without
-  debug/task-access or unsigned-library escape entitlements where applicable.
-  Prove these restrictions for the actual Bun packaging, not just a native stub.
-- Treat config/state as data with a validated, installation-bound schema. They
-  cannot override broker identity, signer policy or executable/module paths.
-  Bind each broker session to one installation and allowed operation set;
-  authorize owner/account/revision on every account operation. Setup/removal is
-  a separate interactive administrative mode, unavailable to ordinary runtime.
+**Retained stronger-boundary findings:** the [stock Bun report](../playground/keychain/runtime-boundary.md)
+shows external entry/preload execution under the same signed executable, including
+the strict-option follow-up. The [peer report](../playground/keychain/peer-boundary.md)
+shows that socket peer-token lookup does not authenticate an earlier message.
+These observations remain valid; no credential extraction was demonstrated.
+They prevent claims of sealed application/caller isolation, which is now outside
+scope, rather than blocking standard Keychain custody. No custom Bun build,
+native embedded runtime or XPC app-origin proof is required by revised K0.
 
-Current user-owned releases and symlinks remain writable by that user. File modes
-are not a same-user code-authentication boundary. Replacing code must invalidate
-the signature and broker authorization; the installer must verify the complete
-signed payload before pointer switches. Prove no race or substitute generic Bun
-can obtain a broker session. If this packaging/channel cannot be made credible,
-pause formal migration and revise the architecture; do not silently weaken the
-gate to same UID or all-application access. A smaller generic-helper design is
-eligible only after an explicit product decision accepting its same-user exposure,
-with correspondingly limited security claims.
-
-The compatible first implementation may return the exact master key and account
-password to the verified runtime over the authenticated channel. This protects
-custody/access selection, not a compromised authorized application, admin/root
-or plaintext already in application memory. Retain short buffer lifetimes and
-best-effort wiping; do not promise reliable erasure of JS strings. Keeping keys
-inside a crypto broker would require moving all consumers and is a separate
-architecture choice, not an implicit consequence of this plan.
-
-**K0 update — observed stock Bun boundary failure (2026-10-05):** the
-[isolated runtime experiment](../playground/keychain/runtime-boundary.md) shows
-that Bun 1.4.2 standalone compilation still executes an external script through
-`BUN_BE_BUN` and an external preload through `BUN_OPTIONS`, with unchanged
-executable bytes/designated requirement and passing signature verification.
-This reproduced with hardened runtime, only `allow-jit`, all config autoload
-disabled and an entry-point JS environment guard. The guard runs too late;
-ordinary launcher environment cleanup does not restrict direct same-user starts.
-No Keychain operation or credential extraction was tested. Stock compilation and
-signing alone are rejected as the K0 caller boundary. Before broker activation,
-select and demonstrate a native pre-JS boundary that removes/rejects these paths
-and other external code-loading inputs. A dedicated audited runtime build or a
-compatible native embedded host remains an unverified architecture candidate;
-new-runtime build/maintenance scope requires an explicit decision. K2/K3 activation
-remains gated, while K1 fixture-only work is independent of native feasibility.
-
-The Bun-first embedded-strict follow-up also reproduced external CLI/preload
-execution. On the tested `1.4.2+744846f84` revision the exact strict string-code
-option is present in `execArgv`, yet indirect eval succeeds. This source/raw-evidence
-reviewed result is version-specific; it rejects a flags-only workaround rather
-than establishing a new runtime policy. The report records the proposed bounded
-dedicated-Bun scope; building/maintaining that runtime has not been authorized or
-adopted by this result.
+**Execution order:** define one bounded experiment question, reuse existing
+results, reconcile findings in knowledge, revise this plan/roadmap, then implement
+the accepted result. K0 is not automatically passed by changing the threat model.
+Its remaining gates are the actual selected Keychain API/access policy, standard
+helper/Bun protocol, setup approval, noninteractive failure behavior, signing/update
+continuity and supported login/lock contexts. Existing synthetic file-Keychain
+results do not prove production signing or untested OS lifecycle behavior.
 
 ### Shared storage contract: K1
 
@@ -619,28 +581,22 @@ phase before proceeding. No dates or production signer availability are assumed.
 
 | Phase | Gap, dependency and deliverable | Exit gate |
 | --- | --- | --- |
-| K0 | Resolve API/accessibility, signed caller packaging/channel, signing requirement and renewal; use only isolated synthetic items. | Credible boundary demonstrated on actual intended runtime: unauthorized same-user scripts/modified payloads denied, intended changed releases and rollback unattended; first authorization and OS lifecycle limits recorded. |
+| K0 | Qualify standard Keychain API/accessibility, signed helper, official Bun protocol and signing/update policy under the trusted local-user boundary. | Exact scoped synthetic operations and cross-user/remote denial; accepted setup authorization, unattended reads/changed releases/rollback and explicit supported lifecycle contexts. No app-only caller or custom Bun prerequisite. |
 | K1 | Depends on K0 policy; introduce custody ports, explicit authority/format/settings, error model, per-account CAS, stable custody paths and compatibility tooling. Fixture state-machine work can proceed while external K0 inputs remain pending. | Crash/concurrency/authority tests pass for both stores; unchanged IDs/auth contexts and container behavior; installer rejects unsupported formats/signatures. No production migration activation. |
 | K2 | Depends on K0 and K1; implement exact master-key migration and fresh setup, all-consumer validation, restart and protected recovery. | Populated fixtures preserve every inventory consumer; targeted native synthetic setup/update/recovery works; file retirement occurs only after restore acceptance. |
 | K3 | Depends on K2; migrate each account password and add/rotate/revoke flows with tombstones, readiness/session invalidation and reconciliation. | Stable account grants/routing and CAS race tests; no stale credentials/session resurrection or fallback; both connected and revoked accounts covered. |
 | K4 | Depends on K2/K3; integrate lifecycle packaging/doctor/LaunchAgent, update/rollback/reinstall, retained uninstall and opt-in full removal. | Whole-outcome acceptance below, independent review and an explicitly authorized operator rollout. Passing fixture checks do not claim live acceptance. |
 
-**Next ready slice: K0 design/prototype gate.** The gap is helper trust without
-caller trust, plus unchosen production API/signing. Inputs are the retained report,
-current Bun/installer topology, the negative stock-runtime result above and Apple
-references above. The assigned security/
-release implementer may design signed runtime packaging and a narrowly bounded
-synthetic broker prototype after implementation authorization. Editable scope is
-new isolated prototype/packaging design and evidence docs; no production credentials,
-signer installation, broad trust changes, runtime adoption or migration. Success
-requires demonstrating that an arbitrary same-user Bun script and modified sealed
-payload cannot retrieve a synthetic value, while the approved runtime can do so
-after a changed signed release. Record setup denial, channel/identity checks,
-code-loading constraints and cleanup absence. Stop if the actual runtime cannot
-meet the boundary or production signing/provisioning inputs are unavailable;
-return that precise gate instead of enabling the helper. Effort ends at one
-bounded, reviewable design/prototype result; later implementation details stay
-provisional until K0 passes. No prototype runs are part of this document change.
+**Next ready slice: revised K0 standard-helper contract.** Reconcile the closed
+Keychain evidence against a small official-Bun/native-helper design. Specify exact
+selectors, local transport, secret buffer ownership, runtime UI suppression and
+administrative setup policy. Validate protocol behavior with injected synthetic
+ports before implementation of a native backend. Record each actual native or
+lifecycle check still missing; do not repeat the closed basic experiment or require
+same-user app-only denial. Real Keychain operations, production signing and
+installation require applicable authorization before dependent checks. Continue
+through knowledge and plan reconciliation before selecting the backend; no real
+credential migration or K0-pass claim follows from protocol fixtures alone.
 
 ## Whole-outcome acceptance and feedback
 
@@ -653,7 +609,7 @@ record key/password digests from real credentials or mail bodies in reports.
 | --- | --- |
 | Both stores / K2–K3 | Populated multi-account fixtures and authorized native acceptance show exact original master key and each selected password in Keychain, legacy active sources retired, all IDs and derivation/AAD contexts unchanged. No connected account is omitted. |
 | Setup/no recurring prompts / K0,K4 | Fresh setup and migration cancellation/denial are resumable. Observe the actual one-time approval ceremony; after it, repeated fresh reads, changed signed releases, same-path replacement, rollback and LaunchAgent run without UI. Runtime missing/locked/denied never prompts or falls back. |
-| Caller isolation / K0 | Different signer/identifier, ad-hoc build, copied generic helper use, arbitrary Bun scripts, alternate entry/preload/module/inspector, modified resource, environment injection and peer-identity spoof/reconnect are denied. Valid signed application works. State explicitly which same-user compromise cases remain outside the boundary. |
+| Local trust boundary / K0 | Helper uses approved standard Keychain access/signing policy; local transport denies other OS users and remote access, with exact owned selectors and no generic secret export. Official Bun works without a fork. Same-user helper invocation is accepted, not claimed to be app-only isolation. Remote owner/account isolation remains mandatory. |
 | Master consumers / K2 | Verify pending/enrolled marker HMAC, legacy and v2 accounts, Photos awaiting-2FA/authenticated sessions, remote/local auth context, internal verifier record, outbound finalized/unknown receipts, Calendar policy/sync/operation ciphertext and corrupt/wrong-key failure. Existing owner Passkey/OAuth login and refresh do not gain scopes or require reenrollment. |
 | Startup/lifecycle / K0,K4 | Test plugin-owner not logged in, macOS lock/unlock, logout/login, sleep/wake, reboot after login and pre-login invocation separately. Establish supported availability; an unsupported context returns bounded unavailable state without restart/UI loops. No implied pre-login service guarantee. |
 | Transactions/interruption / K1–K3 | Fault-inject before/after every intent, Keychain write/read, pointer/manifest commit and deletion, including successful mutation with lost reply, duplicate/conflicting items, manifest tamper/loss, SQLite/WAL errors and disk-full. Resume preserves declared authority and secret; no blind overwrite or fresh key. |
@@ -664,7 +620,7 @@ record key/password digests from real credentials or mail bodies in reports.
 
 Open decisions/gates: actual production signer and custody owner; renewal/rotation
 requirement; data-protection versus file-based implementation and accessibility;
-feasibility of signed sealed Bun application and authenticated peer channel;
+standard helper packaging/local transport and unattended signing continuity;
 supported OS/login availability; protected recovery/export/retention policy; and
 default versus explicit opt-in complete removal. Missing external decisions block
 their dependent activation, not fixture-only storage-contract planning.

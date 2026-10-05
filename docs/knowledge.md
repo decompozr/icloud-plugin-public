@@ -4,16 +4,51 @@
 
 ## macOS Keychain custody and update identity (2026-10-05)
 
+### Accepted local trust boundary and workflow revision
+
+The product owner accepted official Bun as the default and the same macOS user
+as the local trust boundary. Moving both credentials into Keychain does not require
+proving that every same-user caller is the sealed application. Remote owner,
+account, OAuth and operation authorization remain mandatory. A locally callable
+native helper may release the exact owned secret to this trusted local user; this
+must not be described as isolation from other same-user processes. Keep selectors
+installation-scoped, operations bounded, channels local/private and diagnostics
+redacted; do not expose a generic Keychain or public plaintext-export endpoint.
+
+Keychain access is item-controlled, not automatically granted to every process in
+an unlocked user session. File-based ACLs and data-protection access groups differ.
+Standard helper identity/signing, setup approval and unattended read/update behavior
+still need acceptance with the selected implementation. See [Apple access control](https://developer.apple.com/documentation/security/access-control-lists)
+and [Apple authorization prompts](https://support.apple.com/en-ie/guide/keychain-access/kyca1243/mac).
+
+The earlier Bun external-entry and socket sender findings remain valid evidence
+about a stronger app-only boundary. They do not invalidate the closed Keychain
+experiment or block the accepted user-level design. No custom Bun fork/build or
+message-bound application authentication is a prerequisite under this decision.
+New unacceptable risks require a concrete finding and product decision before
+expanding that boundary. This revision is a product decision, not a passed native
+experiment: K0 API/signing/lifecycle acceptance remains incomplete.
+
+Work order is experiment -> reconcile knowledge -> revise plan -> implement.
+Every experiment has a bounded question and acceptance result. Reuse existing
+evidence, distinguish fixtures from native/lifecycle proof, and report phase gates
+separately from source commits. Do not grow inactive integration work to replace
+missing native acceptance. No live secrets, real Keychain operations, installs,
+production signers or releases are authorized by this decision.
+
+### Historical stronger-boundary findings
+
 K0 follow-up: the [stock Bun runtime boundary experiment](../playground/keychain/runtime-boundary.md)
 reproduced external-script and preload execution on Bun 1.4.2 without changing
 the signed compiled executable or designated requirement. Hardened runtime,
 disabled config autoload and an entry-point JS environment guard did not establish
 a fixed-entry application. This used synthetic test labels, no broker/Keychain or
 real credentials; it is a negative caller-boundary finding, not an extraction or
-production signing test. A native pre-JS restriction needs separate feasibility
-evidence before this runtime can be authorized to receive secrets. The
+production signing test. A native pre-JS restriction would need separate feasibility
+evidence if app-only isolation were later adopted. The
 [migration plan](keychain-migration-plan.md#api-signing-and-caller-boundary-k0)
-and roadmap retain both migrations behind K0; stock compilation alone is rejected.
+and roadmap retain both migrations behind revised K0; stock compilation alone
+cannot claim app-only isolation, which is outside the accepted local boundary.
 
 The later Bun-first runner also embedded the documented strict string-code flag.
 On revision `1.4.2+744846f84` it appears in `execArgv`, but the tested indirect eval
@@ -21,8 +56,8 @@ still succeeds; external CLI and file preload also run. This version-specific
 negative finding was independently reviewed from source/raw evidence, not rerun
 by the reviewer. See the report's embedded-strict follow-up. Current documentation
 or an accepted flag string must not substitute for observed policy enforcement.
-Dedicated-runtime build/maintenance scope remains a user decision; no new runtime
-or toolchain was installed.
+Dedicated-runtime build/maintenance was not adopted and is no longer required by
+the current plan; no new runtime or toolchain was installed.
 
 The Keychain experiment is closed as a feasibility investigation. Its
 [report and reproduction recipes](../playground/keychain/README.md) and
