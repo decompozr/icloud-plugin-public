@@ -1,5 +1,11 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Actual standalone input comparison completed — 2026-10-06
+
+One operator-selected Live Photo completed the independent A/B comparison. Both public items carried the same local identifier. The identifier-created item advertised no content types and `loadTransferable(PHLivePhoto.self)` returned nil. The actual picker result advertised `public.heic` and `public.jpeg`, and loaded a non-nil Live Photo with dimensions 2268 × 4032. The public items compared unequal. The result was durably saved and displayed in the experiment window.
+
+This demonstrates a usable media representation in the real picker item that the identifier-only constructor did not supply in this run. Content-type strings alone did not describe Live Photo transfer capability. It does not prove the cause of the earlier generic sharing-sheet error or establish automatic publishing. No sharing sheet, album change, export/import, or production/MCP operation occurred. The earlier single-selection experiment remained alive after recording mismatch; its exact PID was verified and sent SIGTERM. The completed result window remains available for the operator to close normally.
+
 ## Exploratory selection flow corrected — 2026-10-06
 
 The first standalone picker used single selection and immediately rejected a photo that did not match the fixed target. The owner could not complete the intended flow. Its identifier-only baseline had no supported content types and returned no Live Photo; no actual selected-input comparison completed.
