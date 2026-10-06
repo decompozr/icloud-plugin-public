@@ -1,5 +1,42 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Current acceptance: fresh loaded schema still unavailable — 2026-10-06
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+No exposed management tool can refresh/rescan metadata, and bounded discovery did
+not establish the existing connection type. Do not infer a rejected/held update
+or inject an undeclared opt-in. [Current prerequisite and remaining acceptance](photos-live-upload-plan.md#fresh-tool-discovery-and-destination-readback--2026-10-06)
+preserve the original MCP, exact test destination, three-photo and participant
+requirements, source-write boundaries, rollback and separate native App handoff
+gates. Resume the one-photo experiment when loaded photos_prepare declares nativeUI.
+
+## Native permission accepted; current tool schema still old — 2026-10-06
+
+Original-MCP health now verifies authorization 3/true. Installed 0.1.58 process
+and locally generated registration schema include nativeUI. This conversation
+still advertises the old schema; one prepare returned the default no-UI rejection,
+without an operation ID or posting. Argument stripping/definition caching is an
+inference, not a captured input trace. Official custom-connection guidance requires
+Refresh followed by a new conversation; published plugins use scan/review updates.
+No platform rejection was inspected. [Evidence and continuation](photos-live-upload-plan.md#native-permission-verified-conversation-tool-definition-mismatch--2026-10-06)
+preserve the same connection and exact private source/destination. No photo is shared.
+
+
+## Installed 0.1.58 sharing candidate; no photo shared — 2026-10-06
+
+PRs 61/62 merged; immutable verified main eb58aae produced installed 0.1.58 and
+an updated signed Helper at its existing configured path. Main-source build and
+426 tests / 2903 assertions pass. Configuration/custody hashes and both database
+integrity checks are preserved, with a stopped private backup and previous app/
+release retained. The original MCP health still reads the same local library;
+the new Helper reports authorization 0/false and its normal permission request
+was launched. Owner native consent and existing-connection tool refresh remain
+pending. No picker, posting or source-photo modification occurred; the dedicated
+Shared Album is still empty. [Activation evidence and remaining steps](photos-live-upload-plan.md#installed-native-sharing-candidate-owner-activation-pending--2026-10-06)
+separate deployment, permissions, loaded schema and actual sharing acceptance.
+
+
 ## Official existing-asset sharing candidate — 2026-10-06
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.

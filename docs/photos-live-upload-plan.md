@@ -1,5 +1,100 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Fresh tool discovery and destination readback — 2026-10-06
+
+Fresh loaded tool discovery still advertises the legacy remote-posting rejection
+and omits nativeUI from photos_prepare. Original-MCP health independently verifies
+native authorization 3/authorized=true and the same system-library scope. Process
+readback still identifies the installed 0.1.58 service. Native permission is ready;
+the host-advertised sharing contract remains an unavailable prerequisite. No new
+prepare or apply was attempted against that undeclared field, and no UI opened.
+
+The original MCP re-read the approved existing source as livePhoto=true and
+shared=false. Exact local destination readback returns zero assets. A fresh cloud
+membership read completed with a stable, complete snapshot, zero shared copies,
+private access and owner-only participation. This independently confirms the
+retained test destination is empty; it does not establish sharing or Live playback.
+Exact source, local/cloud destination and read identifiers remain private.
+
+Available plugin-management capabilities provide no refresh/rescan operation.
+Bounded plugin discovery did not resolve this existing connection's backend ID or
+whether it is a direct custom connection or published plugin. That absence is not
+an access denial or evidence of a held update. The applicable next host step is
+the existing connection's Refresh and a new conversation for direct custom MCPs,
+or its connected server's Rescan and Live-definition inspection for published
+plugins, per the official links below. Resume posting only after loaded
+photos_prepare explicitly declares nativeUI; preserve the same main MCP and
+destination. No alternate authenticated CLI, metadata patch or second MCP is an
+accepted workaround.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Native permission verified; conversation tool-definition mismatch — 2026-10-06
+
+The owner completed the Mac permission prompt. Actual original-MCP health now
+reports authorization 3/authorized=true with the same library scope. Local process
+inspection confirms the running service is 0.1.58. Pure local inspection of its
+installed tool registration exposes nativeUI=true in the shared-post intent and
+the updated description; no account operation was made through that inspection.
+
+One read-only original-MCP prepare attempt included the deployed opt-in field,
+but returned remote_shared_album_posting_unavailable, with no operation ID or UI.
+The conversation's tool description/schema still lacks that field, even after the
+owner reported reopening the conversation. The reason is not conclusively traced:
+a cached/held client definition or argument normalization is an inference, not a
+verified server input trace. Do not claim that the owner failed to refresh.
+
+[Official connection metadata instructions](https://developers.openai.com/plugins/deploy/connect-chatgpt#refresh-metadata)
+require refreshing a directly connected custom MCP and then starting a new
+conversation. Reopening this existing conversation is not that final step. For
+published plugins, [hosted tool updates](https://developers.openai.com/plugins/deploy/submission#update-to-your-mcp-server)
+use scanning/review; old definitions can remain live while an update is held.
+No portal scan/review result was inspected, so no rejection or held update is
+being claimed for this plugin. Do not create another MCP, read tokens for a direct
+CLI call, remove UI opt-in, or rewrite account permissions to bypass this gap.
+
+Continue in a fresh conversation with the existing connection, first checking
+that photos_prepare advertises nativeUI. Reuse the exact source/destination IDs
+in private .flow-runtime/native-sharing/state.json; do not create another album.
+Prepare once, review the returned exact plan, and confirmed apply may open the
+user-operated picker/share flow. Sharing, cloud membership and iPhone Live playback
+remain unexecuted. Photos authorization is now satisfied; tool-definition acceptance
+is the remaining prerequisite to invoking this candidate through the host.
+
+
+## Installed native sharing candidate; owner activation pending — 2026-10-06
+
+PR 61 merged the existing-asset native sharing candidate; PR 62 corrected the
+plugin/application version mismatch caught by the guarded main build. Verified
+remote main eb58aae36f889ba7a049f4457d78a75f07f502fe produced installed 0.1.58.
+A fresh main-source build and 426 tests / 2903 assertions passed. The existing
+runtime drained normally; its private stopped backup passed two SQLite integrity
+checks. The configured Helper app was updated at the same path from source-hash-
+verified signed output; original app and release remain available for rollback.
+Configuration, master-key and installation-marker hashes are unchanged, and both
+current SQLite databases pass integrity checks. No credentials, routes or grants
+were rewritten. Exact receipts/backups remain private.
+
+Actual original-MCP health succeeds with the same osxphotos library scope. The new
+ad-hoc Helper currently reports native authorization 0/false. Its normal existing
+--authorize entry point was launched to request real macOS consent; no permission
+was forced or fabricated. Owner action in the Mac permission prompt remains
+required and must be verified through the original MCP before posting.
+
+This conversation still exposes the old photos_prepare schema without nativeUI.
+The owner was asked to refresh the existing connection/tool list, not create an
+additional connector or account. Do not inject the new argument into the stale
+schema or use an authenticated CLI/standalone app as a Photos-operation workaround.
+No picker/posting session or photo sharing has occurred. The dedicated test album
+remains empty; creation/readback is not evidence of sharing or Live playback.
+
+Retain private .flow-runtime/native-sharing/state.json and deployment-receipt.json
+for the exact existing source, destination, backup and next activation check. The
+main-build/artifact/helper staging paths are temporary deployment artifacts and
+can be removed after their receipts and authoritative knowledge are preserved;
+the active original task worktree and live destination remain needed for acceptance.
+
+
 ## Official existing-asset sharing candidate — 2026-10-06
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
