@@ -26,8 +26,15 @@ historical and superseded by this adoption and the SvelteKit/Paraglide migration
 
 ## Requirement-based Studio setup
 
-Overview has separate service, accounts and capabilities cards. Loading uses
-skeletons; refresh controls sit at the upper right. Account summaries distinguish
+The language selector sits on the right of the navigation bar, sharing its row
+and divider. Overview has separate service, accounts and capabilities cards. Loading uses
+skeletons only before the first snapshot. Refreshes retain loaded content and card
+dimensions while the upper-right refresh icon shows activity. Module configuration
+uses a labeled gear icon button. Refresh, settings and add glyphs use the pinned
+DecompozR Icon catalog geometry and its 16px compact/stroke-2 recipe, with the
+Lucide notice bundled. No independently drawn refresh/settings glyph remains.
+Navigation has no inter-tab gap and a shared active marker uses native cross-document
+view transitions in supporting browsers, with reduced-motion opt-out. Account summaries distinguish
 stored app passwords from saved Apple Account web sessions. A saved authenticated
 session is not live-provider or cross-service acceptance.
 
@@ -72,3 +79,12 @@ Service capability policy and OAuth grants are separate: enabling sending permit
 A project-owned minimal black cloud silhouette on white is shared by the shell and a downloadable 256×256 PNG (under 10 KB) for the ChatGPT creation form. The mark uses a single smooth cloud contour with generous whitespace, no envelope, colored tile, gradient, or Apple logo tracing. The SVG is the vector reference; the PNG and shared inline shell icon reproduce its contour. The existing interface palette stays unchanged. Download is a local static asset, not an upload or installation action. The setup tutorial supplies the download control. Existing private listener, trusted Tailscale access, owner Passkey checks and CSP remain authoritative.
 
 Acceptance covers fresh setup, enrolled dashboard, rotated/revoked credentials, policy errors and consent explanatory copy; synthetic fixtures do not prove live iCloud authentication. Keep the onboarding step focus/error behavior and reload recovery. No credentials, mail, or new grants are exercised during UI implementation.
+
+## Pinned language Menu
+
+The language control now consumes the actual DecompozR Menu and Icon components,
+with their unmodified token/internal dependencies pinned at the same design-system
+revision in Studio. It no longer uses a browser-native select in the admin navbar.
+The selected locale is visible in the trigger and checked action. Menu keyboard,
+focus, viewport positioning and compact spacing come from the upstream component.
+English/Traditional Chinese state and cookie persistence remain Studio-owned.

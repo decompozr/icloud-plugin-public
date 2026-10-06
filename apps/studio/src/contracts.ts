@@ -11,6 +11,7 @@ export interface AdminPresentation {
   credentialSection(admin: boolean): string;
 }
 export interface AdminState {
+  resetAvailable?: boolean;
   enrolled: boolean;
   ready: boolean;
   admin: boolean;

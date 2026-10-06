@@ -5,6 +5,8 @@ It owns hydrated admin/setup, owner login, account selection, OAuth consent and
 Photos setup. Svelte owns form drafts, policy confirmation, account selection,
 connection impact, bounded diagnostics, credentials and lifecycle cleanup. Native
 installation still runs one process with distinct public/private/local listeners.
+Ingress uses typed Fetch handlers with a small Node HTTP adapter; MCP uses the
+SDK WebStandard transport. The application no longer imports or mounts Express.
 
 The trusted outer dispatcher supplies an explicit page model after existing owner
 checks. Only serializable presentation metadata reaches the browser. Core owner

@@ -252,6 +252,7 @@
       "installedVersion",
       s.installed.version ?? t("unknownValue"),
     )}
+    {#if s.locations}{@render line('runtimeFolder',s.locations.runtimeDirectory)}{@render line('installationFolder',s.locations.installationDirectory??t('unknownValue'))}{/if}
     {#each ["installed", "authenticated", "online", "privateReachable"] as key}{@render line(
         key,
         t(

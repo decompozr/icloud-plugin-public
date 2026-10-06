@@ -214,3 +214,92 @@ blank optional labels, missing requirements, cancellation and failed refresh.
 Independent review found no remaining scoped blocker after corrections. This
 follow-up uses version 0.1.62 because 0.1.61 was released by the parallel native
 Photos work; installed releases are never overwritten.
+
+### Overview usability refinements (0.1.63)
+
+Language is in the navigation bar. Tabs have no gap and the active marker uses
+native cross-document transitions on Studio admin routes, respecting reduced
+motion. Account credential status is a pair of compact modal-entry controls,
+with account creation at the header. Refresh retains loaded snapshots and card
+geometry; skeletons only appear before the first snapshot. Refresh/settings/add
+icons use the pinned DecompozR catalog, with the Lucide notice included. Service
+status exposes the private runtime folder. Build/typecheck, 25 scoped tests
+(1,180 assertions) and 40 isolated browser checks pass. No reset is executed;
+connection reset and factory reset with key rotation are the accepted next slice.
+
+0.1.62 running delivery was read back from current main 3e9a9890525590b4c2e89141f7adcbc6bef06ddf.
+The concurrent native workflow installed it before the Studio installer; all
+payload files match the clean-main build except verified SvelteKit build identity
+metadata. Live readback checked 544 conditions and doctor passed 13 checks from
+this Mac, without claiming off-tailnet or new provider acceptance.
+
+### Confirmed reset and language Menu (0.1.64)
+
+System & diagnostics gains connection reset and factory reset with key rotation;
+see system-reset.md for scope, confirmation, drain/restart and protected recovery.
+No live reset was executed. The admin language control consumes the actual pinned
+DecompozR Menu/Icon sources and dependencies, verified byte-identical to upstream.
+456 application/Studio/tooling tests (4,155 assertions), 11 built HTTP E2E tests
+(245 assertions), 45 isolated browser checks and native artifact lifecycle
+(1 test / 30 assertions) pass. Independent scoped reset review has no remaining
+blocker. UI/reset follow-ups do not remove the authorization for transport phase 3.
+
+The 0.1.63 release from 13ee81c0ff78f06f0ff4a4a1c409830fa3f71048 was installed
+through the supported updater. Payload hashes matched the clean-main artifact;
+configuration/custody and account/Passkey/grant/policy rows were preserved. Native
+readback checked 541 conditions and doctor passed 13 from this Mac. Protected
+rollback retains 0.1.62 and the pre-0.1.63 backup. No off-tailnet claim is made.
+
+0.1.64 was released and installed from clean main
+349d2ce6754fb11147b40f844eb53bb36fef0c53. Installed payload matches the artifact,
+configuration/master-key custody and account/Passkey/grant/policy records remain
+unchanged, and both databases pass integrity checks. Native readback checked 550
+conditions and doctor passed 13 from this Mac. Backup is the private runtime
+pre-0.1.64-20261006T180611Z snapshot; 0.1.63 remains installed for rollback.
+No production reset was performed. Third-phase transport work now proceeds.
+
+### Transport phase implementation boundary
+
+Replace Express listeners and the Node-only MCP transport with typed Fetch
+handlers and the SDK's WebStandard streamable transport. Keep the three listeners,
+fixed configured origins, exact local Host/socket checks, direct OAuth form
+forwarding, cookie multiplicity, bounded decoded bodies and stateless JSON MCP.
+Accepted provider work remains tracked independently of disconnected callers;
+shutdown may cut incomplete HTTP only after accepted tasks finish. Reconnect
+capture retains its literal-route/enum-only privacy boundary and finish semantics.
+
+The next slice implements a Node HTTP-to-Fetch listener, separates header admission
+from body parsing so incomplete bodies do not become immortal application tasks,
+and forwards complete bounded bodies to existing Fetch controllers. Validation
+includes body/encoding bounds, OAuth originless forms, Host/Origin/listener
+isolation, disconnect/drain behavior, existing HTTP E2E and the installed artifact.
+Express is removed only after these checks pass. No new scopes, owners, credentials,
+Tailscale mappings or reset execution are authorized by this transport slice.
+
+### Transport phase verification (0.1.65)
+
+Ingress now uses a typed fixed-origin Node HTTP-to-Fetch adapter. Public MCP uses
+SDK WebStandardStreamableHTTPServerTransport with stateless JSON responses; other
+protocol routes go directly to their existing authoritative Fetch handlers.
+Private/local listener socket/Host boundaries, multiple Set-Cookie fields and
+2 MiB MCP / 256 KiB other decoded-body limits are preserved. Gzip, deflate and
+Brotli remain supported. Only complete bodies enter application task tracking;
+partial HTTP bodies remain subject to shutdown grace. Accepted provider work is
+not aborted when its caller disconnects. Reconnect capture still persists only
+finished allowlisted routes, fixed statuses and enumerated errors.
+
+Own Express imports, middleware/bridge and direct dependencies are removed. The
+pinned MCP SDK still declares Express transitively for its unused Node helpers;
+this is not a claim that no Express package exists in the artifact.
+
+459 application/Studio/tooling tests (4,176 assertions), 11 built HTTP E2E tests
+(245 assertions), compiled build/typecheck and independent transport review pass.
+Independent review additionally tested all three compressed-body decoders and
+oversized decoded-body rejection. Existing main MCP profile and mailbox listing
+succeeded on the 0.1.64 baseline (9 mailboxes); post-deployment readback will reuse
+that connection without new registration, grants or provider writes.
+
+The 0.1.65 candidate also passes the 45 browser checks and native artifact
+lifecycle (1 test / 30 assertions). Existing main-connection baseline read was
+correlated with the 0.1.64 server's successful mailbox-list operation log; only
+mailbox count and account continuity are used for deployment acceptance.
