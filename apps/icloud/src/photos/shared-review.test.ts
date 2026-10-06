@@ -26,3 +26,13 @@ test('native presentation errors remain durable unverified outcomes',async()=>{
  try{const event={operationId:id,status:'posting_not_verified',timestamp:1,nativeErrorDomain:'PHPhotosErrorDomain',nativeErrorCode:3300,localReadbackVerified:false,serverSyncVerified:false} as const;await writeFile(join(directory,id+'.jsonl'),JSON.stringify(event)+'\n',{mode:0o600});expect(await readReview(directory,id)).toEqual({...event,nativeProcessAlive:null});}
  finally{await rm(directory,{recursive:true});}
 });
+
+test('comparison journal preserves both inputs and nested native failure diagnostics',async()=>{
+ const directory=await mkdtemp(join(tmpdir(),'photos-review-test-')),id=randomUUID();
+ try{
+  const error={domain:'NSCocoaErrorDomain',code:-1,description:'Operation failed',reason:'',debug:'Missing representation'};
+  const event={operationId:id,status:'posting_not_verified',timestamp:1,localReadbackVerified:false,serverSyncVerified:false,nativeErrorDetails:[error],comparison:{identifierOnly:{identifierMatches:true,contentTypes:[],livePhotoLoaded:false},userSelected:{identifierMatches:true,contentTypes:['com.apple.live-photo'],livePhotoLoaded:true},itemsEqual:false}} as const;
+  await writeFile(join(directory,id+'.jsonl'),JSON.stringify(event)+'\n',{mode:0o600});
+  const result=await readReview(directory,id);expect('comparison' in result && result.comparison?.userSelected.livePhotoLoaded).toBe(true);expect('nativeErrorDetails' in result && result.nativeErrorDetails?.[0]?.debug).toBe('Missing representation');
+ }finally{await rm(directory,{recursive:true});}
+});

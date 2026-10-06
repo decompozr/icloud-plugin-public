@@ -1,5 +1,20 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Real-selection comparison authorized — 2026-10-06
+
+The owner clarified that UI is permitted for exploration; the final outcome must
+still be fully automated without UI. The owner agreed to select the original
+photo once and cancel the sharing window without posting. The experiment compares
+an identifier-created PhotosPickerItem with the real SwiftUI picker result using
+public content types, identifier equality and PHLivePhoto loading. Only the exact
+reviewed source is accepted. The real item is offered to the same SwiftUI sheet
+behind a separate human button. No Post action is automated.
+
+Detailed bounded NSError descriptions, failure/debug reasons and up to three
+underlying errors are recorded with identifier/path/URL redaction. This addresses
+the insufficient domain/code-only diagnostics in the prior experiment. No real
+selection or successful media loading is claimed before original-MCP acceptance.
+
 ## Direct-identifier SwiftUI presentation experiment — 2026-10-06
 
 The owner authorized trying a sharing window with the existing photo already
@@ -21,6 +36,17 @@ Validation: full Swift Helper link and application build/typechecks pass; 427
 application tests / 2,907 assertions pass. Initial checks failed on missing Studio
 build output, version alignment and a new test literal type; these were corrected
 before the passing sequential rerun. Verification is same-agent, not independent.
+
+Live experiment: PR 69 merged and immutable 0.1.61 deployed from main. The
+ad-hoc Helper update required fresh normal OS consent; the owner approved and
+original-MCP health returned authorization 3/true. Exactly one prepared operation
+was applied through the original MCP. The direct-identifier sheet callback returned
+posting_not_verified with NSCocoaErrorDomain / -1, and the Helper exited. This is
+not proof of media loading or publication. Bounded OS diagnostics did not identify
+a precise cause; missing representation remains a hypothesis, not a finding.
+A separate complete stable cloud read found the exact retained album empty; the
+original asset still reports livePhoto=true/shared=false. Preserve the operation
+and do not retry automatically. Source, album and recovery exclusions remain.
 
 The separate NSSharingService type-only inventory returned no Shared Album
 service; the Live Photo declaration returned Add to Photos only. That inventory
