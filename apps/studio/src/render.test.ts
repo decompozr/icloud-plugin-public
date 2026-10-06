@@ -29,7 +29,7 @@ test('transient credential forms render empty and auth does not inherit a privat
 });
 test('Photos setup modules remain inert until existing controllers attach',()=>{
  const local=renderPhotosSetup(),cloud=renderPhotosCloud();
- expect(local).toContain('data-photos-action="authorize"');expect(cloud).toContain('id="photos-cloud-login-fields" disabled');
+ expect(local).toContain('data-step-state="checking"');expect(cloud).toContain('id="photos-cloud-login-fields" disabled');
  for(const html of [local,cloud]){expect(html).not.toContain('<script');expect(html).not.toContain('onclick=');}
 });
 test('renderer requests do not share mutable presentation context',()=>{
