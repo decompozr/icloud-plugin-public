@@ -88,3 +88,13 @@ revision in Studio. It no longer uses a browser-native select in the admin navba
 The selected locale is visible in the trigger and checked action. Menu keyboard,
 focus, viewport positioning and compact spacing come from the upstream component.
 English/Traditional Chinese state and cookie persistence remain Studio-owned.
+
+## Persistent admin shell (0.1.70)
+
+The four admin destinations share one mounted Svelte shell. The left icon rail
+uses 44px controls and a constant-height selected background. Only the marker
+position transitions with CSS; whole-document view transitions are off.
+Owner status validates each shallow navigation. Back uses latest-response fencing;
+open modals and pending operations block it. Overview uses one column and explicit
+Mail, Calendar, Photos module order. Path copy controls use full values and toasts.
+Clipboard acceptance uses disposable fixtures, not the live clipboard.

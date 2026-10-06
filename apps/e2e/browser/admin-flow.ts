@@ -1,2 +1,2 @@
-/** Stable isolated browser QA entry point for requirement-based Studio flows. */
-import "./requirements-flow.js";
+/** Stable isolated Studio browser QA entry point. */
+import "./admin-shell-flow.js";
