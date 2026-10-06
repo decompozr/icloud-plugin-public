@@ -1,5 +1,48 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Superseding owner decision: public native API only — 2026-10-06
+
+The owner now requires TypeScript MCP -> local Swift Helper -> public PhotoKit
+for this Live Photo feature, preserving the original PHAsset instead of exporting
+and publishing a HEIC/MOV pair. Nonpublic iCloud upload APIs are excluded from the
+new implementation path. This decision supersedes the paired network-transfer
+phases below; their experiments remain historical knowledge, not the active plan.
+It does not authorize removing or changing unrelated existing cloud capabilities.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Apple also documents a public, user-presented posting controller,
+[PHSharedAlbumPostingViewController](https://developer.apple.com/documentation/photosui/phsharedalbumpostingviewcontroller),
+which takes PHPickerResult items, and a
+[SwiftUI posting sheet](https://developer.apple.com/documentation/swiftui/view/photossharedalbumpostingsheet(ispresented:items:defaultalbumidentifier:photolibrary:completion:)).
+These are candidate assisted paths, not headless `PHAsset` insertion methods.
+Neither is live-verified for this feature. The existing remote-only/no-native-reviewer
+constraint remains in force; do not open a sheet or automate its controls under
+the new public-API preference alone. Default album selection is not proof of the
+actual posted destination.
+
+Active feasibility order:
+
+1. Through the existing MCP and production Helper identity, resolve an exact
+   local true Shared Album and read its current `.addContent` capability and
+   Photos authorization. Do not recreate the retired reviewer or a second MCP.
+   If the existing tool surface cannot expose this bounded probe, first plan a
+   read-only same-MCP probe; do not use a direct authenticated CLI workaround.
+2. Only if capability is true, resolve an exact owner-reviewed source PHAsset,
+   require the Live Photo subtype, and prepare a one-attempt direct-add operation.
+   If false, record unsupported and stop direct-add; do not force `addAssets`.
+3. After an authorized add, verify destination content locally, then separately
+   collect owner iPhone presence and Live playback evidence. Preserve original
+   assets and distinguish local membership from cloud/cross-device acceptance.
+4. Expose direct-add as a supported MCP feature only after those gates pass.
+   Person selection continues to use established metadata; no new PhotoKit face
+   recognition or nightly scheduling capability is implied.
+
+Current status: architecture preference accepted; historical direct-add rejection
+found; no fresh native probe, upload, deployment or playback test performed. If
+public direct-add remains unavailable, public assisted posting needs an explicit
+change to the remote-only interaction requirement, or this feature stays unsupported.
+
 ## Scope and current result
 
 The owner requested experimentation, conversion of results into durable knowledge,

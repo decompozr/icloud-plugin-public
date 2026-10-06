@@ -1,5 +1,9 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Public native Live Photo path decision — 2026-10-06
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Live Photo experiment and implementation planning — 2026-10-05
 
 Owner requested experiment, knowledge reconciliation and then an implementation
