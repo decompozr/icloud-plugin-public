@@ -3,6 +3,7 @@
   import type { UiCopy } from "../contracts.js";
   import type { ToastCenter } from "../lib/ui-state.svelte.js";
   import { z } from "zod";
+  import RequirementStep from "./RequirementStep.svelte";
   let {
     active = true,
     onverified,
@@ -10,6 +11,7 @@
   const { t } = getContext<UiCopy>("copy");
   const toast = getContext<ToastCenter>("toast");
   let busy = $state(false);
+  let pollingUntil = 0;
   const schema = z.object({
     libraryReadable: z.boolean(),
     libraryStatus: z.string(),
@@ -55,7 +57,7 @@
         },
       );
       if (!r.ok) throw Error();
-      if (action) toast?.push("photosPermissionOpened", "success");
+      if (action) { pollingUntil=Date.now()+120000;  }
       else {
         last = schema.parse(await r.json());
         onverified?.(last.ready);
@@ -72,92 +74,31 @@
   onMount(() => {
     let lastFocus = Date.now();
     const focus = () => {
-      if (!document.hidden && Date.now() - lastFocus >= 30000) {
+      if (!document.hidden && Date.now() - lastFocus >= 1000) {
         lastFocus = Date.now();
         void run();
       }
     };
     window.addEventListener("focus", focus);
-    return () => window.removeEventListener("focus", focus);
+    const timer=setInterval(()=>{if(Date.now()<pollingUntil&&!last?.ready&&!document.hidden)void run();},2000);
+    return () => { window.removeEventListener("focus", focus); clearInterval(timer); };
   });
   $effect(() => {
     if (active) untrack(() => void run());
   });
 </script>
 
-<section class="card" id="photos-setup" aria-labelledby="photos-setup-title">
-  <h2 id="photos-setup-title">{t("photosSetupTitle")}</h2>
-  <p>{t("photosSetupHelp")}</p>
-  <ol style="list-style:none;padding-left:0">
-    <li style="margin-bottom:1rem" data-photos-step="library">
-      <strong>{t("photosLibraryStep")}</strong>
-      <p>{t("photosLibraryHelp")}</p>
-      <button
-        type="button"
-        class="secondary"
-        data-photos-action="files"
-        disabled={busy}
-        onclick={() => void run("files")}>{t("photosLibraryOpen")}</button
-      >
-    </li>
-    <li style="margin-bottom:1rem" data-photos-step="authorization">
-      <strong>{t("photosAuthorizationStep")}</strong>
-      <p>{t("photosAuthorizationHelp")}</p>
-      <button
-        type="button"
-        class="primary"
-        data-photos-action="authorize"
-        disabled={busy}
-        onclick={() => void run("authorize")}
-        >{t("photosAuthorizationRequest")}</button
-      >
-      <button
-        type="button"
-        class="secondary"
-        data-photos-action="photos"
-        disabled={busy}
-        onclick={() => void run("photos")}
-        >{t("photosAuthorizationOpen")}</button
-      >
-    </li>
-    <li style="margin-bottom:1rem" data-photos-step="verify">
-      <strong>{t("photosVerificationStep")}</strong>
-      <p>{t("photosVerificationHelp")}</p>
-      <p id="photos-status" role="status" aria-live="polite">
-        {failed && last ? t("photosPreviousResult") + " " : ""}{result
-          ? t(result)
-          : ""}{checkedAt
-          ? " · " +
-            t("photosCheckedAt") +
-            " " +
-            new Date(checkedAt).toLocaleString()
-          : ""}{failed && last ? " · " + t("freshnessFailed") : ""}
-      </p>
-      <button
-        type="button"
-        class="secondary"
-        id="photos-recheck"
-        disabled={busy}
-        onclick={() => void run()}>{t("photosVerificationCheck")}</button
-      >
-    </li>
-  </ol>
-  <details>
-    <summary>{t("photosMetadataDetails")}</summary>
-    <p>{t("photosMetadataHelp")}</p>
-    <a
-      href="x-apple.systempreferences:com.apple.preference.security?Privacy_Photos"
-      >Photos</a
-    >
-    ·
-    <a
-      href="x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
-      >Full Disk Access</a
-    >
-    ·
-    <a
-      href="x-apple.systempreferences:com.apple.preference.security?Privacy_Automation"
-      >Automation</a
-    >
-  </details>
+<section id="photos-setup" aria-label={t("photosTitle")}>
+ <RequirementStep title={t('photosRead')} state={!last?'checking':last.libraryReadable?'done':'todo'} hint={t('photosReadInstruction')}>
+  {#if !last?.libraryReadable}<button type="button" class="primary" data-photos-action="files" disabled={busy} onclick={()=>void run('files')}>{t('photosLibraryOpen')}</button>{/if}
+ </RequirementStep>
+ <RequirementStep title={t('photosOrganizeAccess')} state={!last?'checking':last.authorization==='authorized'?'done':'todo'} hint={t('photosAccessInstruction')}>
+  {#if last?.authorization!=='authorized'}<button type="button" class="primary" data-photos-action="authorize" disabled={busy} onclick={()=>void run('authorize')}>{t('photosAuthorizationRequest')}</button>
+   {#if last?.authorization==='denied'||last?.authorization==='restricted'}<button type="button" class="secondary" data-photos-action="photos" disabled={busy} onclick={()=>void run('photos')}>{t('photosAuthorizationOpen')}</button>{/if}
+  {/if}
+ </RequirementStep>
+ {#if failed}<p class="error" role="alert">{t('photosPermissionFailed')}</p>{/if}
+ <div class="status-row"><span id="photos-status" role="status" aria-live="polite">{last?.ready?t('requirementsReady'):busy?t('checking'):''}</span><button type="button" class="secondary" id="photos-recheck" disabled={busy} onclick={()=>void run()}>{t('checkAgainShort')}</button></div>
+ <details class="help"><summary>{t('photosPermissionHelpShort')}</summary><p>{t('photosMetadataHelp')}</p><button type="button" class="secondary" disabled={busy} onclick={()=>void run('automation')}>{t('photosAutomationOpen')}</button></details>
 </section>
+<style>.status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;font-size:12px;color:var(--ui-muted)}.help{margin-top:12px;font-size:12px}.help p{font-size:13px}.help summary{cursor:pointer}</style>
