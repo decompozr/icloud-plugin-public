@@ -1,5 +1,47 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Sharing-service discovery runtime experiment — 2026-10-06
+
+The owner reaffirmed focus on sharing existing photos to iCloud Shared Albums.
+Ran a small local public AppKit discovery executable against a synthetic NSImage,
+without accessing Photos, requesting authorization, presenting a window or calling
+perform(withItems:). NSApplication activation policy was prohibited. The source
+only enumerated sharing services, constructed a standard share menu item without
+showing it, and checked the named cloudSharing service for input compatibility.
+This local synthetic experiment is not a substitute account-operation connection.
+
+Swift 6 compilation succeeded with a deprecation warning for
+sharingServices(forItems:); the recommended standardShareMenuItem was also created
+successfully. Execution exited 0 with no stderr. For this synthetic NSImage, the
+registry offered Add to Photos along with generic sharing services, but no Add to
+Shared Album service. The named cloudSharing service existed and returned false
+from canPerform(withItems:) for this input.
+
+Apple documents [cloudSharing](https://developer.apple.com/documentation/appkit/nssharingservice/name/cloudsharing)
+as item-provider iCloud/CloudKit sharing, not Photos Shared Album publishing. The
+installed NSSharingService header says inputs must be pasteboard-writing objects,
+NSItemProvider or NSDocument, and performing a service usually shows a window.
+An available generic service or an Add to Photos import action cannot be promoted
+to an existing-photo Shared Album publish operation.
+
+Limit: service availability is input- and environment-dependent. This test used an
+NSImage without personal media, not an existing Live Photo or a Photos-provided
+item provider. It does not rule out other registered services for other inputs or
+Photos.app-specific share behavior. No UI fallback or actual sharing was tested.
+
+The next meaningful sharing experiment remains the official PhotosUI posting
+controller with genuine picker results, including whether preselected existing
+photos work and retain motion. Keep osxphotos for source discovery and local
+readback. Do not redesign this requirement as export/import, generic CloudKit
+document sharing or an ordinary-album operation. Same-MCP integration, journaled
+selection/destination and explicit actual-result readback are prerequisites to a
+live posting experiment.
+
+The task-owned .flow-runtime/share-service-probe directory contains only this
+completed synthetic source, executable, module cache and logs. After committed
+knowledge readback, remove that exact directory; no live operation or recovery
+dependency exists. No third-party service was selected or invoked.
+
 ## Existing-asset sharing and conditional UI experiment — 2026-10-06
 
 Owner clarified that the goal is sharing existing Photos assets, not designing a

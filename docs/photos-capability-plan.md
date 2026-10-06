@@ -1,5 +1,17 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Share-operation focus and public service discovery — 2026-10-06
+
+The owner reaffirmed sharing existing Photos assets to iCloud Shared Albums. A
+[public AppKit discovery runtime probe](photos-live-upload-plan.md#sharing-service-discovery-runtime-experiment--2026-10-06)
+ran with synthetic NSImage input and prohibited app activation, without library
+access, UI or share dispatch. Add to Photos was offered, but Add to Shared Album
+was not; generic cloudSharing existed but did not accept that input. These results
+are input-specific and do not rule out Photos-specific or Live Photo sharing.
+Continue the official PhotosUI genuine-picker-result publishing experiment through
+the original MCP, rather than equating import, album membership or CloudKit document
+sharing with the requested operation. Actual sharing remains unverified.
+
 ## Existing-photo sharing and UI fallback experiment — 2026-10-06
 
 Owner clarified existing-asset sharing and authorized an official UI only as a
