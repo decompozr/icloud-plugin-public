@@ -1,5 +1,17 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Existing-photo sharing and UI fallback experiment — 2026-10-06
+
+Owner clarified existing-asset sharing and authorized an official UI only as a
+last fallback to headless. Three fresh SDK compile probes verified the posting
+controller takes PHPickerResult, not PHAsset, and PHPickerResult has no accessible
+constructor. Shortcuts listing succeeded but identified no verified existing
+sharing shortcut. The [experiment and next integration slice](photos-live-upload-plan.md#existing-asset-sharing-and-conditional-ui-experiment--2026-10-06)
+records preselected-result item-provider uncertainty and the required same-MCP
+journal/picker/post/status path. No UI, shortcut execution, account publication,
+photo extraction or deployment occurred. Existing native direct-add rejection is
+not being repeated; actual sharing and Live playback remain acceptance gates.
+
 ## No-UI automation research — 2026-10-06
 
 The [four-surface comparison](photos-live-upload-plan.md#no-ui-automation-surface-comparison--2026-10-06)

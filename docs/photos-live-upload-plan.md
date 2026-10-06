@@ -1,5 +1,68 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Existing-asset sharing and conditional UI experiment — 2026-10-06
+
+Owner clarified that the goal is sharing existing Photos assets, not designing a
+standalone file uploader. Headless is preferred; an explicit official native UI
+is now allowed as a last fallback. This supersedes earlier absolute no-UI language
+for that bounded fallback only. It does not authorize computer-control click
+automation, hidden posting, a second MCP, arbitrary personal test sources or
+automatic publication. The original MCP remains the account-operation entry point.
+
+Fresh experiments used the existing macOS SDK and Swift 6 typechecker with task
+sources/module cache in ignored .flow-runtime/share-interface-experiment. Three
+probes were typechecked, not linked or executed:
+
+| Probe | Actual result | Knowledge |
+| --- | --- | --- |
+| Construct posting controller from supplied PHPickerResult array and album identifier | Exit 0 | The public official-UI constructor is available in the installed SDK. |
+| Supply an existing PHAsset directly as the posting item | Expected exit 1: conflicting element types PHPickerResult versus PHAsset | This public constructor does not take PHAsset directly. |
+| Construct PHPickerResult() ourselves | Expected exit 1: no accessible initializers | The public result cannot be fabricated from a source ID by this route. |
+
+The first checker expected the word unavailable for the last negative probe;
+Swift instead reported no accessible initializers. The checker was corrected
+against retained diagnostics and all three expected outcomes verified, without
+repeating compilation. These are SDK contract results, not actual posting tests.
+
+Original probe source SHA-256 values (in table order):
+`d072a4e6d5c053eccc005d2e9f078c6322ef2870008cd30c093557869cf57d2d`,
+`3f65aefd3a4657d30f1a028dd2182cc89ed4e2dd71eb71948d410ab424b8b899`,
+`e8fcdfa8893ba336282e9ae2dd2786e1f3da7cd5cc073463dead71eac2d9c3cb`.
+
+The public Shortcuts CLI list command completed successfully: five existing
+shortcuts were listed. The only name-matched Photos candidate was a JPEG conversion
+shortcut. Its internals were not inspected or run; name matching alone is not an
+exhaustive action inventory. No existing verified sharing shortcut was identified,
+and converting Live Photos to JPEG cannot satisfy the sharing requirement.
+No shortcut was imported, modified, signed or executed.
+
+Apple's [preselectedAssetIdentifiers documentation](https://developer.apple.com/documentation/photosui/phpickerconfiguration-swift.struct/preselectedassetidentifiers)
+and [WWDC21 picker explanation](https://developer.apple.com/videos/play/wwdc2021/10046/)
+state that preselected results lack actual item-provider data. This is a concrete
+gap for programmatically selected sources, not proof the posting controller will
+reject them. Its acceptance of such results remains a live UI experiment.
+
+Next official-UI slice: integrate a bounded experiment through the existing Helper
+and MCP prepare/apply/status lifecycle, with exact source/destination identities,
+a durable journal before presentation, explicit user cancellation, selection and
+destination-change detection, and no relaunch/retry after unknown posting. Use
+actual PHPickerResult values; do not extract/rebuild the existing Live Photo or
+invent constructors. If preselected results are not accepted, require the owner
+to reselect the exact asset to obtain a real result and explicitly report that
+interaction cost. Opening a picker or a posting callback is not success: verify
+actual destination content, cloud/cross-device presence and Live playback separately.
+
+The currently loaded MCP rejects native posting and the production Helper has
+no posting UI implementation. Therefore this experiment did not open a UI or share
+a photo; an isolated native executable is not an authorized substitute for the
+existing-main-MCP route. Exact personal source/destination review and the bounded
+runtime integration remain prerequisites for that live slice. Private backend
+research remains available read-only; no private service mutation was attempted.
+
+After committed knowledge readback, remove the exact task-owned experiment
+directory (three tiny sources, logs, summaries and compiler cache). No prototype
+is integrated into production or needed for live-operation recovery.
+
 ## No-UI automation surface comparison — 2026-10-06
 
 Owner requested investigating AppleScript, Shortcuts/App Intents, native private
