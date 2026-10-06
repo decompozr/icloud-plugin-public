@@ -22,6 +22,17 @@ application tests / 2,907 assertions pass. Initial checks failed on missing Stud
 build output, version alignment and a new test literal type; these were corrected
 before the passing sequential rerun. Verification is same-agent, not independent.
 
+Live experiment: PR 69 merged and immutable 0.1.61 deployed from main. The
+ad-hoc Helper update required fresh normal OS consent; the owner approved and
+original-MCP health returned authorization 3/true. Exactly one prepared operation
+was applied through the original MCP. The direct-identifier sheet callback returned
+posting_not_verified with NSCocoaErrorDomain / -1, and the Helper exited. This is
+not proof of media loading or publication. Bounded OS diagnostics did not identify
+a precise cause; missing representation remains a hypothesis, not a finding.
+A separate complete stable cloud read found the exact retained album empty; the
+original asset still reports livePhoto=true/shared=false. Preserve the operation
+and do not retry automatically. Source, album and recovery exclusions remain.
+
 The separate NSSharingService type-only inventory returned no Shared Album
 service; the Live Photo declaration returned Add to Photos only. That inventory
 does not prove all native routes unavailable. The prior picker operation was
