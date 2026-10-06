@@ -1,5 +1,13 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Picker comparison deployed; live selection pending — 2026-10-06
+
+PR 70 merged at `3e9a9890525590b4c2e89141f7adcbc6bef06ddf`. Existing original service now runs immutable 0.1.62 with a signed Helper. Stopped backup SQLite integrity checks passed; configuration/custody hashes were preserved and 14,669 installed payload files matched staging. The source branch passed 428 tests / 2,909 assertions. Main received concurrent UI changes; its rebuilt version passed 425 tests / 2,834 assertions, application typechecks and Studio checks. These are same-agent checks, not independent review or live posting acceptance.
+
+The first Helper setup raced the dist rebuild and failed; setup was rerun successfully after build completion. An initial main-test command used the wrong log path and did not run; the corrected invocation passed. The initial doctor invocation pointed at runtime state instead of the installed artifact and failed that check; the corrected installed-current check is recorded separately. No failed attempt is counted as passing.
+
+Original MCP health reports PhotoKit authorization 0 for the changed ad-hoc Helper binary. Its existing authorization entry point was opened; renewed OS consent is pending. No comparison operation or photo publication has occurred in this deployment. UI is authorized for this diagnostic exploration only; final acceptance still requires no-UI publication. The next live test is one real selection of the approved original, comparison of public media-loading results, then observation and cancellation of Apple's sheet without Post.
+
 ## Real-selection comparison authorized — 2026-10-06
 
 The owner clarified that UI is permitted for exploration; the final outcome must
