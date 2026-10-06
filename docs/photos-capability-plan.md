@@ -1,5 +1,9 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Fresh no-UI native direct-add attempt — 2026-10-06
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Public native Live Photo path decision — 2026-10-06
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.

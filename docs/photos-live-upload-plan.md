@@ -1,5 +1,18 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Fresh same-MCP native preflight — 2026-10-06
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+This verifies the current direct-add route rejects both observed destinations,
+not that every Apple API or every other album/OS is incapable. The earlier native
+permission uncertainty is resolved for this current health call. Cloud membership,
+iPhone delivery and Live playback were not tested because no add was dispatched.
+The no-UI/public-API constraints remain unchanged; the assisted PhotosUI route is
+not an automatic fallback. Native direct-add remains unsupported for these targets.
+
 ## Superseding owner decision: public native API only — 2026-10-06
 
 The owner now requires TypeScript MCP -> local Swift Helper -> public PhotoKit
