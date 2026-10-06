@@ -449,7 +449,7 @@
   "moduleConfirm": "Confirm enabling these capabilities. Existing client grants stay unchanged.",
   "saveModule": "Save capabilities",
   "capabilitiesDisabledDefault": "New installations start with every capability disabled. Enable only the modules and scopes you need.",
-  "refreshed": "Status refreshed.",
+  "refreshed": "Updated",
   "appPasswordModal": "iCloud app password",
   "appleSessionModal": "Apple Account sign-in",
   "credentialModalHelp": "App passwords connect Mail and Calendar. The password is cleared after this request and is not kept in browser storage.",
