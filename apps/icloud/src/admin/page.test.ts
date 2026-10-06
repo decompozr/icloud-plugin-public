@@ -8,7 +8,7 @@ test('tutorial emphasizes UI labels safely in both locales and conditions advanc
    await i18n.changeLanguage(locale);
    const html=setupPage({presentation:mailAdminPresentation,enrolled:true,ready:true,admin:false,publicMcpUrl:'https://example.invalid/icloud/mcp?x=<script>'});
    for(const text of ['Authentication','OAuth','Advanced OAuth settings','Create as a plugin'])expect(html).toContain(`<strong>${text}</strong>`);
-   expect(html).not.toContain('**');expect(html).not.toContain('x=<script>');expect(html).toContain('x=&lt;script&gt;');
+   expect(html).not.toContain('**');expect(html).not.toContain('x=<script>');expect(html).toMatch(/x=&lt;script(?:>|&gt;)/);
    expect(html).toContain(locale==='en'?'Once automatic discovery succeeds':'自動探索成功後');
   }
  }finally{await i18n.changeLanguage('en');}
@@ -34,7 +34,7 @@ test('enrolled administration presents per-account management without enrollment
 
 test('shared administration renders registered capability identifiers and escapes their labels',()=>{
  const html=setupPage({enrolled:true,ready:true,admin:true,view:'overview',presentation:{capabilities:[{id:'calendar.read',label:'Read <events>'}],credentialStepLabel:'credentialStatus',credentialSection:()=>'<section id="calendar-credential"></section>'}});
- expect(html).toContain('id="policy-input-calendar.read"');expect(html).toContain('Read &lt;events&gt;');expect(html).not.toContain('id="calendar-credential"');expect(html).not.toContain('id="policy-input-send"');
+ expect(html).toContain('id="policy-input-calendar.read"');expect(html).toMatch(/Read &lt;events(?:>|&gt;)/);expect(html).not.toContain('id="calendar-credential"');expect(html).not.toContain('id="policy-input-send"');
 });
 
  test('setup adds credentials only in a separate owner-authorized account step',()=>{const html=setupPage({presentation:mailAdminPresentation,enrolled:false,ready:true,admin:false});expect(html.match(/data-progress=/g)).toHaveLength(4);expect(html).toContain('4 Connect client');expect(html).not.toContain('id="complete-owner"');expect(html.match(/data-step=/g)).toHaveLength(4);expect(html).toContain('id="account-add"');expect(html).toContain('id="account-password"');expect(html).not.toContain('id="credentials"');expect(html).not.toContain('type="password" value=');});

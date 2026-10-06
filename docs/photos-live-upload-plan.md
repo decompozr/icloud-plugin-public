@@ -1,5 +1,32 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Direct-identifier SwiftUI presentation experiment — 2026-10-06
+
+The owner authorized trying a sharing window with the existing photo already
+supplied, without another picker selection. The installed macOS 27 SDK exposes
+both PhotosPickerItem(itemIdentifier:) and a photosSharedAlbumPostingSheet
+overload accepting those items. A compile-only probe of this exact combination
+passes. Identifier-only items have no media representation; actual loading,
+Live Photo preservation and publication remain unverified.
+
+The Helper now passes the reviewed source identifier directly to this public
+SwiftUI sheet with the exact default album. It never presses Post, exports media,
+reconstructs a Live Photo or falls back to a new session. Native errors retain a
+domain/code in the durable journal. Opening the sheet is conservatively an unknown
+posting outcome until its callback/dismissal is reconciled. Existing one-use
+reservation, final authorization, source/destination validation and no-retry
+rules remain. This is an experiment, not headless-publication acceptance.
+
+Validation: full Swift Helper link and application build/typechecks pass; 427
+application tests / 2,907 assertions pass. Initial checks failed on missing Studio
+build output, version alignment and a new test literal type; these were corrected
+before the passing sequential rerun. Verification is same-agent, not independent.
+
+The separate NSSharingService type-only inventory returned no Shared Album
+service; the Live Photo declaration returned Add to Photos only. That inventory
+does not prove all native routes unavailable. The prior picker operation was
+confirmed cancelled before posting. No successful publication is recorded.
+
 ## App Intent candidate: SDK and installed-action preflight — 2026-10-06
 
 At the owner's request, tested the postToSharedAlbum candidate without UI or an

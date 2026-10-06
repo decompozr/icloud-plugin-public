@@ -1,5 +1,5 @@
 import {createLocalOwnerAccess,createRemoteOwnerPairing} from '../auth/local-owner.js';
-import {setupPage} from '../admin/page.js';
+import {createStudio} from '../../../studio/dist/transport.js';
 import {createPhotosAdmin} from '../photos/admin.js';
 import {photosSetup} from '../photos/setup-ui.js';
 import {PhotosCloudSetup,supportsProviderSessions} from '../photos/cloud-setup.js';
@@ -37,6 +37,7 @@ import{fetchBridge,guardHost}from'./bridge.js';
 import{prerequisites}from'./prerequisites.js';
 
 export interface ApplicationDependencies{
+ studioDirectory?:string;
  calendarProvider?:CalendarModuleDependencies['provider'];
  monitor?:OperationMonitor;lifecycle?:HttpLifecycle;
  store:OwnerSecretStore;masterKey:Uint8Array;authDatabase:Database;assetsDirectory:string;
@@ -88,30 +89,27 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  const setupState=async(request:Request)=>{let passkeyRegistered=false;try{const session=await auth.enrollmentSession(request.headers);passkeyRegistered=bootstrap.resumed(request,session.user.id);}catch{}return{bootstrapAuthorized:bootstrap.allowed(request),passkeyRegistered};};
  let policyEpoch=0;
  const evidence=new ReadinessEvidence(evidenceState(deps.authDatabase,deps.store,()=>runtime.allowedScopes,()=>policyEpoch));
+ const studio=await createStudio(deps.studioDirectory??join(deps.assetsDirectory,'../studio'));
  const publicApp=createHttpApp(config,runtime,auth.verifyBearer,lifecycle,evidence,reconnect);
  publicApp.use(guardHost(settings.public_origin,settings.public_port));
- for(const page of ['sign-in','consent','connect'] as const)publicApp.get('/icloud/'+page,(_req,res)=>{res.set({'cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}).type('html').send(renderAuthPage(page,false,scopeLabels));});
  publicApp.get('/icloud/assets/inter.ttf',(_req,res)=>res.type('font/ttf').sendFile(join(deps.assetsDirectory,'inter.ttf'),{dotfiles:'allow'}));
- publicApp.get('/icloud/assets/auth-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'auth-browser.js'),{dotfiles:'allow'}));
- publicApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.public_origin,auth.publicHandler,lifecycle));
+
+ publicApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.public_origin,async request=>{const asset=await studio.asset(request);if(asset)return asset;const path=new URL(request.url).pathname;const mode=path==='/icloud/sign-in'?'sign-in':path==='/icloud/connect'?'connect':path==='/icloud/consent'?'consent':undefined;if(mode&&['GET','HEAD'].includes(request.method))return studio.auth(request,mode,false,scopeLabels);return studio.api(request,auth.publicHandler);},lifecycle));
  const versions=runtimeVersions(deps.assetsDirectory);
- const admin=createPrivateAdmin({...(photosCloud?{photosCloud}:{}),...(photosPermissions?{photosSetup:photosPermissions}:{}),connectionCommands:connectionCommands(settings),systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}},...(photosAdmin?[{...photosAdmin.admin,updateCapabilities:async(...args:Parameters<typeof photosAdmin.admin.updateCapabilities>)=>{try{return await photosAdmin!.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[])]});
+ const admin=createPrivateAdmin({renderPage:studio.admin,...(photosCloud?{photosCloud}:{}),...(photosPermissions?{photosSetup:photosPermissions}:{}),connectionCommands:connectionCommands(settings),systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),privateOrigin:settings.private_origin,pluginArchive:()=>configuredPluginArchive(join(deps.assetsDirectory,'../plugin-template'),settings.public_origin),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,store:deps.store,ownerAuth:auth,diagnostics,setupState,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}},...(photosAdmin?[{...photosAdmin.admin,updateCapabilities:async(...args:Parameters<typeof photosAdmin.admin.updateCapabilities>)=>{try{return await photosAdmin!.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[])]});
  const privateApp=express();privateApp.disable('x-powered-by');privateApp.use(lifecycle.admission);privateApp.use(guardHost(settings.private_origin,settings.private_port));
  privateApp.use((req,res,next)=>{
   const address=req.socket.remoteAddress?.replace(/^::ffff:/,'');
   if(address!=='127.0.0.1'&&address!=='::1'&&!(settings.runtime_mode==='container'&&settings.private_proxy_address&&address===settings.private_proxy_address)){res.status(403).end();return;}next();
  });
  privateApp.get('/setup',(_req,res)=>res.redirect(308,'/icloud/setup'));
- privateApp.get('/icloud/sign-in',(_req,res)=>res.set({'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}).type('html').send(renderAuthPage('sign-in',true,scopeLabels)));
- privateApp.get('/icloud/setup/health',(_req,res)=>res.type('text/plain').send('icloud-private'));
+  privateApp.get('/icloud/setup/health',(_req,res)=>res.type('text/plain').send('icloud-private'));
  privateApp.get('/icloud/assets/plugin-icon.png',(_req,res)=>res.type('png').sendFile(join(deps.assetsDirectory,'plugin-icon.png'),{dotfiles:'allow'}));
- privateApp.get('/icloud/assets/admin-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'admin-browser.js'),{dotfiles:'allow'}));
  privateApp.get('/icloud/assets/inter.ttf',(_req,res)=>res.type('font/ttf').sendFile(join(deps.assetsDirectory,'inter.ttf'),{dotfiles:'allow'}));
- privateApp.get('/icloud/assets/auth-browser.js',(_req,res)=>res.sendFile(join(deps.assetsDirectory,'auth-browser.js'),{dotfiles:'allow'}));
- privateApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.private_origin,async request=>{
+ privateApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(settings.private_origin,async incoming=>{const asset=await studio.asset(incoming);if(asset)return asset;if(['GET','HEAD'].includes(incoming.method)&&new URL(incoming.url).pathname==='/icloud/sign-in')return studio.auth(incoming,'sign-in',true,scopeLabels);return studio.api(incoming,async request=>{
   const path=new URL(request.url).pathname;
   if(pairing&&deps.store.ownerId()!==null){
-   if(path==='/icloud/setup'&&new URL(request.url).searchParams.get('mode')==='remote-owner')return new Response(setupPage({enrolled:false,ready:true,admin:false,view:'setup',publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href}),{headers:{'cache-control':'no-store','referrer-policy':'no-referrer','content-type':'text/html','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
+   if(path==='/icloud/setup'&&new URL(request.url).searchParams.get('mode')==='remote-owner')return studio.admin(request,{enrolled:false,ready:true,admin:false,view:'setup',publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href});
    if(path==='/icloud/setup/status'&&new URL(request.url).searchParams.get('mode')==='remote-owner')return Response.json({prerequisites:await diagnostics(),ready:true,enrolled:false,bootstrapAuthorized:(()=>{try{pairing.authorize(request);return true;}catch{return false;}})(),passkeyRegistered:await auth.enrollmentSession(request.headers).then(current=>pairing.authorize(request).user===current.user.id).catch(()=>false)});
    if(path==='/icloud/setup/begin'){try{if(request.method!=='POST')throw Error('Method denied');try{const grant=pairing.authorize(request);return Response.json({passkeyRegistered:Boolean(grant.user)});}catch{}const body=z.object({proof:z.string()}).strict().parse(await request.json());return Response.json({passkeyRegistered:false},{headers:{'set-cookie':pairing.begin(request,body.proof),'cache-control':'no-store'}});}catch{return Response.json({error:'REMOTE_OWNER_PAIRING_REQUIRED'},{status:403});}}
    if(['/icloud/auth/passkey/generate-register-options','/icloud/auth/passkey/verify-registration','/icloud/setup/complete'].includes(path)){
@@ -152,23 +150,22 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
    return auth.privateHandler(request);
   }
   return admin(request);
- },lifecycle));
+ });},lifecycle));
  let localApp:express.Express|undefined;
  if(settings.local_origin){
   const localOrigin=settings.local_origin,access=createLocalOwnerAccess(settings,()=>deps.store.ownerId());
   const localAuth=await createOwnerAuth({database:deps.authDatabase,publicBaseURL:localOrigin,privateOrigin:localOrigin,rpID:'localhost',sessionOnly:true,cookiePrefix:'icloud_local',accountStore:deps.store,allowedScopes:()=>runtime.allowedScopes,secret:createHash('sha256').update(deps.masterKey).update('local-owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,ownerId:()=>deps.store.ownerId(),registrationOwnerId:()=>deps.store.ownerId(),checkRegistrationProof:value=>access.checkProof(value),checkBootstrapProof:()=>{throw Error('Local proof required');}});
-  const localAdmin=createPrivateAdmin({...(photosCloud?{photosCloud}:{}),...(photosPermissions?{photosSetup:photosPermissions}:{}),connectionCommands:connectionCommands(settings),privateOrigin:localOrigin,setupReady:true,localOwner:true,store:deps.store,ownerAuth:localAuth,diagnostics,setupState:async request=>{let passkeyRegistered=false;try{const current=await localAuth.enrollmentSession(request.headers);passkeyRegistered=access.authorize(request).user===current.user.id;}catch{}return{bootstrapAuthorized:(()=>{try{access.authorize(request);return true;}catch{return false;}})(),passkeyRegistered,localOwner:true};},systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}},...(photosAdmin?[{...photosAdmin.admin,updateCapabilities:async(...args:Parameters<typeof photosAdmin.admin.updateCapabilities>)=>{try{return await photosAdmin!.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[])]});
+  const localAdmin=createPrivateAdmin({renderPage:studio.admin,...(photosCloud?{photosCloud}:{}),...(photosPermissions?{photosSetup:photosPermissions}:{}),connectionCommands:connectionCommands(settings),privateOrigin:localOrigin,setupReady:true,localOwner:true,store:deps.store,ownerAuth:localAuth,diagnostics,setupState:async request=>{let passkeyRegistered=false;try{const current=await localAuth.enrollmentSession(request.headers);passkeyRegistered=access.authorize(request).user===current.user.id;}catch{}return{bootstrapAuthorized:(()=>{try{access.authorize(request);return true;}catch{return false;}})(),passkeyRegistered,localOwner:true};},systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}},...(photosAdmin?[{...photosAdmin.admin,updateCapabilities:async(...args:Parameters<typeof photosAdmin.admin.updateCapabilities>)=>{try{return await photosAdmin!.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[])]});
   localApp=express();localApp.disable('x-powered-by');localApp.use(lifecycle.admission);
   // A local RP has exactly one Host. Remote/private proxy Hosts never reach it.
   localApp.use((req,res,next)=>{const address=req.socket.remoteAddress?.replace(/^::ffff:/,'');if(req.get('host')!==new URL(localOrigin).host||!['127.0.0.1','::1'].includes(address??'')){res.status(403).end();return;}next();});
-  localApp.get('/icloud/sign-in',(_req,res)=>res.set({'cache-control':'no-store','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"}).type('html').send(renderAuthPage('sign-in',true,scopeLabels)));
-  for(const asset of ['admin-browser.js','auth-browser.js','inter.ttf','plugin-icon.png'])localApp.get('/icloud/assets/'+asset,(_req,res)=>res.sendFile(join(deps.assetsDirectory,asset),{dotfiles:'allow'}));
-  localApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(localOrigin,async request=>{
+   for(const asset of ['inter.ttf','plugin-icon.png'])localApp.get('/icloud/assets/'+asset,(_req,res)=>res.sendFile(join(deps.assetsDirectory,asset),{dotfiles:'allow'}));
+  localApp.use(express.raw({type:()=>true,limit:'256kb'}),fetchBridge(localOrigin,async incoming=>{const asset=await studio.asset(incoming);if(asset)return asset;if(['GET','HEAD'].includes(incoming.method)&&new URL(incoming.url).pathname==='/icloud/sign-in')return studio.auth(incoming,'sign-in',true,scopeLabels);return studio.api(incoming,async request=>{
    const path=new URL(request.url).pathname;
    if(path==='/icloud/admin/remote-owner'){
     try{if(request.method!=='POST'||request.headers.get('origin')!==localOrigin)throw Error('Origin required');const body=z.object({confirm:z.literal(true)}).strict().parse(await request.json());void body;const current=await localAuth.ownerSession(request.headers);return Response.json({url:pairing!.issue(current.user.id),expiresIn:300},{headers:{'cache-control':'no-store'}});}catch{return Response.json({error:'OWNER_CONFIRMATION_REQUIRED'},{status:403});}
    }
-   if(path==='/icloud/setup'&&new URL(request.url).searchParams.get('mode')==='local-owner')return new Response(setupPage({localOwner:true,enrolled:false,ready:true,admin:false,view:'setup',publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href}),{headers:{'cache-control':'no-store','referrer-policy':'no-referrer','content-type':'text/html','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
+   if(path==='/icloud/setup'&&new URL(request.url).searchParams.get('mode')==='local-owner')return studio.admin(request,{localOwner:true,enrolled:false,ready:true,admin:false,view:'setup',publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href});
    if(path==='/icloud/setup/status'&&new URL(request.url).searchParams.get('mode')==='local-owner')return Response.json({prerequisites:await diagnostics(),ready:true,enrolled:false,localOwner:true,bootstrapAuthorized:(()=>{try{access.authorize(request);return true;}catch{return false;}})(),passkeyRegistered:await localAuth.enrollmentSession(request.headers).then(current=>access.authorize(request).user===current.user.id).catch(()=>false)},{headers:{'cache-control':'no-store'}});
    if(path==='/icloud/setup/begin'){
     if(request.method!=='POST')return new Response('Method not allowed',{status:405});
@@ -188,7 +185,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
    if(path==='/icloud/admin/oauth-clients')return localAuth.privateHandler(request);
    if(path.startsWith('/icloud/auth/'))return ['/icloud/auth/passkey/generate-authenticate-options','/icloud/auth/passkey/verify-authentication','/icloud/auth/get-session','/icloud/auth/sign-out'].includes(path)?localAuth.privateHandler(request):new Response('Not found',{status:404});
    return localAdmin(request);
-  },lifecycle));
+  });},lifecycle));
  }
  return{publicApp,privateApp,...(localApp?{localApp}:{}),auth,monitor,lifecycle,runtime};
  }catch(error){try{await runtime.dispose();}catch{}throw error;}

@@ -1,13 +1,2 @@
-export function photosCloudSection(){return `<section class="card" id="photos-cloud-setup" aria-labelledby="photos-cloud-title">
-<h2 id="photos-cloud-title">Shared Album authorization (experimental)</h2>
-<p>Use your existing account and MCP connection. Mail and Calendar use an app-specific password; Mac-local Photos uses the Mac's Photos permissions. This experimental web route requires an additional Apple Account sign-in with two-factor authentication. Shared Album writes are still in development.</p>
-<p>Your Apple Account password and verification code are used only for this request and are not stored. No photos or invitations are sent by signing in.</p>
-<label for="photos-cloud-account">Account</label><select id="photos-cloud-account" required></select>
-<p id="photos-cloud-status" role="status" aria-live="polite"></p>
-<button type="button" id="photos-cloud-install">Set up experimental Shared Album access</button>
-<form id="photos-cloud-login"><fieldset id="photos-cloud-login-fields" disabled><label for="photos-cloud-password">Apple Account password</label><input id="photos-cloud-password" type="password" autocomplete="current-password" maxlength="1024" required><button type="submit">Sign in</button></fieldset></form>
-<form id="photos-cloud-verify" hidden><label for="photos-cloud-code">Six-digit verification code</label><input id="photos-cloud-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required><button type="submit">Verify</button><button type="button" id="photos-cloud-send-code">Request a code</button></form>
-<button type="button" id="photos-cloud-recheck">Check connection again</button>
-<button type="button" id="photos-cloud-revoke">Disconnect Shared Album API</button>
-<label><input type="checkbox" id="photos-cloud-revoke-confirm">Confirm disconnecting this account's Shared Album API session</label>
-</section>`;}
+import {renderPhotosCloud} from '../../../studio/dist/index.js';
+export function photosCloudSection():string{return renderPhotosCloud();}

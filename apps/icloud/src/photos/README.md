@@ -274,9 +274,10 @@ Photos, PhotosUI and AppKit; it does not install new global defaults.
 
 `photos_prepare({action:"post_to_shared_album",assetIds:[exactSource],albumId:exactLocalSharedAlbum,nativeUI:true})`
 prepares one existing-asset share through the same MCP. Preparation opens no UI.
-Confirmed apply launches the signed Helper's user-operated picker and official
-PhotosUI posting sheet. The separate local "Open sharing window" action is
-required; picker completion never automatically posts. Default/legacy requests
+Confirmed apply launches the signed Helper and supplies the exact source identifier
+to the public SwiftUI PhotosUI posting sheet, without a separate picker. This is
+an identifier-only experiment: media loading is unverified until observed. The
+Helper never presses Post; posting remains user-operated. Default/legacy requests
 without `nativeUI:true` remain unavailable. Runtime activation and actual sharing
 acceptance are pending; do not use unadvertised arguments in an old loaded schema.
 

@@ -1,9 +1,8 @@
-import { t, richText, type CopyKey } from '../i18n/index.js';
 import type {AdminPresentation} from '../admin/page.js';
-const escape=(text:string)=>text.replace(/[&<>"']/g,value=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[value]!));
-const copy=(key:CopyKey)=>`<span data-copy="${key}">${richText(key).map(part=>part.strong?`<strong>${escape(part.text)}</strong>`:escape(part.text)).join('')}</span>`;
+import {renderCredential} from '../../../studio/dist/index.js';
+import {studioCopy} from '../ui/studio.js';
 export const mailAdminPresentation:AdminPresentation={
  capabilities: [{id:'read',copyKey:'capabilityRead'},{id:'write',copyKey:'capabilityWrite'},{id:'send',copyKey:'capabilitySend'},{id:'unsubscribe',copyKey:'capabilityUnsubscribe'}],
  credentialStepLabel:'stepMail',
- credentialSection:(admin)=>` <section data-step="2" ${admin?'':'hidden'}><h2 tabindex="-1">${copy(admin?'mailAdminTitle':'mailTitle')}</h2><p>${copy('mailIntro')}</p>${admin?`<p class="note">${copy('replaceNote')}</p>`:''}<div class="note"><a href="https://support.apple.com/102654" target="_blank" rel="noreferrer">${copy('appleGuide')}</a><br>${copy('appleGuideHelp')}</div><form id="credentials" data-admin="${admin}"><label for="account">${copy('accountsTitle')}</label><select id="account" required></select><label for="password">${copy('password')}</label><input id="password" name="password" type="password" required autocomplete="new-password" maxlength="256"><small>${copy('passwordHelp')}</small><div class="actions"><button id="save" class="primary" type="submit">${copy(admin?'saveAdmin':'save')}</button>${admin?'':`<button type="button" class="secondary" data-back="1">${copy('back')}</button>`}</div></form>${admin?`<div class="section-divider"><h2>${copy('revokeTitle')}</h2><p class="muted">${copy('revokeIntro')}</p><button id="revoke" class="danger">${copy('revoke')}</button><div id="revoke-confirm" hidden class="note"><p id="revoke-account"></p><p>${copy('revokeConfirm')}</p><button id="revoke-yes" class="danger">${copy('revokeYes')}</button> <button id="revoke-cancel" class="secondary">${copy('cancel')}</button></div></div>`:''}</section>`
+ credentialSection:admin=>renderCredential(admin,studioCopy)
 };

@@ -1,6 +1,7 @@
 # Shared page primitives
 
-`page.ts` supplies the visual tokens/styles, brand, card and icon primitives used
+`apps/studio` owns Svelte components and shared visual tokens/styles. This
+folder retains host locale adapters and compatibility exports used
 by owner setup and authentication pages. It provides consistent focus treatment,
 spacing and responsive layout without owning either workflow's state or permissions.
 

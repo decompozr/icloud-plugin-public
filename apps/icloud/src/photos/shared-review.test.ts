@@ -20,3 +20,9 @@ test('review records reject identity changes, public permissions and symbolic li
  try{const path=join(directory,id+'.jsonl');const event={operationId:randomUUID(),status:'review_pending',timestamp:1,localReadbackVerified:false,serverSyncVerified:false};await writeFile(path,JSON.stringify(event)+'\n',{mode:0o600});await expect(readReview(directory,id)).rejects.toThrow('invalid_review_record');await chmod(path,0o644);await expect(readReview(directory,id)).rejects.toThrow('invalid_review_record');await rm(path);await symlink(join(directory,'unrelated'),path);await expect(readReview(directory,id)).rejects.toThrow('review_record_unavailable');}
  finally{await rm(directory,{recursive:true});}
 });
+
+test('native presentation errors remain durable unverified outcomes',async()=>{
+ const directory=await mkdtemp(join(tmpdir(),'photos-review-test-')),id=randomUUID();
+ try{const event={operationId:id,status:'posting_not_verified',timestamp:1,nativeErrorDomain:'PHPhotosErrorDomain',nativeErrorCode:3300,localReadbackVerified:false,serverSyncVerified:false} as const;await writeFile(join(directory,id+'.jsonl'),JSON.stringify(event)+'\n',{mode:0o600});expect(await readReview(directory,id)).toEqual({...event,nativeProcessAlive:null});}
+ finally{await rm(directory,{recursive:true});}
+});

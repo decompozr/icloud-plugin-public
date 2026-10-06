@@ -2,24 +2,20 @@ import AppKit
 import Photos
 import PhotosUI
 import Darwin
+import SwiftUI
 
 /// A user-operated experiment. It never exports media or calls addAssets.
 @available(macOS 27.0, *)
-@MainActor final class SharedAlbumPostingSession: NSObject, PHPickerViewControllerDelegate, @preconcurrency PHSharedAlbumPostingViewController.Delegate, NSWindowDelegate {
+@MainActor final class SharedAlbumPostingSession: NSObject, NSWindowDelegate {
     private let operationId: String
     private let assetId: String
     private let asset: PHAsset
     private let album: PHAssetCollection
     private let expiresAt: Double
     private let journal: FileHandle
-    private let host = NSViewController()
     private var window: NSWindow!
-    private var selected: [PHPickerResult] = []
-    private var posting: PHSharedAlbumPostingViewController?
     private var postingStarted = false
     private var finished = false
-    private let share = NSButton(title: "Open sharing window", target: nil, action: nil)
-    private let label = NSTextField(wrappingLabelWithString: "")
 
     init(input: [String: Any]) throws {
         guard let operationId = input["operationId"] as? String, UUID(uuidString: operationId) != nil,
@@ -68,63 +64,46 @@ import Darwin
         NSApplication.shared.terminate(nil)
     }
     func present() {
-        let choose = NSButton(title: "Select photo", target: self, action: #selector(selectPhoto))
-        let cancel = NSButton(title: "Cancel", target: self, action: #selector(cancelSession))
-        share.target = self; share.action = #selector(openPosting); share.isEnabled = false
-        label.stringValue = "Choose the selected photo, then open Apple's sharing window. Destination: " + (album.localizedTitle ?? "Shared Album")
-        let stack = NSStackView(views: [label, choose, share, cancel])
-        stack.orientation = .vertical; stack.spacing = 14; stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
-        host.view = stack
-        window = NSWindow(contentViewController: host); window.title = "Share selected photo"
-        window.setContentSize(NSSize(width: 460, height: 230)); window.delegate = self
-        window.center(); window.makeKeyAndOrderFront(nil); NSApplication.shared.activate(ignoringOtherApps: true)
-        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self, !self.postingStarted else { return }
-                if Date().timeIntervalSince1970 * 1000 >= self.expiresAt { self.finish("cancelled_before_posting") }
+        guard !postingStarted, Date().timeIntervalSince1970 * 1000 < expiresAt,
+              PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized else {
+            finish("cancelled_before_posting"); return
+        }
+        // Identifier-only public SwiftUI input. No picker, export, reconstruction,
+        // automatic Post action, or fallback/relaunch after uncertain presentation.
+        let item = PhotosPickerItem(itemIdentifier: asset.localIdentifier)
+        do { try record("posting_outcome_unknown", extra: ["selectedAssetIds": [assetId], "itemProviderHasData": false]) }
+        catch { finish("journal_failed_reconcile_operation"); return }
+        postingStarted = true
+        let presented = Binding<Bool>(get: { [weak self] in self?.finished == false }, set: { [weak self] visible in
+            if !visible {
+                // Give the completion callback an opportunity to record its result.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                    self?.finish("posting_closed_outcome_unknown")
+                }
             }
-        }
+        })
+        let view = Text("Review the selected photo in Apple's sharing window.")
+            .padding(24).frame(width: 460, height: 180)
+            .photosSharedAlbumPostingSheet(isPresented: presented, items: [item],
+                defaultAlbumIdentifier: album.localIdentifier, photoLibrary: .shared()) { [weak self] result in
+                guard let self else { return }
+                switch result {
+                case .success(let actual):
+                    self.finish(actual == self.album.localIdentifier ? "posting_completed_membership_unverified" : "different_destination_membership_unverified", extra: ["actualAlbum": actual])
+                case .failure(let error):
+                    let native = error as NSError
+                    self.finish("posting_not_verified", extra: ["nativeErrorDomain": native.domain, "nativeErrorCode": native.code])
+                }
+            }
+        let controller = NSHostingController(rootView: view)
+        window = NSWindow(contentViewController: controller); window.title = "Share selected photo"
+        window.delegate = self
+        window.center(); window.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
     }
-    @objc private func selectPhoto() {
-        guard !postingStarted, Date().timeIntervalSince1970 * 1000 < expiresAt else { return }
-        selected = []; share.isEnabled = false
-        var configuration = PHPickerConfiguration(photoLibrary: .shared())
-        configuration.selectionLimit = 2 // Preselection requires a limit greater than one.
-        configuration.preselectedAssetIdentifiers = [asset.localIdentifier]
-        configuration.filter = asset.mediaSubtypes.contains(.photoLive) ? .livePhotos : asset.mediaType == .video ? .videos : .images
-        let picker = PHPickerViewController(configuration: configuration); picker.delegate = self
-        host.presentAsSheet(picker)
+    func windowWillClose(_ notification: Notification) {
+        finish(postingStarted ? "posting_closed_outcome_unknown" : "cancelled_before_posting")
     }
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        host.dismiss(picker)
-        guard results.count == 1, results[0].assetIdentifier == asset.localIdentifier else {
-            finish(results.isEmpty ? "cancelled_before_posting" : "selection_changed_review_required"); return
-        }
-        selected = results
-        let hasData = !results[0].itemProvider.registeredTypeIdentifiers.isEmpty
-        do { try record("picker_review", extra: ["selectedAssetIds": [assetId], "itemProviderHasData": hasData]) }
-        catch { finish("journal_failed_reconcile_operation"); return }
-        label.stringValue = "The selected photo matches. Open Apple's sharing window to review the destination and post."
-        // A preselected cancellation can return results too. Never auto-post from
-        // the picker callback; require this separate explicit user action.
-        share.isEnabled = true
-    }
-    @objc private func openPosting() {
-        guard !postingStarted, selected.count == 1, Date().timeIntervalSince1970 * 1000 < expiresAt,
-              PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized else { return }
-        do { try record("posting_outcome_unknown") }
-        catch { finish("journal_failed_reconcile_operation"); return }
-        postingStarted = true; share.isEnabled = false
-        let controller = PHSharedAlbumPostingViewController(items: selected, defaultAlbumIdentifier: album.localIdentifier, photoLibrary: .shared())
-        posting = controller; controller.delegate = self
-        host.presentAsSheet(controller)
-    }
-    func sharedAlbumPostingViewController(_ controller: PHSharedAlbumPostingViewController, didCompleteWithError error: (any Error)?) {
-        guard error == nil, let actual = controller.albumIdentifier else { finish("posting_not_verified"); return }
-        finish(actual == album.localIdentifier ? "posting_completed_membership_unverified" : "different_destination_membership_unverified", extra: ["actualAlbum": actual])
-    }
-    @objc private func cancelSession() { finish(postingStarted ? "posting_closed_outcome_unknown" : "cancelled_before_posting") }
-    func windowWillClose(_ notification: Notification) { cancelSession() }
 }
 
 @MainActor func prepareSharedPostingSession(_ input: [String: Any]) throws -> AnyObject {

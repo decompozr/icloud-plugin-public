@@ -4,13 +4,22 @@ WORKDIR /build
 COPY LICENSE THIRD_PARTY_NOTICES.md plugin.json ./
 COPY apps/icloud/package.json apps/icloud/bun.lock apps/icloud/tsconfig.json apps/icloud/tsconfig.build.json ./apps/icloud/
 COPY packages/tooling/package.json packages/tooling/bun.lock ./packages/tooling/
+COPY apps/studio/package.json apps/studio/bun.lock ./apps/studio/
+RUN cd apps/studio && bun install --frozen-lockfile
 RUN cd apps/icloud && bun install --frozen-lockfile
 RUN cd packages/tooling && bun install --frozen-lockfile
+COPY apps/studio/messages ./apps/studio/messages
+COPY apps/studio/project.inlang/settings.json ./apps/studio/project.inlang/
+COPY apps/studio/vite.config.ts ./apps/studio/
+COPY apps/studio/src ./apps/studio/src
+COPY apps/studio/build ./apps/studio/build
+COPY apps/studio/tsconfig.json apps/studio/THIRD_PARTY_NOTICES.md ./apps/studio/
 COPY apps/icloud/src ./apps/icloud/src
 COPY apps/icloud/assets/plugin-icon.png ./apps/icloud/assets/plugin-icon.png
 COPY apps/icloud/assets/inter.ttf apps/icloud/assets/inter-OFL.txt ./apps/icloud/assets/
 COPY skills/icloud-mail/SKILL.md ./skills/icloud-mail/SKILL.md
 COPY skills/icloud-calendar/SKILL.md ./skills/icloud-calendar/SKILL.md
+COPY skills/icloud-photos/SKILL.md ./skills/icloud-photos/SKILL.md
 COPY bin ./bin
 COPY packages/tooling ./packages/tooling
 RUN bun bin/build && bun bin/build-artifact /artifact

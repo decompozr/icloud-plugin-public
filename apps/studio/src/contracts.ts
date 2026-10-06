@@ -1,0 +1,33 @@
+/** Presentation-only contracts. No credentials, grants, stores or provider clients. */
+export interface UiCopy {
+  t(key: string): string;
+  richText(key: string): ReadonlyArray<{ text: string; strong: boolean }>;
+  authT(key: string): string;
+}
+export interface AdminPresentation {
+  capabilities: readonly { id: string; label?: string; copyKey?: string }[];
+  credentialStepLabel: string;
+  /** Trusted module-owned markup, never request/user-provided HTML. */
+  credentialSection(admin: boolean): string;
+}
+export interface AdminState {
+  enrolled: boolean;
+  ready: boolean;
+  admin: boolean;
+  localOwner?: boolean;
+  connectionCommands?: readonly string[];
+  view?: "overview" | "accounts" | "connections" | "system" | "setup";
+  mode?: "account";
+  publicMcpUrl?: string;
+  pluginDownload?: boolean;
+  photosConfigured?: boolean;
+  photosCloudConfigured?: boolean;
+  presentation?: AdminPresentation;
+  modules?: readonly {
+    id: string;
+    title: string;
+    fields: readonly { id: string; label: string }[];
+  }[];
+}
+export type AuthMode = "sign-in" | "consent" | "connect";
+export type ScopeLabels = Record<string, string | Record<string, string>>;
