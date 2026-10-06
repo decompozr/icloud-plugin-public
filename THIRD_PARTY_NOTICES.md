@@ -20,3 +20,23 @@ and the installed `assets/studio-LICENSES.txt`.
 Studio refresh, settings and add controls use the pinned DecompozR Design System
 Lucide icon geometry at the same source revision. Its ISC license is preserved in
 `apps/icloud/assets/lucide-LICENSE.txt` and the installed assets.
+
+## Agentic connector icon
+
+The plugin icon adapts Lucide's `bot` geometry with an original background and
+accent. Source: https://github.com/lucide-icons/lucide/blob/main/icons/bot.svg
+
+ISC License
+
+Copyright (c) 2026 Lucide Icons and Contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
