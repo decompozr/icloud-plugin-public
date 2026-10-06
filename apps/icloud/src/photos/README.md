@@ -74,27 +74,14 @@ customization and posting sheets, but those require user-operated UI and are
 excluded from this remote/no-computer-control workflow. Installed public PhotoKit
 and Photos scripting interfaces do not expose complete headless management.
 
-## Nonshipping posting research
+## Retired research
 
-SharedAlbumNativeInterfaceProbe.swift in playground/photos is a separate,
-nonshipping native-backend investigation. It enumerates installed private runtime
-declarations without constructing services or invoking operations. MSASConnection
-has Shared Album lifecycle/access methods; authenticated access and usable payload
-contracts remain unverified. Private methods are not supported PhotoKit APIs and
-must not be exposed as production capabilities on this evidence alone. Follow the
-latest native-backend section of docs/photos-capability-plan.md; the existing
-signed operation Helper is unchanged.
-
-The operation Helper build includes only PhotosHelper.swift. The macOS 27
-posting-window experiment and its journal writer live under playground/photos;
-neither is compiled into or dispatched by the production Helper. Historical
-journal readback remains supported in TypeScript. The standalone picker probe
-and posting experiment are research evidence, not a supported remote upload.
-Typecheck the retained experiment without launching it:
-
-```sh
-xcrun swiftc -parse-as-library -swift-version 6 -typecheck apps/icloud/src/photos/native/PhotosHelper.swift playground/photos/SharedAlbumReviewExperiment.swift playground/photos/SharedReviewJournalExperiment.swift -framework Photos -framework PhotosUI -framework AppKit
-```
+Standalone cloud prototypes and native reviewer/posting probes have been removed.
+Their historical source remains in Git; dated evidence remains in the capability
+plan. The shipped Helper builds only PhotosHelper.swift and supplies programmatic
+operations. Do not rebuild or remove the configured signed runtime Helper merely
+because its directory carries an older version: its authorization identity is
+independent of the service release. Historical journal readback is retained.
 
 ## Setup and permissions
 

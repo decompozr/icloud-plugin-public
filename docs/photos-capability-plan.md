@@ -1,5 +1,24 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Stage closeout and prototype retirement — 2026-10-05
+
+Owner requested stage closeout, main release/deployment and task-worktree cleanup.
+Executable Photos playground prototypes and native reviewer/probe source are
+retired; production imports do not depend on them. Historical evidence and Git
+source history remain. The production operation Helper and its consent identity,
+account custody, operation ledger and private recovery evidence must be preserved.
+Release cleanup retains the current runtime plus its immediately previous working
+release for rollback; task build copies and superseded helper copies are disposable
+only after configured paths and active processes are checked.
+
+Full Photos delivery remains paused, not complete. Pending work includes paired
+Live Photo upload, participant invitation/removal acceptance and remaining original
+library write/delete acceptance. Owner selected three reviewed photos for a Shared
+Album named testing and subsequently requested Live Photo support; none was uploaded.
+The invitation test creation plan was cancelled before dispatch, so no invitation
+was sent. Keep owner decisions and exact private evidence out of public artifacts.
+
+
 ## Contributor setting live acceptance — 2026-10-05
 
 The original MCP on 0.1.56 created a dedicated private empty album, disabled
