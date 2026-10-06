@@ -1,5 +1,33 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Required acceptance: automated publication without UI — 2026-10-06
+
+The owner requires the agent to complete sharing automatically, with no human UI
+interaction and no computer-control automation by either party. The assisted
+native experiment does not meet this acceptance. No further UI session may be
+opened under the current requirement.
+
+Fresh original-MCP add_to_album preparation for the exact retained test Shared
+Album and approved Live Photo returns shared_album_write_unsupported, with no
+operation ID and no write. This extends direct-add evidence to the actual test
+destination, rather than only the earlier comparison albums.
+
+Read-only installed SDK inspection confirms PHSharedAlbumPostingViewController
+accepts PHPickerResult items and exposes no public headless post method. PHPickerResult
+has no public initializer; its provider and asset identifier are read-only. Picker
+preselection returns empty item providers, as [Apple documents](https://developer.apple.com/documentation/photosui/phpickerconfiguration-swift.struct/preselectedassetidentifiers).
+The Helper already receives exact asset and destination IDs through JSON. Changing
+that input transport to argv cannot provide the missing posting implementation.
+The [postToSharedAlbum App Intent schema](https://developer.apple.com/documentation/appintents/appschema/photosintent/posttosharedalbum)
+describes an app-implemented action; its perform method still needs a backend.
+Bounded installed Shortcuts intent-definition inspection found no corresponding
+posting entry, which is not proof that every dynamic action is unavailable.
+
+No compliant headless motion-preserving route is established for the exact target.
+Public-API-only and original-main-MCP boundaries remain in effect; private mutation
+or file reconstruction is not authorized by the automation requirement alone.
+Preserve the one prior native operation until its durable result is reconciled.
+
 ## Refreshed metadata accepted; native owner review pending — 2026-10-06
 
 The owner subsequently declined to operate any UI. The current supported public

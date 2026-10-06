@@ -1,5 +1,15 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Required acceptance: fully automated, no UI — 2026-10-06
+
+The owner requires completion by the agent without human interaction or computer
+control. Fresh original-MCP direct-add preflight rejects the exact retained test
+Shared Album with shared_album_write_unsupported; no operation or write results.
+Changing input transport to argv does not add a headless posting API. Installed
+SDK contracts still require picker results for the supported posting controller.
+[Current evidence and boundaries](photos-live-upload-plan.md#required-acceptance-automated-publication-without-ui--2026-10-06)
+keep automated publication unsupported until a compliant path is verified.
+
 ## Current acceptance: declared native sharing awaiting owner UI — 2026-10-06
 
 The owner declines UI interaction. The supported native path requires that action,
