@@ -1,5 +1,11 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Explicit destination confirmation added before invoking Apple — 2026-10-06
+
+The owner confirmed there was no visible Apple sharing UI or Post button in the prior no-default run. It went straight to the result callback. Do not claim that the owner confirmed the callback destination or that a second confirmation is guaranteed by the API.
+
+The standalone App now exposes its own album dropdown, initially unselected, and a destination-confirmation button warning that invocation may publish immediately. It always passes the chosen native ID. The prior unresolved destination is disabled to avoid repeating that uncertain publication. Actual selected items remain in-process. The owner authorized rerunning with explicit album choice; linking/signature checks passed and the new session is running. Previous outcome evidence remains preserved; no source or shared-copy deletion occurred.
+
 ## Manual-destination run returned a different destination — 2026-10-06
 
 The actual-picker sheet with no prefilled album returned success with a destination identity different from the approved test album. This is not intended-destination acceptance. The owner reports being unable to see how to select a Shared Album. Original-MCP local readback shows the intended test album remains empty, while source comparison in the callback's album is ambiguous between two candidates (one matching dimensions, one not). This does not establish which copy was newly published or motion/cloud playback. Exact private identities and callback journal are retained. No automatic retry, deletion or further posting is authorized by this uncertain result. The next step is UI clarification and read-only outcome reconciliation.

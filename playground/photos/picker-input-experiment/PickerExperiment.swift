@@ -4,8 +4,8 @@ import PhotosUI
 import SwiftUI
 import Darwin
 
-// Standalone read-only experiment. No production Helper or posting code is linked.
-struct Request: Decodable { let sessionId: UUID; let assetId: String?; let albumUUID: String?; let postingTest: Bool?; let chooseDestinationInSheet: Bool? }
+// Standalone experiment. Production code is not linked; posting requires explicit local confirmation.
+struct Request: Decodable { let sessionId: UUID; let assetId: String?; let albumUUID: String?; let postingTest: Bool?; let chooseDestinationInSheet: Bool?; let blockedAlbumUUID: String? }
 struct ExperimentError: Error { let message: String }
 @available(macOS 27.0, *)
 @MainActor final class Experiment: NSObject, NSWindowDelegate {
@@ -15,6 +15,10 @@ struct ExperimentError: Error { let message: String }
     var postingStarted = false
     var postingVisible = false
     var targetAlbum: PHAssetCollection?
+    var albumChoices: [PHAssetCollection] = []
+    var albumPopup: NSPopUpButton?
+    var confirmButton: NSButton?
+    var destinationLabel: NSTextField?
     var processing = false
     var pickerVisible = false
     var finished = false
@@ -99,21 +103,14 @@ struct ExperimentError: Error { let message: String }
             guard !self.finished else { return }
             guard authorization == .authorized else { self.finish("permission_required", ["authorization": authorization.rawValue]); return }
             if self.request.postingTest == true {
-                guard let expected = self.request.albumUUID else { self.finish("target_required"); return }
                 let albums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
-                var candidates: [[String: Any]] = []
+                self.albumChoices = []
                 albums.enumerateObjects { album, _, _ in
-                    if album.localIdentifier.split(separator: "/").first.map(String.init)?.caseInsensitiveCompare(expected) == .orderedSame { self.targetAlbum = album }
-                    if album.localizedTitle == "Live Photo Share Test" {
-                        candidates.append(["localIdentifier": album.localIdentifier, "title": album.localizedTitle ?? "", "subtype": album.assetCollectionSubtype.rawValue, "count": PHAsset.fetchAssets(in: album, options: nil).count])
-                    }
+                    if album.assetCollectionSubtype == .albumCloudShared { self.albumChoices.append(album) }
                 }
-                do { try self.record("target_lookup", ["expectedUUID": expected, "sameTitleCandidates": candidates, "collectionsExamined": albums.count]) }
-                catch { self.finish("journal_failed"); return }
-                guard let album = self.targetAlbum, album.assetCollectionSubtype == .albumCloudShared else {
-                    self.finish("exact_shared_album_not_found", ["collectionsExamined": albums.count]); return
-                }
-                do { try self.record("target_verified", ["targetAlbumIdentifier": album.localIdentifier, "title": album.localizedTitle ?? ""]) }
+                self.albumChoices.sort { ($0.localizedTitle ?? "") < ($1.localizedTitle ?? "") }
+                guard !self.albumChoices.isEmpty else { self.finish("no_shared_albums_visible"); return }
+                do { try self.record("album_choices_available", ["count": self.albumChoices.count]) }
                 catch { self.finish("journal_failed"); return }
                 self.presentPicker(); return
             }
@@ -243,11 +240,7 @@ struct ExperimentError: Error { let message: String }
                 }
                 do { try self.record("ready_for_manual_post", ["selectedLocalIdentifiers": self.selected.compactMap(\.itemIdentifier)]) }
                 catch { self.finish("journal_failed"); return }
-                let explanation = NSTextField(wrappingLabelWithString: "The actual selected item loaded successfully and remains in memory. Open Apple's sheet, verify Live Photo Share Test, then press Post for this authorized test.")
-                let post = NSButton(title: "Open Apple sharing window", target: self, action: #selector(self.openPosting))
-                let stack = NSStackView(views: [explanation, post]); stack.orientation = .vertical; stack.spacing = 16
-                stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
-                self.window.contentView = stack; return
+                self.presentDestinationChoice(); return
             }
             self.finished = true
             let summary = comparisons.map { c -> String in
@@ -264,9 +257,45 @@ struct ExperimentError: Error { let message: String }
             self.window.setContentSize(NSSize(width: 640, height: min(720, 140 + comparisons.count * 55)))
         }
     }
+    func presentDestinationChoice() {
+        let explanation = NSTextField(wrappingLabelWithString: "1. Choose the existing shared album below.\n2. Confirm the exact destination. Apple's API may publish immediately; a second Post window is NOT guaranteed. No new album will be created.")
+        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+        popup.autoenablesItems = false
+        popup.addItem(withTitle: "Choose a shared album…")
+        popup.lastItem?.isEnabled = false
+        for (index, album) in albumChoices.enumerated() {
+            let count = PHAsset.fetchAssets(in: album, options: nil).count
+            popup.addItem(withTitle: "\(album.localizedTitle ?? "Untitled") — \(count) items [\(String(album.localIdentifier.prefix(8)))]")
+            popup.lastItem?.tag = index
+            if album.localIdentifier.split(separator: "/").first.map(String.init) == request.blockedAlbumUUID {
+                popup.lastItem?.isEnabled = false
+                popup.lastItem?.title += " — previous result unresolved"
+            }
+        }
+        popup.selectItem(at: 0); popup.target = self; popup.action = #selector(destinationChanged)
+        let destination = NSTextField(wrappingLabelWithString: "No destination selected. Nothing will be sent until you confirm.")
+        let confirm = NSButton(title: "Confirm destination and send selected Live Photo", target: self, action: #selector(openPosting))
+        confirm.isEnabled = false
+        albumPopup = popup; confirmButton = confirm; destinationLabel = destination
+        let stack = NSStackView(views: [explanation, popup, destination, confirm]); stack.orientation = .vertical; stack.spacing = 18
+        stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
+        window.contentViewController = nil; window.contentView = stack; window.setContentSize(NSSize(width: 720, height: 340))
+        try? record("awaiting_explicit_destination")
+    }
+    @objc func destinationChanged() {
+        guard let popup = albumPopup, popup.indexOfSelectedItem > 0,
+              let index = popup.selectedItem?.tag, albumChoices.indices.contains(index) else { return }
+        let album = albumChoices[index]
+        guard album.localIdentifier.split(separator: "/").first.map(String.init) != request.blockedAlbumUUID else { return }
+        targetAlbum = album
+        destinationLabel?.stringValue = "Destination: \(album.localizedTitle ?? "Untitled")\nConfirming below may immediately add the selected photo to this album."
+        confirmButton?.isEnabled = true
+        do { try record("destination_selected", ["targetAlbumIdentifier": album.localIdentifier, "title": album.localizedTitle ?? ""]) }
+        catch { confirmButton?.isEnabled = false; finish("journal_failed") }
+    }
     @objc func openPosting() {
         guard request.postingTest == true, !postingStarted, !finished, selected.count == 1, let targetAlbum else { return }
-        do { try record("posting_sheet_requested", ["targetAlbumIdentifier": targetAlbum.localIdentifier, "defaultAlbumSupplied": request.chooseDestinationInSheet != true]) }
+        do { try record("posting_sheet_requested", ["targetAlbumIdentifier": targetAlbum.localIdentifier, "defaultAlbumSupplied": true, "ownerExplicitlyConfirmedDestination": true]) }
         catch { finish("journal_failed"); return }
         postingStarted = true; postingVisible = true
         let visible = Binding<Bool>(get: { [weak self] in self?.postingVisible == true }, set: { [weak self] value in
@@ -276,10 +305,10 @@ struct ExperimentError: Error { let message: String }
                 self.showPostingResult("sheet_closed_outcome_unknown")
             } }
         })
-        let view = Text("Use Apple's Post button only after verifying the selected photo and destination. No automatic Post or retry.")
+        let view = Text("You confirmed this exact destination. Awaiting Apple response; do not retry this session.")
             .padding(24).frame(width: 560, height: 240)
             .photosSharedAlbumPostingSheet(isPresented: visible, items: selected,
-                defaultAlbumIdentifier: request.chooseDestinationInSheet == true ? nil : targetAlbum.localIdentifier, photoLibrary: .shared()) { [weak self] result in
+                defaultAlbumIdentifier: targetAlbum.localIdentifier, photoLibrary: .shared()) { [weak self] result in
                 guard let self else { return }
                 switch result {
                 case .success(let actual):
