@@ -144,8 +144,8 @@
   "photosPermissions": "Photos permissions on the service Mac",
   "photosLibraryContext": "Photos",
   "photosRead": "Read Photos",
-  "photosWrite": "Apply reviewed Photos changes",
-  "photosDelete": "Delete reviewed photos",
+  "photosWrite": "Organize Photos",
+  "photosDelete": "Delete photos",
   "photosDependencies": "Photos changes require read access. Deletion also requires editing access.",
   "photosPolicyHelp": "Uses the selected library on the service Mac. Write and delete actions also require enabling them in the service configuration.",
   "calendarTitle": "Calendar",
@@ -332,7 +332,7 @@
   "auth_photosLibrary": "Photos uses the selected library on the Mac running this service. Your iCloud app-specific password connects Mail and Calendar only.",
   "auth_scopePhotosRead": "Read photos, previews, existing people labels and albums in Photos",
   "auth_scopePhotosWrite": "Apply explicitly reviewed ordinary-album and metadata changes; remote Shared Album posting is currently unavailable",
-  "auth_scopePhotosDelete": "Delete specifically reviewed photos from the synced library; deletion can affect other synced devices",
+  "auth_scopePhotosDelete": "Delete photos by moving them to Recently Deleted; deletion syncs across devices",
   "auth_introSignIn": "Use the passkey you created during setup.",
   "auth_allow": "Allow connection",
   "auth_usePasskey": "Use passkey",
@@ -484,5 +484,7 @@
   "resetUnavailable": "Reset is unavailable in this runtime.",
   "resetUnknown": "Could not confirm whether reset was accepted. Do not submit it again; check service diagnostics or the sign-in/setup page.",
   "installationFolder": "Installed folder",
-  "photosUnsupported": "Shared Album writes are unsupported."
+  "photosUnsupported": "Shared Album writes are unsupported.",
+  "photosDeleteHelp": "Moves photos to Recently Deleted, where they can be recovered for 30 days unless permanently deleted sooner. Deletion syncs across devices using iCloud Photos.",
+  "photosCapabilityUnavailable": "This capability is disabled in the service configuration. No changes were saved for this module."
 }

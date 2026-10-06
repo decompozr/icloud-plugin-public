@@ -27,7 +27,7 @@ export interface AdminState {
   modules?: readonly {
     id: string;
     title: string;
-    fields: readonly { id: string; label: string }[];
+    fields: readonly { id: string; label: string; available?: boolean }[];
   }[];
 }
 export type AuthMode = "sign-in" | "consent" | "connect";

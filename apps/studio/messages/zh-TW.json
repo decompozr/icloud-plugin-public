@@ -144,8 +144,8 @@
   "photosPermissions": "服務所在 Mac 的照片權限",
   "photosLibraryContext": "Photos",
   "photosRead": "讀取 Photos",
-  "photosWrite": "執行已審核的照片變更",
-  "photosDelete": "刪除已審核的照片",
+  "photosWrite": "整理 Photos",
+  "photosDelete": "刪除照片",
   "photosDependencies": "照片變更須同時允許讀取；刪除亦須允許編輯。",
   "photosPolicyHelp": "使用服務所在 Mac 的選定照片庫；寫入和刪除功能亦須在服務設定中啟用。",
   "calendarTitle": "日曆",
@@ -332,7 +332,7 @@
   "auth_photosLibrary": "照片使用執行此服務的 Mac 上選定的照片庫。iCloud App 專用密碼只用於郵件與行事曆。",
   "auth_scopePhotosRead": "讀取 Photos 中的照片、預覽、既有人物標籤與相簿",
   "auth_scopePhotosWrite": "套用經明確確認的一般相簿與中繼資料變更；目前不支援遠端發布至共享相簿",
-  "auth_scopePhotosDelete": "刪除經確認的指定照片；同步照片庫的刪除可能影響其他同步裝置",
+  "auth_scopePhotosDelete": "將照片移至「最近刪除」；刪除會同步至其他裝置",
   "auth_introSignIn": "使用你在設定時建立的 Passkey。",
   "auth_allow": "允許連線",
   "auth_usePasskey": "使用 Passkey",
@@ -484,5 +484,7 @@
   "resetUnavailable": "此執行環境不提供重設。",
   "resetUnknown": "無法確認重設是否已被接受。請勿重複提交，請檢查服務診斷或登入／設定頁面。",
   "installationFolder": "安裝資料夾",
-  "photosUnsupported": "不支援共享相簿寫入。"
+  "photosUnsupported": "不支援共享相簿寫入。",
+  "photosDeleteHelp": "照片會移至「最近刪除」，可在 30 天內復原，除非提前永久刪除。刪除會同步至使用 iCloud Photos 的裝置。",
+  "photosCapabilityUnavailable": "服務設定尚未開放此功能。此模組的變更未儲存。"
 }
