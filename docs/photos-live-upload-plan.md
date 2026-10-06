@@ -1,5 +1,20 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Real-selection comparison authorized — 2026-10-06
+
+The owner clarified that UI is permitted for exploration; the final outcome must
+still be fully automated without UI. The owner agreed to select the original
+photo once and cancel the sharing window without posting. The experiment compares
+an identifier-created PhotosPickerItem with the real SwiftUI picker result using
+public content types, identifier equality and PHLivePhoto loading. Only the exact
+reviewed source is accepted. The real item is offered to the same SwiftUI sheet
+behind a separate human button. No Post action is automated.
+
+Detailed bounded NSError descriptions, failure/debug reasons and up to three
+underlying errors are recorded with identifier/path/URL redaction. This addresses
+the insufficient domain/code-only diagnostics in the prior experiment. No real
+selection or successful media loading is claimed before original-MCP acceptance.
+
 ## Direct-identifier SwiftUI presentation experiment — 2026-10-06
 
 The owner authorized trying a sharing window with the existing photo already

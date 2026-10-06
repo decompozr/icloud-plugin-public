@@ -16,6 +16,9 @@ import SwiftUI
     private var window: NSWindow!
     private var postingStarted = false
     private var finished = false
+    private var pickerVisible = true
+    private var pickedItem: PhotosPickerItem?
+    private var comparison: [String: Any]?
 
     init(input: [String: Any]) throws {
         guard let operationId = input["operationId"] as? String, UUID(uuidString: operationId) != nil,
@@ -53,6 +56,7 @@ import SwiftUI
         var event: [String: Any] = ["operationId": operationId, "status": status,
             "timestamp": Date().timeIntervalSince1970 * 1000, "processId": getpid(),
             "localReadbackVerified": false, "serverSyncVerified": false]
+        if let comparison { event["comparison"] = comparison }
         for (key, value) in extra { event[key] = value }
         var data = try JSONSerialization.data(withJSONObject: event, options: [.sortedKeys]); data.append(10)
         try journal.write(contentsOf: data); try journal.synchronize()
@@ -63,15 +67,90 @@ import SwiftUI
         try? record(status, extra: extra)
         NSApplication.shared.terminate(nil)
     }
-    func present() {
-        guard !postingStarted, Date().timeIntervalSince1970 * 1000 < expiresAt,
-              PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized else {
-            finish("cancelled_before_posting"); return
+    private func safeText(_ value: String) -> String {
+        var text = value
+        for identifier in [assetId, asset.localIdentifier, album.localIdentifier] {
+            text = text.replacingOccurrences(of: identifier, with: "[identifier]")
         }
-        // Identifier-only public SwiftUI input. No picker, export, reconstruction,
-        // automatic Post action, or fallback/relaunch after uncertain presentation.
-        let item = PhotosPickerItem(itemIdentifier: asset.localIdentifier)
-        do { try record("posting_outcome_unknown", extra: ["selectedAssetIds": [assetId], "itemProviderHasData": false]) }
+        for pattern in ["[A-Fa-f0-9]{8}-[A-Fa-f0-9-]{27,}", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+", "(?:https?|file)://[^\\s]+", "/(?:Users|private|var|Volumes)/[^\\s]+"] {
+            text = text.replacingOccurrences(of: pattern, with: "[redacted]", options: .regularExpression)
+        }
+        return String(text.prefix(512))
+    }
+    private func errorDetails(_ error: Error) -> [[String: Any]] {
+        var result: [[String: Any]] = []
+        var current: NSError? = error as NSError
+        for _ in 0..<3 {
+            guard let native = current else { break }
+            result.append(["domain": safeText(native.domain), "code": native.code,
+                "description": safeText(native.localizedDescription),
+                "reason": safeText(native.localizedFailureReason ?? ""),
+                "debug": safeText(native.userInfo[NSDebugDescriptionErrorKey] as? String ?? "")])
+            current = native.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        return result
+    }
+    private func inspect(_ item: PhotosPickerItem) async -> [String: Any] {
+        var result: [String: Any] = ["identifierMatches": item.itemIdentifier == asset.localIdentifier,
+            "contentTypes": item.supportedContentTypes.map(\.identifier)]
+        do {
+            let live = try await item.loadTransferable(type: PHLivePhoto.self)
+            result["livePhotoLoaded"] = live != nil
+        } catch {
+            result["livePhotoLoaded"] = false
+            result["errors"] = errorDetails(error)
+        }
+        return result
+    }
+    func present() {
+        guard Date().timeIntervalSince1970 * 1000 < expiresAt else { finish("cancelled_before_posting"); return }
+        let selected = Binding<PhotosPickerItem?>(get: { [weak self] in self?.pickedItem }, set: { [weak self] item in
+            guard let self, !self.finished, self.pickedItem == nil, let item else { return }
+            guard item.itemIdentifier == self.asset.localIdentifier else { self.finish("selection_changed_review_required"); return }
+            self.pickedItem = item
+            self.pickerVisible = false
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let idOnly = PhotosPickerItem(itemIdentifier: self.asset.localIdentifier)
+                let baseline = await self.inspect(idOnly)
+                let actual = await self.inspect(item)
+                guard !self.finished else { return }
+                self.comparison = ["identifierOnly": baseline, "userSelected": actual, "itemsEqual": idOnly == item]
+                do { try self.record("picker_review", extra: ["selectedAssetIds": [self.assetId]]) }
+                catch { self.finish("journal_failed_reconcile_operation"); return }
+                // Preserve an explicit review step. No callback automatically posts.
+                let button = NSButton(title: "Open sharing window — do not Post", target: self, action: #selector(self.openSelectedPosting))
+                let label = NSTextField(wrappingLabelWithString: "Selection matches. Comparison recorded. Open Apple's sharing window, observe the photo, then Cancel.")
+                let stack = NSStackView(views: [label, button]); stack.orientation = .vertical; stack.spacing = 16
+                stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
+                self.window.contentViewController = nil; self.window.contentView = stack
+            }
+        })
+        let visible = Binding<Bool>(get: { [weak self] in self?.pickerVisible == true }, set: { [weak self] visible in
+            guard let self else { return }; self.pickerVisible = visible
+            if !visible { DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                guard let self, self.pickedItem == nil else { return }; self.finish("cancelled_before_posting")
+            } }
+        })
+        let view = Text("Select the previously approved photo once. This experiment does not press Post.")
+            .padding(24).frame(width: 460, height: 180)
+            .photosPicker(isPresented: visible, selection: selected, matching: .livePhotos,
+                preferredItemEncoding: .current, photoLibrary: .shared())
+        window = NSWindow(contentViewController: NSHostingController(rootView: view))
+        window.title = "Shared Album input comparison"; window.delegate = self
+        window.center(); window.makeKeyAndOrderFront(nil); NSApplication.shared.activate(ignoringOtherApps: true)
+        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, !self.postingStarted, !self.finished else { return }
+                if Date().timeIntervalSince1970 * 1000 >= self.expiresAt { self.finish("cancelled_before_posting") }
+            }
+        }
+    }
+    @objc private func openSelectedPosting() {
+        guard !postingStarted, !finished, let item = pickedItem,
+              Date().timeIntervalSince1970 * 1000 < expiresAt,
+              PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized else { return }
+        do { try record("posting_outcome_unknown", extra: ["selectedAssetIds": [assetId]]) }
         catch { finish("journal_failed_reconcile_operation"); return }
         postingStarted = true
         let presented = Binding<Bool>(get: { [weak self] in self?.finished == false }, set: { [weak self] visible in
@@ -92,11 +171,11 @@ import SwiftUI
                     self.finish(actual == self.album.localIdentifier ? "posting_completed_membership_unverified" : "different_destination_membership_unverified", extra: ["actualAlbum": actual])
                 case .failure(let error):
                     let native = error as NSError
-                    self.finish("posting_not_verified", extra: ["nativeErrorDomain": native.domain, "nativeErrorCode": native.code])
+                    self.finish("posting_not_verified", extra: ["nativeErrorDomain": native.domain, "nativeErrorCode": native.code, "nativeErrorDetails": self.errorDetails(error)])
                 }
             }
         let controller = NSHostingController(rootView: view)
-        window = NSWindow(contentViewController: controller); window.title = "Share selected photo"
+        window.contentViewController = controller; window.title = "Share selected photo — cancel after observing"
         window.delegate = self
         window.center(); window.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
