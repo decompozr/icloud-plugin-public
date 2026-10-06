@@ -1,5 +1,15 @@
 ## Single-account production preparation (2026-10-04 UTC)
 
+## SvelteKit / Paraglide phase two deployed (2026-10-06)
+
+Native 0.1.60 now serves hydrated Studio admin/auth workflows and Paraglide English
+and Traditional Chinese JSON catalogs. Thirty live page/locale/asset/ingress checks
+and thirteen doctor checks pass; account, Passkey, grant and custody preservation
+is verified. Independent review corrections and synthetic OAuth code/refresh
+coverage are recorded in [the migration evidence](svelte-migration.md). Owner
+testing is pending. MCP transport and removal of the outer Express lifecycle are
+phase three, gated on owner `pass`. Prior deployment sections below are historical.
+
 ## Svelte Studio phase one deployed (2026-10-06)
 
 Native 0.1.59 now serves Svelte-rendered admin/setup and authorization presentation
