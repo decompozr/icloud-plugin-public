@@ -1,3 +1,19 @@
+## Studio 0.1.64 readback (2026-10-06)
+
+The running native installation now uses SvelteKit Studio with requirement-based
+setup, disabled defaults for fresh installations, compact overview cards, shared
+credential modals, toasts and actual pinned DecompozR language Menu/Icon controls.
+Two confirmed System reset modes are installed: connections preserves owner
+Passkeys/master key; factory clears owner/Passkeys and rotates keys. No live reset
+was executed. The native upgrade preserved stored choices, credentials and grants.
+
+Source: main 349d2ce6754fb11147b40f844eb53bb36fef0c53, release 0.1.64 darwin/arm64.
+456 application/Studio/tooling tests, 11 built HTTP E2E tests, 45 isolated browser
+checks, native artifact lifecycle and scoped independent reset review pass. Live
+payload readback checked 550 conditions; doctor passed 13 from this machine.
+Provider/physical Passkey/off-tailnet acceptance is not implied. MCP/Express Fetch
+transport migration remains the next authorized phase.
+
 ## Single-account production preparation (2026-10-04 UTC)
 
 ## SvelteKit / Paraglide phase two deployed (2026-10-06)
