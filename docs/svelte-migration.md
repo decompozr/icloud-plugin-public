@@ -58,3 +58,41 @@ A disposable native artifact also passed 1 lifecycle test / 26 assertions,
 including initialization, restart, custody preservation and shutdown. Deployment
 is recorded separately after verification. Retain the previous installed release and a protected stopped-state
 backup for recovery. No automatic second-phase activation precedes owner acceptance.
+
+## Phase 1 deployed; owner acceptance pending
+
+Native 0.1.59 was built from clean remote main commit
+`03ae50d7350e52cfb0e4229126e3ce9b19410a4a` and installed on October 6, 2026.
+The source was the remote main tip immediately before installation. PR #63 is
+merged. Subsequent main changes at the deployment checkpoint were documentation
+only; the installed application payload retains its recorded source identity.
+
+The existing installation selects `releases/0.1.59-darwin-arm64`. The native
+installer performed the update without initialization. Installed payload hashes
+match the tested artifact. The final main-built artifact passed the disposable
+lifecycle test (1 test / 26 assertions). A retained archive is at the primary
+checkout's `releases/icloud-plugin-0.1.59-darwin-arm64.tar.gz`.
+
+Live self-checks passed: 13 read-only doctor checks and 18 page/asset/ingress checks
+across localhost, private Tailscale and public origins. Sign-in HTML is rendered
+by Svelte; browser asset hashes match the installed payload. Anonymous private
+admin requests redirect to sign-in with 303. Public admin/setup paths and the
+private admin browser asset return 404. These checks establish reachability from
+this Mac, not an independent external client or authenticated owner walkthrough.
+
+Configuration/custody bytes and permissions match the stopped backup. Both
+SQLite integrity checks pass. Owner/account, Passkey and grant records are
+preserved. The only observed database differences are existing transient timestamps:
+OAuth resource seed merge refreshes `updatedAt` at startup, and read-only checks
+refresh the rate limiter's `lastRequest`. No private metadata was manually patched.
+
+The protected stopped backup and finalized receipt are under the existing
+installation's `runtime/backups/pre-0.1.59-20261006T130805Z/`. Version 0.1.58 remains
+installed for rollback. Do not initialize or delete custody during recovery;
+stop the verified owned process before restoring a compatible stopped snapshot
+and selecting the prior release. No rollback was required.
+
+Owner testing uses `http://localhost:4102/icloud/admin` or the existing private
+Tailscale admin URL on port 8443. Check real Passkey login, all five destinations,
+English/Traditional Chinese, mobile layout and normal account/policy interactions.
+Phase two remains unstarted until the owner reports `pass` for this deployment.
