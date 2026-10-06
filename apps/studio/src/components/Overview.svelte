@@ -182,7 +182,6 @@
 </div>
 
 <style>
- @media(pointer:coarse){.credential-control{min-height:44px}.module-toggle{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}}
 
  .scope-count{display:inline-flex;align-items:center;gap:.25rem;vertical-align:middle}
 
@@ -269,4 +268,5 @@
     }
   }
 @media(pointer:coarse){.configure-button,.card-tools button{min-width:44px;min-height:44px}.configure-button :global(svg),.card-tools :global(svg){width:24px;height:24px}}
+ @media(pointer:coarse){.credential-control{min-height:44px}.module-toggle{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}}
 </style>
