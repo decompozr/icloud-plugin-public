@@ -40,3 +40,7 @@ Verified: application build, Studio typecheck with zero errors/warnings, 12 Stud
 A failed first Photos status request left both requirements in checking because no result existed. Failed requests now show the error state. Refresh arrows track their own awaited action instead of global busy flags, so unrelated controls do not rotate; completion replaces the animated element with a static one. Existing request timeouts remain in force.
 
 Verified in the disposable browser fixture: completed refresh has aria-busy=false and animation=none; a failed first Photos request produces two error requirements with animation=none. Build, Studio typecheck, and 12 Studio tests passed. The exact icon observed on the remote phone is not yet identified.
+
+## Compact language trigger (0.1.73)
+
+The language trigger displays EN or 繁中 in its existing position. Expanded choices retain their full language names.

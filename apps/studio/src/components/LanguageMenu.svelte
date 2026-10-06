@@ -21,7 +21,7 @@
 
 <div class="language-menu" role="group" aria-label={t("language")}>
   <Menu
-    label={locale?.current === "zh-TW" ? "繁體中文" : "English"}
+    label={locale?.current === "zh-TW" ? "繁中" : "EN"}
     {items}
     compact
   />
