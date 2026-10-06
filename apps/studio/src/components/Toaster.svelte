@@ -12,7 +12,7 @@
 <div
   class="toast-stack"
   class:embedded
-  hidden={!embedded && center.dialogs > 0}
+  hidden={center.items.length === 0 || (!embedded && center.dialogs > 0)}
   aria-label={t("notifications")}
 >
   {#each center.items as item (item.id)}<div
@@ -34,26 +34,36 @@
 <style>
   .toast-stack {
     position: fixed;
-    right: 1.25rem;
-    bottom: 1.25rem;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
     z-index: 1000;
     display: grid;
     gap: 0.5rem;
-    width: min(25rem, calc(100vw - 2.5rem));
+    width: min(22rem, calc(100vw - 4rem));
+    justify-items: end;
     pointer-events: none;
   }
   .toast {
     pointer-events: auto;
+    width: fit-content;
+    max-width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     background: var(--ui-background);
     border: 1px solid var(--ui-border);
     border-radius: 6px;
     box-shadow: 0 6px 24px #00000014;
     color: var(--ui-text);
+  }
+  .toast span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .toast button {
+    flex-shrink: 0;
   }
   .toast-stack.embedded {
     position: sticky;

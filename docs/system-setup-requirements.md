@@ -28,3 +28,9 @@ Release 0.1.69 was built from merged PR #79, installed and payload-verified. Bui
 ## Module dialog spacing correction (0.1.70)
 
 The completed credential step and the Allowed actions heading both supplied a separator. Keep the step separator and remove the heading border and excess top padding. An empty allowed-action list explicitly says Empty (localized); it is not represented by unexplained whitespace. Verified: application build, Studio typecheck (zero errors/warnings), 12 Studio tests, and browser fixture inspection showing a single separator; the heading computed border and padding are both zero. Authentication gates remain unchanged.
+
+## Compact notifications (0.1.71)
+
+Notifications align to the right and shrink to their message, capped at 22rem and viewport width minus 4rem. Embedded notifications use the same compact card; empty notification stacks reserve no space. Refresh feedback says Updated. This release includes the 0.1.70 separator correction, which was merged but not deployed separately.
+
+Verified: application build, Studio typecheck with zero errors/warnings, 12 Studio tests, and a 390px browser viewport. Updated notification measured 135px wide with a 16px right inset.
