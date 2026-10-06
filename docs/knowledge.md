@@ -4,49 +4,11 @@
 
 ## macOS Keychain custody and update identity (2026-10-05)
 
-The Keychain experiment is closed as a feasibility investigation. Its
-[report and reproduction recipes](../playground/keychain/README.md) and
-[bounded acceptance evidence](../playground/keychain/evidence.json) retain the
-useful results. Verification was performed by the same agent, not independent
-review. No production credential migration, setup/uninstall implementation or
-deployment resulted.
-
-The user accepts setup-time macOS authorization but requires unattended ordinary
-reads without recurring prompts. Automatic setup and uninstall are intended
-product behavior; preserve-state uninstall versus complete data removal remains
-an unresolved choice. These requirements do not establish untested OS behavior.
-
-| Verified knowledge | Evidence boundary | Design consequence |
-| --- | --- | --- |
-| Native code can create, repeatedly read and delete a Keychain item automatically. | Synthetic 32-byte values in an already-unlocked file-based Keychain; reads explicitly prohibit UI. | Provision once during setup. Runtime must report unavailable/denied state instead of repeatedly requesting interactive authorization. |
-| Bun and a user LaunchAgent can invoke the authorized reader unattended. | Existing logged-in GUI session; no reboot, logout or lock transition. | Background-service integration is feasible in that session; startup-before-login and locked-session behavior need separate acceptance. |
-| A stable path and identifier do not preserve an ad-hoc executable's access after rebuilding. | Changed v2 is rejected with `-25293`; unchanged copies and restored v1 succeed. | Do not use path stability as an upgrade trust guarantee. |
-| Changed v1/v2/v3 binaries can share access when the certificate-authenticated designated requirement is stable. | One pinned temporary self-signed certificate plus one identifier; distinct hashes, repeated reads, same-path replacements and rollback all pass without UI. | Sign updates under a deliberately stable identity/requirement; production signing and rotation policy still need validation. |
-| Access remains restricted under the tested stable requirement. | Different signer, different identifier and ad-hoc controls are rejected; the authorized v3 still succeeds. | Do not broaden ACLs to all applications or use identifier-only rules merely to eliminate prompts. |
-| Trusting a helper does not authenticate its caller. | Copied-helper and Bun-child reads succeed. No caller-authenticated broker was implemented. | A general-purpose helper returning plaintext cannot claim isolation from other same-user processes. Define the production caller boundary before adoption. |
-
-The current master key protects more than Apple account credentials. Moving
-Apple passwords alone does not permit deleting it. A master-key custody migration
-must preserve the exact key and installation identity, verify dependent state
-before cutover and prevent silent fallback after Keychain becomes authoritative.
-Keep signing private keys on the release/build side, not in the distributed
-runtime. The disposable self-signed identity demonstrates continuity, not public
-distribution eligibility or a production signer.
-
-The passing result pins one exact certificate; renewal/replacement under another
-fingerprint, Developer ID releases, actual “Always Allow” approval, locked
-Keychain access, reboot/login, recovery and real application upgrades are not
-verified. The probe uses deprecated file-based APIs for interaction control;
-select the production Keychain API and signing/caller model separately. Removing
-a Keychain master key while retaining dependent ciphertext can prevent reinstall
-or recovery. Uninstall must distinguish retained-state and complete-removal modes.
-
-All synthetic items, transient jobs, isolated signing keychains and private
-signing files were removed and their absence verified. The preserved evidence
-contains no exported key or production credential. Raw temporary files have no
-remaining knowledge/recovery dependency; their disposal follows the task's
-publication and cleanup gates. Reproduction source remains historical evidence,
-not an active experiment or production acceptance check.
+The migration is paused. All accepted decisions, experiment evidence, cryptographic
+inventory, failure/recovery lessons and restart gates are consolidated in
+[Keychain retained knowledge](keychain.md). Dormant migration code and experimental
+programs were removed from checkout; full snapshots remain in Git history. No real
+credential migration or native runtime activation occurred.
 
 ## Calendar integration decision (2026-10-03 UTC)
 

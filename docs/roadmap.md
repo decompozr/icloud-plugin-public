@@ -6,6 +6,17 @@ Fixtures must be identified as fixtures; a passed local gate never claims live
 Apple, Passkey, Tailscale or client-account acceptance. No commit, publication,
 public activation or global installation follows implicitly from a checkpoint.
 
+## Keychain migration (paused)
+
+The owner paused both account-password and exact-master-key migration. Retained
+findings, invariants, evidence limits and the K0–K4 restart plan are consolidated
+in [Keychain retained knowledge](keychain.md). No native acceptance or real migration
+passed. Dormant source/fixtures have been removed; current product file custody
+continues. Revisit value and the smallest unresolved backend/UI/update experiment
+before resuming implementation.
+
+## Historical implementation checkpoints
+
 | Checkpoint | Goal and dependency | Observable completion gate |
 | --- | --- | --- |
 | CP1 | Establish the actual HTTP application test boundary and align exposed scope. | Built Streamable HTTP app → MCP → service → typed fake provider completes initialization/discovery/search/read/exact mutation; anonymous/malformed/stale/missing targets have no writes; no general send/draft/attachment tools; listeners shut down. |
