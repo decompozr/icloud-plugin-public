@@ -1,3 +1,21 @@
+## Shared admin shell delivery (2026-10-06)
+
+Current native release 0.1.71 includes the shared Svelte admin shell from PR82.
+The left icon rail stays mounted between Overview, Accounts, Connections and
+System. Its selected background stays 44px tall; only CSS position moves. Overview
+cards are rows, modules are Mail/Calendar/Photos, and path-copy controls use full
+values with toasts. Owner access is revalidated before every shallow navigation.
+
+58 disposable browser checks and focused independent review cover navigation
+identity/size, rapid Back, pending credentials and expiry. 459 tests / 4238
+assertions pass. Native lifecycle passed 1 test / 30 assertions. Running payload
+matches clean main cf05683f72bacb5e785bdeb0132a3f22bfa852c4 except verified Kit
+build identity; 13 live asset readbacks and 13 doctor checks pass. The concurrent
+native workflow installed this main release before our installer, so it was
+adopted without overwrite or another restart. Existing main MCP profile stays
+on the same account and provider mailbox listing succeeds (9). No production
+reset, live clipboard change or provider write was performed by this task.
+
 ## Studio 0.1.64 readback (2026-10-06)
 
 The running native installation now uses SvelteKit Studio with requirement-based
