@@ -8,8 +8,13 @@ SQLite is never used to mutate the Photos library.
 
 ## Remote workflow and helper responsibility
 
-The owner reviews photos through the assistant conversation. osxphotos is the
-primary supported provider; the Swift Helper supplies missing operations/fallback.
+The owner reviews photos through the assistant conversation. For true Shared Albums,
+use the account-bound iCloud API first; osxphotos/PhotoKit reads are fallback and
+must be labeled as local synced snapshots. For local-library metadata and person
+queries, osxphotos remains primary; the Swift Helper supplies missing operations.
+Unknown writes are reconciled by reading the retained operation, never resubmitted
+through a different backend. Cloud membership verification is distinct from binary
+download and independent device observation.
 The custom native catalog reviewer and its command/build/launch paths are removed.
 Historical review journals remain readable. Native system permission prompts and
 the isolated Apple posting candidate are separate from remote daily review.
@@ -17,7 +22,9 @@ All photo/album operations must enter through the main MCP. Computer control,
 GUI scripting and browser/native UI automation are excluded. The Helper is a
 programmatic operation backend; provider scripting is not permission to drive UI.
 create_album creates an ordinary album, not a Shared Album. True Shared Album
-creation/posting has no verified API-only path in the current implementation.
+creation, rename, synthetic upload, content read/removal and deletion have been
+verified through the existing MCP and account-bound API on runtime 0.1.56.
+Participant/access operations still require separate live acceptance.
 A disposable test album means an artifact we clean up by its recorded exact ID
 afterward, not Apple's automatic-expiry option. Do not create an ordinary album
 as a substitute or upload personal photos merely to test.
@@ -25,6 +32,27 @@ Current delivery and live acceptance follow the active capability plan; earlier
 dated paragraphs below preserve historical evidence, not current workflow.
 
 ## Shared Album provider setup in development
+
+The latest experimental web lifecycle is registered in the main MCP as
+photos_shared_albums, photos_shared_prepare, photos_shared_apply and
+photos_shared_operation. It uses the verified invocation account, existing Photos
+scopes and sealed web session. Remote Shared Album IDs differ from local IDs;
+never translate them by matching names. Explicit experimental prepare/apply covers
+creation, rename and deletion of empty owned legacy candidates. Separate server
+readback is required, with no blind retry. Candidate participant/access changes and exact shared-copy removal use the same
+reviewed lifecycle and source-derived Apple request builders. Candidate uploads now bind explicit source representation and digest to reviewed
+plans, retain dispatch stages and recover through read-only membership checks.
+Unexecuted uploads can be cancelled; full Live Photo pairing, subscriber writes
+and real lifecycle acceptance remain pending. Source contracts and fixture tests do not
+prove successful live writes; consult the dated capability plan for deployment evidence.
+
+The private Admin displays the actual verification method. An SMS challenge must
+use the latest SMS code for that request; trusted-device pop-up codes use a
+different verifier. New trusted-device bridge verification requires a live
+connection and is not supported by serializing socket-free metadata. The accepted
+SMS session is retained; passwords/codes are not saved. Native daemon access was
+explicitly rejected for missing entitlement in the diagnostic, so the authorized
+web fallback is used without modifying the existing operation Helper.
 
 The private owner System page includes a separate account-bound web-session
 connection for the API-only Shared Album provider. Explicit setup provisions a
@@ -38,19 +66,22 @@ stale completions from restoring revoked sessions. No browser cookies or Keychai
 credentials are imported. Login and setup do not grant OAuth scopes or perform
 photo operations. Status reports authentication separately from management
 readiness; real Apple login/2FA and Shared Album operations remain unverified.
+This is additional authorization on the existing account, not a second account
+or custom MCP. It is an experimental web-provider choice, not a requirement for
+local Photos reads. The existing Admin sign-in uses the owner's passkey and has
+no Apple password field. macOS 27 provides native Shared Album creation,
+customization and posting sheets, but those require user-operated UI and are
+excluded from this remote/no-computer-control workflow. Installed public PhotoKit
+and Photos scripting interfaces do not expose complete headless management.
 
-## Nonshipping posting research
+## Retired research
 
-The operation Helper build includes only PhotosHelper.swift. The macOS 27
-posting-window experiment and its journal writer live under playground/photos;
-neither is compiled into or dispatched by the production Helper. Historical
-journal readback remains supported in TypeScript. The standalone picker probe
-and posting experiment are research evidence, not a supported remote upload.
-Typecheck the retained experiment without launching it:
-
-```sh
-xcrun swiftc -parse-as-library -swift-version 6 -typecheck apps/icloud/src/photos/native/PhotosHelper.swift playground/photos/SharedAlbumReviewExperiment.swift playground/photos/SharedReviewJournalExperiment.swift -framework Photos -framework PhotosUI -framework AppKit
-```
+Standalone cloud prototypes and native reviewer/posting probes have been removed.
+Their historical source remains in Git; dated evidence remains in the capability
+plan. The shipped Helper builds only PhotosHelper.swift and supplies programmatic
+operations. Do not rebuild or remove the configured signed runtime Helper merely
+because its directory carries an older version: its authorization identity is
+independent of the service release. Historical journal readback is retained.
 
 ## Setup and permissions
 

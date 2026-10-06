@@ -1,11 +1,14 @@
+import {parseSharedUploadReceipt} from './shared-upload-contract.js';
 import {mkdir,lstat,rmdir,writeFile} from 'node:fs/promises';
-import {join,dirname} from 'node:path';
+import {join,dirname,isAbsolute} from 'node:path';
 import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {z} from 'zod';
 import type {OwnerSecretStore,ProviderSessionCustody} from '../storage/owner-store.js';
 import {PhotosError} from './contracts.js';
 import {runProcess} from './provider.js';
+import {SHARED_INVENTORY_PROBE_TIMEOUT_MS,SHARED_READ_TIMEOUT_MS,SHARED_WRITE_TIMEOUT_MS,sharedStreamURL,type SharedStreamSession} from './shared-stream-protocol.js';
+import {verificationMethod} from './cloud-verification.js';
 
 const actorResult=z.object({phase:z.enum(['awaiting_2fa','authenticated','verification_failed','delivery_failed','unsupported_authentication','authentication_required']),privateState:z.record(z.unknown()).optional(),sharedServiceAdvertised:z.boolean().optional(),dsid:z.string().optional(),serviceOrigin:z.string().nullable().optional()}).strict();
 const savedSession=z.object({schemaVersion:z.literal(1),username:z.string(),phase:z.enum(['awaiting_2fa','authenticated']),pendingExpiresAt:z.number(),privateState:z.record(z.unknown()),sharedServiceAdvertised:z.boolean(),dsid:z.string().optional(),serviceOrigin:z.string().nullable().optional()}).strict();
@@ -24,7 +27,7 @@ export function supportsProviderSessions(store:OwnerSecretStore):store is Sessio
 /** Private owner setup only. Does not grant OAuth or execute any photo write. */
 export class PhotosCloudSetup implements PhotosCloudAdmin {
  private actor:Actor;
- constructor(private options:{store:SessionStore;owner:()=>string;python:string;runtimeDirectory:string;customPython?:boolean;actor?:Actor;prepareRuntime?:()=>Promise<void>}){
+ constructor(private options:{store:SessionStore;owner:()=>string;python:string;runtimeDirectory:string;customPython?:boolean;actor?:Actor;requestActor?:Actor;uploadActor?:Actor;prepareRuntime?:()=>Promise<void>}){
   const directory=dirname(fileURLToPath(import.meta.url));
   const script=join(existsSync(join(directory,'cloud-session.py'))?directory:join(directory,'photos'),'cloud-session.py');
   this.actor=options.actor??(input=>runProcess([options.python,script],input,60000));
@@ -36,13 +39,79 @@ export class PhotosCloudSetup implements PhotosCloudAdmin {
   finally{stored.bytes.fill(0);}
  }
  private async dependency(){try{return z.object({dependencyReady:z.boolean()}).parse(await this.actor({action:'check'})).dependencyReady;}catch{return false;}}
+ /** Server-only transport. Never expose session/cookies through MCP results. */
+ sharedSession(accountId:string):SharedStreamSession&{generation:number;accountRevision:number}{
+  const {owner,username}=this.account(accountId),expected=this.options.store.providerSessionState(owner,accountId,'photos_web');
+  const saved=this.load(owner,accountId,username);
+  if(!saved||saved.phase!=='authenticated')throw new PhotosError('cloud_login_required');
+  if(!saved.sharedServiceAdvertised||!saved.dsid||!saved.serviceOrigin)throw new PhotosError('shared_album_service_unavailable');
+  const unchanged=()=>{
+   if(this.options.owner()!==owner)throw new PhotosError('owner_changed');
+   const now=this.options.store.providerSessionState(owner,accountId,'photos_web');
+   if(now.accountRevision!==expected.accountRevision||now.generation!==expected.generation)throw new PhotosError('cloud_session_changed');
+  };
+  const session:SharedStreamSession&{generation:number;accountRevision:number}={accountId,protocol:'legacy_shared_streams',dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,generation:expected.generation,accountRevision:expected.accountRevision,request:async(url,init)=>{
+   unchanged();if(init.method!=='POST'||init.redirect!=='error'||typeof init.body!=='string'||init.signal?.aborted)throw new PhotosError('invalid_shared_album_request');
+   const endpoint=new URL(url).pathname.split('/').at(-1)!;
+   if(url!==sharedStreamURL(session,accountId,endpoint))throw new PhotosError('invalid_shared_album_request');
+   const directory=dirname(fileURLToPath(import.meta.url));
+   const script=join(existsSync(join(directory,'shared-stream-request.py'))?directory:join(directory,'photos'),'shared-stream-request.py');
+   const longProbe=new Headers(init.headers).get('x-photos-inventory-probe')==='true';
+   if(longProbe&&(endpoint!=='webgetalbumslist'||init.body!=='{}'))throw new PhotosError('invalid_shared_album_request');
+   const isRead=endpoint.startsWith('webget')||endpoint==='webuploadstatus';
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint,body:init.body,...(longProbe?{longProbe:true}:{}),...(isRead?{transport:'system_http2'}:{})};
+   const deadline=longProbe?SHARED_INVENTORY_PROBE_TIMEOUT_MS:isRead?SHARED_READ_TIMEOUT_MS:SHARED_WRITE_TIMEOUT_MS;
+   const result=z.object({status:z.number().int().min(200).max(599),body:z.string().max(1024*1024),httpVersion:z.enum(['1.0','1.1','2','3']).optional()}).strict().parse(await (this.options.requestActor?this.options.requestActor(input):runProcess([this.options.python,script],input,deadline,init.signal??undefined)));
+   // A revocation during dispatch may follow an actual server write: callers
+   // retain unknown outcomes rather than treating it as a safe retry.
+   unchanged();return new Response([204,205,304].includes(result.status)?null:result.body,{status:result.status,...(result.httpVersion?{headers:{'x-photos-transport-http-version':result.httpVersion}}:{})});
+  }};
+  session.webAccessState=async()=>{
+   unchanged();
+   const directory=dirname(fileURLToPath(import.meta.url));
+   const script=join(existsSync(join(directory,'shared-stream-request.py'))?directory:join(directory,'photos'),'shared-stream-request.py');
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint:'requestWebAccessState',body:'{}',transport:'system_http2'};
+   const raw=await (this.options.requestActor?this.options.requestActor(input):runProcess([this.options.python,script],input,SHARED_READ_TIMEOUT_MS));
+   unchanged();
+   const result=z.object({status:z.number().int(),body:z.string().max(1024*1024)}).parse(raw);
+   if(result.status!==200)throw new PhotosError('photos_web_access_read_failed');
+   const body=z.record(z.unknown()).parse(JSON.parse(result.body));
+   const recognizedFields=['isICDRSDisabled','isDeviceConsentedForPCS','error','errorCode','errorReason','success','status','webAccessState'].filter(key=>Object.hasOwn(body,key));
+   const responseKind=recognizedFields.some(key=>['error','errorCode','errorReason'].includes(key))||body.success===false?'provider_error' as const:typeof body.isICDRSDisabled==='boolean'||typeof body.isDeviceConsentedForPCS==='boolean'?'flags' as const:'unrecognized' as const;
+   return {responseKind,recognizedFields,isICDRSDisabled:typeof body.isICDRSDisabled==='boolean'?body.isICDRSDisabled:null,isDeviceConsentedForPCS:typeof body.isDeviceConsentedForPCS==='boolean'?body.isDeviceConsentedForPCS:null};
+  };
+  session.photosServiceState=async()=>{
+   unchanged();
+   const directory=dirname(fileURLToPath(import.meta.url));
+   const script=join(existsSync(join(directory,'shared-stream-request.py'))?directory:join(directory,'photos'),'shared-stream-request.py');
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,endpoint:'photosZonesList',body:'{}',transport:'system_http2'};
+   const raw=await (this.options.requestActor?this.options.requestActor(input):runProcess([this.options.python,script],input,SHARED_READ_TIMEOUT_MS));
+   unchanged();
+   const result=z.object({status:z.number().int().min(200).max(599),body:z.string().max(1024*1024)}).parse(raw);
+   if(result.status!==200)return {status:'http_error',httpStatus:result.status};
+   const decoded=JSON.parse(result.body);
+   const parsed=z.object({zones:z.array(z.object({zoneID:z.object({zoneName:z.string()})})).max(10000)}).safeParse(decoded);
+   return parsed.success?{status:'zones_observed',httpStatus:result.status,zoneCount:parsed.data.zones.length}:{status:'unrecognized',httpStatus:result.status};
+  };
+  session.uploadBytes=async source=>{
+   unchanged();
+   const staged=z.object({albumGuid:z.string().uuid(),privatePath:z.string().refine(isAbsolute),bytes:z.number().int().positive().max(500*1024*1024),sha256:z.string().regex(/^[a-f0-9]{64}$/)}).strict().parse(source);
+   const directory=dirname(fileURLToPath(import.meta.url));
+   const script=join(existsSync(join(directory,'shared-stream-upload.py'))?directory:join(directory,'photos'),'shared-stream-upload.py');
+   const input={username,state:saved.privateState,dsid:saved.dsid,serviceOrigin:saved.serviceOrigin,...staged};
+   const result=z.object({body:z.string().max(65536)}).strict().parse(await (this.options.uploadActor?this.options.uploadActor(input):runProcess([this.options.python,script],input,240000)));
+   unchanged();
+   return parseSharedUploadReceipt(JSON.parse(result.body),staged.bytes);
+  };
+  sharedStreamURL(session,accountId,'webgetalbumslist');return session;
+ }
  async status(accountId?:string){
   const owner=this.options.owner(),dependencyReady=await this.dependency();
   if(this.options.owner()!==owner)throw new PhotosError('owner_changed');
   if(!accountId)return {dependencyReady,setupAvailable:!this.options.customPython,managementReady:false,changesPerformed:false};
   const {username}=this.account(accountId),saved=this.load(owner,accountId,username);
   return {accountId,dependencyReady,setupAvailable:!this.options.customPython,phase:!saved?'not_connected':saved.phase==='awaiting_2fa'&&saved.pendingExpiresAt<Date.now()?'challenge_expired':saved.phase,
-   sharedServiceAdvertised:saved?.sharedServiceAdvertised??false,managementReady:false,changesPerformed:false};
+   sharedServiceAdvertised:saved?.sharedServiceAdvertised??false,verificationMethod:verificationMethod.catch('unknown').parse(saved?.privateState.delivery??'unknown'),managementReady:false,changesPerformed:false};
  }
  async setup(){
   const owner=this.options.owner();if(await this.dependency())return this.status();
@@ -99,6 +168,6 @@ export class PhotosCloudSetup implements PhotosCloudAdmin {
   const state:SavedSession={schemaVersion:1,username,phase,pendingExpiresAt:phase==='awaiting_2fa'?(saved?.pendingExpiresAt??Date.now()+15*60000):0,privateState:result.privateState,sharedServiceAdvertised:result.sharedServiceAdvertised??false,...(result.dsid?{dsid:result.dsid}:{}),...(result.serviceOrigin?{serviceOrigin:result.serviceOrigin}:{})};
   const bytes=Buffer.from(JSON.stringify(state));
   try{this.options.store.replaceProviderSession(owner,input.accountId,'photos_web',expected,bytes);}finally{bytes.fill(0);}
-  return {accountId:input.accountId,phase:result.phase,sharedServiceAdvertised:state.sharedServiceAdvertised,managementReady:false,changesPerformed:false};
+  return {accountId:input.accountId,phase:result.phase,sharedServiceAdvertised:state.sharedServiceAdvertised,verificationMethod:verificationMethod.catch('unknown').parse(state.privateState.delivery??'unknown'),managementReady:false,changesPerformed:false};
  }
 }

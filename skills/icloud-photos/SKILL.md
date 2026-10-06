@@ -10,8 +10,10 @@ local metadata access and native Photos authorization. `photos.read`,
 Calendar consent does not enable Photos. Use the owner's setup/status/recheck
 flow; never ask for credentials in chat or bypass unavailable permissions.
 
-Start with `photos_health`. It checks the local synced snapshot and native access,
-not server synchronization. Permission controls are in the owner admin page:
+Start with `photos_health`. It checks the local synced snapshot and native access.
+When the account-bound Shared Album transport is configured, its separate health
+result reports a server inventory read; neither check proves a completed upload
+or cross-device synchronization. Permission controls are in the owner admin page:
 1. library access, 2. Photos Full Access, 3. actual permission recheck. Buttons
 open settings/prompts on the service Mac even from a phone. The owner completes
 macOS prompts there; opening a settings pane is not a granted permission.
@@ -46,6 +48,21 @@ The Mac is the service host; the user interacts remotely through this conversati
 osxphotos handles supported metadata reads/operations; the native Helper supplies
 missing operations or fallback. Never open a host-side review window as the normal
 owner workflow. Initial macOS permissions are an explicit setup exception.
+
+Use the existing main MCP connection for Shared Album operations. Discover
+`photos_shared_albums`, `photos_shared_prepare`, `photos_shared_apply` and
+`photos_shared_operation` before invoking them. Their account-bound server IDs
+are distinct from local Photos album IDs. Lifecycle write payloads are experimental
+candidates, not verified Apple contracts: the currently bounded test supports
+creating, renaming and deleting an empty owner-controlled Shared Album with
+explicit experimental consent. Retain the exact operation and album identity,
+verify server readback, and clean up only the authorized disposable album.
+An unknown result requires read-only reconciliation, never automatic retry.
+Authentication alone does not establish lifecycle support. Content posting,
+participants and access management still require implementation and acceptance.
+Keep credentials in private Admin setup. A pending SMS challenge accepts the SMS
+code, not the code displayed by a trusted-device pop-up; the UI must identify
+the selected verification source. Never take verification codes from chat images.
 
 Remote Shared Album posting is currently unavailable. `post_to_shared_album`
 prepare/apply is rejected before any host UI launch. Explain this limit; do not

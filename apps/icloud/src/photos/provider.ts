@@ -1,3 +1,4 @@
+import {stageUploadSource,releaseUploadSource,type StagedUploadSource} from './upload-source.js';
 import {existsSync} from 'node:fs';
 import {mkdtemp,writeFile,readFile,stat,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -42,17 +43,19 @@ export async function runNative(helper:string,input:unknown,timeoutMs=60000):Pro
  }finally{if(child&&child.exitCode===null)child.kill();await rm(directory,{recursive:true,force:true});}
 }
 /** No shell, stdout/stderr bounds, fixed errors, and no automatic retry. */
-export async function runProcess(argv:string[],input:unknown,timeoutMs=60000):Promise<unknown>{
+export async function runProcess(argv:string[],input:unknown,timeoutMs=60000,signal?:AbortSignal):Promise<unknown>{
+ if(signal?.aborted)throw new PhotosError('provider_timeout');
  const encoded=JSON.stringify(input);if(Buffer.byteLength(encoded)>65536)throw new PhotosError('request_too_large');
  let child:Bun.Subprocess<"pipe","pipe","pipe">;try{child=Bun.spawn(argv,{stdin:'pipe',stdout:'pipe',stderr:'pipe',env:{...process.env,PYTHONDONTWRITEBYTECODE:'1'}});}catch{throw new PhotosError('provider_unavailable');}
  let timedOut=false;const timer=setTimeout(()=>{timedOut=true;child.kill();},timeoutMs);
+ const abort=()=>{timedOut=true;child.kill();};signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();
  async function bounded(stream:ReadableStream<Uint8Array>,limit:number){const reader=stream.getReader();const chunks:Uint8Array[]=[];let size=0;while(true){const next=await reader.read();if(next.done)break;size+=next.value.length;if(size>limit){child.kill();throw new PhotosError('provider_output_limit');}chunks.push(next.value);}return Buffer.concat(chunks);}
  try{
   child.stdin.write(encoded);child.stdin.end();
   const [out,,code]=await Promise.all([bounded(child.stdout,12*1024*1024),bounded(child.stderr,128*1024),child.exited]);
   if(timedOut)throw new PhotosError('provider_timeout');if(code!==0)throw new PhotosError('provider_failed');
   const value=envelope.parse(JSON.parse(out.toString('utf8')));if(!value.ok)throw new PhotosError(value.error);return value.result;
- }catch(e){child.kill();throw e instanceof PhotosError?e:new PhotosError('invalid_provider_response');}finally{clearTimeout(timer);}
+ }catch(e){child.kill();throw e instanceof PhotosError?e:new PhotosError('invalid_provider_response');}finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
 }
 export class LocalPhotosProvider implements PhotosProvider {
  constructor(private readonly settings:ProviderSettings){if(![settings.python,settings.library,settings.nativeHelper].every(isAbsolute))throw new PhotosError('absolute_provider_paths_required');}
@@ -75,6 +78,20 @@ export class LocalPhotosProvider implements PhotosProvider {
    return {...health,native,sharedAlbumWriteVerified:false};
   }
   throw new PhotosError('unsupported_command');
+ }
+ /** Private staging for reviewed sharing; never returns source paths to MCP. */
+ async stageUpload(assetId:string,representation:'original'|'edited',livePhotoMode?:'still'){
+  if(!this.settings.stateDirectory)throw new PhotosError('upload_runtime_not_configured');
+  const source=await this.reader('upload_source',{assetId,representation,livePhotoMode});
+  return stageUploadSource(source,{library:this.settings.library,directory:join(this.settings.stateDirectory,'shared-upload-staging'),assetId});
+ }
+ async stageTestUpload(operationId:string):Promise<StagedUploadSource>{
+  if(!this.settings.stateDirectory)throw new PhotosError('upload_runtime_not_configured');
+  return z.object({assetId:z.string(),filename:z.literal('Photos capability test.png'),representation:z.literal('original'),livePhotoStillOnly:z.literal(false),mediaType:z.literal('photo'),bytes:z.number().int().positive(),sha256:z.string().regex(/^[a-f0-9]{64}$/),privatePath:z.string().refine(isAbsolute)}).strict().parse(await runProcess([this.settings.python,join(this.settings.sidecarDirectory??base,'shared-test-fixture.py')],{directory:join(this.settings.stateDirectory,'shared-upload-staging'),operationId}));
+ }
+ async releaseUpload(source:StagedUploadSource){
+  if(!this.settings.stateDirectory)throw new PhotosError('upload_runtime_not_configured');
+  await releaseUploadSource(source,join(this.settings.stateDirectory,'shared-upload-staging'));
  }
  async inspect(mutation:Mutation){
   const state=snapshot.parse(await this.reader('inspect',mutation));

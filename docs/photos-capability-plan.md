@@ -1,11 +1,801 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Stage closeout and prototype retirement — 2026-10-05
+
+Owner requested stage closeout, main release/deployment and task-worktree cleanup.
+Executable Photos playground prototypes and native reviewer/probe source are
+retired; production imports do not depend on them. Historical evidence and Git
+source history remain. The production operation Helper and its consent identity,
+account custody, operation ledger and private recovery evidence must be preserved.
+Release cleanup retains the current runtime plus its immediately previous working
+release for rollback; task build copies and superseded helper copies are disposable
+only after configured paths and active processes are checked.
+
+Full Photos delivery remains paused, not complete. Pending work includes paired
+Live Photo upload, participant invitation/removal acceptance and remaining original
+library write/delete acceptance. Owner selected three reviewed photos for a Shared
+Album named testing and subsequently requested Live Photo support; none was uploaded.
+The invitation test creation plan was cancelled before dispatch, so no invitation
+was sent. Keep owner decisions and exact private evidence out of public artifacts.
+
+
+## Contributor setting live acceptance — 2026-10-05
+
+The original MCP on 0.1.56 created a dedicated private empty album, disabled
+contributions and restored them. Both mutations reached applied with independent
+serverReadbackVerified; the returned allowsContributions values were false and
+true respectively. Title, private status, zero content and owner-only participation
+remained unchanged. Exact empty-album deletion then reached applied with albumAbsent
+and serverReadbackVerified. Private evidence is live-contribution-permissions-0156.json
+in the retained task session evidence directory. No invitations or public links
+were enabled, and no personal asset was used.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## API-first repeat acceptance and remaining gates — 2026-10-05
+
+A new owner-requested synthetic image was uploaded through the existing main MCP
+on 0.1.56. Initial cloud readback detected a changed membership snapshot. A single
+explicit read-only reconciliation then observed a completed Apple job and the
+exact retained asset ID in a complete stable cloud membership snapshot. No write
+was retried and no local fallback was used. Reviewed deletion of the dedicated
+nonempty album then reached applied with serverReadbackVerified and albumAbsent.
+This adds live nonempty-album deletion acceptance; the exact synthetic artifact
+and destination are cleaned. Private evidence: live-api-first-new-photo-0156.json
+in the task session evidence directory.
+
+Accepted routing: Shared Album cloud API first, local osxphotos/PhotoKit read
+fallback explicitly labeled as a local synced snapshot. This is workflow routing,
+not an implemented automatic retry/failover engine. Person/local-library reads
+remain osxphotos-first. No backend switch may duplicate an uncertain write.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Live cloud readback fix and exact synthetic cleanup — 2026-10-05
+
+Installed 0.1.56 from main 0debd5c successfully read the synthetic image's exact
+retained cloud asset ID through the original MCP. The Apple job reported completed;
+independent complete stable membership contained that same ID. Read-only recovery
+changed the original upload from outcome_unknown to reconciled and cleaned its
+private staged source without resubmitting. Owner iPhone observation and separate
+main-MCP Mac metadata/preview provide distinct cross-device evidence; the server
+operation correctly does not claim to have performed that observation itself.
+
+The exact shared-copy removal then reached applied with stable empty membership,
+serverReadbackVerified=true and originalLibraryModified=false. The dedicated empty
+album deletion reached applied with albumAbsent=true and serverReadbackVerified=true.
+No synthetic test album remains in that server readback; no personal photo or
+invitation was used. Exact IDs and operation recovery evidence remain private.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Confirmed cloud content parsing defect — 2026-10-05
+
+Through the existing MCP on deployed 0.1.55, the retained synthetic album read
+reported serverErrorCode=null on an asset record. The parser incorrectly rejected
+any presence of that field. The 0.1.56 candidate accepts null error fields while
+continuing to reject substantive error values and verify exact master/asset pairing.
+The regression fixture now includes the observed null shape; real error values
+remain rejection cases. No upload retry is needed. Live reconciliation and exact
+cleanup remain required after deployment.
+
+
+## Shared content readback diagnosis — 2026-10-05
+
+The owner observed the synthetic test image on iPhone. The existing main MCP also
+read the exact operation marker from the shared image on the Mac and returned its
+preview. This establishes successful synthetic delivery and local/cross-device
+observation, while the remote operation remains unknown because its independent
+cloud membership read throws. Do not resubmit the upload or manually overwrite the
+ledger. The exact test album and staged upload remain retained for reconciliation
+and cleanup.
+
+A confirmed diagnostic gap discarded all content-read errors, including schema and
+identity failures. The next runtime preserves bounded structural diagnostics via
+the same MCP read/operation tools. No response values, credentials or arbitrary
+exception messages are exposed. This is diagnostic instrumentation, not yet a fix
+for the underlying cloud membership failure.
+
+
+## Live main-MCP Shared Album CRUD and 0.1.53 delivery — 2026-10-05
+
+The existing main MCP completed true Shared Album creation, rename and deletion
+on installed 0.1.52. Each retained operation reached applied with independent
+Apple server readback. Creation verified a private empty owned album with only
+the owner; rename verified the exact reviewed title; deletion verified album
+absence. No photo or invitation was sent. Cross-device observation was not made.
+Private exact-ID evidence is retained in the task session's live-shared-crud-0152
+report; do not repeat this completed empty-album experiment.
+
+Release 0.1.53 from main commit 4203012 is now installed. Its synthetic upload and
+reviewed nonempty shared-album deletion remain unverified live. The former service
+exceeded the deployment's 40-second graceful-drain bound; no update occurred then.
+After independently confirming both processes had exited and ports were closed,
+deployment resumed with a private backup and rollback receipt. Configuration,
+operation Helper and session custody were preserved. All 13 local doctor checks
+passed; an actual main-MCP health call confirmed native authorization. Those checks
+do not establish upload or cross-device success.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Explicit synthetic shared-upload fixture candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Self-check: 20 lifecycle tests / 220 assertions, synthetic PNG byte/CRC/digest/mode
+checks, typecheck and production build passed. Tests use local generated fixtures
+only. The candidate also includes reviewed nonempty owned-album deletion. It is not
+yet deployed; current runtime remains 0.1.52. Main-MCP new-tool loading remains the
+live acceptance prerequisite. Do not use a direct authenticated CLI workaround.
+
+
+## Owner-authorized synthetic fixture and remaining acceptance — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Remaining acceptance: original-connection shared tools must load; real empty-album
+create/rename/delete; approved synthetic upload/removal and owned album deletion;
+participant/access actions only with concrete recipients/access approval; ordinary
+writes/delete with separate scope; complete owner photo decisions and independent
+sharing/cloud evidence; setup/lifecycle checks and safe artifact disposition. Do
+not add unsupported subscriber authority or silently flatten Live Photos to finish.
+
+
+## Installed 0.1.52 and original-MCP read acceptance — 2026-10-05
+
+PR 50 merged and 0.1.52 installed from clean remote-main 8eac535. Verification:
+420 app tests / 2869 assertions, typecheck, production build and 13 installed doctor
+checks passed. Provider-session row digest, configuration and signed Helper were
+preserved; the primary main checkout fast-forwarded cleanly. No shared writes were
+in progress or performed. The existing main-MCP health call succeeded and its one
+retained background job read normal Photos HTTP 200/one zone and 49 legacy candidate
+albums plus one unsupported opaque identifier. Native authorization remains 3/true.
+
+The installed shared-copy review and write flow still lack actual conversation-tool
+acceptance: the four shared lifecycle tools remain absent from the loaded tool set.
+Do not equate server registration/fixture discovery or health success with usable
+shared writes. Same-connection refresh remains pending; no additional MCP is needed.
+All personal sharing/cleanup decisions and live mutation/cloud evidence remain open.
+
+
+## Main-MCP shared-tool discovery coverage — 2026-10-05
+
+An in-memory SDK client now exercises the actual main protocol host with the Photos
+registration. All four shared tools appear in discovery under the existing Photos
+policy. The common host advertises enabled tools independently of caller grants;
+read-only callers receive insufficient_scope when invoking writes, while callers
+with photos.read/photos.write can prepare without dispatching a mutation. This is
+the generic module flow, not a Photos-specific discovery path or new scope.
+
+Read-only installed configuration/state inspection confirms write=true/delete=false
+and owner policy read/write enabled. Actual main-MCP health also establishes that
+the shared provider is registered. Current conversation tools still omit the four
+shared lifecycle entries. This supports a client tool-loading gap, not live tool
+acceptance; do not patch credentials or replace the connection. Focused SDK/lifecycle
+checks pass 18 tests / 199 assertions. These fixture calls never contact Apple.
+
+
+## 0.1.51 remote reads recovered; shared-copy review candidate — 2026-10-05
+
+The original main-MCP health call recovered without another service restart or
+credential change. Its retained inventory job completed with Photos HTTP 200/one
+zone and 49 addressable legacy candidates plus one unsupported opaque identifier;
+osxphotos and native authorization remain verified. The earlier connection failure
+cause is unknown. Remote read acceptance for 0.1.51 is now observed; full shared
+writes remain unverified and shared lifecycle tools are still absent from this
+conversation's loaded tool set.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Installed 0.1.51; remote connection acceptance unresolved — 2026-10-05
+
+PR 49 merged and 0.1.51 installed from clean remote-main 86f63bf. Final build and
+418 app tests / 2844 assertions passed; all 13 installed doctor checks pass. Saved
+provider-session row digest, configuration and signed Helper remain unchanged.
+The primary main checkout fast-forwarded cleanly. No active Photos mutations were
+present before upgrade; no shared write or personal upload was dispatched.
+
+The actual original-MCP health call returned Connection failed on three attempts.
+The installed launcher/child remain live; the original public URL returns expected
+anonymous HTTP 401 from this Mac. Local reachability is not remote connector proof.
+No service crash or source-backed cause has been established. The owner has been
+asked to refresh/reconnect the same existing plugin, never replace it. Do not mark
+remote acceptance passed, restart to manufacture success, or bypass the MCP with
+account-bound CLI requests. Keep the retained rollback and current state intact.
+Next: diagnose the existing connection, then shared-tool discovery and live exact
+reviewed lifecycle. Other unfinished Photos requirements remain unchanged.
+
+
+## Recovery disposition and slow inventory follow-up — 2026-10-05
+
+Candidate recovery now distinguishes never-published uploads from uncertain
+publication. After the actor/grace period, complete membership absence plus a
+retained staged/uploading phase proves publication was never dispatched. It records
+not_published while explicitly retaining unknown binary-transfer outcome and possible
+remote staged resource; no automatic resend occurs. Publishing/submitted phases
+cannot be settled by absence alone. The durable publication transition must succeed
+before dispatch. Local staged bytes are cleaned only after this terminal disposition.
+
+The shared album inventory tool now returns an account-bound retained readId promptly
+and uses the verified long inventory read budget. Polling reuses that job; an explicit
+refresh after completion starts a new one. Revoked/stale/foreign IDs fail closed.
+This fixes the prior direct inventory call's shorter client-facing wait. Jobs remain
+process-local and are not silently restarted after loss.
+
+Focused self-check: 16 lifecycle tests / 174 assertions and typecheck passed. Runtime
+is still 0.1.50; these follow-up fixes require release/deployment. No live mutation
+occurred and the existing conversation still has no shared lifecycle tools loaded.
+
+
+## Installed 0.1.50 lifecycle candidate — 2026-10-05
+
+PR 48 merged; installed 0.1.50 from clean remote-main commit 61d6a96. Final release
+checks passed: 417 app tests / 2828 assertions, 16 Python transport tests, typecheck,
+production build and 13 installed doctor checks. The provider-session custody row
+digest, configuration and signed operation Helper were preserved. The primary main
+checkout was clean and fast-forwarded. Exact backup and receipt remain in private
+runtime recovery storage; no personal asset or shared mutation was dispatched.
+
+An actual existing-main-MCP health call verified osxphotos and native authorization
+3/true. One retained background inventory read completed with normal Photos HTTP
+200/one zone and 49 addressable legacy candidates plus one unsupported opaque ID,
+matching the earlier read boundary. This proves installed reads, not write support.
+The conversation still does not expose the four shared lifecycle tools; refresh of
+the same connection remains pending. No alternative MCP, direct authenticated CLI
+or UI path was used. Next live gate is original-MCP empty Shared Album lifecycle,
+then a concrete reviewed source/destination for upload and independent readback.
+Full Live Photo pairing, subscriber writes, unknown-binary disposition, broader
+Photos acceptance and owner decisions remain part of the unfinished objective.
+
+
+## Reviewed upload lifecycle integrated in candidate — 2026-10-05
+
+upload_shared_asset now uses the existing shared prepare/apply/operation flow and
+Photos scopes. Prepare binds exact local asset, explicit representation, remote
+owned album snapshot and private staged bytes; only digest/size/representation are
+review data, never paths or receipts. A private companion ledger retains generated
+asset/batch IDs, timestamp, stage and eventual job ID. Apply revalidates the album
+and custody snapshot, claims the common operation interlock, durably claims binary
+transfer and publication separately, and sends each once. Receipts stay in memory.
+
+Readback polls retained jobs and independently searches complete stable membership
+for the retained asset GUID; job-read failure does not prevent membership recovery.
+Interrupted/lost writes never resume binary transfer or publication. Unknown binary
+outcomes retain evidence and cannot yet be cleared automatically. Recovery grace
+covers transfer, publication and all readback deadlines. Successful/read-reconciled
+uploads remove only their exact private staged file; failed cleanup retains its
+path for recovery. Unexecuted plans support explicit cancellation through shared
+apply(cancel=true), which releases staged bytes without Photos mutations. Full Live
+Photo pairing, subscriber writes and real provider acceptance remain open.
+
+Self-check: full app suite 417 tests / 2828 assertions and typecheck passed.
+16 Python transport tests and final production build passed for the 0.1.50 release
+candidate, including the cancellation case. These
+are fixtures, not live uploads. Candidate is not deployed; runtime remains 0.1.49.
+Next: full final checks, release/merge/deploy, existing-MCP tool discovery and exact
+owner-reviewed live acceptance. No personal upload or invitation has occurred.
+
+
+## Account-bound binary upload transport candidate — 2026-10-05
+
+Added a private binary-stage actor, packaged with the application. Before account
+network access it opens the staged file without following symlinks, requires owner
+custody/private mode, checks bounded byte count and SHA-256, and detects source
+changes. URL allocation uses the existing actor's saved-account/DSID/advertised-
+service checks. Only that response can supply the upload destination. Parsed HTTPS
+Apple iCloud/content-domain boundaries and region are enforced; redirects, proxy/
+netrc discovery, arbitrary URL input and automatic retries are excluded. Cookies
+remain domain scoped; iCloud cookies are not sent to the content domain. The actor
+performs one binary POST, bounds its response and returns a server-only receipt.
+
+The sealed session exposes this only as an internal method, checking owner/account
+custody generation before and after dispatch. A lost response or revocation during
+transfer does not authorize resending. Public account status does not expose the
+receipt. Reviewed apply integration must durably claim the stage before using it;
+no MCP upload action invokes it yet, and no live account request was made.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Private reviewed upload source staging — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Publication request identity and timestamp — 2026-10-05
+
+Static AST inspection (without executing vendor JavaScript) confirmed module 962's
+submission timestamp is Date.toJSON(), while module 944 defines the binary receipt.
+The internal webputasset builder now requires retained album/asset/batch GUIDs,
+ISO timestamp, filename and valid time zone; it never generates replacement IDs.
+It binds the receipt byte size and rejects tool-supplied extra keys. No publication
+transport has been enabled yet. Five upload-contract tests / 52 assertions and
+typecheck passed. These are source/fixture checks, not live upload acceptance.
+
+The pinned osxphotos PhotoInfo.export API can copy original/edited resources with
+use_photos_export=False (no Photos UI). Export representation must be explicit,
+including Live Photo handling; missing originals need supported download/fallback,
+not silent preview substitution. Remaining upload sequence: reviewed representation
+and staged content digest; account-bound URL allocation and validated destination;
+private binary POST; durable publication claim using retained asset GUID; retained
+job polling; independent exact shared membership and cloud/cross-device evidence.
+
+
+## Shared upload response contracts — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Upload-job polling is now wired through the account-bound read transport with
+fixed endpoint, retained job identity, bounded response/deadline, redacted failures
+and no automatic retry. It is an internal recovery primitive, not an MCP upload
+action. Self-check: 412 app tests / 2753 assertions, 14 Python transport tests and
+typecheck passed. Upload URL host/cookie custody,
+reviewed local export, durable multi-stage dispatch and live readback remain open.
+No authenticated upload request or personal-photo mutation was performed.
+
+
+## Reviewed shared-copy removal candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Shared-copy page reader candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Background reviewed lifecycle candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Reviewed participant changes integrated in candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Reviewed permission changes integrated in candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Management request contracts extracted — 2026-10-05
+
+Fetched Apple's public management bundle directly (no account, cookies or UI):
+https://www.icloud.com/applications/photos3/2636Build18/en-us/sharedalbummanage.js
+SHA-256 6e28405c29e927dbe688d45b50a2dc19244733c319a1a8d094af05673e815416.
+Together with the retained UI bundle it establishes request builders for share,
+unshare, setalbumpublic, updatealbum contributions and deleteassets. Contribution
+updates include the current album name; removing a participant uses invitation ID,
+not person ID; removing photos uses exact shared-copy asset IDs and album routing.
+
+Added internal source-derived builders with strict input boundaries, retained
+invitation IDs, explicit notification classification and separate server-only
+organization-key context. They are not registered or dispatched. Owner checks,
+reviewed plans, durable unknown-outcome recovery, response validation and independent
+readback must be integrated before exposure. Tests cover duplicate invitations,
+empty/duplicate removal targets, permission-change boundaries and retained IDs:
+3 tests / 16 assertions plus typecheck passed. No invitations or writes occurred.
+
+
+## Live Shared Album inventory parsed — 2026-10-05
+
+Installed 0.1.49 from 387abea. Actual existing-main-MCP background health completed
+with 49 UUID-addressable legacy candidates and one unsupported opaque identifier;
+status remote_inventory_partial, HTTP 1.1 response observed. No modern/encrypted
+marker was present on those 49 parsed entries; this is classification from returned
+metadata, not write support proof. Normal Photos reads also remain verified.
+13 doctor checks passed; provider session row digests, configuration and Helper
+were preserved. No shared creation, rename, deletion or upload has been dispatched.
+The conversation still lacks the four registered shared lifecycle tools; the owner
+has been asked to refresh the existing plugin's tools, without replacing its MCP.
+Tool availability and slow-read behavior must be resolved before live lifecycle
+acceptance. All broader Photos phases remain required.
+
+
+## Observed inventory identifier mismatch — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+
+## Shared Streams response received by background probe — 2026-10-05
+
+Installed 0.1.47 from deeafe0; 13 doctor checks passed. The actual main-MCP
+background inventory retained the same readId across calls and completed with
+HTTP 200 / HTTP 1.1. The failure stage is now schema, not transport timeout.
+Normal Photos remains HTTP 200 with one zone. This verifies an authenticated
+Shared Streams response but not a parsed inventory, lifecycle or photo upload.
+Add bounded schema error locations/types without provider values, then correct
+only observed incompatibilities; do not relax ownership/identity checks blindly.
+
+
+## Bounded background inventory candidate — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Upstream latency evidence and bounded read experiment — 2026-10-05
+
+Read upstream primary-source PR https://github.com/timlaing/pyicloud/pull/27
+(merged 2025-02-09). Its shared-stream example explicitly warns that the initial
+listing takes a while because the server responds slowly. This is historical
+latency evidence, not proof of the current account's timeout cause. Its historical
+app-password claim must not override the verified current session/auth path.
+
+Offline inspection of our sealed session (no network) found no expired cookies
+and retained Photos, CloudKit and Sharing PCS cookies. A separately named
+SharedStreams cookie was absent; no source establishes that such a cookie is
+required, so do not infer missing authorization or request another login.
+
+The existing actor ends reads after 50 seconds. A longer inventory experiment
+must use a bounded background read with an observable identity/status through the
+same main MCP, not repeatedly extend a synchronous tool call beyond its host
+window. One in-flight read per owner/account/session generation, no implicit retry,
+strict revocation checks and bounded cache lifetime are required. Preserve the
+operation's pending state until completion or verified timeout; do not restart
+because the caller stopped observing. This can establish whether slow initial
+inventory is the cause before changing routing or authentication again.
+
+## Actual normal Photos access verified — 2026-10-05
+
+PR 44 merged as 8b4d21b and installed 0.1.46 with retained session/config/Helper.
+Actual main-MCP health using the same saved account session returned Photos
+CloudKit zones_observed, HTTP 200 and zoneCount 1. This verifies access to normal
+Photos service metadata, not photo content, sharing, upload or cross-device sync.
+Shared Streams inventory still times out; web-access flags remain unrecognized.
+13 installed doctor checks passed and provider-session row digests were unchanged.
+Investigate service-specific Shared Streams routing/protocol and modern collection
+metadata next. The observed normal Photos response does not support asking the
+owner to repeat login as the next remedy. Full Shared Album lifecycle remains open.
+
+
+## Normal Photos service comparison — 2026-10-05
+
+Installed 0.1.45 still returned an unrecognized web-access object with no known
+flags/error fields, alongside the same Shared Streams timeout. Session custody
+was unchanged and 13 doctor checks passed; no write occurred. Empty-body matching
+did not establish a fix. Stop treating transport adjustments as root-cause proof.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Deployed diagnostic result and protocol follow-up — 2026-10-05
+
+PR 42 merged as dd6ce66 and installed 0.1.44. Full application checks passed
+(395 tests / 2564 assertions); 13 installed doctor checks passed. Actual main-MCP
+health returned authorized native access, a JSON web-access response without the
+two expected boolean flags, and another Shared Streams read timeout. Session row
+digests, configuration and Helper binary were preserved. No Shared Album write
+was sent. Neither a 200 JSON response nor missing flags establishes consent.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+Apple's retained web wrapper confirms owned albums use the DSID base route;
+subscribed albums may use their server-provided albumlocation. The organization
+key helper simply adds clientOrgKey when present, but obtaining the correct key
+and checking collection migration state still require real metadata. Current
+owned-empty lifecycle scope avoids substituting a subscriber's route. A future
+upload implementation must retain and validate the destination's actual routing.
+
+## Experiment completion reset and existing-session research — 2026-10-05
+
+The owner resumed the full internal-API Shared Album task after rejecting an
+incorrect experiment-completion claim. Completion means demonstrated true Shared
+Album creation, rename, deletion, content add/remove, participants and permissions
+through the existing main MCP, with exact identity and readback. Ordinary album
+CRUD, successful authentication, compilation, fixtures and deployment do not satisfy
+that acceptance. Retain the overall Photos goal and owner review/cleanup phases.
+
+The existing owner-authenticated session remains the intended credential source.
+Do not ask for another password merely because a provider request timed out.
+Research of installed pyicloud 2.7.0 confirms that its Photos accessor calls
+_request_pcs_for_service("photos") before constructing the Photos service. That
+flow checks requestWebAccessState and may require service-specific PCS consent.
+Our current transport has not verified that service-access layer. This is a
+concrete missing diagnostic, not proof that this account requires new consent or
+that it caused the legacy Shared Streams timeout. Apple describes separate web
+access for protected data in https://support.apple.com/en-us/102651 . PyiCloud's
+current documentation distinguishes modern Photos/Shared Library support from its
+legacy Shared Album adapter: https://pypi.org/project/pyicloud/ . Do not equate
+Shared Library or ordinary album mutations with true Shared Album lifecycle.
+
+Next experimental sequence:
+1. Through the existing main MCP, inspect web-access/PCS status with the saved
+   session without automatically requesting device consent. Verify a minimal
+   normal Photos API read against the account's advertised CloudKit service.
+2. Compare the pinned provider's actual Shared Album request and account routing
+   with the prepared request, including retained client parameters. Establish
+   whether the target is legacy Shared Streams or modern shared collections.
+3. Once reads work, verify the owner-authorized empty true Shared Album create,
+   exact-ID readback, rename and deletion. Retain uncertain operation identities;
+   no automatic write retry or speculative alternate mutation payloads.
+4. Establish source-backed content and participant/access contracts. Obtain exact
+   owner approval for a concrete harmless test asset and recipients before upload
+   or invitations; the existing empty-album test is not blanket publication consent.
+5. Complete the real main-MCP lifecycle acceptance matrix before labeling the
+   experiment complete. Then continue full Photos production/review acceptance.
+
+The 0.1.44 retained-parameter candidate is committed/pushed but not yet deployed.
+Installed 0.1.43 remains a failed remote-inventory experiment. Avoid treating more
+transport releases as evidence that the requested lifecycle is working.
+
+## External implementation comparison and service-access contract — 2026-10-05
+
+Inspected https://github.com/sweetrb/apple-photos-mcp source, not only its README.
+Its src/utils/photos_reader.py reads album_info_shared and shared comments/likes
+through osxphotos. cmd_create_album calls photoscript.PhotosLibrary.create_album;
+its live-writes tests exercise ordinary albums and metadata. No true Shared Album
+creation, invitations or access-management implementation was found. Its
+remove-from-album rebuilds an ordinary album with a new identity, so that algorithm
+must not be adopted for shared collections. This repository is a useful local-read
+reference, not a solution or acceptance proof for the requested shared lifecycle.
+
+Pinned local pyicloud 2.7.0 source confirms the exact read route is
+/{dsid}/sharedstreams/webgetalbumslist; modern PhotosService still constructs that
+legacy adapter. The current route therefore matches the provider source; no
+alternate mutation route is justified by the timeout.
+
+Before entering the Photos accessor, pyicloud calls requestWebAccessState on its
+fixed setup service. Its subsequent flow can call enableDeviceConsentForPCS and
+requestPCS and poll. A diagnostic must not call that accessor wholesale: it can
+notify the owner and mutate consent/session state. Implement only the initial
+status read through the existing account-bound main-MCP path, with the retained
+session, bounded one-attempt transport, strict boolean projection and no raw
+response/token exposure. Missing or malformed flags must remain unknown, not be
+interpreted as permission granted. Preserve session-generation checks before and
+after dispatch. Never automatically call either consent-enabling endpoint from
+health. This contract is source-derived; actual account status is still unverified.
+
+## Apple web-client request builders located — 2026-10-05
+
+Further inspection of the retained public Apple Photos UI bundle found actual
+request builders, beyond the previously inspected endpoint catalog. Private source
+artifact: /tmp/photos-flow-handoff/apple-ui.main.js; SHA-256 389b79c2ba8630a86743e9057b7c8cf2dbcbfc3a83c0fc0cc20e044c33380796.
+Revalidate its download provenance before treating it as current production Apple
+behavior. These are source observations, not successful authenticated experiments.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Upload-to-existing-album fallback research — 2026-10-05
+
+The owner accepts considering manual Shared Album creation followed by MCP upload
+as a fallback. This does not replace full lifecycle scope or authorize a personal
+upload. Verify upload separately before promising that manual creation unblocks it.
+
+Inspected the installed pyicloud 2.7.0 class and resolved inherited methods:
+SharedPhotoStreamAlbum has no upload, add_photo, remove_photo or create_album.
+Its own delete returns False and rename returns None without sending a request.
+is_web_upload_supported is a server metadata property, not an implemented uploader.
+PhotosService.upload delegates to the root library or an album object's upload;
+passing a SharedPhotoStreamAlbum does not supply the missing method. Therefore
+this package can supply a Shared Album read baseline but not the requested upload
+or lifecycle implementation. Upstream metadata identifies
+https://github.com/timlaing/pyicloud as the installed package's source.
+Do not port ordinary CloudKit upload or treat no-op rename as success. Research
+actual Shared Streams or modern shared-collection upload contracts independently;
+require exact destination, reviewed harmless asset, membership readback and separate
+cloud evidence before claiming acceptance.
+
+## Offline pinned-provider request execution — 2026-10-05
+
+Executed pyicloud 2.7.0 PhotoStreamLibrary._get_albums against a fake session
+(no network, account data or library mutation). It emits POST to the expected
+DSID-scoped webgetalbumslist route with JSON {} and Content-Type plain/text.
+The adapter previously used text/plain;charset=UTF-8. The candidate now matches
+the provider's exact content type for inventory only, with regression assertions
+for both transports. This is a verified request difference, not a verified cause
+of the live timeout.
+
+The candidate also adds a fixed, read-only requestWebAccessState diagnostic to
+main-MCP Photos health. It uses the same sealed account custody and revocation
+checks; only two boolean-or-null flags leave the backend. Missing/malformed flags
+remain unknown. Consent-enabling endpoints are rejected. It runs concurrently
+with inventory so diagnostics do not add another sequential 60-second wait.
+Targeted checks passed: 15 TypeScript tests / 101 assertions, 10 Python transport
+tests, and TypeScript typecheck. Live account status and deployment remain pending.
+
+## Retained provider read parameters — 2026-10-05
+
+Deployed 0.1.43 main-MCP inventory also timed out; changing the transport has not
+established a fix. A credential-free root HTTP probe receives 400 promptly, so
+basic HTTP reachability exists independently of the account API. No album write
+was attempted and the authenticated session and existing Helper remain preserved.
+
+Inspection of installed pyicloud 2.7.0 PhotoStreamLibrary._get_albums identified
+its query parameters: retained authenticated clientId, dsid, clientBuildNumber
+2534Project66 and clientMasteringNumber 2534B22. Our earlier read omitted them.
+Candidate 0.1.44 now adds exactly those fixed provider params on read routes, using
+the sealed session's client ID and validated DSID. No fresh ID, arbitrary query,
+credential lookup or different account is introduced. Missing/malformed retained
+client identity rejects before transport. Writes remain unchanged experimental
+candidates. This source-backed difference requires actual main-MCP acceptance;
+it is not yet proof of the timeout's cause or of supported Shared Album lifecycle.
+
+## Read-only HTTP transport comparison — 2026-10-05
+
+The deployed 0.1.42 main-MCP read also times out with the larger bounded deadline;
+short latency is not established as the cause. The same call now confirms native
+PhotoKit authorization 3/authorized=true, separately from sharing access. Retained
+ordinary-album live evidence still records three applied/local-readback-verified
+operations; its script and operation Helper remain present. No experiment was rerun.
+
+Candidate 0.1.43 selects the Mac's existing HTTP/2-capable system curl for read-only
+Shared Streams routes. It uses the same account, advertised host, cookies and
+payload; secrets enter stdin, never process arguments. It disables curl startup
+configuration, netrc use, environment proxies, redirects and automatic retries;
+TLS verification, HTTPS-only routing, response-size limits and actor deadlines are
+retained. Private temporary response files are removed after each call. Writes
+cannot use this experimental transport and retain their existing one-attempt path.
+Observed HTTP protocol is reported without provider content. This comparison tests
+a transport hypothesis, not a supported Apple sharing claim. Main-MCP live read,
+exact empty-album lifecycle, content/participants/access and complete Photos
+acceptance remain open. Existing account custody and rollback are preserved.
+
+## Bounded read latency experiment and recovery correction — 2026-10-05
+
+Deployed 0.1.41 main-MCP health established shared_album_read_timeout before an
+HTTP response. The request route matches the retained public client's DSID routing;
+network-disabled preparation confirms cookies. Authentication and complete Shared
+Album management remain distinct and unproven by a saved session.
+
+Candidate 0.1.42 allows one read to wait up to 50 seconds inside a 60-second actor
+and protocol deadline. Writes retain their 20-second HTTP/30-second actor budgets;
+no implicit authentication or automatic retry is added. This is a bounded latency
+experiment, not a claim that latency is the root cause. Exact readback/count calls
+use the same bound. Crash reconciliation now waits through the complete write plus
+three sequential readbacks and a recovery margin (240 seconds); the prior 90-second
+grace could expire while a readback was still active. Regression coverage preserves
+the interlock during that window. Continue actual reads through the existing main
+MCP and preserve operation identity. No photo or album write is authorized by these
+checks; the previously approved empty test still requires a successful remote read.
+
+## Transport timeout investigation after port correction — 2026-10-05
+
+Release 0.1.40 is deployed from main 18d23e6. The advertised default-port preflight
+now passes, and account-bound request preparation contains the expected web-auth
+cookie without Authorization headers. A connection-only diagnostic verified TLS
+reachability to the account's advertised service without any photo API request or
+credential transmission. Main-MCP inventory still fails before an HTTP response.
+Candidate 0.1.41 distinguishes fixed connection/read-timeout/TLS/connection-failure
+categories without recording exception text, URLs, cookies or raw provider bodies.
+No Shared Album write has been attempted. The same authenticated session, installed
+Helper, Photos scopes and rollback remain preserved. Remote acceptance is open.
+
+## Advertised HTTPS port mismatch resolved in source — 2026-10-05
+
+The deployed 0.1.39 main-MCP diagnostic localized failure to transport, before an
+HTTP response. A network-disabled preflight of the existing sealed session found
+that Apple's advertised service uses explicit standard TLS port 443. TypeScript
+URL canonicalization accepted it; Python incorrectly rejected any explicit port.
+The account and advertised route otherwise matched. No new login is required.
+
+Candidate 0.1.40 accepts only absent/default HTTPS port 443, canonicalizes the
+request route to the same origin as TypeScript, and continues rejecting all
+nonstandard ports, account substitution and unadvertised hosts. Four actual
+requests-transport fixture tests pass, including default-port canonicalization,
+nonstandard-port rejection and no authentication/write retries. Deployment and
+main-MCP inventory acceptance remain the next gates. No album mutation occurred.
+
+## Deployed lifecycle experiment and live read failure — 2026-10-05
+
+Release 0.1.38 was merged through PR36 and deployed from clean main f2790e7.
+Installed payload readback and all 13 deployment diagnostics passed. Configuration,
+existing signed operation Helper and the owner-authenticated custody were retained;
+rollback is preserved. An actual invocation of the existing main MCP Photos health
+reached the new remote inventory path but returned shared_album_readback_failed.
+This is not remote inventory acceptance. No Shared Album mutation was attempted.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Account-bound MCP lifecycle experiment and authentication correction — 2026-10-05
+
+This supersedes provider-selection notes below. The native daemon diagnostic
+received a callback, but its transport response was failure code 1 with no body.
+The actual mstreamd log rejects this diagnostic's exact PID for lacking the correct
+entitlement. A callback did not establish access. The installed operation Helper
+has no such entitlement and is preserved unchanged. No Apple entitlement is copied
+and no rejection is bypassed. The owner-authorized web-session fallback is active.
+
+The owner completed SMS verification on the existing account. Custody readback
+confirms an authenticated session and advertised Shared Streams service; no
+password or verification code was inspected or logged. Earlier UI instructions
+incorrectly failed to distinguish SMS from a trusted-device pop-up. The saved
+challenge used SMS. Actual pinned-provider tests now verify the phone endpoint,
+nested code/phone payload and restored challenge headers, plus explicit SMS
+redelivery. Private Admin reports the source, instructs SMS users correctly and
+hides redundant sign-in while a challenge or authenticated session exists. A
+nonlegacy trusted-device bridge needs a live socket; metadata restoration alone
+cannot support it. That route remains unimplemented, not an Apple-wide limitation.
+
+The experimental remote lifecycle is now integrated into the same Photos module,
+Photos read/write scopes and verified invocation account context. Transport uses
+only this account's sealed cookies, verified TLS, fixed advertised Apple service
+routes, no credential lookup/implicit authentication/redirects/write retries, and
+bounded responses/actor lifetime. Session revocation is rechecked before and after
+dispatch. Operation IDs and creation GUIDs precede writes. Unknown results interlock
+local and shared writes; reconciliation only reads. Owner rights, legacy/modern
+collection separation, exact identifiers and an independent zero-count check gate
+empty-album deletion. Acknowledgement requires separate server readback; observed
+server metadata does not prove cross-device photo upload.
+
+Important correction to earlier source claims: the retained public client files
+establish lifecycle endpoint names and album/read models, but do not contain the
+asserted create/rename/delete request builders. Write payloads are inferred
+experimental candidates and require real acceptance. They must not be described
+as source-verified or production-ready. Main MCP exposes explicit experimental
+prepare/apply/status and remote inventory tools for the already-authorized bounded
+empty true Shared Album test. Content, invitations and access-setting writes remain
+future independently verified contracts; do not invent them or publish personal
+test content. Overall Photos production acceptance remains open.
+
+Release candidate 0.1.38 includes this experiment and the verification-source fix.
+It is not installed until clean-main deployment and live readback are recorded.
+The next gate is main-MCP remote inventory followed by the authorized empty Shared
+Album create/rename/delete experiment, if the service accepts the contract. Preserve
+the exact operation/album identity for reconciliation and cleanup on any failure.
+
+## Native Shared Album backend investigation — 2026-10-05, latest direction
+
+The owner requests implementation of full Shared Album management through the
+operation Helper, not another assessment of its existing features. Keep remote
+main-MCP operation, no computer control and no additional login as the intended
+path. The web-session implementation below is retained historical work; do not
+continue or require its login while this native route is being evaluated.
+The owner has accepted private native APIs as a candidate, provided ordinary
+permissions suffice and no system restriction is bypassed. The owner subsequently
+authorized Apple Account primary-password/2FA web-session authentication only as
+the last fallback if the existing native authorization route proves unusable.
+This is the same account and MCP; passwords remain private Admin request-only.
+Neither decision proves that either provider can perform the required lifecycle.
+
+Public PhotoKit does not expose the complete requested headless lifecycle.
+However, absence from public PhotoKit is not evidence that no native backend
+exists. A new research-only runtime-declaration probe loaded MediaStream and
+PhotoLibraryServices on the actual Mac. MSASConnection declares addAlbum,
+modifyAlbumMetadata, deleteAlbumWithGUID, addAssetCollections, access-control
+operations, public-access and multiple-contributor settings. The collection-share
+backend also declares publication and server-side asset deletion methods. These
+are undocumented private interfaces, not supported PhotoKit operations.
+
+The probe only enumerates class methods and Objective-C type encodings. It never
+constructs a service, invokes a selector, reads account/library state, opens UI or
+performs a photo operation. Swift 6 compilation and actual enumeration succeeded.
+The system Photos application's signed entitlements include mediastream daemon
+access and private collection-share/write privileges. Their presence is a possible
+access constraint, not proof the Helper must have all of them. Do not copy Apple
+restricted entitlements, impersonate a system client or bypass a service rejection.
+Neither authenticated service access nor any mutation has been verified.
+
+Implementation sequence and gates:
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+If the native route requires unavailable Apple-only privileges or lacks a usable
+contract, retain and report that concrete blocker, then use the owner-authorized
+web-session fallback. Do not require another account or MCP, or switch to UI,
+direct library-database writes or an unsupported production claim. The prototype
+is source-only under playground/photos and is excluded from the installed Helper;
+retain the existing signed Helper and consent identity. No production deployment
+is warranted by interface enumeration alone.
+
 ## Active plan — revised 2026-10-05
 
 This section is authoritative for remaining work. Earlier plans and checkpoints
 below are historical evidence and are superseded wherever they require a native
 catalog reviewer or equate source/build/deployment with remote product acceptance.
-The full goal remains open. The installed service is 0.1.36, built from main merge 70f6726; its preserved operation
+The full goal remains open. The installed service is 0.1.37, built from main merge 22acfe4; its preserved operation
 Helper excludes both the catalog reviewer and posting UI research. Generic
 authorization fixtures, reviewer removal/deployment and actual remote read acceptance
 are verified; native write permission and full sharing/cleanup acceptance remain pending.
@@ -97,6 +887,93 @@ custody and account/client grant rows must remain intact. Do not install an opti
 provider environment or initiate Apple login implicitly. Owner setup/login remains
 an explicit private Admin action. Preserve 0.1.36 rollback and keep full Shared
 Album operation acceptance open after this deployment.
+
+### Shared provider readback contract slice — 2026-10-05
+
+Before connecting mutations, implement account-bound remote inventory and exact
+album detail contracts from Apple's public Shared Streams client. Inventory uses
+webgetalbumslist; detail uses webgetalbumview with exact albumguids. Retain server
+album GUID, owner DSID and change tag, distinguish ownership from participation,
+and preserve modern/encrypted collection indicators. An absent modern indicator
+is a legacy candidate, not proof that mutation is supported. Bound responses and
+reject missing/mismatched/duplicate identities, malformed models and wrong account
+before accepting readback. Keep internal until encrypted-session transport and
+durable main-MCP recovery are integrated; no credentials or server proof inferred.
+
+### Authentication checkpoint installed acceptance — 2026-10-05
+
+PR #34 merged release 0.1.37 at 22acfe4. Clean verified remote-main source built
+the installed artifact; payload readback matches. Thirteen read-only doctor checks
+pass. Both databases pass integrity; all existing owner rows, account credentials,
+client grants, configuration and master custody remain unchanged. The empty
+provider_sessions table is new; only the authorization resource's updatedAt changed.
+Stopped 0.1.36 state/custody and its release remain available for rollback. The
+operation Helper was not rebuilt and its executable hash remains unchanged.
+
+Actual main-MCP health succeeds after restart: osxphotos 0.77.2 reads the selected
+system library, native authorization remains 0/not-requested, and shared write/
+server-sync verification remain false. Public cloud-setup routes return 404;
+private routes without owner authentication return 403. The owner's private System
+page is the login destination. No optional environment was installed there and no
+Apple login, invitation, photo write or Shared Album creation occurred. Actual
+authenticated UI/session acceptance remains pending owner action.
+
+### Authentication integration boundary — 2026-10-05
+
+There is one existing account and one MCP connection. Mail/Calendar app-specific
+credentials, Mac-local Photos library authorization and a Photos web session are
+different authorization mechanisms for that account. The provider-session table
+is empty; the runtime has no established web session to reuse. The current web
+provider needs an explicit Apple Account sign-in/2FA, not another account, another
+MCP or a new app-specific password. This additional sign-in is a provider choice,
+not a requirement for existing local Photos reads or a proven Apple-wide boundary.
+Do not treat deploying a password form as owner acceptance of that architecture.
+Explain the credential distinction and evaluate supported existing-authorization
+paths before requiring the owner to enter a primary password. Do not extract Mac
+or browser credentials to simulate single sign-on. Keep full Shared Album scope
+open; preserve local reads and integrate authorization into the same account's
+capability setup rather than presenting a second account connection.
+
+### Existing native authorization path recheck — 2026-10-05
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The SDK also exposes PhotosUI Shared Album creation and customization controllers,
+in addition to posting. Their public methods configure/present user-operated
+sheets and receive completion; no headless create/customize/post method is exposed.
+These can reuse native account authorization with human interaction, but do not
+meet the required remote MCP/no-computer-control workflow. Do not launch a hidden
+sheet or simulate clicks. The Photos scripting dictionary defines ordinary album/
+folder creation and has no Shared Album, invitation or access-policy types.
+Pinned osxphotos 0.77.2 inventories shared albums; its Photos scripting dependency
+creates ordinary albums. None establishes complete headless Shared Album management.
+
+The dictionary exporter could not run under the current command-line-tools
+selection; selecting the installed Xcode for that process then reported an
+unaccepted license. No license/global setting was changed. The application's
+bundled Photos.sdef and existing SDK headers were read directly as source evidence.
+This is source inspection, not a live successful operation or proof no future
+provider can support the requirement. Continue the internal API-only provider and
+durable operation integration; defer requesting real owner login until the bounded
+MCP test lifecycle is concrete and reviewable. Existing local Photos use needs no
+primary-password entry. The private /icloud/sign-in page was also read: it asks
+for the existing owner's passkey and contains no password field. Do not confuse
+Admin passkey authentication with Apple web-session authentication.
+
+### Shared provider readback source acceptance — 2026-10-05
+
+Internal remote inventory/detail now preserve exact server GUID, owner DSID and
+change tag, classify owner/participant and modern/encrypted indicators, and reject
+wrong/missing/duplicate/deleted exact identities. Responses are bounded; provider
+diagnostics and unrecognized secret fields are excluded. A legacy candidate does
+not establish edit support, a server response does not prove an operation caused
+the change, and cross-device presence remains separately unverified.
+
+Self-checks: ten protocol tests / 62 assertions, 381 application tests / 2,469
+assertions, eleven built HTTP/MCP tests / 259 assertions, TypeScript and production
+build pass. These contracts remain internal and use synthetic responses. They are
+not connected to the installed encrypted-session transport or public MCP tools,
+and no Apple authentication or Shared Album read/write was performed in this slice.
 
 ### Account-session custody integration slice — 2026-10-05
 

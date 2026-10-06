@@ -50,7 +50,9 @@ def serialize(client, username):
               'data': client.data, 'authData': getattr(client, '_auth_data', {}),
               'boot': asdict(boot) if is_dataclass(boot) else None,
               'bridge': bridge_data,
-              'delivery': getattr(client, '_two_factor_delivery_method', 'unknown')}
+              'delivery': getattr(client, 'two_factor_delivery_method', getattr(client, '_two_factor_delivery_method', 'unknown')),
+              'requiresMfa': bool(getattr(client, '_requires_mfa', False)),
+              'codeRequested': bool(getattr(client, '_two_factor_code_requested', False))}
     encoded = json.dumps(without_transient_secrets(result))
     if len(encoded.encode()) > 60000:
         raise ValueError('session_limit')
@@ -73,6 +75,8 @@ def restore(client, state, username):
     client.data = state['data']
     client._auth_data = state['authData']
     client._two_factor_delivery_method = state.get('delivery', 'unknown')
+    client._requires_mfa = bool(state.get('requiresMfa', False))
+    client._two_factor_code_requested = bool(state.get('codeRequested', False))
     if state.get('boot') or state.get('bridge'):
         from pyicloud.hsa2_bridge import Hsa2BootContext, TrustedDeviceBridgeState
         if state.get('boot'):
@@ -124,10 +128,27 @@ def run(request, factory=None):
                     code = request['code']
                     if not isinstance(code, str) or len(code) != 6 or not code.isascii() or not code.isdigit():
                         raise ValueError('invalid_code')
+                    bridge = getattr(client, '_trusted_device_bridge_state', None)
+                    if bridge is not None and not bridge.uses_legacy_trusted_device_verifier and bridge.websocket is None:
+                        # A serialized bridge is not a live transport. Do not
+                        # submit a valid code to the wrong legacy endpoint or
+                        # describe an unavailable verifier as a wrong code.
+                        return {'phase': 'unsupported_authentication', 'privateState': serialize(client, username)}
                     if not client.validate_2fa_code(code):
                         return {'phase': 'verification_failed', 'privateState': serialize(client, username)}
-                elif not client.request_2fa_code():
-                    return {'phase': 'delivery_failed', 'privateState': serialize(client, username)}
+                elif action == 'send_code':
+                    # SMS survives our short-lived actor boundary. A trusted
+                    # bridge requires a live socket and must not be offered as
+                    # resumable merely because its metadata can be serialized.
+                    can_sms = getattr(client, '_can_request_sms_2fa_code', None)
+                    if can_sms and can_sms():
+                        delivered = client._request_sms_2fa_code()
+                    elif factory.__module__.startswith('pyicloud'):
+                        return {'phase': 'unsupported_authentication', 'privateState': serialize(client, username)}
+                    else:
+                        delivered = client.request_2fa_code()
+                    if not delivered:
+                        return {'phase': 'delivery_failed', 'privateState': serialize(client, username)}
                 if client.requires_2sa and not client.requires_2fa:
                     return {'phase': 'unsupported_authentication'}
                 pending = bool(client.requires_2fa)

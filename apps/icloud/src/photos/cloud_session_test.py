@@ -57,6 +57,62 @@ class Client:
 
 class CloudSessionTests(unittest.TestCase):
     @unittest.skipUnless(actor.dependency_ready(), 'requires isolated pinned auth environment')
+    def test_actual_pinned_provider_verifies_sms_at_phone_endpoint_with_restored_challenge(self):
+        from pyicloud import PyiCloudService
+        import tempfile
+        from requests import Response
+        with tempfile.TemporaryDirectory() as directory:
+            first = PyiCloudService('owner@example.test', cookie_directory=directory, authenticate=False, verify=True)
+            first._auth_data = {'trustedPhoneNumber': {'id': 1, 'pushMode': 'sms'}}
+            first._two_factor_delivery_method = 'sms'
+            first._requires_mfa = True
+            first._two_factor_code_requested = True
+            first.session.data.update({'scnt': 'scnt-fixture', 'session_id': 'session-fixture'})
+            state = actor.serialize(first, 'owner@example.test')
+            first.session.close()
+        calls = []
+        def request(session, method, url, **options):
+            calls.append((method, url, options))
+            response = Response(); response.status_code = 200; response._content = b'{}'
+            return response
+        def trust(client):
+            client._requires_mfa = False
+            client.data = {'hsaTrustedBrowser': True, 'dsInfo': {'dsid': '123456789', 'hsaVersion': 2}}
+            return True
+        with patch('pyicloud.session.PyiCloudSession.request', request), patch.object(PyiCloudService, 'trust_session', trust), patch('pyicloud.base.get_password_from_keyring', side_effect=AssertionError('keychain prohibited')):
+            result = actor.run({'action': 'verify', 'username': 'owner@example.test', 'state': state, 'code': '654321'})
+        self.assertEqual(result['phase'], 'authenticated')
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][0], 'POST')
+        self.assertTrue(calls[0][1].endswith('/verify/phone/securitycode'))
+        self.assertEqual(calls[0][2]['json'], {'phoneNumber': {'id': 1}, 'securityCode': {'code': '654321'}, 'mode': 'sms'})
+        self.assertEqual(calls[0][2]['headers']['scnt'], 'scnt-fixture')
+        self.assertEqual(calls[0][2]['headers']['X-Apple-ID-Session-Id'], 'session-fixture')
+        self.assertNotIn('654321', json.dumps(result))
+
+    @unittest.skipUnless(actor.dependency_ready(), 'requires isolated pinned auth environment')
+    def test_new_sms_request_uses_phone_delivery_not_a_nonrestorable_bridge(self):
+        from pyicloud import PyiCloudService
+        from requests import Response
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            first = PyiCloudService('owner@example.test', cookie_directory=directory, authenticate=False, verify=True)
+            first._auth_data = {'trustedPhoneNumber': {'id': 1, 'pushMode': 'sms'}}
+            first._two_factor_delivery_method = 'sms'; first._requires_mfa = True
+            state = actor.serialize(first, 'owner@example.test'); first.session.close()
+        calls = []
+        def request(session, method, url, **options):
+            calls.append((method, url, options)); response = Response(); response.status_code = 200; response._content = b'{}'; return response
+        with patch('pyicloud.session.PyiCloudSession.request', request):
+            result = actor.run({'action': 'send_code', 'username': 'owner@example.test', 'state': state})
+        self.assertEqual(result['phase'], 'awaiting_2fa')
+        self.assertEqual(result['privateState']['delivery'], 'sms')
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][0], 'PUT')
+        self.assertTrue(calls[0][1].endswith('/verify/phone'))
+        self.assertEqual(calls[0][2]['json'], {'phoneNumber': {'id': 1}, 'mode': 'sms'})
+
+    @unittest.skipUnless(actor.dependency_ready(), 'requires isolated pinned auth environment')
     def test_pinned_provider_roundtrip_has_no_network_or_keychain_and_retains_client_identity(self):
         from pyicloud import PyiCloudService
         from pyicloud.hsa2_bridge import Hsa2BootContext, TrustedDeviceBridgeState
