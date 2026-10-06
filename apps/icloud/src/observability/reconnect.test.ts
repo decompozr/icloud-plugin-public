@@ -3,7 +3,6 @@ import {EventEmitter} from 'node:events';
 import {mkdtempSync,writeFileSync,readFileSync,lstatSync,rmSync,chmodSync,utimesSync,symlinkSync,existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import type {Request,Response} from 'express';
 import {ReconnectCapture,reconnectErrorCode,reconnectRedirectError,RECONNECT_LIMIT,RECONNECT_WINDOW_MS} from './reconnect.js';
 
 const canary='secret@example.com_ACCESS_TOKEN_AUTH_CODE_PASSWORD';
@@ -19,11 +18,11 @@ function fixture(){
  const capture=new ReconnectCapture(directory,()=>clock);
  const enable=()=>{writeFileSync(marker,'',{mode:0o600});utimesSync(marker,now/1000,now/1000);};
  const request=(path:string,status=200,error?:unknown,complete=true)=>{
-  const req={path} as Request;
+  const req={path} ;
   for(const key of ['headers','body','query','originalUrl','url'])Object.defineProperty(req,key,{get(){throw Error('Diagnostic accessed forbidden request field '+key);}});
-  const res=Object.assign(new EventEmitter(),{statusCode:status}) as unknown as Response;
+  const res=Object.assign(new EventEmitter(),{statusCode:status}) as EventEmitter & {statusCode:number};
   let called=false;
-  capture.middleware(req,res,()=>{called=true;if(error!==undefined)capture.noteError(error);});
+  void capture.run(req.path,async()=>{called=true;if(error!==undefined)capture.noteError(error);},callback=>res.once('finish',()=>callback(res.statusCode)));
   expect(called).toBe(true);res.emit(complete?'finish':'close');return res;
  };
  return{directory,marker,output,now,capture,enable,request,setClock:(n:number)=>{clock=n;},read:()=>JSON.parse(readFileSync(output,'utf8')),dispose:()=>rmSync(directory,{recursive:true,force:true})};
@@ -77,8 +76,8 @@ test('unsafe output and temporary paths are untouched and diagnostic failure pre
 test('overlapping asynchronous requests retain independent error codes',async()=>{
  const f=fixture();try{
   f.enable();const run=(code:string,delay:number)=>new Promise<void>(resolve=>{
-   const res=Object.assign(new EventEmitter(),{statusCode:400}) as unknown as Response;
-   f.capture.middleware({path:'/icloud/auth/oauth2/token'} as Request,res,()=>{setTimeout(()=>{f.capture.noteError(code);res.emit('finish');resolve();},delay);});
+   const res=Object.assign(new EventEmitter(),{statusCode:400}) as EventEmitter & {statusCode:number};
+   void f.capture.run('/icloud/auth/oauth2/token',async()=>{setTimeout(()=>{f.capture.noteError(code);res.emit('finish');resolve();},delay);},callback=>res.once('finish',()=>callback(res.statusCode)));
   });
   await Promise.all([run('invalid_grant',15),run('invalid_client',1)]);
   expect(f.read().map((r:{errorCode:string})=>r.errorCode)).toEqual(['invalid_client','invalid_grant']);
