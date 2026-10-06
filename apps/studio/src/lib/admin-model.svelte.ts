@@ -104,8 +104,9 @@ export class AdminModel {
     readonly copy: UiCopy,
     readonly toast?: ToastCenter,
   ) {}
+  activeView=$state<AdminState["view"]>();
   get view() {
-    return this.state.view ?? (this.state.admin ? "accounts" : "setup");
+    return this.activeView??this.state.view ?? (this.state.admin ? "accounts" : "setup");
   }
   get saved(): Record<string, Record<string, boolean> | undefined> {
     return {
@@ -227,12 +228,8 @@ export class AdminModel {
     );
     this.messageKey = "";
   }
-  async refreshDashboard() {
-    this.accountsLoading = true;
-    try {
-      const next = dashboardSchema.parse(
-        await this.get("/icloud/admin/status"),
-      );
+  acceptDashboard(value:unknown){
+    const next=dashboardSchema.parse(value);
       const reset = !this.hasDraft;
       this.dashboard = next;
       this.checkedAt = new Date().toISOString();
@@ -243,6 +240,11 @@ export class AdminModel {
       if (!next.accounts.some((a) => a.id === this.readinessAccount))
         this.readinessAccount =
           next.accounts.length === 1 ? next.accounts[0]!.id : "";
+  }
+  async refreshDashboard() {
+    this.accountsLoading = true;
+    try {
+      this.acceptDashboard(await this.get("/icloud/admin/status"));
     } catch {
       this.dashboardFailed = true;
     } finally {

@@ -3,6 +3,7 @@
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
   import type { DialogCenter } from "../lib/ui-state.svelte.js";
+  import CopyButton from "./CopyButton.svelte";
   import RefreshButton from "./RefreshButton.svelte";
   import Skeleton from "./Skeleton.svelte";
   import Icon from "./Icon.svelte";
@@ -19,7 +20,7 @@
       id: m.id,
       title: m.id === "photos" ? t("photosTitle") : m.title,
     })),
-  ]);
+  ].sort((a,b)=>(["mail","calendar","photos"].indexOf(a.id)+4)%4-(["mail","calendar","photos"].indexOf(b.id)+4)%4));
   const network = $derived(
     model.system?.connectivity ?? model.status?.prerequisites,
   );
@@ -73,7 +74,7 @@
                 : "unknownValue",
           )}
         </dd>
-        <dt>{t('runtimeFolder')}</dt><dd class="runtime-path" title={model.system?.locations?.runtimeDirectory}><code>{model.system?.locations?.runtimeDirectory??t('unknownValue')}</code></dd>
+        <dt>{t('runtimeFolder')}</dt><dd class="runtime-path"><code title={model.system?.locations?.runtimeDirectory}>{model.system?.locations?.runtimeDirectory??t('unknownValue')}</code><CopyButton value={model.system?.locations?.runtimeDirectory} label={t('copyRuntimeFolder')}/></dd>
         <dt>Tailscale</dt>
         <dd>
           {t(tailscaleReady ? "ready" : "notReady")}{#if !tailscaleReady}<button
@@ -178,14 +179,14 @@
 </div>
 
 <style>
- .runtime-path{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.runtime-path code{font-size:.75rem}
+ .runtime-path{display:flex;align-items:center;gap:.375rem;min-width:0}.runtime-path code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem}
 
  .configure-button{min-width:28px;min-height:28px;padding:5px}
 
   .overview-grid {
     display: grid;
     align-items:start;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0,1fr);
     gap: 1rem;
   }
   .card {
@@ -259,4 +260,5 @@
       padding: 1rem;
     }
   }
+@media(pointer:coarse){.configure-button,.card-tools button{min-width:44px;min-height:44px}.configure-button :global(svg),.card-tools :global(svg){width:24px;height:24px}}
 </style>

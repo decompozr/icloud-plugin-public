@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CopyButton from "./CopyButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
@@ -252,7 +253,7 @@
       "installedVersion",
       s.installed.version ?? t("unknownValue"),
     )}
-    {#if s.locations}{@render line('runtimeFolder',s.locations.runtimeDirectory)}{@render line('installationFolder',s.locations.installationDirectory??t('unknownValue'))}{/if}
+    {#if s.locations}<div class="system-path"><strong>{t('runtimeFolder')}:</strong><code title={s.locations.runtimeDirectory}>{s.locations.runtimeDirectory}</code><CopyButton value={s.locations.runtimeDirectory} label={t('copyRuntimeFolder')}/></div><div class="system-path"><strong>{t('installationFolder')}:</strong><code title={s.locations.installationDirectory??undefined}>{s.locations.installationDirectory??t('unknownValue')}</code><CopyButton value={s.locations.installationDirectory??undefined} label={t('copyValue')}/></div>{/if}
     {#each ["installed", "authenticated", "online", "privateReachable"] as key}{@render line(
         key,
         t(
@@ -291,3 +292,5 @@
         : t("supervisionUnknown"),
     )}{@render line("limitedLogs", t("logsUnavailable"))}{/if}
 {/if}
+
+<style>.system-path{display:flex;align-items:center;gap:.5rem;margin:.5rem 0;min-width:0}.system-path strong{flex:none}.system-path code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8125rem}</style>

@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { getContext, onMount } from "svelte";
+  import { getContext, onMount, tick, untrack } from "svelte";
   import type { AdminState, UiCopy } from "../contracts.js";
   import { AdminModel } from "../lib/admin-model.svelte.js";
   import {
     ToastCenter,
     DialogCenter,
-    type LocaleControl,
+    type LocaleControl,type NavigationControl,
   } from "../lib/ui-state.svelte.js";
   import Brand from "./Brand.svelte";
   import Overview from "./Overview.svelte";
@@ -13,18 +13,22 @@
   import ModuleDialog from "./ModuleDialog.svelte";
   import RequirementDialog from "./RequirementDialog.svelte";
   import Modal from "./Modal.svelte";
+  import DesignIcon from "./DesignIcon.svelte";
   import LanguageMenu from "./LanguageMenu.svelte";
   import SystemReset from "./SystemReset.svelte";
   import RefreshButton from "./RefreshButton.svelte";
-  let { state }: { state: AdminState } = $props();
+  let { state:pageState }: { state: AdminState } = $props();
   const copy = getContext<UiCopy>("copy"),
     { t } = copy,
     locale = getContext<LocaleControl>("locale");
   const toast = getContext<ToastCenter>("toast") ?? new ToastCenter(),
     dialogs = getContext<DialogCenter>("dialogs") ?? new DialogCenter();
   // svelte-ignore state_referenced_locally
-  const model = new AdminModel(state, copy, toast);
-  const view = $derived(state.view ?? (state.admin ? "accounts" : "setup"));
+  const model = new AdminModel(pageState, copy, toast);
+  // svelte-ignore state_referenced_locally
+  let view=$state(pageState.view ?? (pageState.admin ? "accounts" : "setup"));
+  const router=getContext<NavigationControl>("navigation");
+  let navigating=$state(false),markerTop=$state(0),markerHeight=$state(0);
   const heading = $derived(
     view === "overview"
       ? "navOverview"
@@ -36,15 +40,39 @@
             ? "navSystem"
             : "requirementsPage",
   );
+  let navigation=$state<HTMLElement>();
   const links = [
     ["/icloud/admin", "navOverview", "overview"],
     ["/icloud/admin/accounts", "navAccounts", "accounts"],
     ["/icloud/admin/connections", "navConnections", "connections"],
     ["/icloud/admin/system", "navSystem", "system"],
   ];
+  function updateMarker(){const current=navigation?.querySelector<HTMLElement>('[aria-current="page"]');if(current){markerTop=current.offsetTop;markerHeight=current.offsetHeight}}
+  async function navigate(destination:string,href:string,push=true){
+    const restore=()=>{if(!push){const current=links.find(([, ,key])=>key===view);if(current){if(router)router.replace(current[0]!);else history.replaceState(null,'',current[0])}}};
+    if(navigating||model.busy){restore();return}
+    if(model.hasDraft&&!window.confirm(t('discardNavigation'))){restore();return}
+    navigating=true;
+    try{
+      const response=await fetch('/icloud/admin/status',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(12000)});
+      if(response.status===401||response.status===403){model.dashboard=undefined;model.system=undefined;model.clients=undefined;model.connections=undefined;dialogs.closeCredential();location.replace('/icloud/sign-in');return}
+      if(!response.ok)throw Error();
+      dialogs.closeCredential();model.moduleDialog=undefined;model.requirementDialog=undefined;model.pendingConnection=undefined;model.revokeAccount='';model.discardPolicy();model.acceptDashboard(await response.json());model.activeView=destination as AdminState['view'];view=destination as typeof view;
+      if(push&&location.pathname!==href)router?router.push(href):history.pushState(null,'',href);
+      await tick();updateMarker();void model.refreshAll();
+    }catch{if(!push){const current=links.find(([, ,key])=>key===view);if(current)router?router.replace(current[0]!):history.replaceState(null,'',current[0])}toast.push('statusError','error')}
+    finally{navigating=false}
+  }
+  function tabNavigation(destination:string,href:string,event:MouseEvent){if(!pageState.admin||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();void navigate(destination,href)}
+  $effect(()=>{void view;if(navigation)untrack(()=>{void tick().then(updateMarker)})});
   onMount(() => {
     const stop = model.start();
-    if (!state.admin) {
+    const pop=()=>{const target=links.find(([href])=>href===location.pathname);if(target)void navigate(target[2]!,target[0]!,false);else location.reload()};window.addEventListener('popstate',pop);
+    const resize=new ResizeObserver(updateMarker);if(navigation)resize.observe(navigation);void document.fonts.ready.then(updateMarker);
+
+    updateMarker();
+
+    if (!pageState.admin) {
       model.systemLoading = false;
       model.accountsLoading = false;
       model.clientsLoading = false;
@@ -54,19 +82,19 @@
         )
       )
         model.requirementDialog = "owner";
-      if (state.mode === "account")
+      if (pageState.mode === "account")
         dialogs.openCredential("app-password", { mode: "add" });
     }
-    return stop;
+    return ()=>{stop();resize.disconnect();window.removeEventListener('popstate',pop)};
   });
 </script>
 
 <svelte:head
-  ><style>@view-transition{navigation:auto}@media(prefers-reduced-motion:reduce){@view-transition{navigation:none}}</style><title>{t(state.admin ? "titleAdmin" : "titleSetup")}</title></svelte:head
+  ><title>{t(pageState.admin ? "titleAdmin" : "titleSetup")}</title></svelte:head
 >
 <main
   id="wizard"
-  data-admin={state.admin}
+  data-admin={pageState.admin}
   data-view={view}
   data-sveltekit-reload
   aria-busy={model.busy}
@@ -74,14 +102,17 @@
   <Brand>{t("brand")}</Brand><a class="skip-link" href="#page-content"
     >{t("skipContent")}</a
   >
+  <div class="shell-toolbar"><LanguageMenu/></div>
+  <div class="admin-layout">
   <div class="nav-bar">
-  {#if state.enrolled}<nav class="shell-nav" aria-label="iCloud">
+  {#if pageState.enrolled}<nav class="shell-nav" aria-label="iCloud" bind:this={navigation} aria-busy={navigating}><span class="active-indicator" aria-hidden="true" style:top={markerTop+'px'} style:height={markerHeight+'px'}></span>
       {#each links as [href, key, destination]}<a
           {href}
-          aria-current={view === destination ? "page" : undefined}>{#if view===destination}<span class="active-indicator" aria-hidden="true"></span>{/if}<span class="tab-label">{t(key)}</span></a
+          title={t(key)} aria-label={t(key)}
+          onclick={event=>tabNavigation(destination,href,event)}
+          aria-current={view === destination ? "page" : undefined}><DesignIcon name={destination==='overview'?'panels-top-left':destination==='accounts'?'circle-dot':destination==='connections'?'git-branch':'settings'} size="1.25rem"/></a
         >{/each}
     </nav>{/if}
-  <LanguageMenu/>
   </div>
   <div id="page-content" tabindex="-1">
     <div class="page-heading">
@@ -93,10 +124,10 @@
           onclick={() => void model.run(() => model.refreshCard("all"))}
         />{/if}
     </div>
-    {#if view === "overview" || !state.admin}<Overview
+    {#if view === "overview" || !pageState.admin}<Overview
         {model}
         {dialogs}
-        setup={!state.admin}
+        setup={!pageState.admin}
       />
     {:else if view === "accounts"}<section class="card">
         <header class="card-header">
@@ -211,19 +242,20 @@
         </header>
         <p>{t("systemHelp")}</p>
         <div id="system-content"><AdminDashboard {model} view="system" /></div>
-        <SystemReset available={state.resetAvailable}/>
+        <SystemReset available={pageState.resetAvailable}/>
         <div class="actions">
           <button
             class="secondary"
             onclick={() => (model.requirementDialog = "tailscale")}
             >{t("tailscaleSetup")}</button
-          >{#if state.photosConfigured}<button
+          >{#if pageState.photosConfigured}<button
               class="secondary"
               onclick={() => (model.requirementDialog = "photos")}
               >{t("photosPermissions")}</button
             >{/if}
         </div>
       </section>{/if}
+  </div>
   </div>
   <noscript><p class="error">{t("noScript")}</p></noscript>
 </main>
@@ -290,8 +322,8 @@
 >
 
 <style>
-  .nav-bar{display:flex;align-items:flex-start;gap:.75rem;border-bottom:1px solid var(--ui-border);margin:1rem 0}
-  .nav-bar .shell-nav{flex:1;min-width:0;margin:0;border:0}
+  .shell-toolbar{display:flex;justify-content:flex-end;margin:.75rem 0}.admin-layout{display:grid;grid-template-columns:44px minmax(0,1fr);gap:1.25rem;align-items:start}.nav-bar{position:sticky;top:1rem;margin:0}
+  .nav-bar .shell-nav{margin:0;border:0}
 
   .page-heading,
   .card-header {

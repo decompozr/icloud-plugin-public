@@ -56,3 +56,5 @@ export interface LocaleControl {
   current: "en" | "zh-TW";
   set(value: "en" | "zh-TW"): void;
 }
+
+export interface NavigationControl{push(href:string):void;replace(href:string):void}

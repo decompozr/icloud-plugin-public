@@ -37,8 +37,10 @@ input:not([type=checkbox]):not([type=radio]),select{padding:.4375rem .5rem}
 @media(max-width:540px){main{padding:0 1.25rem 2rem}.card{padding:1.25rem 0}.shell-nav a{min-height:2.25rem}}
 @media(pointer:coarse){.shell-nav a{min-height:2.75rem}}
 
-/* Continuous navigation with a shared active marker across document transitions. */
-.shell-nav{gap:0}.shell-nav a{position:relative;border-bottom:0;background:transparent;transition:color 160ms ease,background-color 160ms ease}.shell-nav a[aria-current=page]{background:transparent;border:0}.shell-nav .tab-label{position:relative;z-index:1}.shell-nav .active-indicator{position:absolute;inset:0;background:var(--ui-soft);border-bottom:2px solid var(--ui-focus);view-transition-name:studio-active-tab;pointer-events:none}
-::view-transition-group(studio-active-tab){animation-duration:180ms;animation-timing-function:ease-in-out}::view-transition-old(studio-active-tab),::view-transition-new(studio-active-tab){animation:none}::view-transition-old(root),::view-transition-new(root){animation:none}
-@media(prefers-reduced-motion:reduce){@view-transition{navigation:none}.shell-nav a{transition:none}::view-transition-group(studio-active-tab){animation:none}}
+/* Persistent icon rail. Content changes never resize the navigation controls. */
+:root{scrollbar-gutter:stable}
+.shell-nav{position:relative;display:flex;flex-direction:column;gap:.25rem;flex-wrap:nowrap;padding:0;overflow:visible}
+.shell-nav a{position:relative;flex:none;width:44px;height:44px;min-height:44px;padding:10px;justify-content:center;border:0;border-radius:4px;white-space:nowrap;background:transparent;transition:none}.shell-nav a[aria-current=page]{background:transparent;border:0}.shell-nav a:focus-visible{outline-offset:-2px;box-shadow:none}.shell-nav a svg{position:relative;z-index:1}
+.shell-nav .active-indicator{position:absolute;left:0;right:0;top:0;border-radius:4px;background:var(--ui-soft);border-left:2px solid var(--ui-focus);pointer-events:none;transition:top 180ms ease}
+@view-transition{navigation:none}@media(prefers-reduced-motion:reduce){.shell-nav .active-indicator{transition:none}}
 `;
