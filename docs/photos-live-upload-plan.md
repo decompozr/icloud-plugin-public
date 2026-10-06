@@ -1,5 +1,38 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Installed native sharing candidate; owner activation pending — 2026-10-06
+
+PR 61 merged the existing-asset native sharing candidate; PR 62 corrected the
+plugin/application version mismatch caught by the guarded main build. Verified
+remote main eb58aae36f889ba7a049f4457d78a75f07f502fe produced installed 0.1.58.
+A fresh main-source build and 426 tests / 2903 assertions passed. The existing
+runtime drained normally; its private stopped backup passed two SQLite integrity
+checks. The configured Helper app was updated at the same path from source-hash-
+verified signed output; original app and release remain available for rollback.
+Configuration, master-key and installation-marker hashes are unchanged, and both
+current SQLite databases pass integrity checks. No credentials, routes or grants
+were rewritten. Exact receipts/backups remain private.
+
+Actual original-MCP health succeeds with the same osxphotos library scope. The new
+ad-hoc Helper currently reports native authorization 0/false. Its normal existing
+--authorize entry point was launched to request real macOS consent; no permission
+was forced or fabricated. Owner action in the Mac permission prompt remains
+required and must be verified through the original MCP before posting.
+
+This conversation still exposes the old photos_prepare schema without nativeUI.
+The owner was asked to refresh the existing connection/tool list, not create an
+additional connector or account. Do not inject the new argument into the stale
+schema or use an authenticated CLI/standalone app as a Photos-operation workaround.
+No picker/posting session or photo sharing has occurred. The dedicated test album
+remains empty; creation/readback is not evidence of sharing or Live playback.
+
+Retain private .flow-runtime/native-sharing/state.json and deployment-receipt.json
+for the exact existing source, destination, backup and next activation check. The
+main-build/artifact/helper staging paths are temporary deployment artifacts and
+can be removed after their receipts and authoritative knowledge are preserved;
+the active original task worktree and live destination remain needed for acceptance.
+
+
 ## Official existing-asset sharing candidate — 2026-10-06
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.

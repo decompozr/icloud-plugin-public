@@ -1,5 +1,19 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Installed 0.1.58 sharing candidate; no photo shared — 2026-10-06
+
+PRs 61/62 merged; immutable verified main eb58aae produced installed 0.1.58 and
+an updated signed Helper at its existing configured path. Main-source build and
+426 tests / 2903 assertions pass. Configuration/custody hashes and both database
+integrity checks are preserved, with a stopped private backup and previous app/
+release retained. The original MCP health still reads the same local library;
+the new Helper reports authorization 0/false and its normal permission request
+was launched. Owner native consent and existing-connection tool refresh remain
+pending. No picker, posting or source-photo modification occurred; the dedicated
+Shared Album is still empty. [Activation evidence and remaining steps](photos-live-upload-plan.md#installed-native-sharing-candidate-owner-activation-pending--2026-10-06)
+separate deployment, permissions, loaded schema and actual sharing acceptance.
+
+
 ## Official existing-asset sharing candidate — 2026-10-06
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
