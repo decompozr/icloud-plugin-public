@@ -5,7 +5,7 @@ import SwiftUI
 import Darwin
 
 // Standalone read-only experiment. No production Helper or posting code is linked.
-struct Request: Decodable { let sessionId: UUID }
+struct Request: Decodable { let sessionId: UUID; let assetId: String? }
 struct ExperimentError: Error { let message: String }
 @available(macOS 27.0, *)
 @MainActor final class Experiment: NSObject, NSWindowDelegate {
@@ -80,6 +80,7 @@ struct ExperimentError: Error { let message: String }
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 220), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
         window.contentView = stack; window.title = "Photos input experiment — read only"; window.delegate = self
         window.center(); window.makeKeyAndOrderFront(nil); NSApplication.shared.activate(ignoringOtherApps: true)
+        if request.assetId != nil { start() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 600) { [weak self] in self?.finish("expired") }
     }
     @objc func start() {
@@ -88,8 +89,50 @@ struct ExperimentError: Error { let message: String }
             let authorization = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
             guard !self.finished else { return }
             guard authorization == .authorized else { self.finish("permission_required", ["authorization": authorization.rawValue]); return }
+            if let assetId = self.request.assetId { await self.compareDirect(assetId); return }
             self.presentPicker()
         }
+    }
+    func compareDirect(_ assetId: String) async {
+        guard assetId.range(of: "^asset:[a-f0-9]{16}:[A-Fa-f0-9-]{36}$", options: .regularExpression) != nil,
+              let uuid = assetId.split(separator: ":").last,
+              UUID(uuidString: String(uuid)) != nil,
+              let asset = PHAsset.fetchAssets(withLocalIdentifiers: [String(uuid) + "/L0/001"], options: nil).firstObject,
+              asset.mediaSubtypes.contains(.photoLive) else { finish("approved_live_photo_not_found"); return }
+        label.stringValue = "Loading the approved Live Photo directly with PhotoKit. No picker is opened."
+        let idOnly = PhotosPickerItem(itemIdentifier: asset.localIdentifier)
+        let before = await inspect(idOnly, expectedIdentifier: asset.localIdentifier, group: "identifierBeforeDirectLoad")
+        guard !finished else { return }
+        let options = PHLivePhotoRequestOptions(); options.deliveryMode = .highQualityFormat
+        options.version = .current; options.isNetworkAccessAllowed = true
+        let direct: [String: Any] = await withCheckedContinuation { continuation in
+            var completed = false
+            PHImageManager.default().requestLivePhoto(for: asset,
+                targetSize: CGSize(width: asset.pixelWidth, height: asset.pixelHeight), contentMode: .aspectFit, options: options) { live, info in
+                Task { @MainActor in
+                    guard !completed else { return }
+                    if (info?[PHImageResultIsDegradedKey] as? Bool) == true { return }
+                    completed = true
+                    var result: [String: Any] = ["livePhotoLoaded": live != nil, "degraded": false,
+                        "cancelled": (info?[PHImageCancelledKey] as? Bool) == true]
+                    if let live { result["size"] = ["width": live.size.width, "height": live.size.height] }
+                    if let error = info?[PHImageErrorKey] as? Error { result["errors"] = self.errors(error) }
+                    continuation.resume(returning: result)
+                }
+            }
+        }
+        guard !finished else { return }
+        let after = await inspect(PhotosPickerItem(itemIdentifier: asset.localIdentifier), expectedIdentifier: asset.localIdentifier, group: "identifierAfterDirectLoad")
+        guard !finished else { return }
+        do { try record("direct_comparison_completed", ["identifierBefore": before, "photoKitDirect": direct,
+            "identifierAfter": after, "pickerOpened": false, "sameSource": true]) }
+        catch { finish("journal_failed"); return }
+        finished = true
+        label.stringValue = "Direct comparison saved. No picker or sharing.\n\nPhotoKit loaded Live Photo: \(direct["livePhotoLoaded"]!)\nIdentifier item before: \(before["livePhotoLoaded"]!)\nIdentifier item after: \(after["livePhotoLoaded"]!)"
+        let close = NSButton(title: "Done — close experiment", target: self, action: #selector(closeResult))
+        let stack = NSStackView(views: [label, close]); stack.orientation = .vertical; stack.spacing = 16
+        stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
+        window.contentView = stack; window.setContentSize(NSSize(width: 540, height: 280))
     }
     func presentPicker() {
         pickerVisible = true

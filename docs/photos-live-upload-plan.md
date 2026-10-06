@@ -1,5 +1,11 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## No-picker Live Photo read verified; sharing input boundary remains — 2026-10-06
+
+A standalone, owner-authorized read-only run fetched the exact approved original via public PhotoKit and obtained a non-degraded, non-cancelled `PHLivePhoto` at 2268 × 4032 without opening a picker. Identifier-created picker inputs returned nil with empty content types both before and after that successful load. A media-download delay alone does not explain this observed gap.
+
+The local SDK's Shared Album sheet overloads require picker-item/result arrays. Compile-only probes rejected a `PHLivePhoto` array and an attempted `PhotosPickerItem(itemProvider:)` initializer. Apple explicitly documents that the identifier-only initializer supplies no representation. This narrows the remaining problem to supplying an accepted publication input; it does not establish a supported conversion or no-UI posting route. No sharing UI or publication occurred; production MCP/Helper and unknown-write records were untouched. See the standalone experiment README for sources and protocol.
+
 ## Actual standalone input comparison completed — 2026-10-06
 
 One operator-selected Live Photo completed the independent A/B comparison. Both public items carried the same local identifier. The identifier-created item advertised no content types and `loadTransferable(PHLivePhoto.self)` returned nil. The actual picker result advertised `public.heic` and `public.jpeg`, and loaded a non-nil Live Photo with dimensions 2268 × 4032. The public items compared unequal. The result was durably saved and displayed in the experiment window.
