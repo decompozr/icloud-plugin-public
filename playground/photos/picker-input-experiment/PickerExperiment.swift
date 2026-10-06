@@ -5,19 +5,22 @@ import SwiftUI
 import Darwin
 
 // Standalone read-only experiment. No production Helper or posting code is linked.
-struct Request: Decodable { let sessionId: UUID; let assetId: String?; let albumUUID: String? }
+struct Request: Decodable { let sessionId: UUID; let assetId: String?; let albumUUID: String?; let postingTest: Bool?; let chooseDestinationInSheet: Bool? }
 struct ExperimentError: Error { let message: String }
 @available(macOS 27.0, *)
 @MainActor final class Experiment: NSObject, NSWindowDelegate {
     let request: Request
     let journal: FileHandle
     var selected: [PhotosPickerItem] = []
+    var postingStarted = false
+    var postingVisible = false
+    var targetAlbum: PHAssetCollection?
     var processing = false
     var pickerVisible = false
     var finished = false
     var selecting = false
     var window: NSWindow!
-    let label = NSTextField(wrappingLabelWithString: "Read-only input comparison. No sharing window or publication is implemented.")
+    let label = NSTextField(wrappingLabelWithString: "Preparing the requested experiment…")
     init(request: Request, directory: String) throws {
         self.request = request
         let attrs = try FileManager.default.attributesOfItem(atPath: directory)
@@ -35,15 +38,21 @@ struct ExperimentError: Error { let message: String }
     }
     func record(_ status: String, _ extra: [String: Any] = [:]) throws {
         var event: [String: Any] = ["sessionId": request.sessionId.uuidString.lowercased(), "status": status,
-            "timestamp": Date().timeIntervalSince1970 * 1000, "processId": getpid(), "readOnly": true, "publicationImplemented": false]
-        for (k, v) in extra { event[k] = v }
+            "timestamp": Date().timeIntervalSince1970 * 1000, "processId": getpid(), "readOnly": request.postingTest != true, "publicationImplemented": request.postingTest == true]
+        for (k, v) in extra where k != "status" { event[k] = v }
         var data = try JSONSerialization.data(withJSONObject: event, options: [.sortedKeys]); data.append(10)
         try journal.write(contentsOf: data); try journal.synchronize()
     }
     func finish(_ status: String, _ extra: [String: Any] = [:]) {
         guard !finished else { return }; finished = true
         do { try record(status, extra) } catch { label.stringValue = "Cannot save diagnostic evidence." }
-        NSApplication.shared.terminate(nil)
+        guard window != nil else { NSApplication.shared.terminate(nil); return }
+        window.contentViewController = nil
+        label.stringValue = "Experiment stopped: \(status).\nNo automatic retry. Details have been saved."
+        let close = NSButton(title: "Close experiment", target: self, action: #selector(closeResult))
+        let stack = NSStackView(views: [label, close]); stack.orientation = .vertical; stack.spacing = 16
+        stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
+        window.contentView = stack
     }
     func redact(_ text: String) -> String {
         var result = text
@@ -78,10 +87,10 @@ struct ExperimentError: Error { let message: String }
         let stack = NSStackView(views: [label, button]); stack.orientation = .vertical; stack.spacing = 18
         stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 220), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
-        window.contentView = stack; window.title = "Photos input experiment — read only"; window.delegate = self
+        window.contentView = stack; window.title = request.postingTest == true ? "Live Photo manual posting experiment" : "Photos input experiment — read only"; window.delegate = self
         window.center(); window.makeKeyAndOrderFront(nil); NSApplication.shared.activate(ignoringOtherApps: true)
-        if request.assetId != nil { start() }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 600) { [weak self] in self?.finish("expired") }
+        if request.assetId != nil || request.postingTest == true { start() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 600) { [weak self] in guard let self, !self.postingStarted else { return }; self.finish("expired") }
     }
     @objc func start() {
         guard !selecting, !finished else { return }; selecting = true
@@ -89,6 +98,25 @@ struct ExperimentError: Error { let message: String }
             let authorization = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
             guard !self.finished else { return }
             guard authorization == .authorized else { self.finish("permission_required", ["authorization": authorization.rawValue]); return }
+            if self.request.postingTest == true {
+                guard let expected = self.request.albumUUID else { self.finish("target_required"); return }
+                let albums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .any, options: nil)
+                var candidates: [[String: Any]] = []
+                albums.enumerateObjects { album, _, _ in
+                    if album.localIdentifier.split(separator: "/").first.map(String.init)?.caseInsensitiveCompare(expected) == .orderedSame { self.targetAlbum = album }
+                    if album.localizedTitle == "Live Photo Share Test" {
+                        candidates.append(["localIdentifier": album.localIdentifier, "title": album.localizedTitle ?? "", "subtype": album.assetCollectionSubtype.rawValue, "count": PHAsset.fetchAssets(in: album, options: nil).count])
+                    }
+                }
+                do { try self.record("target_lookup", ["expectedUUID": expected, "sameTitleCandidates": candidates, "collectionsExamined": albums.count]) }
+                catch { self.finish("journal_failed"); return }
+                guard let album = self.targetAlbum, album.assetCollectionSubtype == .albumCloudShared else {
+                    self.finish("exact_shared_album_not_found", ["collectionsExamined": albums.count]); return
+                }
+                do { try self.record("target_verified", ["targetAlbumIdentifier": album.localIdentifier, "title": album.localizedTitle ?? ""]) }
+                catch { self.finish("journal_failed"); return }
+                self.presentPicker(); return
+            }
             if let assetId = self.request.assetId { await self.compareDirect(assetId); return }
             self.presentPicker()
         }
@@ -177,9 +205,9 @@ struct ExperimentError: Error { let message: String }
                 guard let self else { return }; self.compareSelection()
             } }
         })
-        let view = Text("Select up to 12 Live Photos, then click Add or Done in the picker. Each selected photo is compared with its own identifier-created input. Nothing is posted.")
+        let view = Text(request.postingTest == true ? "Select one Live Photo, then Add/Done. The original selected item will be retained for the Apple sharing window." : "Select up to 12 Live Photos, then click Add or Done in the picker. Each selected photo is compared with its own identifier-created input. Nothing is posted.")
             .padding(24).frame(width: 520, height: 220)
-            .photosPicker(isPresented: visible, selection: selected, maxSelectionCount: 12, matching: .livePhotos, preferredItemEncoding: .current, photoLibrary: .shared())
+            .photosPicker(isPresented: visible, selection: selected, maxSelectionCount: request.postingTest == true ? 1 : 12, matching: .livePhotos, preferredItemEncoding: .current, photoLibrary: .shared())
         window.contentViewController = NSHostingController(rootView: view)
     }
     func compareSelection() {
@@ -208,6 +236,19 @@ struct ExperimentError: Error { let message: String }
             }
             do { try self.record("comparison_completed", ["count": comparisons.count, "comparisons": comparisons]) }
             catch { self.finish("journal_failed"); return }
+            if self.request.postingTest == true {
+                guard self.selected.count == 1,
+                      let actual = comparisons.first?["userSelected"] as? [String: Any], actual["livePhotoLoaded"] as? Bool == true else {
+                    self.finish("selected_live_photo_load_failed"); return
+                }
+                do { try self.record("ready_for_manual_post", ["selectedLocalIdentifiers": self.selected.compactMap(\.itemIdentifier)]) }
+                catch { self.finish("journal_failed"); return }
+                let explanation = NSTextField(wrappingLabelWithString: "The actual selected item loaded successfully and remains in memory. Open Apple's sheet, verify Live Photo Share Test, then press Post for this authorized test.")
+                let post = NSButton(title: "Open Apple sharing window", target: self, action: #selector(self.openPosting))
+                let stack = NSStackView(views: [explanation, post]); stack.orientation = .vertical; stack.spacing = 16
+                stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
+                self.window.contentView = stack; return
+            }
             self.finished = true
             let summary = comparisons.map { c -> String in
                 guard let a = c["identifierOnly"] as? [String: Any], let b = c["userSelected"] as? [String: Any] else {
@@ -223,8 +264,44 @@ struct ExperimentError: Error { let message: String }
             self.window.setContentSize(NSSize(width: 640, height: min(720, 140 + comparisons.count * 55)))
         }
     }
+    @objc func openPosting() {
+        guard request.postingTest == true, !postingStarted, !finished, selected.count == 1, let targetAlbum else { return }
+        do { try record("posting_sheet_requested", ["targetAlbumIdentifier": targetAlbum.localIdentifier, "defaultAlbumSupplied": request.chooseDestinationInSheet != true]) }
+        catch { finish("journal_failed"); return }
+        postingStarted = true; postingVisible = true
+        let visible = Binding<Bool>(get: { [weak self] in self?.postingVisible == true }, set: { [weak self] value in
+            guard let self else { return }; self.postingVisible = value
+            if !value { DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                guard let self, !self.finished else { return }
+                self.showPostingResult("sheet_closed_outcome_unknown")
+            } }
+        })
+        let view = Text("Use Apple's Post button only after verifying the selected photo and destination. No automatic Post or retry.")
+            .padding(24).frame(width: 560, height: 240)
+            .photosSharedAlbumPostingSheet(isPresented: visible, items: selected,
+                defaultAlbumIdentifier: request.chooseDestinationInSheet == true ? nil : targetAlbum.localIdentifier, photoLibrary: .shared()) { [weak self] result in
+                guard let self else { return }
+                switch result {
+                case .success(let actual):
+                    self.showPostingResult(actual == targetAlbum.localIdentifier ? "posting_completed_membership_unverified" : "different_destination_membership_unverified", ["actualAlbumIdentifier": actual])
+                case .failure(let error): self.showPostingResult("posting_failed_or_cancelled", ["errors": self.errors(error)])
+                }
+            }
+        window.contentViewController = NSHostingController(rootView: view)
+    }
+    func showPostingResult(_ status: String, _ extra: [String: Any] = [:]) {
+        guard !finished else { return }
+        do { try record(status, extra) } catch { label.stringValue = "Journal failed; preserve this session." }
+        finished = true
+        window.contentViewController = nil
+        label.stringValue = "Apple result recorded: \(status).\nDestination membership and Live playback still require separate verification."
+        let close = NSButton(title: "Close experiment", target: self, action: #selector(closeResult))
+        let stack = NSStackView(views: [label, close]); stack.orientation = .vertical; stack.spacing = 16
+        stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
+        window.contentView = stack
+    }
     @objc func closeResult() { NSApplication.shared.terminate(nil) }
-    func windowWillClose(_ notification: Notification) { if finished { closeResult() } else { finish("cancelled") } }
+    func windowWillClose(_ notification: Notification) { if finished { closeResult() } else { finish(postingStarted ? "closed_outcome_unknown" : "cancelled") } }
 }
 @main struct Main {
     @MainActor static func main() {

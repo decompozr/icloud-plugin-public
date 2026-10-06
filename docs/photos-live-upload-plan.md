@@ -1,5 +1,17 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Manual-destination run returned a different destination — 2026-10-06
+
+The actual-picker sheet with no prefilled album returned success with a destination identity different from the approved test album. This is not intended-destination acceptance. The owner reports being unable to see how to select a Shared Album. Original-MCP local readback shows the intended test album remains empty, while source comparison in the callback's album is ambiguous between two candidates (one matching dimensions, one not). This does not establish which copy was newly published or motion/cloud playback. Exact private identities and callback journal are retained. No automatic retry, deletion or further posting is authorized by this uncertain result. The next step is UI clarification and read-only outcome reconciliation.
+
+## Upgraded album and actual picker posting baseline — 2026-10-06
+
+The owner upgraded the existing test album and explicitly authorized using its currently visible same-name replacement identity. No album was created by this experiment. Native lookup of the former identity failed; the replacement resolved as a true Shared Album. The actual manually selected picker item loaded a Live Photo successfully and was retained in the same process for Apple's posting sheet.
+
+With the destination's native local identifier prefilled, Apple immediately returned `NSCocoaErrorDomain -1` with a specific description: the user does not have permission to add content to the shared album. This is a more specific result than the earlier generic identifier-only failure; it does not establish a media-provider failure or explain whether upgraded-album support or identifier interpretation is responsible.
+
+A separate operator-driven comparison omits `defaultAlbumIdentifier` so Apple's UI can choose the upgraded destination. It does not bypass a permission check or press Post. Its result remains pending. The prior initial report of Post was corrected by the owner to clicking macOS Allow only. Original-resolution sharing is documented for upgraded albums in [Apple support](https://support.apple.com/en-us/108916); neither resolution nor motion delivery has been verified for this test. Old destinations will not be recreated or silently substituted.
+
 ## Existing routes retested with an actual Live Photo — 2026-10-06
 
 The independent read-only App loaded the approved original and tested it as a real object, rather than a type-only placeholder. Direct loading succeeded; a custom `NSItemProvider(item:typeIdentifier:)` registered `com.apple.live-photo` but could not load PHLivePhoto (`NSItemProviderErrorDomain -1200`). Sharing-service enumeration returned no services for the Live Photo object, and only Add to Photos for its custom provider. This deprecated discovery API is bounded evidence, not exhaustive modern-extension coverage.
