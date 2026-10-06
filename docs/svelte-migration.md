@@ -140,3 +140,38 @@ after deployment; synthetic results do not establish physical Passkeys, live
 remote-client OAuth or provider acceptance. A Linux image was not executed.
 
 The owner will test the deployed second-phase candidate before phase three starts.
+
+## Phase 2 deployed; owner acceptance pending
+
+Native 0.1.60 was built from clean remote main commit
+`9f23054de781b11520c44de79b6c55183d9ebfaf` (merged PR #66). The source was the
+remote main tip immediately before installation. The installed payload matches
+that immutable main-built artifact. Its disposable lifecycle check passed
+1 test / 30 assertions, including real Kit bootstrap and compiled asset delivery.
+
+The existing installation now selects `releases/0.1.60-darwin-arm64`, using its
+existing configuration without initialization or route changes. Restart took
+4.87 seconds from stopping the old owned launcher to new listener readiness.
+The prior 0.1.59 release and a protected stopped-state backup are retained;
+no rollback was required. The finalized receipt is under
+`runtime/backups/pre-0.1.60-20261006T143208Z/` in the existing installation.
+The primary checkout retains `releases/icloud-plugin-0.1.60-darwin-arm64.tar.gz`.
+
+Live self-checks passed: 13 read-only doctor checks and 30 page/locale/header,
+asset-byte, root redirect, ingress and protocol rejection checks. Local, private
+Tailscale and public sign-in pages render both English and Traditional Chinese
+with nonce CSP, no-store and no-referrer. Served client assets match installed
+bytes. Private anonymous admin requests redirect with 303; public admin/setup
+paths remain 404. The local RP rejects a forged Host. A malformed originless
+OAuth token form reaches core validation and returns 400, rather than page-CSRF
+403. This rejection check does not establish a real remote-client token exchange.
+
+Configuration/custody bytes and permissions, account/owner, Passkey and grant
+records are preserved. Both SQLite integrity checks pass. Transient OAuth resource
+seed timestamps and rate-limit records change during startup and live checks;
+these are not manual credential/grant changes. Physical Passkeys and authenticated
+owner interactions remain owner acceptance; provider mutations were not performed.
+
+Refresh the existing private admin URL (or `http://localhost:4102/icloud/admin`).
+Check login, language switching and persistence, navigation, account drafts and
+permission confirmation. Advance to phase three only after owner `pass`.
