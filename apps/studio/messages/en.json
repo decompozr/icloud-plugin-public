@@ -483,5 +483,6 @@
   "resetRequestFailed": "Reset was not accepted. Check your owner session and try again.",
   "resetUnavailable": "Reset is unavailable in this runtime.",
   "resetUnknown": "Could not confirm whether reset was accepted. Do not submit it again; check service diagnostics or the sign-in/setup page.",
-  "installationFolder": "Installed folder"
+  "installationFolder": "Installed folder",
+  "photosUnsupported": "Disabled — unsupported. Photos is unavailable while a supported sharing solution is being evaluated."
 }

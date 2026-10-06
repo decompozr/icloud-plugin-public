@@ -1,5 +1,7 @@
 # Photos capability: active remote delivery plan and evidence
 
+> **Parked by the owner (2026-10-06).** Production Photos is removed; experiments are stopped. Historical running/pending instructions below are superseded. See [consolidated evidence, unresolved challenges and resume checklist](photos-parked.md).
+
 ## App Intent experiment: schema is not an executable publisher — 2026-10-06
 
 Fresh SDK probes accept the postToSharedAlbum schema reference but reject calling

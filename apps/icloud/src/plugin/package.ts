@@ -2,7 +2,7 @@ import {readFile,stat} from 'node:fs/promises';
 import {join} from 'node:path';
 import {z} from 'zod';
 import {pluginZip} from './archive.js';
-const files=['plugin.json','skills/icloud-mail/SKILL.md','skills/icloud-calendar/SKILL.md','skills/icloud-photos/SKILL.md','assets/plugin-icon.png','LICENSE','THIRD_PARTY_NOTICES.md'] as const;
+const files=['plugin.json','skills/icloud-mail/SKILL.md','skills/icloud-calendar/SKILL.md','assets/plugin-icon.png','LICENSE','THIRD_PARTY_NOTICES.md'] as const;
 /** Only immutable release-template files enter the archive; no directory traversal. */
 export async function configuredPluginArchive(directory:string,publicOrigin:string):Promise<Uint8Array>{
  const origin=new URL(publicOrigin);if(origin.protocol!=='https:'||origin.username||origin.password||origin.search||origin.hash||origin.pathname!=='/')throw Error('Invalid public origin');

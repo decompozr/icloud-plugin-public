@@ -3,18 +3,6 @@ import {
   createRemoteOwnerPairing,
 } from "../auth/local-owner.js";
 import { createStudio } from "../../../studio/dist/transport.js";
-import { createPhotosAdmin } from "../photos/admin.js";
-import { photosSetup } from "../photos/setup-ui.js";
-import {
-  PhotosCloudSetup,
-  supportsProviderSessions,
-} from "../photos/cloud-setup.js";
-import { LocalPhotosProvider } from "../photos/provider.js";
-import { PhotosService } from "../photos/service.js";
-import { photosRegistration } from "../photos/module.js";
-import { SharedAlbumService } from "../photos/shared-albums.js";
-import { invocationContext } from "../modules/context.js";
-import { PhotosError } from "../photos/contracts.js";
 import { ReconnectCapture } from "../observability/reconnect.js";
 import { runtimeVersions } from "./versions.js";
 import {
@@ -119,94 +107,7 @@ export async function createApplication(
   const runtime = new ModuleRuntime()
     .register(mailModule.registration)
     .register(calendarModule.registration);
-  let photosAdmin: ReturnType<typeof createPhotosAdmin> | undefined;
-  const photosPermissions = settings.photos
-    ? photosSetup({
-        python: settings.photos.python,
-        library: settings.photos.library,
-        nativeHelper: settings.photos.native_helper,
-      })
-    : undefined;
-  const cloudRuntimeDirectory = join(
-    dirname(settings.state_directory),
-    "photos-web-runtime",
-  );
-  const photosCloud =
-    settings.photos && supportsProviderSessions(deps.store)
-      ? new PhotosCloudSetup({
-          store: deps.store,
-          owner: () => {
-            const owner = deps.store.ownerId();
-            if (!owner) throw Error("Owner required");
-            return owner;
-          },
-          python:
-            settings.photos.web_python ??
-            join(cloudRuntimeDirectory, "venv/bin/python"),
-          runtimeDirectory: cloudRuntimeDirectory,
-          customPython: !!settings.photos.web_python,
-        })
-      : undefined;
-  if (settings.photos) {
-    const p = settings.photos;
-    photosAdmin = createPhotosAdmin({
-      database: deps.authDatabase,
-      store: deps.store,
-      ceiling: {
-        read: true,
-        write: p.allow_writes,
-        delete: p.allow_writes && p.allow_delete,
-      },
-    });
-    const policy = photosAdmin.policy;
-    const photosProvider = new LocalPhotosProvider({
-      python: p.python,
-      library: p.library,
-      nativeHelper: p.native_helper,
-      stateDirectory: join(settings.state_directory, "photos"),
-      reviewDirectory: join(
-        dirname(settings.master_key_file),
-        "photos-shared-reviews",
-      ),
-      sidecarDirectory: join(deps.assetsDirectory, "../photos"),
-    });
-    const photos = new PhotosService(
-      deps.authDatabase,
-      photosProvider,
-      policy,
-      () => {
-        const owner = deps.store.ownerId();
-        if (!owner) throw Error("Owner required");
-        return owner;
-      },
-    );
-    const shared = photosCloud
-      ? () => {
-          const context = invocationContext(),
-            owner = deps.store.ownerId();
-          if (!context || context.ownerId !== owner || !context.accountId)
-            throw new PhotosError("verified_account_context_required");
-          return new SharedAlbumService({
-            db: deps.authDatabase,
-            owner: context.ownerId,
-            accountId: context.accountId,
-            currentOwner: () => deps.store.ownerId() ?? "",
-            policy,
-            session: () => photosCloud.sharedSession(context.accountId!),
-            stageUpload: (assetId, representation, livePhotoMode) =>
-              photosProvider.stageUpload(
-                assetId,
-                representation,
-                livePhotoMode,
-              ),
-            releaseUpload: (source) => photosProvider.releaseUpload(source),
-            stageTestUpload: (operationId) =>
-              photosProvider.stageTestUpload(operationId),
-          });
-        }
-      : undefined;
-    runtime.register(photosRegistration(photos, policy, shared));
-  }
+  // Photos is parked: no provider, setup, scopes or tools are composed.
   await runtime.start();
   try {
     const config = mailModule.config;
@@ -325,8 +226,6 @@ export async function createApplication(
       resetRuntime: deps.resetRuntime,
       resetStatus: deps.resetStatus,
       renderPage: studio.admin,
-      ...(photosCloud ? { photosCloud } : {}),
-      ...(photosPermissions ? { photosSetup: photosPermissions } : {}),
       connectionCommands: connectionCommands(settings),
       systemStatus:
         deps.systemStatus ??
@@ -374,24 +273,6 @@ export async function createApplication(
             }
           },
         },
-        ...(photosAdmin
-          ? [
-              {
-                ...photosAdmin.admin,
-                updateCapabilities: async (
-                  ...args: Parameters<
-                    typeof photosAdmin.admin.updateCapabilities
-                  >
-                ) => {
-                  try {
-                    return await photosAdmin!.admin.updateCapabilities(...args);
-                  } finally {
-                    policyEpoch++;
-                  }
-                },
-              },
-            ]
-          : []),
       ],
     });
     const privateFetch = async (incoming: Request) => {
@@ -692,8 +573,6 @@ export async function createApplication(
         resetRuntime: deps.resetRuntime,
         resetStatus: deps.resetStatus,
         renderPage: studio.admin,
-        ...(photosCloud ? { photosCloud } : {}),
-        ...(photosPermissions ? { photosSetup: photosPermissions } : {}),
         connectionCommands: connectionCommands(settings),
         privateOrigin: localOrigin,
         setupReady: true,
@@ -757,26 +636,6 @@ export async function createApplication(
               }
             },
           },
-          ...(photosAdmin
-            ? [
-                {
-                  ...photosAdmin.admin,
-                  updateCapabilities: async (
-                    ...args: Parameters<
-                      typeof photosAdmin.admin.updateCapabilities
-                    >
-                  ) => {
-                    try {
-                      return await photosAdmin!.admin.updateCapabilities(
-                        ...args,
-                      );
-                    } finally {
-                      policyEpoch++;
-                    }
-                  },
-                },
-              ]
-            : []),
         ],
       });
       const localFetch = async (incoming: Request) => {

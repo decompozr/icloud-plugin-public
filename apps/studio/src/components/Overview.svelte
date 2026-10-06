@@ -115,7 +115,7 @@
             <button type="button" class="secondary credential-control" title={t('appPasswordStatus')+': '+t(account.credentialStored?'ready':'notReady')} aria-label={t(account.credentialStored?'editAppPassword':'openAppPassword')} onclick={()=>dialogs.openCredential('app-password',{accountId:account.id,mode:'rotate'})}>
               <DesignIcon name="pencil"/><span>{t('appPasswordShort')}</span><span class="credential-pill" class:ready={account.credentialStored}>{t(account.credentialStored?'credentialStoredShort':'credentialMissingShort')}</span>
             </button>
-            <button type="button" class="secondary credential-control" title={t('appleSessionStatus')+': '+t(savedSession?'sessionAuthenticated':model.webSessions[account.id]?.phase?'sessionMissing':'sessionUnknown')} aria-label={t(savedSession?'manageAppleSession':'openAppleSession')} onclick={()=>dialogs.openCredential('apple-account',{accountId:account.id})}>
+            <button type="button" class="secondary credential-control" disabled={!model.state.photosCloudConfigured} title={t('appleSessionStatus')+': '+t(savedSession?'sessionAuthenticated':model.webSessions[account.id]?.phase?'sessionMissing':'sessionUnknown')} aria-label={t(savedSession?'manageAppleSession':'openAppleSession')} onclick={()=>dialogs.openCredential('apple-account',{accountId:account.id})}>
               <DesignIcon name="circle-dot"/><span>{t('appleSessionShort')}</span><span class="credential-pill" class:ready={savedSession}>{t(savedSession?'sessionSavedShort':model.webSessions[account.id]?.phase?'credentialMissingShort':'unknownValue')}</span>
             </button>
           </div>
@@ -173,6 +173,10 @@
             > <button type="button" class="secondary icon-button configure-button" aria-label={t('moduleConfigure')+' '+module.title} title={t('moduleConfigure')} disabled={!model.state.enrolled||model.busy} onclick={()=>openModule(module.id)}><Icon name="settings"/></button>
           </div>
         </div>{/each}{/if}
+    <div class="module-summary" data-testid="photos-unsupported">
+      <div><h3>{t("photosTitle")}</h3><p>{t("photosUnsupported")}</p></div>
+      <label class="module-toggle"><span class="sr-only">{t("photosTitle")}</span><input type="checkbox" checked={false} disabled aria-label={t("photosTitle") + " " + t("photosUnsupported")} /></label>
+    </div>
     {#if model.dashboardFailed}<p class="muted">{t("freshnessFailed")}</p>{/if}
   </section>
 </div>
