@@ -40,3 +40,15 @@ Verified: application build, Studio typecheck with zero errors/warnings, 12 Stud
 A failed first Photos status request left both requirements in checking because no result existed. Failed requests now show the error state. Refresh arrows track their own awaited action instead of global busy flags, so unrelated controls do not rotate; completion replaces the animated element with a static one. Existing request timeouts remain in force.
 
 Verified in the disposable browser fixture: completed refresh has aria-busy=false and animation=none; a failed first Photos request produces two error requirements with animation=none. Build, Studio typecheck, and 12 Studio tests passed. The exact icon observed on the remote phone is not yet identified.
+
+## Compact language trigger (0.1.73)
+
+The language trigger displays EN or 繁中 in its existing position. Expanded choices retain their full language names.
+
+Service labels and values align vertically within each grid row, including the taller copy-button row. Account and authorized-connection totals use the matching navigation icons with hover titles and screen-reader labels.
+
+Credential controls wrap according to available card width (14rem flex basis), rather than a viewport-only breakpoint. Narrow cards stack App password and Apple session; status pills do not shrink into labels.
+
+Enabled scope totals also use an icon and count with a hover title and accessible label.
+
+Browser fixture verified at 430px and 390px: credential controls occupy separate rows with scrollWidth equal to clientWidth; all Service label/value row centers match within 0.01px.

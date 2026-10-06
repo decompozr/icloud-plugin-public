@@ -108,7 +108,7 @@
       <div class="card-tools"><button type="button" class="secondary icon-button" aria-label={t('addAccount')} title={t('addAccount')} disabled={!model.state.enrolled} onclick={()=>dialogs.openCredential('app-password',{mode:'add'})}><DesignIcon name="plus"/></button><RefreshButton id="accounts-refresh" label={t("refreshAccounts")} busy={model.accountsLoading||model.busy} onclick={()=>model.run(()=>model.refreshCard('accounts'))}/></div>
     </header>
     {#if model.state.admin&&model.accountsLoading&&!model.dashboard}<Skeleton rows={3}/>{:else}
-      <div class="counts"><div><strong>{model.dashboard?.accounts.length??0}</strong><span>{t('accountNumber')}</span></div><div><strong>{model.connections?model.connections.length:t('unknownValue')}</strong><span>{t('authorizedNumber')}</span></div></div>
+      <div class="counts"><div title={t('accountNumber')}><DesignIcon name="circle-dot"/><strong>{model.dashboard?.accounts.length??0}</strong><span class="sr-only">{t('accountNumber')}</span></div><div title={t('authorizedNumber')}><DesignIcon name="git-branch"/><strong>{model.connections?model.connections.length:t('unknownValue')}</strong><span class="sr-only">{t('authorizedNumber')}</span></div></div>
       {#each model.dashboard?.accounts??[] as account(account.id)}
         {@const savedSession=model.webSessions[account.id]?.phase==='authenticated'}
         <article class="account">
@@ -152,9 +152,9 @@
                 policy && Object.values(policy).some(Boolean)
                   ? "moduleEnabled"
                   : "moduleDisabled",
-              )} · {t("moduleScopesSummary")}: {policy
+              )} · <span class="scope-count" title={t("moduleScopesSummary")}><DesignIcon name="check"/><span class="sr-only">{t("moduleScopesSummary")}: </span>{policy
                 ? Object.values(policy).filter(Boolean).length
-                : 0}
+                : 0}</span>
             </p>
           </div>
           <div class="actions">
@@ -182,6 +182,8 @@
 </div>
 
 <style>
+ .scope-count{display:inline-flex;align-items:center;gap:.25rem;vertical-align:middle}
+
  .runtime-path{display:flex;align-items:center;gap:.375rem;min-width:0}.runtime-path code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem}
 
  .configure-button{min-width:28px;min-height:28px;padding:5px}
@@ -213,7 +215,8 @@
   }
   dl {
     display: grid;
-    grid-template-columns: 1fr 1.5fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    align-items: center;
     gap: 0.75rem;
     margin: 0;
   }
@@ -225,9 +228,9 @@
     overflow-wrap: anywhere;
   }
   .card-tools{display:flex;gap:.25rem;align-items:center}.card-tools button{min-width:28px;min-height:28px;padding:5px}
-  .counts{display:flex;gap:2rem;padding:.25rem 0 1rem}.counts div{display:flex;align-items:baseline;gap:.5rem}.counts span{color:var(--ui-muted);font-size:.8125rem}.counts strong{font-size:1.5rem;font-weight:500}
+  .counts{display:flex;gap:2rem;padding:.25rem 0 1rem}.counts div{display:flex;align-items:center;gap:.5rem}.counts span{color:var(--ui-muted);font-size:.8125rem}.counts strong{font-size:1.5rem;font-weight:500}
   .account{border-top:1px solid var(--ui-border);padding:1rem 0 0}.account+.account{margin-top:1rem}.account-identity{display:flex;gap:.75rem;align-items:center;margin-bottom:1rem;min-width:0}.account-identity>div{min-width:0}.account-avatar{width:36px;height:36px;flex:none;display:grid;place-items:center;background:var(--ui-soft);color:var(--ui-muted);border-radius:50%;font-weight:500}.account h3{border:0;padding:0;margin:0;overflow-wrap:anywhere}.account p{margin:.2rem 0 0;font-size:.8125rem;overflow-wrap:anywhere}
-  .credential-controls{display:flex;flex-wrap:wrap;gap:.5rem}.credential-control{display:flex;align-items:center;gap:.5rem;min-height:36px;padding:.5rem .625rem;border:1px solid var(--ui-border);border-radius:4px;font-size:.8125rem;font-weight:400;max-width:100%;flex:1;white-space:nowrap}.credential-control :global(svg){flex:none;color:var(--ui-muted)}.credential-control:hover{background:var(--ui-soft)}.credential-pill{margin-left:auto;color:var(--ui-muted);font-size:.75rem}.credential-pill.ready{color:var(--ui-focus)}.credential-pill.ready::before{content:'✓';margin-right:.25rem}@media(max-width:400px){.credential-control{flex-basis:100%}}
+  .credential-controls{display:flex;flex-wrap:wrap;gap:.5rem}.credential-control{display:flex;align-items:center;gap:.5rem;min-height:36px;padding:.5rem .625rem;border:1px solid var(--ui-border);border-radius:4px;font-size:.8125rem;font-weight:400;max-width:100%;min-width:0;flex:1 1 14rem;white-space:normal}.credential-control :global(svg){flex:none;color:var(--ui-muted)}.credential-control:hover{background:var(--ui-soft)}.credential-pill{flex-shrink:0;white-space:nowrap;margin-left:auto;color:var(--ui-muted);font-size:.75rem}.credential-pill.ready{color:var(--ui-focus)}.credential-pill.ready::before{content:'✓';margin-right:.25rem}
   .module-summary {
     display: flex;
     justify-content: space-between;
