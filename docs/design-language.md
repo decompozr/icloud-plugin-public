@@ -1,5 +1,29 @@
 # Shared interface design
 
+## Current Surface design adoption (2026-10-06)
+
+Studio follows the owner-selected Surface design reference at
+`https://mac-mini.duckbill-ionian.ts.net:8463/workspace/surface/main/design/`.
+Observed controls use DecompozR Inter, 14px/20px body and field typography,
+13px/18px compact controls, 4px control corners, quiet idle controls and the shared
+Milk Green semantic palette. Content uses an 18px title, 14px section headings,
+open white sections and restrained separators. Studio preserves normal 36px
+controls and 44px coarse-pointer targets while adopting that quieter treatment.
+
+Consent uses flat, aligned checkbox rows with a 12px text gap, normal text weight
+and no browser-default fieldset border. Same-origin compiled stylesheets are
+allowed by CSP alongside the existing inline styling; nonce scripts, frame
+restrictions and origin/authorization checks remain intact. Browser verification
+now captures CSP console errors and checks computed styles, not only asset HTTP
+success. The prior inline-only style policy was reproduced blocking Kit CSS.
+
+The original modular-link icon consists of three connected rounded square nodes,
+without a cloud silhouette or Apple/iCloud artwork. One source in Studio generates
+the inline glyph and 256px SVG/PNG download assets. Regenerate exports with
+`bun run --cwd apps/studio render:brand`. This is an original project mark, not a
+legal trademark-clearance opinion. Earlier cloud/teal/i18next sections below are
+historical and superseded by this adoption and the SvelteKit/Paraglide migration.
+
 ## Current element styling contract
 
 Administration, setup, sign-in and consent use the DecompozR Design System consumer guide (source revision `c0863d99015cfd6b039755f2f2fb94ce5ee47aa7`). Its Milk Green semantic roles, 14/20 body and label typography, 16/24 headings, 36px normal controls, 44px coarse-pointer targets, 4px control radius, 6px surface radius and 2px focus outline supersede the historical teal styling below. Preserve the iCloud identity and native semantic HTML. The shared UI stylesheet adapts the guide to this server-rendered application; it is not an installation of the Svelte component library.

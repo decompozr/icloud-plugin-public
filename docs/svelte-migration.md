@@ -175,3 +175,19 @@ owner interactions remain owner acceptance; provider mutations were not performe
 Refresh the existing private admin URL (or `http://localhost:4102/icloud/admin`).
 Check login, language switching and persistence, navigation, account drafts and
 permission confirmation. Advance to phase three only after owner `pass`.
+
+## Owner acceptance and visual feedback
+
+The owner accepted phase two's overall functionality on October 6, 2026 and
+requested Surface design styling plus an original icon. Candidate 0.1.61 fixes a
+reproduced CSP omission that blocked same-origin Kit stylesheets, adopts the
+selected design reference's typography/quiet controls/open sections, and replaces
+the cloud silhouette with a modular-link SVG/PNG. It also restores explicit spacing
+between diagnostic labels and values. No auth, scope or provider behavior changes.
+
+Before the fix, the new browser CSP check and stylesheet-policy regression failed.
+After correction, Studio 11 tests / 936 assertions and page 24 tests / 224 assertions
+pass; the browser fixture passes 89 checks, including computed checkbox gap,
+fieldset border, font weight and absence of blocked stylesheet errors. Desktop and
+mobile screenshots were inspected. Third-phase work is already authorized by the
+owner's overall pass and follows this requested visual delivery without another gate.

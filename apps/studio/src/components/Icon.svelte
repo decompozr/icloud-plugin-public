@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {brandLinks,brandNodes} from "../branding.js";
   let { name }: { name: "brand" | "passkey" } = $props();
 </script>
 
@@ -10,10 +11,7 @@
     viewBox="0 0 256 256"
     width="32"
     height="32"
-    ><rect width="256" height="256" fill="#fff" /><path
-      d="M76 180 C51 180 34 163 34 142 C34 122 48 105 67 102 C71 76 93 58 119 58 C147 58 169 77 173 103 C199 103 222 120 222 143 C222 165 204 180 181 180 Z"
-      fill="#000"
-    /></svg
+    > <rect width="256" height="256" fill="#FFFFFF"/><g stroke="currentColor" stroke-width="12" stroke-linecap="round"><path d={brandLinks}/>{#each brandNodes as node}<rect x={node.x} y={node.y} width="52" height="52" rx="10" fill="#FFFFFF"/>{/each}</g></svg
   >
 {:else}
   <svg

@@ -16,4 +16,24 @@ ol.progress{display:flex;list-style:none;padding:0;gap:.5rem;margin:1.5rem 0}.pr
 @media(max-width:540px){main{margin-top:1rem;padding:0 1rem 2rem}.card{padding:1rem}.actions button{flex:1}.shell-nav{flex-wrap:wrap}.checks li{gap:.5rem}.checks li>span:last-child{flex-shrink:0}}
 @media(pointer:coarse){button,.button,input:not([type=checkbox]):not([type=radio]),select,.checks li{min-height:2.75rem}.checks label{min-height:2.75rem;display:flex;align-items:center}.copy-icon{min-width:2.75rem}}
 @media(forced-colors:active){input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visible{outline-color:Highlight}button:disabled{color:GrayText;border-color:GrayText}}
+
+/* Surface design reference: open sections, quiet controls, shared density. */
+main{max-width:60rem;margin:1.25rem auto;padding:0 1.25rem 2.5rem}
+.brand{font-size:.8125rem;font-weight:500;color:var(--ui-text);gap:.625rem}
+h1{font-size:1.125rem;line-height:1.444444;font-weight:600;margin:1.25rem 0 .5rem}
+h2,h3{font-size:.875rem;line-height:1.428571;font-weight:600}
+.card{border:0;border-top:1px solid var(--ui-border);border-radius:0;padding:1.25rem 0;margin-bottom:1.5rem;box-shadow:none}
+.shell-nav{gap:.25rem;padding-bottom:0;margin:1rem 0}
+.shell-nav a{min-height:2rem;padding:.375rem .5rem;border-radius:0;border-bottom:2px solid transparent;font-weight:400}
+.shell-nav a[aria-current=page]{background:var(--ui-soft);border-bottom-color:var(--ui-focus);font-weight:500}
+.shell-nav a:hover{background:#EDF2E6}
+button,.button{padding:.4375rem .5rem;font-size:.875rem;line-height:1.428571}
+button.secondary{border-color:transparent;background:transparent}
+button.secondary:hover:not(:disabled){background:#EDF2E6}
+input[type=checkbox]{width:1.125rem;height:1.125rem}
+input:not([type=checkbox]):not([type=radio]),select{padding:.4375rem .5rem}
+.auth-layout{max-width:42rem}.auth-layout .card{margin-top:1.25rem}
+.auth-layout [data-auth-scopes] h3:first-of-type{border-top:0;margin-top:0;padding-top:0}
+@media(max-width:540px){main{padding:0 1.25rem 2rem}.card{padding:1.25rem 0}.shell-nav a{min-height:2.25rem}}
+@media(pointer:coarse){.shell-nav a{min-height:2.75rem}}
 `;

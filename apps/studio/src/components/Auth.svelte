@@ -413,13 +413,16 @@
     display: flex;
     gap: 0.75rem;
     align-items: flex-start;
-    padding: 0.75rem;
-    border: 1px solid var(--ui-edge);
-    border-radius: 0.375rem;
-    margin: 0.5rem 0;
+    padding: 0.5rem 0;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    margin: 0;
     font-weight: 400;
     cursor: pointer;
   }
+  .permission-choice:hover {background:var(--ui-soft);}
+  .permission-choice:has(input:focus-visible) {outline:2px solid var(--ui-focus);outline-offset:2px;}
+  @media(pointer:coarse){.permission-choice{min-height:44px;}}
   .permission-choice input {
     margin-top: 0.15rem;
   }
