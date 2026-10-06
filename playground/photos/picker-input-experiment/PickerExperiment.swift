@@ -5,12 +5,15 @@ import SwiftUI
 import Darwin
 
 // Standalone experiment. Production code is not linked; posting requires explicit local confirmation.
-struct Request: Decodable { let sessionId: UUID; let assetId: String?; let albumUUID: String?; let postingTest: Bool?; let chooseDestinationInSheet: Bool?; let blockedAlbumUUID: String? }
+struct Request: Decodable { let sessionId: UUID; let assetId: String?; let albumUUID: String?; let postingTest: Bool?; let chooseDestinationInSheet: Bool?; let blockedAlbumUUID: String?; let appKitBaseline: Bool? }
 struct ExperimentError: Error { let message: String }
 @available(macOS 27.0, *)
-@MainActor final class Experiment: NSObject, NSWindowDelegate {
+@MainActor final class Experiment: NSObject, NSWindowDelegate, PHPickerViewControllerDelegate, PHSharedAlbumPostingViewController.Delegate {
     let request: Request
     let journal: FileHandle
+    var nativeResults: [PHPickerResult] = []
+    var nativeSheetWindow: NSWindow?
+    var nativePostingController: PHSharedAlbumPostingViewController?
     var selected: [PhotosPickerItem] = []
     var postingStarted = false
     var postingVisible = false
@@ -190,7 +193,42 @@ struct ExperimentError: Error { let message: String }
         stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
         window.contentView = stack; window.setContentSize(NSSize(width: 540, height: 280))
     }
+    func presentNativePicker() {
+        var configuration = PHPickerConfiguration(photoLibrary: .shared())
+        configuration.filter = .livePhotos; configuration.selectionLimit = 1
+        configuration.preferredAssetRepresentationMode = .current
+        let picker = PHPickerViewController(configuration: configuration); picker.delegate = self
+        let sheet = NSWindow(contentViewController: picker); nativeSheetWindow = sheet
+        do { try record("native_picker_presented") } catch { finish("journal_failed"); return }
+        window.beginSheet(sheet)
+    }
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        if let sheet = nativeSheetWindow { window.endSheet(sheet); sheet.orderOut(nil) }; nativeSheetWindow = nil
+        guard results.count == 1, results[0].assetIdentifier != nil else { finish("selection_cancelled_or_invalid"); return }
+        nativeResults = results
+        let provider = results[0].itemProvider
+        do { try record("native_picker_result", ["selectedLocalIdentifiers": results.compactMap(\.assetIdentifier), "registeredTypes": provider.registeredTypeIdentifiers, "canLoadLivePhoto": provider.canLoadObject(ofClass: PHLivePhoto.self)]) }
+        catch { finish("journal_failed"); return }
+        provider.loadObject(ofClass: PHLivePhoto.self) { object, error in
+            Task { @MainActor in
+                guard !self.finished else { return }
+                guard let live = object as? PHLivePhoto else {
+                    self.showPostingResult("selected_live_photo_load_failed", ["errors": error.map(self.errors) ?? []]); return
+                }
+                do { try self.record("native_live_photo_loaded", ["width": live.size.width, "height": live.size.height]) }
+                catch { self.finish("journal_failed"); return }
+                self.presentDestinationChoice()
+            }
+        }
+    }
+    func sharedAlbumPostingViewController(_ postingViewController: PHSharedAlbumPostingViewController, didCompleteWithError error: Error?) {
+        let actual = postingViewController.albumIdentifier
+        if let sheet = nativeSheetWindow { window.endSheet(sheet); sheet.orderOut(nil) }; nativeSheetWindow = nil
+        if let error { showPostingResult("posting_failed_or_cancelled", ["errors": errors(error)]); return }
+        showPostingResult(actual == targetAlbum?.localIdentifier ? "posting_completed_membership_unverified" : "different_destination_membership_unverified", ["actualAlbumIdentifier": actual ?? "", "callbackDoesNotProveUserInteraction": true])
+    }
     func presentPicker() {
+        if request.appKitBaseline == true { presentNativePicker(); return }
         pickerVisible = true
         let selected = Binding<[PhotosPickerItem]>(get: { [weak self] in self?.selected ?? [] }, set: { [weak self] items in
             guard let self, !self.finished, !self.processing else { return }
@@ -294,10 +332,17 @@ struct ExperimentError: Error { let message: String }
         catch { confirmButton?.isEnabled = false; finish("journal_failed") }
     }
     @objc func openPosting() {
-        guard request.postingTest == true, !postingStarted, !finished, selected.count == 1, let targetAlbum else { return }
+        guard request.postingTest == true, !postingStarted, !finished, (request.appKitBaseline == true ? nativeResults.count == 1 : selected.count == 1), let targetAlbum else { return }
         do { try record("posting_sheet_requested", ["targetAlbumIdentifier": targetAlbum.localIdentifier, "defaultAlbumSupplied": true, "ownerExplicitlyConfirmedDestination": true]) }
         catch { finish("journal_failed"); return }
         postingStarted = true; postingVisible = true
+        if request.appKitBaseline == true {
+            let controller = PHSharedAlbumPostingViewController(items: nativeResults, defaultAlbumIdentifier: targetAlbum.localIdentifier, photoLibrary: .shared())
+            controller.delegate = self; nativePostingController = controller
+            let sheet = NSWindow(contentViewController: controller); nativeSheetWindow = sheet
+            try? record("native_posting_controller_presented", ["exactTargetIdentifier": targetAlbum.localIdentifier])
+            window.beginSheet(sheet); return
+        }
         let visible = Binding<Bool>(get: { [weak self] in self?.postingVisible == true }, set: { [weak self] value in
             guard let self else { return }; self.postingVisible = value
             if !value { DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
@@ -323,7 +368,11 @@ struct ExperimentError: Error { let message: String }
         do { try record(status, extra) } catch { label.stringValue = "Journal failed; preserve this session." }
         finished = true
         window.contentViewController = nil
-        label.stringValue = "Apple result recorded: \(status).\nDestination membership and Live playback still require separate verification."
+        if let details = extra["errors"] as? [[String: Any]], let error = details.first {
+            label.stringValue = "Apple rejected the request.\n\n\(error["description"] ?? status)\n\n\(error["domain"] ?? "")  \(error["code"] ?? "")"
+        } else {
+            label.stringValue = "Apple callback: \(status).\nActual destination: \(extra["actualAlbumIdentifier"] ?? "unknown").\nThis callback alone does not establish delivery."
+        }
         let close = NSButton(title: "Close experiment", target: self, action: #selector(closeResult))
         let stack = NSStackView(views: [label, close]); stack.orientation = .vertical; stack.spacing = 16
         stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
