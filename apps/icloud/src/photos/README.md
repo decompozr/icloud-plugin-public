@@ -268,5 +268,20 @@ Photos, PhotosUI and AppKit; it does not install new global defaults.
 
 ## Verification
 
+## Experimental official native sharing candidate
+
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
 
+`photos_prepare({action:"post_to_shared_album",assetIds:[exactSource],albumId:exactLocalSharedAlbum,nativeUI:true})`
+prepares one existing-asset share through the same MCP. Preparation opens no UI.
+Confirmed apply launches the signed Helper's user-operated picker and official
+PhotosUI posting sheet. The separate local "Open sharing window" action is
+required; picker completion never automatically posts. Default/legacy requests
+without `nativeUI:true` remain unavailable. Runtime activation and actual sharing
+acceptance are pending; do not use unadvertised arguments in an old loaded schema.
+
+Sharing uses the existing Photos asset, without generating/importing a test photo
+or exporting/rebuilding its resources. A successful posting callback is not server
+presence or Live playback proof. Historical unavailability notes below describe the
+previous default/runtime surface; see docs/photos-live-upload-plan.md for current
+candidate evidence and remaining gates.

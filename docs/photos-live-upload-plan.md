@@ -1,5 +1,60 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Official existing-asset sharing candidate — 2026-10-06
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+The existing main MCP created Live Photo Share Test once. Its retained operation
+reached applied with serverReadbackVerified=true, private access, owner-only
+participation and zero assets. Subsequent local inventory also resolved its true
+Shared Album identity. Preserve this empty destination for the pending experiment;
+do not recreate it. Exact cloud/local album and operation IDs remain private.
+
+Implemented a source candidate using existing tools, scopes, packaged Helper and
+durable operation/review records:
+
+- post_to_shared_album requires explicit nativeUI=true through remote tools.
+  Default/legacy requests remain rejected without opening UI. Prepare reads/probes
+  one existing source and a true Shared Album, without addAssets or media export.
+- Apply rechecks the snapshot, reserves launch identity and flushes the source
+  manifest. A final server policy/owner check runs immediately before Helper launch.
+  Unknown launch outcomes cannot cause relaunch.
+- The official picker must return the same exact asset. Different/empty selections
+  never post. Exact results journal item-provider presence. A separate local user
+  action opens PHSharedAlbumPostingViewController; picker callbacks never post
+  automatically, including the ambiguous preselected-cancel case.
+- Pre-post sessions expire after five minutes. Cancellation, journal failures,
+  actual destination and completion remain explicit. Completion is not membership,
+  cloud sync or Live playback proof. Once opened, the user operates Apple's official
+  sheet; this is assisted sharing, not headless publication or automated UI control.
+
+The revoked generator, fixture intent, import branch and fixture-only tests were
+removed from the candidate. Both task-created standalone media directories were
+removed after the probe processes exited. No generated photo was ever imported
+into the Photos library or shared. The historical generated-media experiment did
+produce a valid PHLivePhoto after correcting a MakerApple key, but is no longer an
+implementation path or acceptance dependency. No further generation is authorized.
+
+Self-checking covers TypeScript, native Swift, application build and existing/new
+operation tests; final counts are recorded in the capability plan. An initial
+packaging test raced a concurrent dist build; sequential validation after build
+resolves that fixture-path failure. Verification is by the same agent, not an
+independent reviewer. Picker/preselection acceptance and Live sharing remain live
+checks, not inferred from compilation or mock tests.
+
+Activation remains pending. The installed original MCP still advertises its old
+schema and Helper. Do not inject nativeUI into that schema or run a separate native
+app against the library. Main-source server deployment and a signed Helper update
+through the existing process are required, with configuration, credentials,
+consent identity and rollback preserved, followed by same-connection tool refresh.
+No merge, release, Helper replacement or deployment occurred in this slice.
+
+Retain the new empty album and private operation/source state for the pending live
+experiment. Source bridge implementation remains reviewable in this active task
+worktree. Generated media and fixture-only probe executables/harness are removed;
+completed raw logs can be removed after committed knowledge readback. Do not retire
+this worktree or discard live album identities while deployment/acceptance remain.
+
 ## Sharing-service discovery runtime experiment — 2026-10-06
 
 The owner reaffirmed focus on sharing existing photos to iCloud Shared Albums.

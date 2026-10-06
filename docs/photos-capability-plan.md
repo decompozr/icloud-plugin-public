@@ -1,5 +1,9 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Official existing-asset sharing candidate — 2026-10-06
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Share-operation focus and public service discovery — 2026-10-06
 
 The owner reaffirmed sharing existing Photos assets to iCloud Shared Albums. A
