@@ -105,8 +105,13 @@ export class AdminModel {
     readonly copy: UiCopy,
     readonly toast?: ToastCenter,
   ) {}
+  activeView = $state<AdminState["view"]>();
   get view() {
-    return this.state.view ?? (this.state.admin ? "accounts" : "setup");
+    return (
+      this.activeView ??
+      this.state.view ??
+      (this.state.admin ? "accounts" : "setup")
+    );
   }
   get saved(): Record<string, Record<string, boolean> | undefined> {
     return {
@@ -228,22 +233,23 @@ export class AdminModel {
     );
     this.messageKey = "";
   }
+  acceptDashboard(value: unknown) {
+    const next = dashboardSchema.parse(value);
+    const reset = !this.hasDraft;
+    this.dashboard = next;
+    this.checkedAt = new Date().toISOString();
+    this.dashboardFailed = false;
+    if (reset) this.discardPolicy();
+    if (!next.accounts.some((a) => a.id === this.selectedAccount))
+      this.selectedAccount = next.accounts[0]?.id ?? "";
+    if (!next.accounts.some((a) => a.id === this.readinessAccount))
+      this.readinessAccount =
+        next.accounts.length === 1 ? next.accounts[0]!.id : "";
+  }
   async refreshDashboard() {
     this.accountsLoading = true;
     try {
-      const next = dashboardSchema.parse(
-        await this.get("/icloud/admin/status"),
-      );
-      const reset = !this.hasDraft;
-      this.dashboard = next;
-      this.checkedAt = new Date().toISOString();
-      this.dashboardFailed = false;
-      if (reset) this.discardPolicy();
-      if (!next.accounts.some((a) => a.id === this.selectedAccount))
-        this.selectedAccount = next.accounts[0]?.id ?? "";
-      if (!next.accounts.some((a) => a.id === this.readinessAccount))
-        this.readinessAccount =
-          next.accounts.length === 1 ? next.accounts[0]!.id : "";
+      this.acceptDashboard(await this.get("/icloud/admin/status"));
     } catch {
       this.dashboardFailed = true;
     } finally {
@@ -374,7 +380,12 @@ export class AdminModel {
       this.message("policySaved");
     } catch (error) {
       await this.refreshDashboard();
-      if(completed===0&&error instanceof UiError&&error.key==="photosCapabilityUnavailable")throw error;
+      if (
+        completed === 0 &&
+        error instanceof UiError &&
+        error.key === "photosCapabilityUnavailable"
+      )
+        throw error;
       throw new UiError(
         this.dashboardFailed ? "policyUnknown" : "policyPartial",
       );
@@ -627,6 +638,7 @@ export class AdminModel {
       }
     };
     const click = (e: MouseEvent) => {
+      if (e.defaultPrevented) return;
       if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0)
         return;
       const a = e.target instanceof Element ? e.target.closest("a") : null;

@@ -510,5 +510,6 @@
   "requirementState_todo": "Action needed",
   "requirementState_waiting": "Complete the previous step first",
   "requirementState_checking": "Checking",
-  "requirementState_error": "Needs attention"
+  "requirementState_error": "Needs attention",
+  "copyRuntimeFolder": "Copy runtime folder"
 }

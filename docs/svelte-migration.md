@@ -303,3 +303,19 @@ The 0.1.65 candidate also passes the 45 browser checks and native artifact
 lifecycle (1 test / 30 assertions). Existing main-connection baseline read was
 correlated with the 0.1.64 server's successful mailbox-list operation log; only
 mailbox count and account continuity are used for deployment acceptance.
+
+### Shared-shell navigation correction
+
+0.1.70 keeps one Svelte admin shell and left icon rail mounted while content
+changes. The marker has fixed 44px height and ordinary CSS position movement.
+Each navigation revalidates owner status, handles expiry, guards drafts/modals
+and fences delayed JSON bodies before changing the view. Overview cards are rows,
+module order is Mail, Calendar, Photos, and path copy uses full values.
+459 tests (4238 assertions), 58 browser checks, build/typecheck and focused
+independent review pass. Upstream Photos changes through 0.1.69 are preserved.
+
+0.1.65 was installed from b272fd1669ef3a886cb760e17c8492a25e9f8f5a with protected
+state readback. Existing main MCP profile stayed on the same account and mailbox
+listing succeeded (9). Concurrent native Photos work later restarted that release
+and advanced main. No new registration or provider write was needed. Preservation
+is an upgrade-time claim; later authorized configuration changes are separate.

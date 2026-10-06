@@ -49,6 +49,7 @@
   }
   $effect(() => {
     const value = current;
+    if(!value){password="";user="";label="";return;}
     if (value && value.generation !== generation) {
       generation = value.generation;
       password = "";

@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { getContext, onMount } from "svelte";
+  import { getContext, onMount, tick, untrack } from "svelte";
   import type { AdminState, UiCopy } from "../contracts.js";
   import { AdminModel } from "../lib/admin-model.svelte.js";
   import {
     ToastCenter,
     DialogCenter,
     type LocaleControl,
+    type NavigationControl,
   } from "../lib/ui-state.svelte.js";
   import Brand from "./Brand.svelte";
   import Overview from "./Overview.svelte";
@@ -13,18 +14,25 @@
   import ModuleDialog from "./ModuleDialog.svelte";
   import RequirementDialog from "./RequirementDialog.svelte";
   import Modal from "./Modal.svelte";
+  import DesignIcon from "./DesignIcon.svelte";
   import LanguageMenu from "./LanguageMenu.svelte";
   import SystemReset from "./SystemReset.svelte";
   import RefreshButton from "./RefreshButton.svelte";
-  let { state }: { state: AdminState } = $props();
+  let { state: pageState }: { state: AdminState } = $props();
   const copy = getContext<UiCopy>("copy"),
     { t } = copy,
     locale = getContext<LocaleControl>("locale");
   const toast = getContext<ToastCenter>("toast") ?? new ToastCenter(),
     dialogs = getContext<DialogCenter>("dialogs") ?? new DialogCenter();
   // svelte-ignore state_referenced_locally
-  const model = new AdminModel(state, copy, toast);
-  const view = $derived(state.view ?? (state.admin ? "accounts" : "setup"));
+  const model = new AdminModel(pageState, copy, toast);
+  // svelte-ignore state_referenced_locally
+  let view = $state(pageState.view ?? (pageState.admin ? "accounts" : "setup"));
+  const router = getContext<NavigationControl>("navigation");
+  let navigationGeneration = 0;
+  let navigating = $state(false),
+    markerTop = $state(0),
+    markerHeight = $state(0);
   const heading = $derived(
     view === "overview"
       ? "navOverview"
@@ -36,15 +44,131 @@
             ? "navSystem"
             : "requirementsPage",
   );
+  let navigation = $state<HTMLElement>();
   const links = [
     ["/icloud/admin", "navOverview", "overview"],
     ["/icloud/admin/accounts", "navAccounts", "accounts"],
     ["/icloud/admin/connections", "navConnections", "connections"],
     ["/icloud/admin/system", "navSystem", "system"],
   ];
+  function updateMarker() {
+    const current = navigation?.querySelector<HTMLElement>(
+      '[aria-current="page"]',
+    );
+    if (current) {
+      markerTop = current.offsetTop;
+      markerHeight = current.offsetHeight;
+    }
+  }
+  async function navigate(destination: string, href: string, push = true) {
+    const restore = () => {
+      if (!push) {
+        const current = links.find(([, , key]) => key === view);
+        if (current) {
+          if (router) router.replace(current[0]!);
+          else history.replaceState(null, "", current[0]);
+        }
+      }
+    };
+    if (model.busy || toast.dialogs > 0) {
+      restore();
+      return;
+    }
+    if (model.hasDraft && !window.confirm(t("discardNavigation"))) {
+      restore();
+      return;
+    }
+    const generation = ++navigationGeneration;
+    navigating = true;
+    try {
+      const response = await fetch("/icloud/admin/status", {
+        credentials: "same-origin",
+        cache: "no-store",
+        signal: AbortSignal.timeout(12000),
+      });
+      if (generation !== navigationGeneration) {
+        void response.body?.cancel();
+        return;
+      }
+      if (response.status === 401 || response.status === 403) {
+        model.dashboard = undefined;
+        model.system = undefined;
+        model.clients = undefined;
+        model.connections = undefined;
+        dialogs.closeCredential();
+        location.replace("/icloud/sign-in");
+        return;
+      }
+      if (!response.ok) throw Error();
+      const next = await response.json();
+      if (generation !== navigationGeneration) return;
+      if (toast.dialogs > 0 || model.busy) {
+        restore();
+        return;
+      }
+      model.acceptDashboard(next);
+      dialogs.closeCredential();
+      model.moduleDialog = undefined;
+      model.requirementDialog = undefined;
+      model.pendingConnection = undefined;
+      model.revokeAccount = "";
+      model.discardPolicy();
+      model.activeView = destination as AdminState["view"];
+      view = destination as typeof view;
+      if (push && location.pathname !== href)
+        router ? router.push(href) : history.pushState(null, "", href);
+      await tick();
+      updateMarker();
+      void model.refreshAll();
+    } catch {
+      if (generation !== navigationGeneration) return;
+      if (!push) {
+        const current = links.find(([, , key]) => key === view);
+        if (current)
+          router
+            ? router.replace(current[0]!)
+            : history.replaceState(null, "", current[0]);
+      }
+      toast.push("statusError", "error");
+    } finally {
+      if (generation === navigationGeneration) navigating = false;
+    }
+  }
+  function tabNavigation(destination: string, href: string, event: MouseEvent) {
+    if (
+      !pageState.admin ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+    event.preventDefault();
+    void navigate(destination, href);
+  }
+  $effect(() => {
+    void view;
+    if (navigation)
+      untrack(() => {
+        void tick().then(updateMarker);
+      });
+  });
   onMount(() => {
     const stop = model.start();
-    if (!state.admin) {
+    const pop = () => {
+      const target = links.find(([href]) => href === location.pathname);
+      if (target) void navigate(target[2]!, target[0]!, false);
+      else location.reload();
+    };
+    window.addEventListener("popstate", pop);
+    const resize = new ResizeObserver(updateMarker);
+    if (navigation) resize.observe(navigation);
+    void document.fonts.ready.then(updateMarker);
+
+    updateMarker();
+
+    if (!pageState.admin) {
       model.systemLoading = false;
       model.accountsLoading = false;
       model.clientsLoading = false;
@@ -54,19 +178,24 @@
         )
       )
         model.requirementDialog = "owner";
-      if (state.mode === "account")
+      if (pageState.mode === "account")
         dialogs.openCredential("app-password", { mode: "add" });
     }
-    return stop;
+    return () => {
+      stop();
+      resize.disconnect();
+      window.removeEventListener("popstate", pop);
+    };
   });
 </script>
 
 <svelte:head
-  ><style>@view-transition{navigation:auto}@media(prefers-reduced-motion:reduce){@view-transition{navigation:none}}</style><title>{t(state.admin ? "titleAdmin" : "titleSetup")}</title></svelte:head
+  ><title>{t(pageState.admin ? "titleAdmin" : "titleSetup")}</title
+  ></svelte:head
 >
 <main
   id="wizard"
-  data-admin={state.admin}
+  data-admin={pageState.admin}
   data-view={view}
   data-sveltekit-reload
   aria-busy={model.busy}
@@ -74,156 +203,187 @@
   <Brand>{t("brand")}</Brand><a class="skip-link" href="#page-content"
     >{t("skipContent")}</a
   >
-  <div class="nav-bar">
-  {#if state.enrolled}<nav class="shell-nav" aria-label="iCloud">
-      {#each links as [href, key, destination]}<a
-          {href}
-          aria-current={view === destination ? "page" : undefined}>{#if view===destination}<span class="active-indicator" aria-hidden="true"></span>{/if}<span class="tab-label">{t(key)}</span></a
-        >{/each}
-    </nav>{/if}
-  <LanguageMenu/>
-  </div>
-  <div id="page-content" tabindex="-1">
-    <div class="page-heading">
-      <h1>{t(heading)}</h1>
-      {#if view === "overview"}<RefreshButton
-          id="overview-refresh"
-          label={t("refreshPage")}
-          busy={model.busy}
-          onclick={() => void model.run(() => model.refreshCard("all"))}
-        />{/if}
-    </div>
-    {#if view === "overview" || !state.admin}<Overview
-        {model}
-        {dialogs}
-        setup={!state.admin}
-      />
-    {:else if view === "accounts"}<section class="card">
-        <header class="card-header">
-          <h2>{t("accountsTitle")}</h2>
-          <RefreshButton
-            label={t("refreshAccounts")}
-            busy={model.busy}
-            onclick={() => void model.run(() => model.refreshCard("accounts"))}
-          />
-        </header>
-        <div id="accounts" role="list">
-          {#each model.dashboard?.accounts ?? [] as account}<article
-              role="listitem"
-              class="account-row"
-            >
-              <h3>
-                {account.label === account.user
-                  ? account.user
-                  : account.label + " · " + account.user}
-              </h3>
-              <p>
-                {t(
-                  account.credentialStored
-                    ? "credentialSaved"
-                    : "credentialMissing",
-                )}
-              </p>
-              <div class="actions">
-                <button
-                  type="button"
-                  class="secondary"
-                  onclick={() =>
-                    dialogs.openCredential("app-password", {
-                      accountId: account.id,
-                      mode: "rotate",
-                    })}>{t("editAppPassword")}</button
-                ><button
-                  type="button"
-                  class="secondary"
-                  onclick={() =>
-                    dialogs.openCredential("apple-account", {
-                      accountId: account.id,
-                    })}>{t("openAppleSession")}</button
-                ><button
-                  type="button"
-                  class="danger"
-                  onclick={() => (model.revokeAccount = account.id)}
-                  >{t("revoke")}</button
-                >
-              </div>
-            </article>{/each}
-        </div>
-        <button
-          type="button"
-          class="secondary"
-          onclick={() =>
-            dialogs.openCredential("app-password", { mode: "add" })}
-          >{t("addAccount")}</button
+  <div class="shell-toolbar"><LanguageMenu /></div>
+  <div class="admin-layout">
+    <div class="nav-bar">
+      {#if pageState.enrolled}<nav
+          class="shell-nav"
+          aria-label="iCloud"
+          bind:this={navigation}
+          aria-busy={navigating}
         >
-      </section>
-    {:else if view === "connections"}<section class="card">
-        <header class="card-header">
-          <h2>{t("connectionsTitle")}</h2>
-          <RefreshButton
-            label={t("refreshAccounts")}
+          <span
+            class="active-indicator"
+            aria-hidden="true"
+            style:top={markerTop + "px"}
+            style:height={markerHeight + "px"}
+          ></span>
+          {#each links as [href, key, destination]}<a
+              {href}
+              title={t(key)}
+              aria-label={t(key)}
+              onclick={(event) => tabNavigation(destination, href, event)}
+              aria-current={view === destination ? "page" : undefined}
+              ><DesignIcon
+                name={destination === "overview"
+                  ? "panels-top-left"
+                  : destination === "accounts"
+                    ? "circle-dot"
+                    : destination === "connections"
+                      ? "git-branch"
+                      : "settings"}
+                size="1.25rem"
+              /></a
+            >{/each}
+        </nav>{/if}
+    </div>
+    <div id="page-content" tabindex="-1">
+      <div class="page-heading">
+        <h1>{t(heading)}</h1>
+        {#if view === "overview"}<RefreshButton
+            id="overview-refresh"
+            label={t("refreshPage")}
             busy={model.busy}
-            onclick={() => void model.run(() => model.refreshCard("accounts"))}
-          />
-        </header>
-        <p>{t("connectionsHelp")}</p>
-        <div id="connections-list" tabindex="-1">
-          <AdminDashboard {model} view="connections" />
-        </div>
-        <details>
-          <summary>{t("registrationHistory")}</summary>
-          <div id="registrations-list">
-            <AdminDashboard {model} view="registrations" />
+            onclick={() => void model.run(() => model.refreshCard("all"))}
+          />{/if}
+      </div>
+      {#if view === "overview" || !pageState.admin}<Overview
+          {model}
+          {dialogs}
+          setup={!pageState.admin}
+        />
+      {:else if view === "accounts"}<section class="card">
+          <header class="card-header">
+            <h2>{t("accountsTitle")}</h2>
+            <RefreshButton
+              label={t("refreshAccounts")}
+              busy={model.busy}
+              onclick={() =>
+                void model.run(() => model.refreshCard("accounts"))}
+            />
+          </header>
+          <div id="accounts" role="list">
+            {#each model.dashboard?.accounts ?? [] as account}<article
+                role="listitem"
+                class="account-row"
+              >
+                <h3>
+                  {account.label === account.user
+                    ? account.user
+                    : account.label + " · " + account.user}
+                </h3>
+                <p>
+                  {t(
+                    account.credentialStored
+                      ? "credentialSaved"
+                      : "credentialMissing",
+                  )}
+                </p>
+                <div class="actions">
+                  <button
+                    type="button"
+                    class="secondary"
+                    onclick={() =>
+                      dialogs.openCredential("app-password", {
+                        accountId: account.id,
+                        mode: "rotate",
+                      })}>{t("editAppPassword")}</button
+                  ><button
+                    type="button"
+                    class="secondary"
+                    onclick={() =>
+                      dialogs.openCredential("apple-account", {
+                        accountId: account.id,
+                      })}>{t("openAppleSession")}</button
+                  ><button
+                    type="button"
+                    class="danger"
+                    onclick={() => (model.revokeAccount = account.id)}
+                    >{t("revoke")}</button
+                  >
+                </div>
+              </article>{/each}
+          </div>
+          <button
+            type="button"
+            class="secondary"
+            onclick={() =>
+              dialogs.openCredential("app-password", { mode: "add" })}
+            >{t("addAccount")}</button
+          >
+        </section>
+      {:else if view === "connections"}<section class="card">
+          <header class="card-header">
+            <h2>{t("connectionsTitle")}</h2>
+            <RefreshButton
+              label={t("refreshAccounts")}
+              busy={model.busy}
+              onclick={() =>
+                void model.run(() => model.refreshCard("accounts"))}
+            />
+          </header>
+          <p>{t("connectionsHelp")}</p>
+          <div id="connections-list" tabindex="-1">
+            <AdminDashboard {model} view="connections" />
+          </div>
+          <details>
+            <summary>{t("registrationHistory")}</summary>
+            <div id="registrations-list">
+              <AdminDashboard {model} view="registrations" />
+            </div>
+          </details>
+        </section>
+        <details class="card readiness">
+          <summary id="readiness-title">{t("readinessTitle")}</summary>
+          <p>{t("readinessHelp")}</p>
+          <label for="readiness-account">{t("readinessAccount")}</label><select
+            id="readiness-account"
+            bind:value={model.readinessAccount}
+            ><option value="">{t("chooseContext")}</option
+            >{#each model.dashboard?.accounts ?? [] as account}<option
+                value={account.id}
+                >{account.label + " · " + account.user}</option
+              >{/each}</select
+          ><label for="readiness-client">{t("readinessClient")}</label><select
+            id="readiness-client"
+            bind:value={model.readinessClient}
+            ><option value="">{t("chooseContext")}</option
+            >{#each model.clients ?? [] as client}<option
+                value={client.clientId}>{client.name ?? client.clientId}</option
+              >{/each}</select
+          >
+          <div id="readiness-results">
+            <AdminDashboard {model} view="readiness" />
           </div>
         </details>
-      </section>
-      <details class="card readiness">
-        <summary id="readiness-title">{t("readinessTitle")}</summary>
-        <p>{t("readinessHelp")}</p>
-        <label for="readiness-account">{t("readinessAccount")}</label><select
-          id="readiness-account"
-          bind:value={model.readinessAccount}
-          ><option value="">{t("chooseContext")}</option
-          >{#each model.dashboard?.accounts ?? [] as account}<option
-              value={account.id}>{account.label + " · " + account.user}</option
-            >{/each}</select
-        ><label for="readiness-client">{t("readinessClient")}</label><select
-          id="readiness-client"
-          bind:value={model.readinessClient}
-          ><option value="">{t("chooseContext")}</option
-          >{#each model.clients ?? [] as client}<option value={client.clientId}
-              >{client.name ?? client.clientId}</option
-            >{/each}</select
-        >
-        <div id="readiness-results">
-          <AdminDashboard {model} view="readiness" />
-        </div>
-      </details>
-    {:else if view === "system"}<section class="card">
-        <header class="card-header">
-          <h2>{t("systemTitle")}</h2>
-          <RefreshButton
-            id="system-refresh"
-            label={t("refreshService")}
-            busy={model.busy}
-            onclick={() => void model.run(() => model.refreshCard("service"))}
-          />
-        </header>
-        <p>{t("systemHelp")}</p>
-        <div id="system-content"><AdminDashboard {model} view="system" /></div>
-        <SystemReset available={state.resetAvailable}/>
-        <div class="actions">
-          <button
-            class="secondary"
-            onclick={() => (model.requirementDialog = "tailscale")}
-            >{t("tailscaleSetup")}</button
-          >{#if state.photosConfigured}<button
+      {:else if view === "system"}<section class="card">
+          <header class="card-header">
+            <h2>{t("systemTitle")}</h2>
+            <RefreshButton
+              id="system-refresh"
+              label={t("refreshService")}
+              busy={model.busy}
+              onclick={() => void model.run(() => model.refreshCard("service"))}
+            />
+          </header>
+          <p>{t("systemHelp")}</p>
+          <div id="system-content">
+            <AdminDashboard {model} view="system" />
+          </div>
+          <SystemReset available={pageState.resetAvailable} />
+          <div class="actions">
+            <button
               class="secondary"
-              onclick={() => (model.requirementDialog = "photos")}
-              >{t("photosPermissions")}</button
-            >{/if}
-        </div>
-      </section>{/if}
+              onclick={() => (model.requirementDialog = "tailscale")}
+              >{t("tailscaleSetup")}</button
+            >{#if pageState.photosConfigured}<button
+                class="secondary"
+                onclick={() => (model.requirementDialog = "photos")}
+                >{t("photosPermissions")}</button
+              >{/if}
+          </div>
+        </section>{/if}
+    </div>
   </div>
   <noscript><p class="error">{t("noScript")}</p></noscript>
 </main>
@@ -290,8 +450,26 @@
 >
 
 <style>
-  .nav-bar{display:flex;align-items:flex-start;gap:.75rem;border-bottom:1px solid var(--ui-border);margin:1rem 0}
-  .nav-bar .shell-nav{flex:1;min-width:0;margin:0;border:0}
+  .shell-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0.75rem 0;
+  }
+  .admin-layout {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .nav-bar {
+    position: sticky;
+    top: 1rem;
+    margin: 0;
+  }
+  .nav-bar .shell-nav {
+    margin: 0;
+    border: 0;
+  }
 
   .page-heading,
   .card-header {

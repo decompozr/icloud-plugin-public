@@ -44,4 +44,5 @@
       animation: none;
     }
   }
+  @media(pointer:coarse){button{min-width:44px;min-height:44px}button :global(svg){width:24px;height:24px}}
 </style>

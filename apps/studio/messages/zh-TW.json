@@ -510,5 +510,6 @@
   "requirementState_todo": "待完成",
   "requirementState_waiting": "請先完成前一步",
   "requirementState_checking": "檢查中",
-  "requirementState_error": "需要處理"
+  "requirementState_error": "需要處理",
+  "copyRuntimeFolder": "複製執行資料夾"
 }

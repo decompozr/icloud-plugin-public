@@ -43,8 +43,11 @@ are served, through a file allowlist; server chunks/configuration are not public
 `bun bin/typecheck`, `bun bin/test` and `bun bin/e2e` cover the corresponding
 checks. Studio tests verify concurrent bilingual SSR, nonce CSP, safe serialization,
 raw protocol forwarding and catalog parity. The browser fixture uses production
-Kit assets and disposable dummy accounts. Navigation uses document reloads to
-revalidate owner authority and clear volatile secrets on each page boundary.
+Kit assets and disposable dummy accounts. Admin navigation keeps one Svelte shell and icon rail mounted. Each view change
+revalidates owner authority through the existing private status API before using
+SvelteKit shallow history; expired sessions clear cached private data and redirect.
+Modal and draft guards preserve pending operations. Direct links and non-admin
+navigation retain server-side authority checks.
 No client-side data route bypass is mounted on the public/private listeners.
 
 See [migration phases](../../docs/svelte-migration.md) for rollout and acceptance.
