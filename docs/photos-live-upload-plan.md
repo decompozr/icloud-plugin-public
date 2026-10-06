@@ -1,5 +1,32 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## App Intent candidate: SDK and installed-action preflight — 2026-10-06
+
+At the owner's request, tested the postToSharedAlbum candidate without UI or an
+account operation. A Swift SDK positive probe referencing
+AppSchema.Intent.photos.postToSharedAlbum typechecks successfully. A separate
+negative probe attempting perform() fails with `some AppSchemaIntent has no
+member perform`. This verifies the schema reference is available but is not an
+executable Photos publication intent. [Apple's implementation contract](https://developer.apple.com/documentation/appintents/appschema/photosintent/posttosharedalbum)
+requires the adopting app to implement perform; an empty result cannot publish.
+
+Fresh bounded installed metadata inventory covers SiriPhotosAppIntentsExtension
+(2 actions), PhotosReliveWidget (2 actions) and ActionKit (19 actions). None contains
+postToSharedAlbum. The Siri Photos extension exposes its extension entry and
+UpdatePhotoWarmthTool. This is not an exhaustive dynamic action registry or an
+iOS availability claim. Five existing shortcuts were listed; none is identifiable
+as the required posting workflow from its name. No shortcut was run, imported,
+signed or modified, and no private framework execution API was invoked.
+
+The supported Shortcuts CLI runs an existing named workflow and does not expose
+direct schema execution or action discovery. RunSystemShortcutIntent is unavailable
+on macOS in the installed SDK. Consequently an Apple-provided executable posting
+action or an inspectable no-UI shortcut with exact asset/destination semantics is
+still missing. No live App Intent publishing test occurred; no production code
+was changed to wrap an unimplemented backend. Existing original-MCP and no-UI
+boundaries remain active. Private evidence records probe sources, diagnostics,
+metadata hashes and inventory limits.
+
 ## Required acceptance: automated publication without UI — 2026-10-06
 
 The owner requires the agent to complete sharing automatically, with no human UI

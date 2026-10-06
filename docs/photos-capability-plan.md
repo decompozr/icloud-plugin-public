@@ -1,5 +1,14 @@
 # Photos capability: active remote delivery plan and evidence
 
+## App Intent experiment: schema is not an executable publisher — 2026-10-06
+
+Fresh SDK probes accept the postToSharedAlbum schema reference but reject calling
+perform on that schema. Bounded installed metadata for Siri Photos, Photos widget
+and ActionKit contains no corresponding publication action. Existing shortcuts
+do not identify a compatible workflow; none was executed. No UI/account operation
+or production implementation resulted. [Evidence and precise missing prerequisite](photos-live-upload-plan.md#app-intent-candidate-sdk-and-installed-action-preflight--2026-10-06)
+keep dynamic-action availability unresolved rather than claiming universal absence.
+
 ## Required acceptance: fully automated, no UI — 2026-10-06
 
 The owner requires completion by the agent without human interaction or computer
