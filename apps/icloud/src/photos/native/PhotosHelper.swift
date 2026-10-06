@@ -35,12 +35,7 @@ func run(_ input: [String: Any]) throws -> [String: Any] {
     let assets = try fetchAssets(ids)
     let album = try (mutation["albumId"] as? String).map { try fetchAlbum($0) }
     let isShared = (mutation["albumId"] as? String)?.contains(":shared:") ?? false
-    if action == "post_to_shared_album" {
-        guard command == "probe", mutation["nativeUI"] as? Bool == true,
-              assets.count == 1, let album, album.assetCollectionSubtype == .albumCloudShared else { try fail("native_ui_opt_in_required") }
-        guard #available(macOS 27.0, *) else { try fail("native_sharing_os_unsupported") }
-        return ["supported": true, "requiresNativeUI": true, "serverSyncVerified": false]
-    }
+    if action == "post_to_shared_album" || isShared || album?.assetCollectionSubtype == .albumCloudShared { try fail("shared_album_write_unsupported") }
     // Never substitute an ordinary album if a Shared Album cannot be resolved.
     if let album = album {
         if isShared && album.assetCollectionSubtype != .albumCloudShared { try fail("shared_album_write_unsupported") }
@@ -101,12 +96,9 @@ do {
     if CommandLine.arguments.contains("--authorize") { _ = NSApplication.shared }
     let data = CommandLine.arguments.contains("--authorize") ? Data("{\"command\":\"authorize\"}".utf8) : FileHandle.standardInput.readDataToEndOfFile()
     guard data.count <= 65536, let input = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { try fail("invalid_request") }
-    if input["command"] as? String == "shared_review" { NSApplication.shared.setActivationPolicy(.regular) }
-    let session: AnyObject? = input["command"] as? String == "shared_review" ? try prepareSharedPostingSession(input) : nil
-    let output: [String: Any] = session != nil ? ["operationId": input["operationId"]!, "status": "review_pending", "localReadbackVerified": false, "serverSyncVerified": false] : try run(input)
+    let output = try run(input)
     print(String(data: try JSONSerialization.data(withJSONObject: ["ok": true, "result": output], options: [.sortedKeys]), encoding: .utf8)!)
     fflush(stdout)
-    if let session { presentSharedPostingSession(session); NSApplication.shared.run(); withExtendedLifetime(session) {} }
 } catch {
     let code = (error as? Failure)?.code ?? "native_operation_failed"
     print(String(data: try! JSONSerialization.data(withJSONObject: ["ok": false, "error": code]), encoding: .utf8)!)

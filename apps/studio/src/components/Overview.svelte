@@ -173,10 +173,8 @@
             > <button type="button" class="secondary icon-button configure-button" aria-label={t('moduleConfigure')+' '+module.title} title={t('moduleConfigure')} disabled={!model.state.enrolled||model.busy} onclick={()=>openModule(module.id)}><Icon name="settings"/></button>
           </div>
         </div>{/each}{/if}
-    <div class="module-summary" data-testid="photos-unsupported">
-      <div><h3>{t("photosTitle")}</h3><p>{t("photosUnsupported")}</p></div>
-      <label class="module-toggle"><span class="sr-only">{t("photosTitle")}</span><input type="checkbox" checked={false} disabled aria-label={t("photosTitle") + " " + t("photosUnsupported")} /></label>
-    </div>
+
+    {#if modules.some(module=>module.id==='photos')}<p class="muted" data-testid="photos-shared-write-unsupported">{t("photosUnsupported")}</p>{/if}
     {#if model.dashboardFailed}<p class="muted">{t("freshnessFailed")}</p>{/if}
   </section>
 </div>

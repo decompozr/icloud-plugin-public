@@ -1,21 +1,22 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "icloud-plugin",
-  "version": "0.1.66",
-  "description": "Manage iCloud Mail and Calendar through one locally hosted MCP server.",
+  "version": "0.1.67",
+  "description": "Manage iCloud Mail, Calendar and Photos. Shared Album writes are unsupported.",
   "license": "MIT",
   "keywords": [
     "email",
     "calendar",
     "icloud",
-    "productivity"
+    "productivity",
+    "photos"
   ],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "iCloud Plugin",
-        "shortDescription": "iCloud Mail & Calendar",
-        "longDescription": "Manage iCloud Mail and Calendar through one locally hosted MCP server.",
+        "shortDescription": "iCloud Mail, Calendar & Photos",
+        "longDescription": "Manage iCloud Mail, Calendar and Photos. Shared Album writes are unsupported.",
         "category": "Productivity",
         "defaultPrompt": "List my recent emails without changing their read status.",
         "logo": "./assets/plugin-icon.png",

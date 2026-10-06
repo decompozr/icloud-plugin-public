@@ -9,7 +9,7 @@ test('Photos global policy defaults disabled within the configured ceiling witho
   const module=createPhotosAdmin({database:db,store:{ownerId:()=>owner},ceiling:{read:true,write:true,delete:false}});
   expect(module.policy()).toEqual(disabled);expect(db.query('SELECT * FROM photos_admin_policy').all()).toEqual([]);
   owner='owner';expect(module.policy()).toEqual(disabled);
-  expect(module.admin.id).toBe('photos');expect(module.admin.title).toBe('Mac Photos library');expect(module.admin.fields.map(field=>field.id)).toEqual(['read','write','delete']);
+  expect(module.admin.id).toBe('photos');expect(module.admin.title).toBe('Photos');expect(module.admin.fields.map(field=>field.id)).toEqual(['read','write','delete']);
   expect(db.query('SELECT * FROM fixture_grants').all()).toEqual([{id:'client',scope:'photos.read'}]);
  }finally{db.close();}
 });

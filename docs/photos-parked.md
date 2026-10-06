@@ -1,10 +1,12 @@
-# Photos parked: knowledge and resumption record
+# Shared Album writes parked: knowledge and resumption record
 
-Status: parked by the owner on 2026-10-06. This supersedes all earlier pending/running instructions in the chronological experiment notes. No more publication, retry, permission request or experiment is scheduled. The product goal remains incomplete.
+Status: Shared Album writes are parked by the owner. On 2026-10-06 the owner narrowed the earlier whole-Photos removal: restore ordinary Photos, with the fine print “Shared Album writes are unsupported.” Existing experimental publication remains incomplete; no further sharing experiment is scheduled.
 
 ## Production boundary
 
-Photos is removed from application composition, compiled module entries, Python/native sidecars and downloadable plugin skills. Admin retains a disabled Photos row explaining that it is unsupported. Mail and Calendar remain composed. Legacy Photos configuration is accepted for compatibility but cannot activate the module. Stored operation journals, provider custody and database rows are preserved for recovery; retaining these records does not enable Photos. Installed Helper and experiment apps are removed and their exact bundle-ID permissions reset. Existing release backups remain rollback evidence, not active components.
+Photos reads, ordinary album organization, metadata and separately controlled deletion remain available under existing policies. The admin label is Photos. Shared cloud tools, upload staging/sidecars and native posting UI are excluded from production. The tool schema omits posting; prepare/apply reject shared destinations, including historical plans, and the reduced native Helper rejects actual shared collections. Ordinary album membership reuses existing assets without exporting or rebuilding media.
+
+The Photos-only Helper is rebuilt from source. Earlier experimental apps and their permissions were removed; renewed ordinary Photos consent may be required. Shared operation journals, uncertainty interlocks, provider custody and database rows remain preserved for recovery. Publication source/tests remain archived; fixture success is not live acceptance. Previous whole-module removal was deployed as 0.1.66 and is superseded by the local-only restoration.
 
 ## Consolidated experiment evidence
 
@@ -36,13 +38,13 @@ The desired final outcome is automated posting from existing Photos assets witho
 - [Chronological Live Photo research and decisions](photos-live-upload-plan.md).
 - [Capability plan and earlier acceptance boundaries](photos-capability-plan.md).
 - [Standalone experiment source, protocol and references](../playground/photos/picker-input-experiment/README.md).
-- Archived production implementation and tests: `apps/icloud/src/photos/`; excluded from releases.
+- Archived publication implementation/tests: `apps/icloud/src/photos/shared-*`, `cloud-*`, `archived-sharing-module.ts` and native `SharedAlbumPosting.swift`; publication modules are excluded from releases. Ordinary Photos and read-only recovery utilities remain deployed.
 - Private evidence: `.flow-runtime/native-sharing/picker-input-experiment/evidence/`, API probes and requests; `.flow-runtime/native-sharing/rebirth-after-refresh/` contains deployment and handoff receipts; `parked/` holds shutdown, permission, build and deployment evidence.
 - Private `state.json` retains exact original/replacement source and destination IDs, uncertain operations and recovery locations. Never copy those identifiers into public docs.
 
 ## Resume checklist
 
-1. Obtain an explicit request to resume. Read this record and private state before changing anything; preserve unknown-outcome interlocks.
+1. Obtain an explicit request to resume Shared Album writes. Read this record and private state before changing anything; preserve unknown-outcome interlocks.
 2. Revalidate current target identity and upgraded protocol. Do not recreate the old Shared Album or substitute another destination. Do not assume historical permissions survive cleanup.
 3. Reconcile the unexpected-destination callback read-only before any further posting. Preserve original library assets and shared copies until separately authorized.
 4. Establish a successful controlled baseline with actual media, exact destination and explicit posting consent; fix the standalone App's stale read-only purpose string before any future posting build. Swift link checks had warnings and were not warning-free Swift 6 acceptance.

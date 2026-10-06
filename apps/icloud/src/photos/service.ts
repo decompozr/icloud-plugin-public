@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import {mutationSchema,catalogSchema,remoteDecisionsSchema,reviewSummarySchema,sharedObservationSchema,assetSchema,PhotosError,type PhotosProvider,type Mutation,type CleanupCandidate} from './contracts.js';
 import {z} from 'zod';
 import {reviewDecision} from './shared-review.js';
-import {initializeSharedAlbumLedger} from './shared-albums.js';
+import {initializeSharedAlbumLedger} from './shared-ledger.js';
 export interface PhotosPolicy {read:boolean;write:boolean;delete:boolean}
 interface Row {id:string;owner:string;mutation:string;snapshot:string;status:string;result:string|null;expires:number}
 /** Durable single-use plans. Unknown writes are never automatically resubmitted. */
@@ -17,14 +17,14 @@ export class PhotosService {
  async read(command:string,input:unknown){this.check();return this.provider.read(command,input);}
  async prepareRemote(raw:unknown){
   const intent=mutationSchema.parse(raw);
-  if(intent.action==='post_to_shared_album'&&!intent.nativeUI)throw new PhotosError('remote_shared_album_posting_unavailable');
+  if(intent.action==='post_to_shared_album'||('albumId' in intent&&intent.albumId.includes(':shared:')))throw new PhotosError('shared_album_write_unsupported');
   return this.prepare(raw);
  }
  async applyRemote(id:string,confirm:boolean,allowDelete=false){
   const owner=this.check(true),row=this.db.query('SELECT mutation FROM photos_operations WHERE id=? AND owner=?').get(id,owner) as {mutation:string}|null;
   if(!row)throw new PhotosError('operation_not_found');
   const intent=mutationSchema.parse(JSON.parse(row.mutation));
-  if(intent.action==='post_to_shared_album'&&!intent.nativeUI)throw new PhotosError('remote_shared_album_posting_unavailable');
+  if(intent.action==='post_to_shared_album'||('albumId' in intent&&intent.albumId.includes(':shared:')))throw new PhotosError('shared_album_write_unsupported');
   return this.apply(id,confirm,allowDelete);
  }
  /** Remote review reads metadata only. Images use photos_preview in the conversation. */

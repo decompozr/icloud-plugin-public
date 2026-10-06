@@ -6,7 +6,7 @@ import {ModuleRuntime} from '../modules/runtime.js';
 import {createServer} from '../mcp/server.js';
 import {createPrivateAdmin,type AdminOptions} from '../admin/handler.js';
 import {createPhotosAdmin} from './admin.js';
-import {photosRegistration} from './module.js';
+import {photosRegistration} from './archived-sharing-module.js';
 import {PhotosService} from './service.js';
 import type {PhotosProvider} from './contracts.js';
 

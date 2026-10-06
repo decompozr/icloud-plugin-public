@@ -16,7 +16,7 @@ try{
  await cp(join(root,'apps/studio/project.inlang/settings.json'),join(context,'apps/studio/project.inlang/settings.json'));
  await mkdir(join(context,'apps/icloud/assets'),{recursive:true});
  for(const name of ['plugin-icon.png','inter.ttf','inter-OFL.txt'])await cp(join(root,'apps/icloud/assets',name),join(context,'apps/icloud/assets',name));
- for(const skill of ['icloud-mail','icloud-calendar']){
+ for(const skill of ['icloud-mail','icloud-calendar','icloud-photos']){
   await mkdir(join(context,'skills',skill),{recursive:true});
   await cp(join(root,'skills',skill,'SKILL.md'),join(context,'skills',skill,'SKILL.md'));
  }
