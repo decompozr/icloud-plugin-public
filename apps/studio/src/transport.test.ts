@@ -130,12 +130,9 @@ test("originless form token exchange and refresh reach authoritative OAuth handl
   }
 });
 
-test('parked Photos stays visible with a disabled control and localized unsupported reason',async()=>{
+test('Photos remains configured with localized shared-write fine print',async()=>{
  for(const [locale,copy] of [['en',en],['zh-TW',zh]] as const){
-  const response=await studio.admin(new Request('https://private.example.invalid/icloud/admin',{headers:{cookie:'PARAGLIDE_LOCALE='+locale}}),{enrolled:true,ready:true,admin:true,view:'overview'});
-  const html=await response.text();
-  expect(html).toContain('data-testid="photos-unsupported"');
-  expect(html).toContain(copy.photosUnsupported);
-  expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*disabled[^>]*aria-label="[^"]*Photos|<input[^>]*type="checkbox"[^>]*disabled[^>]*aria-label="[^"]*照片/);
+  const response=await studio.admin(new Request('https://private.example.invalid/icloud/admin',{headers:{cookie:'PARAGLIDE_LOCALE='+locale}}),{enrolled:true,ready:true,admin:true,view:'overview',modules:[{id:'photos',title:'Photos',fields:[{id:'read',label:'Read'}]}]});
+  const html=await response.text();expect(html).toContain('data-testid="photos-shared-write-unsupported"');expect(html).toContain(copy.photosUnsupported);expect(html).not.toContain('Mac Photos library');
  }
 });

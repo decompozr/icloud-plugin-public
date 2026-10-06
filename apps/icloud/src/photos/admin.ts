@@ -46,5 +46,5 @@ export function createPhotosAdmin(options:{database:Database;store:Pick<OwnerSec
  };
  // Apply a restrictive configuration change at activation, retaining prior owner intent.
  policy();
- return{policy,admin:{id:'photos',title:'Mac Photos library',fields,capabilities:()=>({...policy()}),updateCapabilities}};
+ return{policy,admin:{id:'photos',title:'Photos',fields,capabilities:()=>({...policy()}),updateCapabilities}};
 }

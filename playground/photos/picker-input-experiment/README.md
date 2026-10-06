@@ -1,6 +1,6 @@
 # Photos picker input experiment
 
-> **Parked by the owner (2026-10-06).** Production Photos is removed; experiments are stopped. Historical running/pending instructions below are superseded. See [consolidated evidence, unresolved challenges and resume checklist](../../../docs/photos-parked.md).
+> **Shared Album writes parked (2026-10-06).** Ordinary Photos is restored; publication experiments remain stopped. Historical running/pending instructions below are superseded. See [consolidated evidence, unresolved challenges and resume checklist](../../../docs/photos-parked.md).
 
 Standalone macOS 27 AppKit/SwiftUI application for comparing two public Photos inputs for up to twelve user-selected existing Live Photos:
 

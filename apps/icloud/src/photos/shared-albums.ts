@@ -24,10 +24,8 @@ export const sharedAlbumIntent=z.discriminatedUnion('action',[
 type Intent=z.infer<typeof sharedAlbumIntent>;
 type Session=SharedStreamSession&{generation:number;accountRevision:number};
 interface Row{id:string;owner:string;account:string;intent:string;albumGuid:string;snapshot:string;status:string;result:string|null;expires:number;started:number}
-export function initializeSharedAlbumLedger(db:Database){db.exec(`CREATE TABLE IF NOT EXISTS photos_shared_operations (
- id TEXT PRIMARY KEY,owner TEXT NOT NULL,account TEXT NOT NULL,intent TEXT NOT NULL,
- albumGuid TEXT NOT NULL,snapshot TEXT NOT NULL,status TEXT NOT NULL,result TEXT,expires INTEGER NOT NULL,started INTEGER NOT NULL DEFAULT 0);
- CREATE TABLE IF NOT EXISTS photos_shared_uploads(operationId TEXT PRIMARY KEY,source TEXT NOT NULL,assetGuid TEXT NOT NULL,batchGuid TEXT NOT NULL,submittedAt TEXT NOT NULL,timeZone TEXT NOT NULL,stage TEXT NOT NULL,jobId TEXT)`);}
+export {initializeSharedAlbumLedger} from './shared-ledger.js';
+import {initializeSharedAlbumLedger} from './shared-ledger.js';
 
 type HealthRead={id:string;identity:string;started:number;completed?:number;result?:unknown;promise:Promise<void>};
 const activeOperations=new WeakMap<Database,Set<string>>();

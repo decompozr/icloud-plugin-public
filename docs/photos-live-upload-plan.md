@@ -1,6 +1,6 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
-> **Parked by the owner (2026-10-06).** Production Photos is removed; experiments are stopped. Historical running/pending instructions below are superseded. See [consolidated evidence, unresolved challenges and resume checklist](photos-parked.md).
+> **Shared Album writes parked (2026-10-06).** Ordinary Photos is restored; publication experiments remain stopped. Historical running/pending instructions below are superseded. See [consolidated evidence, unresolved challenges and resume checklist](photos-parked.md).
 
 ## Direct original-MCP still upload rejected for upgraded protocol — 2026-10-06
 

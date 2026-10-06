@@ -1,6 +1,6 @@
 # Photos capability: active remote delivery plan and evidence
 
-> **Parked by the owner (2026-10-06).** Production Photos is removed; experiments are stopped. Historical running/pending instructions below are superseded. See [consolidated evidence, unresolved challenges and resume checklist](photos-parked.md).
+> **Shared Album writes parked (2026-10-06).** Ordinary Photos is restored; publication experiments remain stopped. Historical running/pending instructions below are superseded. See [consolidated evidence, unresolved challenges and resume checklist](photos-parked.md).
 
 ## App Intent experiment: schema is not an executable publisher — 2026-10-06
 

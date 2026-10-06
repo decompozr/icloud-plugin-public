@@ -3,7 +3,7 @@ import {Database} from 'bun:sqlite';
 import {SHARED_RECOVERY_GRACE_MS} from './shared-stream-protocol.js';
 import {SharedAlbumService} from './shared-albums.js';
 import {PhotosService} from './service.js';
-import {photosRegistration} from './module.js';
+import {photosRegistration} from './archived-sharing-module.js';
 import {ModuleRuntime} from '../modules/runtime.js';
 const accountId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 function fixture(){
