@@ -1,5 +1,25 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Refreshed metadata accepted; native owner review pending — 2026-10-06
+
+The new native receiver's subsequent automatic turn loads photos_prepare with
+the explicit nativeUI opt-in. Original-MCP health verifies native authorization
+3/true. Exact source readback confirms the approved original Live Photo remains
+intact and unshared. The retained local true Shared Album is empty; a fresh cloud
+membership read is complete, stable, empty, private and owner-only.
+
+The original MCP prepared an exact one-source nativeUI plan. After reviewing the
+source and destination, the receiver applied that operation once. Durable status
+is review_pending with a live native Helper and the exact manifest source. Owner
+interaction with the official picker and sharing window is now required. No
+posting completion, destination membership or iPhone Live playback is verified.
+Private receipts retain the exact operation, source/destination and turn IDs.
+Do not relaunch or create another plan while this operation remains unresolved.
+The earlier metadata blocker is resolved for this loaded sharing declaration;
+connection type and 0.1.60 deployment provenance remain separate unknowns.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Native reincarnation continuation: metadata blocker revalidated — 2026-10-06
 
 The distinct native receiver consumed the full packet and recorded sole ownership.
