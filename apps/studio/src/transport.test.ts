@@ -39,6 +39,14 @@ test("parallel Kit SSR isolates locale and supplies safe bootstrap with no-store
     }
   }
 });
+test("consent CSP permits its own compiled stylesheet and retains nonce script policy",async()=>{
+ const response=await studio.auth(new Request('https://public.example.invalid/icloud/consent'),'consent',false,{});
+ const csp=response.headers.get('content-security-policy')??'';
+ expect(csp.match(/(?:^|;)\s*style-src\s+([^;]+)/)?.[1]).toContain("'self'");
+ expect(csp.match(/(?:^|;)\s*script-src\s+([^;]+)/)?.[1]).toContain("'nonce-");
+ expect(csp).toContain("frame-ancestors 'none'");
+ const html=await response.text();expect(html).toMatch(/rel="stylesheet"[^>]*href="[^"]+\.css"|href="[^"]+\.css"[^>]*rel="stylesheet"/);
+});
 test("Kit API dispatch preserves signed query, JSON body and multiple cookies without locale behavior", async () => {
   const request = new Request(
     "https://public.example.invalid/icloud/auth/oauth2/consent?resource=a&resource=b&sig=fixture",

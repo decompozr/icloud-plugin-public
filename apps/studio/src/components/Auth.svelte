@@ -9,6 +9,7 @@
     destination,
     signIn,
   } from "../lib/auth-protocol.js";
+  import type { DialogCenter, ToastCenter } from "../lib/ui-state.svelte.js";
   import Brand from "./Brand.svelte";
   import Icon from "./Icon.svelte";
   let {
@@ -20,6 +21,8 @@
     privateAdmin?: boolean;
     scopeLabels?: ScopeLabels;
   } = $props();
+  const dialogs = getContext<DialogCenter>("dialogs"),
+    toast = getContext<ToastCenter>("toast");
   const { authT } = getContext<UiCopy>("copy");
   const locale = getContext<{ current: string }>("locale");
   // svelte-ignore state_referenced_locally
@@ -103,7 +106,7 @@
   async function run(action: () => Promise<void>) {
     if (busy) return;
     busy = true;
-    message = "working";
+    message = "";
     error = false;
     try {
       await action();
@@ -111,6 +114,7 @@
     } catch (e) {
       message = e instanceof AuthFailure ? e.key : "actionFailed";
       error = true;
+      toast?.push("auth_" + message, "error");
     } finally {
       busy = false;
     }
@@ -155,19 +159,20 @@
       ).json(),
     );
   }
-  async function add() {
-    const input = {
-      user,
-      appPassword: password,
-      ...(label.trim() ? { label: label.trim() } : {}),
-    };
+  async function addCredential(input: {
+    user: string;
+    appPassword: string;
+    label: string;
+  }) {
     password = "";
     try {
       go(
         await (
           await request("/icloud/connect/add", {
             oauth_query: signedOAuthQuery(location.search),
-            ...input,
+            user: input.user,
+            appPassword: input.appPassword,
+            ...(input.label.trim() ? { label: input.label.trim() } : {}),
           })
         ).json(),
       );
@@ -188,8 +193,10 @@
             e.code ?? "",
           ))
       )
-        throw new AuthFailure("savedReconnect");
-      throw e;
+        throw new Error("auth_savedReconnect");
+      throw new Error(
+        e instanceof AuthFailure ? "auth_" + e.key : "actionError",
+      );
     } finally {
       password = "";
     }
@@ -265,68 +272,13 @@
         hidden={adding}
         disabled={busy}
         onclick={() => {
-          adding = true;
-          queueMicrotask(() =>
-            document.getElementById("connect-email")?.focus(),
-          );
+          dialogs.openCredential("app-password", {
+            mode: "add",
+            accounts,
+            submit: (input) => addCredential(input),
+          });
         }}>{authT("addAccount")}</button
       >
-      <form
-        data-connect-form
-        hidden={!adding}
-        onsubmit={(e) => {
-          e.preventDefault();
-          void run(add);
-        }}
-      >
-        <label for="connect-email">{authT("email")}</label><input
-          id="connect-email"
-          name="user"
-          type="email"
-          required
-          maxlength="320"
-          autocomplete="username"
-          bind:value={user}
-        />
-        <label for="connect-password">{authT("password")}</label><input
-          id="connect-password"
-          name="appPassword"
-          type="password"
-          required
-          maxlength="256"
-          autocomplete="new-password"
-          bind:value={password}
-        /><small>{authT("passwordHelp")}</small>
-        <p>
-          <a
-            href="https://support.apple.com/102654"
-            target="_blank"
-            rel="noreferrer">{authT("appleGuide")}</a
-          >
-        </p>
-        <label for="connect-label">{authT("accountLabel")}</label><input
-          id="connect-label"
-          name="label"
-          maxlength="120"
-          bind:value={label}
-        />
-        <div class="actions">
-          <button class="primary" type="submit" disabled={busy}
-            >{authT("saveAccount")}</button
-          ><button
-            class="secondary"
-            type="button"
-            data-connect-back
-            disabled={busy}
-            onclick={() => {
-              adding = false;
-              user = "";
-              password = "";
-              label = "";
-            }}>{authT("backToAccounts")}</button
-          >
-        </div>
-      </form>
     {:else if mode === "consent"}
       <p class="muted">{authT("introConsent")}</p>
       <p data-auth-account>
@@ -391,15 +343,6 @@
           >{authT(mode === "connect" ? "cancel" : "deny")}</button
         >{/if}
     </div>
-    <p
-      class:error
-      class="status"
-      role="status"
-      aria-live="polite"
-      data-auth-status
-    >
-      {message ? authT(message) : ""}
-    </p>
   </div>
 </main>
 
@@ -413,12 +356,24 @@
     display: flex;
     gap: 0.75rem;
     align-items: flex-start;
-    padding: 0.75rem;
-    border: 1px solid var(--ui-edge);
-    border-radius: 0.375rem;
-    margin: 0.5rem 0;
+    padding: 0.5rem 0;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    margin: 0;
     font-weight: 400;
     cursor: pointer;
+  }
+  .permission-choice:hover {
+    background: var(--ui-soft);
+  }
+  .permission-choice:has(input:focus-visible) {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 2px;
+  }
+  @media (pointer: coarse) {
+    .permission-choice {
+      min-height: 44px;
+    }
   }
   .permission-choice input {
     margin-top: 0.15rem;

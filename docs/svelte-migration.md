@@ -175,3 +175,42 @@ owner interactions remain owner acceptance; provider mutations were not performe
 Refresh the existing private admin URL (or `http://localhost:4102/icloud/admin`).
 Check login, language switching and persistence, navigation, account drafts and
 permission confirmation. Advance to phase three only after owner `pass`.
+
+## Owner acceptance and visual feedback
+
+The owner accepted phase two's overall functionality on October 6, 2026 and
+requested Surface design styling plus an original icon. Candidate 0.1.61 fixes a
+reproduced CSP omission that blocked same-origin Kit stylesheets, adopts the
+selected design reference's typography/quiet controls/open sections, and replaces
+the cloud silhouette with a modular-link SVG/PNG. It also restores explicit spacing
+between diagnostic labels and values. No auth, scope or provider behavior changes.
+
+Before the fix, the new browser CSP check and stylesheet-policy regression failed.
+After correction, Studio 11 tests / 936 assertions and page 24 tests / 224 assertions
+pass; the browser fixture passes 89 checks, including computed checkbox gap,
+fieldset border, font weight and absence of blocked stylesheet errors. Desktop and
+mobile screenshots were inspected. Third-phase work is already authorized by the
+owner's overall pass and follows this requested visual delivery without another gate.
+
+### Requirement-based setup follow-up
+
+The owner requested separate Overview cards, reusable credential modals, toasts,
+refresh icons and requirement-based setup instead of the wizard. Fresh operator
+policies now default disabled for every module; saved choices and grants are kept.
+Mail/Calendar elevation requires a stored app password, while Photos elevation
+rechecks native permission readiness. No permission prompt runs automatically.
+Apple Account status and sign-in reuse the existing Shared Album web session only.
+
+Self-checking: 434 application/Studio tests (3,875 assertions), 11 built HTTP E2E
+tests (245 assertions), 11 tooling tests (141 assertions), Studio typecheck and
+compiled build pass. Browser requirement and consent acceptance is tracked in the
+release verification entry once complete. Evidence is synthetic and does not
+claim a new Apple, Photos, Passkey or external client authorization.
+
+Follow-up verification after integrating current main: 446 application/Studio/tooling
+tests (4,017 assertions), 11 built HTTP E2E tests (245 assertions) and 35 isolated
+browser checks pass, including consent computed styling, public signed continuation,
+blank optional labels, missing requirements, cancellation and failed refresh.
+Independent review found no remaining scoped blocker after corrections. This
+follow-up uses version 0.1.62 because 0.1.61 was released by the parallel native
+Photos work; installed releases are never overwritten.

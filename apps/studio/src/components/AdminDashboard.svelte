@@ -26,7 +26,7 @@
 </script>
 
 {#snippet line(key: string, value: string)}<p>
-    <strong>{t(key)}: </strong>{value}
+    <strong>{t(key)}:</strong>{" "}{value}
   </p>{/snippet}
 {#snippet snapshot(failed: boolean, stamp?: string)}{#if failed}<p
       class="error"

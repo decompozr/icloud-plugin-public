@@ -48,21 +48,22 @@ test('Mail grants and incomplete Photos grants cannot invoke Photos writes or de
 });
 
 test('local and remote Photos admin share policy while each enforces its own owner and mutation origin',async()=>{
- const db=new Database(':memory:');let prompts=0;
+ const db=new Database(':memory:');let prompts=0,permissionsReady=false;
  const module=createPhotosAdmin({database:db,store:{ownerId:()=> 'owner'},ceiling:{read:true,write:true,delete:false}});
  const session=async(headers:Headers)=>{if(headers.get('cookie')!=='owner')throw Error('Owner required');return{user:{id:'owner'}};};
  const store={ownerId:()=> 'owner'} as AdminOptions['store'];
  const origins=['http://localhost:4102','https://fixture.invalid:8443'];
- const admins=origins.map(privateOrigin=>createPrivateAdmin({privateOrigin,store,ownerAuth:{ownerSession:session,enrollmentSession:session},diagnostics:async()=>({installed:false,authenticated:false,online:false,privateReachable:false}),validateCredential:async()=>{},modules:[module.admin],photosSetup:{status:async()=>({ready:false}),action:async()=>{prompts++;return{opened:true};}}}));
+ const admins=origins.map(privateOrigin=>createPrivateAdmin({privateOrigin,store,ownerAuth:{ownerSession:session,enrollmentSession:session},diagnostics:async()=>({installed:false,authenticated:false,online:false,privateReachable:false}),validateCredential:async()=>{},modules:[module.admin],photosSetup:{status:async()=>({ready:permissionsReady}),action:async()=>{prompts++;permissionsReady=true;return{opened:true};}}}));
  const request=(index:number,path:string,body?:unknown,origin=origins[index]!,cookie='owner')=>admins[index]!(new Request(origins[index]+path,{method:body?'POST':'GET',headers:{origin,cookie,...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}));
  try{
+  const denied=await request(0,'/icloud/admin/modules/photos/capabilities',{policy:{read:true,write:false,delete:false},confirmEnable:true});expect(denied.status).toBe(409);expect(await denied.json()).toEqual({error:'PHOTOS_PERMISSIONS_REQUIRED'});expect(prompts).toBe(0);
   for(let index=0;index<2;index++){
    expect((await request(index,'/icloud/admin/photos/status',undefined,origins[index],'')).status).toBe(403);
    expect((await request(index,'/icloud/admin/photos/action',{action:'authorize'},origins[1-index])).status).toBe(403);
    expect((await request(index,'/icloud/admin/photos/action',{action:'authorize'})).status).toBe(200);
   }
   expect(prompts).toBe(2);
-  expect((await request(0,'/icloud/admin/modules/photos/capabilities',{policy:{read:true,write:false,delete:false},confirmEnable:false})).status).toBe(200);
+  expect((await request(0,'/icloud/admin/modules/photos/capabilities',{policy:{read:true,write:false,delete:false},confirmEnable:true})).status).toBe(200);
   expect(module.policy()).toEqual({read:true,write:false,delete:false});
   expect((await request(1,'/icloud/admin/modules/photos/capabilities',{policy:{read:true,write:true,delete:false},confirmEnable:false})).status).toBe(409);
   expect((await request(1,'/icloud/admin/modules/photos/capabilities',{policy:{read:true,write:true,delete:false},confirmEnable:true})).status).toBe(200);

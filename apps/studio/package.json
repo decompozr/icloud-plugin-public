@@ -1,12 +1,13 @@
 {
   "name": "@icloud-plugin/studio",
-  "version": "0.1.61",
+  "version": "0.1.62",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "bun build/build.ts",
     "typecheck": "svelte-check --tsconfig ./tsconfig.json",
-    "test": "bun test src"
+    "test": "bun test src",
+    "render:brand": "bun build/render-brand.ts"
   },
   "dependencies": {
     "@simplewebauthn/browser": "14.0.0",
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@inlang/paraglide-js": "2.25.4",
     "@inlang/plugin-message-format": "4.4.4",
+    "@resvg/resvg-js": "2.6.2",
     "@sveltejs/adapter-node": "6.0.0",
     "@sveltejs/kit": "3.0.1",
     "@sveltejs/vite-plugin-svelte": "7.3.1",

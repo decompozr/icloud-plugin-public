@@ -1,11 +1,15 @@
 <script lang="ts">
   import { getContext, onMount, untrack } from "svelte";
   import type { UiCopy } from "../contracts.js";
+  import type { ToastCenter } from "../lib/ui-state.svelte.js";
   import { z } from "zod";
-  let { active = true }: { active?: boolean } = $props();
+  let {
+    active = true,
+    onverified,
+  }: { active?: boolean; onverified?: (ready: boolean) => void } = $props();
   const { t } = getContext<UiCopy>("copy");
-  let busy = $state(false),
-    message = $state("");
+  const toast = getContext<ToastCenter>("toast");
+  let busy = $state(false);
   const schema = z.object({
     libraryReadable: z.boolean(),
     libraryStatus: z.string(),
@@ -51,16 +55,16 @@
         },
       );
       if (!r.ok) throw Error();
-      if (action) message = "photosPermissionOpened";
+      if (action) toast?.push("photosPermissionOpened", "success");
       else {
         last = schema.parse(await r.json());
+        onverified?.(last.ready);
         checkedAt = new Date().toISOString();
-        message = "";
       }
       failed = false;
     } catch {
       failed = true;
-      message = "photosPermissionFailed";
+      toast?.push("photosPermissionFailed", "error");
     } finally {
       busy = false;
     }
@@ -120,15 +124,9 @@
       <strong>{t("photosVerificationStep")}</strong>
       <p>{t("photosVerificationHelp")}</p>
       <p id="photos-status" role="status" aria-live="polite">
-        {failed && last ? t("photosPreviousResult") + " " : ""}{failed &&
-        last &&
-        result
+        {failed && last ? t("photosPreviousResult") + " " : ""}{result
           ? t(result)
-          : message
-            ? t(message)
-            : result
-              ? t(result)
-              : ""}{checkedAt
+          : ""}{checkedAt
           ? " · " +
             t("photosCheckedAt") +
             " " +

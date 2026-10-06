@@ -19,7 +19,7 @@ export default defineConfig({
         directives: {
           "default-src": ["self"],
           "script-src": ["self"],
-          "style-src": ["unsafe-inline"],
+          "style-src": ["self", "unsafe-inline"],
           "frame-ancestors": ["none"],
           "form-action": ["self"],
           "base-uri": ["none"],

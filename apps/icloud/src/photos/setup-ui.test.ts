@@ -1,16 +1,16 @@
 import {test,expect} from 'bun:test';
 import {createPrivateAdmin} from '../admin/handler.js';
 import {setupPage} from '../admin/page.js';
-import {privacyLinks} from './setup-ui.js';
+import {privacyLinks,photosSetupSection} from './setup-ui.js';
 import type {OwnerSecretStore} from '../storage/owner-store.js';
 test('configured Photos onboarding provides native shortcuts, remote Mac guidance and a recheck',()=>{
- const html=setupPage({enrolled:true,ready:true,admin:true,view:'system',photosConfigured:true});
+ const html=photosSetupSection();
  expect(html).toContain(privacyLinks.photos);expect(html).toContain(privacyLinks.files);expect(html).toContain(privacyLinks.automation);
  expect(html).toContain('data-photos-action="authorize"');expect(html).toContain('id="photos-recheck"');expect(html).toContain('service Mac');expect(html).toContain('aria-live="polite"');
  expect(html.indexOf('1. Read your library')).toBeLessThan(html.indexOf('2. Allow Photos access'));
  expect(html.indexOf('2. Allow Photos access')).toBeLessThan(html.indexOf('3. Verify permissions'));
  expect(html.match(/id="photos-recheck"/g)).toHaveLength(1);
- expect(setupPage({enrolled:false,ready:true,admin:false,photosConfigured:true})).toContain('id="photos-onboarding" hidden');
+ expect(setupPage({enrolled:false,ready:true,admin:false,photosConfigured:true})).not.toContain('data-step=');
  expect(setupPage({enrolled:true,ready:true,admin:true})).not.toContain('id="photos-setup"');
 });
 test('settings launcher requires owner, matching origin, JSON and a fixed action allowlist',async()=>{

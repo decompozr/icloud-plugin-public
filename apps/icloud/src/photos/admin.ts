@@ -24,9 +24,8 @@ export function createPhotosAdmin(options:{database:Database;store:Pick<OwnerSec
  const effective=(value:PhotosPolicy):PhotosPolicy=>{const read=ceiling.read&&value.read,write=read&&ceiling.write&&value.write;return{read,write,delete:write&&ceiling.delete&&value.delete};};
  function snapshot(owner:string):PhotosPolicy{
   const row=db.query<{readEnabled:number;writeEnabled:number;deleteEnabled:number},[string]>('SELECT readEnabled,writeEnabled,deleteEnabled FROM photos_admin_policy WHERE owner=?').get(owner);
-  // Existing explicitly configured Photos actions remain usable on first migration.
-  // This seeds only policy; no grants, credentials, provider access or OS permission.
-  if(!row){put(owner,ceiling);return{...ceiling};}
+  // New owner policies start disabled. Existing stored choices are preserved.
+  if(!row){const initial=disabled();put(owner,initial);return initial;}
   if(keys.some(key=>![0,1].includes(row[`${key}Enabled` as keyof typeof row])))throw new PhotosError('policy_unavailable');
   const saved=parse({read:row.readEnabled===1,write:row.writeEnabled===1,delete:row.deleteEnabled===1}),next=effective(saved);
   // Persist restrictive ceiling changes so relaxing config never resurrects actions.

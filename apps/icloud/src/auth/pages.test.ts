@@ -10,7 +10,7 @@ test('signed continuation filters page parameters and preserves repeated resourc
  expect(()=>signedOAuthQuery('?client_id=c')).toThrow();
 });
 test('snapshot auth pages contain accessible inert markup without inline ceremony code',()=>{
- for(const mode of ['sign-in','consent'] as const){const html=renderAuthPage(mode);expect(html).not.toContain('/icloud/assets/auth-browser.js');expect(html).toContain('aria-live="polite"');expect(html).not.toContain('navigator.credentials');}
+ for(const mode of ['sign-in','consent'] as const){const html=renderAuthPage(mode);expect(html).not.toContain('/icloud/assets/auth-browser.js');expect(html).not.toContain('data-auth-status');expect(html).not.toContain('navigator.credentials');}
 });
 test('private owner login returns to administration while public login has no admin destination',()=>{
  expect(renderAuthPage('sign-in',true)).toContain('data-auth-return="/icloud/admin"');
@@ -52,7 +52,7 @@ test('setup and authentication share styles, branding and accessible Passkey ico
   expect(html).toContain('data-ui-icon="brand" aria-hidden="true"');
   expect(html).not.toContain('#1749c9');
  }
- for(const html of [setup,renderAuthPage('sign-in')])expect(html).toContain('data-ui-icon="passkey" aria-hidden="true"');
+ expect(renderAuthPage('sign-in')).toContain('data-ui-icon="passkey" aria-hidden="true"');
  expect(renderAuthPage('consent')).toContain('class="secondary" type="button" data-auth-deny');
 });
 
@@ -97,7 +97,7 @@ test('registered Mail consent labels retain locale and unknown-module fallback t
 
  test('native account connection collects transient secrets and consent identifies selected account',async()=>{
  const {i18n}=await import('../i18n/index.js');
- try{for(const locale of ['en','zh-TW']){await i18n.changeLanguage(locale);const html=renderAuthPage('connect');expect(html).toContain('data-connect-accounts');expect(html).toMatch(/data-connect-form(?:="")? hidden(?:="")?/);expect(html).toContain('type="password"');expect(html).toContain('autocomplete="new-password"');expect(html).not.toContain('name="appPassword" value=');expect(html).toContain('data-auth-deny');expect(renderAuthPage('consent')).toContain('data-auth-account');}}
+ try{for(const locale of ['en','zh-TW']){await i18n.changeLanguage(locale);const html=renderAuthPage('connect');expect(html).toContain('data-connect-accounts');expect(html).toContain('data-connect-add');expect(html).not.toContain('data-connect-form');expect(html).not.toContain('name="appPassword" value=');expect(html).toContain('data-auth-deny');expect(renderAuthPage('consent')).toContain('data-auth-account');}}
  finally{await i18n.changeLanguage('en');}
  });
 

@@ -1,3 +1,4 @@
+export {brandSvg} from "./branding.js";
 import { createCopy } from "./lib/copy.js";
 import { render } from "svelte/server";
 import Admin from "./components/Admin.svelte";
