@@ -1,10 +1,10 @@
-import {initializePhotosCloud} from '../photos/cloud-setup-browser.js';
-import {initializePhotosSetup} from '../photos/setup-browser.js';
-import {recoverySchema,readiness,readinessServices,observedProviderRead,evidenceSchema,matchingEvidence,type ReadEvidence,type RecoveryClient, type AuthorizedConnection, clientPreviewSchema} from './readiness.js';
-import type {SystemStatus} from './system-status.js';
-import { registerOwner } from '../auth/browser.js';
+import {initializePhotosCloud} from '../../../icloud/src/photos/cloud-setup-browser.js';
+import {initializePhotosSetup} from '../../../icloud/src/photos/setup-browser.js';
+import {recoverySchema,readiness,readinessServices,observedProviderRead,evidenceSchema,matchingEvidence,type ReadEvidence,type RecoveryClient, type AuthorizedConnection, clientPreviewSchema} from '../../../icloud/src/admin/readiness.js';
+import type {SystemStatus} from '../../../icloud/src/admin/system-status.js';
+import { registerOwner } from '../../../icloud/src/auth/browser.js';
 import { z } from 'zod';
-import { i18n,t,richText,isCopyKey,type CopyKey } from '../i18n/index.js';
+import { i18n,t,richText,isCopyKey,type CopyKey } from '../../../icloud/src/i18n/index.js';
 const statusSchema=z.object({localOwner:z.boolean().optional(),ready:z.boolean(),enrolled:z.boolean(),passkeyRegistered:z.boolean(),bootstrapAuthorized:z.boolean(),prerequisites:z.object({installed:z.boolean(),authenticated:z.boolean(),online:z.boolean(),privateReachable:z.boolean()})});
 type SetupStatus=z.infer<typeof statusSchema>;
 const root=document.getElementById('wizard');

@@ -97,7 +97,7 @@ test('registered Mail consent labels retain locale and unknown-module fallback t
 
  test('native account connection collects transient secrets and consent identifies selected account',async()=>{
  const {i18n}=await import('../i18n/index.js');
- try{for(const locale of ['en','zh-TW']){await i18n.changeLanguage(locale);const html=renderAuthPage('connect');expect(html).toContain('data-connect-accounts');expect(html).toContain('data-connect-form hidden');expect(html).toContain('type="password"');expect(html).toContain('autocomplete="new-password"');expect(html).not.toContain('name="appPassword" value=');expect(html).toContain('data-auth-deny');expect(renderAuthPage('consent')).toContain('data-auth-account');}}
+ try{for(const locale of ['en','zh-TW']){await i18n.changeLanguage(locale);const html=renderAuthPage('connect');expect(html).toContain('data-connect-accounts');expect(html).toMatch(/data-connect-form(?:="")? hidden(?:="")?/);expect(html).toContain('type="password"');expect(html).toContain('autocomplete="new-password"');expect(html).not.toContain('name="appPassword" value=');expect(html).toContain('data-auth-deny');expect(renderAuthPage('consent')).toContain('data-auth-account');}}
  finally{await i18n.changeLanguage('en');}
  });
 
@@ -132,7 +132,7 @@ test('account display deduplicates email labels and retains distinct names',asyn
    expect(groups.map(group=>group.scopes)).toEqual([['mail.read'],['photos.read','photos.delete'],['offline_access']]);
    expect(groups[1]!.title).toBe(authT('permissionPhotos'));
    expect(groups.flatMap(group=>group.scopes)).not.toContain('photos.write');
-   expect(renderAuthPage('consent')).toContain('data-auth-photos-library hidden');
+   expect(renderAuthPage('consent')).toMatch(/data-auth-photos-library(?:="")? hidden(?:="")?/);
    expect(renderAuthPage('consent')).toContain(authT('photosLibrary'));
    expect(authT('scopePhotosDelete')).not.toBe('photos.delete');
   }

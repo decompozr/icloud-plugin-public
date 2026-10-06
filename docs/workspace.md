@@ -1,6 +1,7 @@
 # Independent packages and application boundaries
 
-The accepted structure has one complete application, `apps/icloud`. There is no
+The runtime application is `apps/icloud`; `apps/studio` owns its Svelte
+presentation and browser assets. Studio is built before the runtime application. There is no
 separate `apps/server` and no production MCP client. Codex and ChatGPT consume
 Streamable HTTP; stdio is not an initial interface. `docs/` stays authoritative,
 and `playground/` remains separate experiments with independent packages/locks.
@@ -55,6 +56,7 @@ configuration, or dependency installation. No `workspace:*` dependency is allowe
 Install independently from each owner directory:
 
 ```sh
+(cd apps/studio && bun install --frozen-lockfile)
 (cd apps/icloud && bun install --frozen-lockfile)
 (cd apps/e2e && bun install --frozen-lockfile)
 (cd packages/tooling && bun install --frozen-lockfile)
