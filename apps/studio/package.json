@@ -1,0 +1,23 @@
+{
+  "name": "@icloud-plugin/studio",
+  "version": "0.1.59",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build/build.ts",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "bun test src"
+  },
+  "dependencies": {
+    "svelte": "5.57.1",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "prettier": "3.9.9",
+    "prettier-plugin-svelte": "4.1.1",
+    "svelte-check": "^4.7.0",
+    "typescript": "^5.9.0"
+  },
+  "packageManager": "bun@1.4.2"
+}

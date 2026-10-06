@@ -4,7 +4,8 @@
 Use cases are checking prerequisites, completing first-owner enrollment, replacing
 or removing the stored provider credential, viewing connection/capability status,
 changing operator capabilities and downloading the configured plugin ZIP.
-`page.ts` renders the shell and `browser.ts` implements its same-origin interactions.
+`page.ts` adapts the host presentation/locale to the compiled Svelte renderer in
+`apps/studio`. Studio owns the shell and its browser compatibility controller.
 
 ## Dependencies and boundary
 

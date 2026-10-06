@@ -1,3 +1,4 @@
 #!/usr/bin/env bun
 import{command}from'../packages/tooling/src/command.js';
-for(const owner of ['apps/icloud','packages/tooling'])await command([process.execPath,'run','--cwd',owner,'test']);
+await command([process.execPath,'run','--cwd','apps/studio','build']);
+for(const owner of ['apps/studio','apps/icloud','packages/tooling'])await command([process.execPath,'run','--cwd',owner,'test']);

@@ -15,7 +15,7 @@ activation remain separate user integration checks.
 
 ## Build and release
 
-Install dependencies independently in `apps/icloud` and `packages/tooling` using
+Install dependencies independently in `apps/studio`, `apps/icloud` and `packages/tooling` using
 `bun install --frozen-lockfile` in each directory. From the checkout,
 `bun bin/build` emits JS into `apps/icloud/dist`. Then
 `bun bin/build-artifact /absolute/fresh-artifact-directory`
