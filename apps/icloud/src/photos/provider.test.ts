@@ -12,6 +12,11 @@ test('native transport rejects unbundled helpers and oversized requests before l
  await expect(runNative('/tmp/photos-helper',{command:'health'})).rejects.toThrow('packaged_helper_required');
  await expect(runNative('/tmp/Photos.app/Contents/MacOS/photos-helper',{data:'x'.repeat(65537)})).rejects.toThrow('request_too_large');
 });
+test('final native launch authorization runs after request staging and can deny before any app launch',async()=>{
+ let checked=0;
+ await expect(runNative('/tmp/NeverLaunch.app/Contents/MacOS/photos-helper',{command:'shared_review'},1000,()=>{checked++;throw Error('launch_denied');})).rejects.toThrow('launch_denied');
+ expect(checked).toBe(1);
+});
 test('process adapter validates envelope and suppresses raw provider diagnostics',async()=>{
  expect(await runProcess([process.execPath,'-e','console.log(JSON.stringify({ok:true,result:{value:1}}))'],{})).toEqual({value:1});
  await expect(runProcess([process.execPath,'-e','console.log("secret provider output")'],{})).rejects.toThrow('invalid_provider_response');

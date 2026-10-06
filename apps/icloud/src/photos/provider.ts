@@ -1,19 +1,19 @@
 import {stageUploadSource,releaseUploadSource,type StagedUploadSource} from './upload-source.js';
 import {existsSync} from 'node:fs';
-import {mkdtemp,writeFile,readFile,stat,rm} from 'node:fs/promises';
+import {mkdtemp,writeFile,readFile,stat,rm,open} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {join,dirname,isAbsolute} from 'node:path';
 import {z} from 'zod';
 import {assetSchema,albumSchema,mutationSchema,cleanupCandidateSchema,PhotosError,type Mutation,type PhotosProvider} from './contracts.js';
-import {readReview} from './shared-review.js';
+import {readReview,reserveReview} from './shared-review.js';
 const moduleDirectory=dirname(fileURLToPath(import.meta.url));
 const base=existsSync(join(moduleDirectory,'reader.py'))?moduleDirectory:join(moduleDirectory,'photos');
 const envelope=z.discriminatedUnion('ok',[z.object({ok:z.literal(true),result:z.unknown()}).strict(),z.object({ok:z.literal(false),error:z.string().regex(/^[a-z_]{1,80}$/)}).strict()]);
 const snapshot=z.object({libraryScope:z.string().regex(/^[a-f0-9]{16}$/),mutation:mutationSchema,assets:z.array(assetSchema).max(50),album:albumSchema.optional(),members:z.array(z.string()).max(100000).optional()}).strict();
 export interface ProviderSettings {python:string;library:string;nativeHelper:string;sidecarDirectory?:string;timeoutMs?:number;stateDirectory?:string;reviewDirectory?:string}
 /** Launch Services preserves the app's Photos consent identity. Never retry a launch. */
-export async function runNative(helper:string,input:unknown,timeoutMs=60000):Promise<unknown>{
+export async function runNative(helper:string,input:unknown,timeoutMs=60000,authorize?:()=>void):Promise<unknown>{
  const app=dirname(dirname(dirname(helper)));
  if(!isAbsolute(helper)||!app.endsWith('.app')||join(app,'Contents','MacOS','photos-helper')!==helper)throw new PhotosError('packaged_helper_required');
  const encoded=JSON.stringify(input);if(Buffer.byteLength(encoded)>65536)throw new PhotosError('request_too_large');
@@ -23,9 +23,10 @@ export async function runNative(helper:string,input:unknown,timeoutMs=60000):Pro
  try{
   const source=join(directory,'input.json'),target=join(directory,'output.json');
   await writeFile(source,encoded,{mode:0o600});await writeFile(target,'',{mode:0o600});
-  const interactive=(input as {command?:string})?.command==='authorize';
+  const interactive=['authorize','shared_review'].includes((input as {command?:string})?.command??'');
   const args=['/usr/bin/open','-n',...(interactive?[]:['-g']),'-i',source,'-o',target,'--stderr','/dev/null',app];
   if((input as {command?:string})?.command==='authorize')args.push('--args','--authorize');
+  authorize?.();
   child=Bun.spawn(args,{stdout:'ignore',stderr:'ignore'});
   // open -W can fail to track short-lived apps. The response, not launcher exit,
   // establishes completion. A timeout after a write remains an unknown outcome.
@@ -102,6 +103,19 @@ export class LocalPhotosProvider implements PhotosProvider {
  private native(command:string,mutation:Mutation){return runNative(this.settings.nativeHelper,{command,mutation},this.settings.timeoutMs);}
  private reviewPath(){const directory=this.settings.reviewDirectory??(this.settings.stateDirectory?join(this.settings.stateDirectory,'shared-reviews'):undefined);if(!directory)throw new PhotosError('review_runtime_not_configured');return directory;}
  async reviewStatus(operationId:string){return readReview(this.reviewPath(),operationId);}
+ async openReview(mutation:Mutation,expected:unknown,operationId:string,authorize?:()=>void){
+  if(mutation.action!=='post_to_shared_album'||mutation.nativeUI!==true)throw new PhotosError('native_ui_opt_in_required');
+  if(!authorize)throw new PhotosError('native_launch_authorization_required');
+  const current=await this.inspect(mutation);
+  if(JSON.stringify(current)!==JSON.stringify(expected))throw new PhotosError('stale_plan');
+  const directory=this.reviewPath();
+  await reserveReview(directory,operationId);
+  // The reserved identity survives launch errors and must never be relaunched.
+  const manifest=await open(join(directory,operationId+'.manifest.json'),'wx',0o600);
+  try{await manifest.writeFile(JSON.stringify({operationId,entries:current.assets.map(asset=>({assetId:asset.id}))}));await manifest.sync();}finally{await manifest.close();}
+  const result=await runNative(this.settings.nativeHelper,{command:'shared_review',operationId,directory,mutation,expiresAt:Date.now()+5*60*1000},this.settings.timeoutMs,authorize);
+  return z.object({operationId:z.literal(operationId),status:z.literal('review_pending'),localReadbackVerified:z.literal(false),serverSyncVerified:z.literal(false)}).strict().parse(result);
+ }
  async apply(mutation:Mutation,expected:unknown){
   if(mutation.action==='post_to_shared_album')throw new PhotosError('native_review_required');
   const current=snapshot.parse(await this.reader('inspect',mutation));

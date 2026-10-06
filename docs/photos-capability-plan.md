@@ -1,5 +1,66 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Official existing-asset sharing candidate — 2026-10-06
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Share-operation focus and public service discovery — 2026-10-06
+
+The owner reaffirmed sharing existing Photos assets to iCloud Shared Albums. A
+[public AppKit discovery runtime probe](photos-live-upload-plan.md#sharing-service-discovery-runtime-experiment--2026-10-06)
+ran with synthetic NSImage input and prohibited app activation, without library
+access, UI or share dispatch. Add to Photos was offered, but Add to Shared Album
+was not; generic cloudSharing existed but did not accept that input. These results
+are input-specific and do not rule out Photos-specific or Live Photo sharing.
+Continue the official PhotosUI genuine-picker-result publishing experiment through
+the original MCP, rather than equating import, album membership or CloudKit document
+sharing with the requested operation. Actual sharing remains unverified.
+
+## Existing-photo sharing and UI fallback experiment — 2026-10-06
+
+Owner clarified existing-asset sharing and authorized an official UI only as a
+last fallback to headless. Three fresh SDK compile probes verified the posting
+controller takes PHPickerResult, not PHAsset, and PHPickerResult has no accessible
+constructor. Shortcuts listing succeeded but identified no verified existing
+sharing shortcut. The [experiment and next integration slice](photos-live-upload-plan.md#existing-asset-sharing-and-conditional-ui-experiment--2026-10-06)
+records preselected-result item-provider uncertainty and the required same-MCP
+journal/picker/post/status path. No UI, shortcut execution, account publication,
+photo extraction or deployment occurred. Existing native direct-add rejection is
+not being repeated; actual sharing and Live playback remain acceptance gates.
+
+## No-UI automation research — 2026-10-06
+
+The [four-surface comparison](photos-live-upload-plan.md#no-ui-automation-surface-comparison--2026-10-06)
+records fresh local Photos scripting/action metadata inspection and Apple primary
+documentation. A public postToSharedAlbum App Intent schema exists, but requires an
+app-owned implementation and does not itself invoke Photos. No posting action was
+found in the bounded inspected macOS metadata; this is not an exhaustive runtime
+or iOS inventory. Shortcuts remains a candidate needing a verified no-UI action
+contract. Generic AppleScript add-to-album is not shared publishing proof. Private
+native/web observations remain historical and outside the accepted public-native
+implementation. No UI, shortcut execution, account call or mutation occurred.
+
+## Fresh no-UI native direct-add attempt — 2026-10-06
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Public native Live Photo path decision — 2026-10-06
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Live Photo experiment and implementation planning — 2026-10-05
+
+Owner requested experiment, knowledge reconciliation and then an implementation
+plan. [Live Photo upload evidence and plan](photos-live-upload-plan.md) records a
+bounded offline reader probe, current public Apple bundle inspection and primary
+resource documentation. The reader rejects paired mode even when synthetic still
+and motion paths exist; current shared publication is single-file. Public read
+models expose motion fields, but no paired write contract was verified. This is
+not proof that Apple lacks such a protocol. No account write or personal staging
+occurred. Valid-media extraction/pair validation and paired publication feasibility
+are explicit prerequisites to production transport work. Full dynamic upload,
+exact three-photo sharing and participant live acceptance remain open.
+
 ## Stage closeout and prototype retirement — 2026-10-05
 
 Owner requested stage closeout, main release/deployment and task-worktree cleanup.

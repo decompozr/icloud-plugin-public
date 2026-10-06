@@ -16,13 +16,15 @@ export class PhotosService {
  private check(write=false,destructive=false){const p=this.policy();if(!p.read||write&&!p.write||destructive&&!p.delete)throw new PhotosError('forbidden');return this.owner();}
  async read(command:string,input:unknown){this.check();return this.provider.read(command,input);}
  async prepareRemote(raw:unknown){
-  if(mutationSchema.parse(raw).action==='post_to_shared_album')throw new PhotosError('remote_shared_album_posting_unavailable');
+  const intent=mutationSchema.parse(raw);
+  if(intent.action==='post_to_shared_album'&&!intent.nativeUI)throw new PhotosError('remote_shared_album_posting_unavailable');
   return this.prepare(raw);
  }
  async applyRemote(id:string,confirm:boolean,allowDelete=false){
   const owner=this.check(true),row=this.db.query('SELECT mutation FROM photos_operations WHERE id=? AND owner=?').get(id,owner) as {mutation:string}|null;
   if(!row)throw new PhotosError('operation_not_found');
-  if(mutationSchema.parse(JSON.parse(row.mutation)).action==='post_to_shared_album')throw new PhotosError('remote_shared_album_posting_unavailable');
+  const intent=mutationSchema.parse(JSON.parse(row.mutation));
+  if(intent.action==='post_to_shared_album'&&!intent.nativeUI)throw new PhotosError('remote_shared_album_posting_unavailable');
   return this.apply(id,confirm,allowDelete);
  }
  /** Remote review reads metadata only. Images use photos_preview in the conversation. */
@@ -96,7 +98,7 @@ export class PhotosService {
    this.check(true,mutation.action==='delete_assets');
    if(mutation.action==='post_to_shared_album'){
     if(!this.provider.openReview)throw new PhotosError('native_review_unavailable');
-    result=await this.provider.openReview(mutation,JSON.parse(row.snapshot),id);
+    result=await this.provider.openReview(mutation,JSON.parse(row.snapshot),id,()=>{if(this.check(true)!==owner)throw new PhotosError('owner_changed');});
     status=(result as {status?:string})?.status==='review_pending'?'review_pending':'outcome_unknown';
    }else{
     result=await this.provider.apply(mutation,JSON.parse(row.snapshot));
