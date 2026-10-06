@@ -206,3 +206,11 @@ tests (245 assertions), 11 tooling tests (141 assertions), Studio typecheck and
 compiled build pass. Browser requirement and consent acceptance is tracked in the
 release verification entry once complete. Evidence is synthetic and does not
 claim a new Apple, Photos, Passkey or external client authorization.
+
+Follow-up verification after integrating current main: 446 application/Studio/tooling
+tests (4,017 assertions), 11 built HTTP E2E tests (245 assertions) and 35 isolated
+browser checks pass, including consent computed styling, public signed continuation,
+blank optional labels, missing requirements, cancellation and failed refresh.
+Independent review found no remaining scoped blocker after corrections. This
+follow-up uses version 0.1.62 because 0.1.61 was released by the parallel native
+Photos work; installed releases are never overwritten.
