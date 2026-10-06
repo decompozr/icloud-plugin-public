@@ -71,3 +71,9 @@ Deployment source: f7c40c78c74aa39f5d891d22ba9553376745f50a. Installed payload m
 - UX: language selection focus and Escape return, Calendar dialog cancellation focus, settled refresh state and compact notification passed. No blocking finding in the checked flows.
 - Nonblocking recommendation: hover metric titles have no touch equivalent. A tap explanation could improve mobile discovery; not implemented in this release.
 - Limits: fixture rendering and interaction, not physical iPhone Safari, real remote authentication, Photos operations, screen-reader acceptance, or every screen. Existing per-origin passkey gating remains pending.
+
+## Full-height navigation rail (0.1.75)
+
+The brand logo sits at the top of the navigation rail and the compact language menu at its bottom. Remove the separate brand text header. Use dynamic viewport height, safe-area bottom padding and scrollable rail overflow so short viewports retain access to all controls.
+
+Verified: build, clean Studio typecheck, 12 Studio tests, 390px viewport screenshot, and bottom language menu opening upwards within the viewport.

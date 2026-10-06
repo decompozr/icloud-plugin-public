@@ -8,7 +8,7 @@
     type LocaleControl,
     type NavigationControl,
   } from "../lib/ui-state.svelte.js";
-  import Brand from "./Brand.svelte";
+  import Icon from "./Icon.svelte";
   import Overview from "./Overview.svelte";
   import AdminDashboard from "./AdminDashboard.svelte";
   import ModuleDialog from "./ModuleDialog.svelte";
@@ -200,11 +200,12 @@
   data-sveltekit-reload
   aria-busy={model.busy}
 >
-  <div class="brand-row"><Brand>{t("brand")}</Brand></div><a class="skip-link" href="#page-content"
+  <a class="skip-link" href="#page-content"
     >{t("skipContent")}</a
   >
   <div class="admin-layout">
     <div class="nav-bar">
+      <div class="nav-brand" title={t("brand")}><Icon name="brand"/><span class="sr-only">{t("brand")}</span></div>
       {#if pageState.enrolled}<nav
           class="shell-nav"
           aria-label="iCloud"
@@ -235,7 +236,7 @@
               /></a
             >{/each}
         </nav>{/if}
-      <LanguageMenu rail />
+      <div class="nav-language"><LanguageMenu rail /></div>
     </div>
     <div id="page-content" tabindex="-1">
       <div class="page-heading">
@@ -450,18 +451,23 @@
 >
 
 <style>
-  main { max-width: none; padding-left: env(safe-area-inset-left, 0px); }
-  .brand-row { padding-left: 1.25rem; }
+  main { max-width: none; margin-top: 1rem; padding-left: env(safe-area-inset-left, 0px); }
+  .nav-brand { height:44px; flex:none; display:flex; align-items:center; justify-content:center; margin-bottom:.5rem; }
+  .nav-language { margin-top:auto; padding-top:.5rem; }
   #page-content { width: 100%; max-width: 60rem; margin-inline: auto; min-width: 0; }
 
   .admin-layout {
-    margin-top: 1rem;
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr);
     gap: 1.25rem;
     align-items: start;
   }
   .nav-bar {
+    display:flex;
+    flex-direction:column;
+    height:calc(100dvh - 2rem);
+    padding-bottom:env(safe-area-inset-bottom, 0px);
+    overflow-y:auto;
     position: sticky;
     top: 1rem;
     margin: 0;
