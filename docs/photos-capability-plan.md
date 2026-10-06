@@ -1,5 +1,16 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Current acceptance: fresh loaded schema still unavailable — 2026-10-06
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+No exposed management tool can refresh/rescan metadata, and bounded discovery did
+not establish the existing connection type. Do not infer a rejected/held update
+or inject an undeclared opt-in. [Current prerequisite and remaining acceptance](photos-live-upload-plan.md#fresh-tool-discovery-and-destination-readback--2026-10-06)
+preserve the original MCP, exact test destination, three-photo and participant
+requirements, source-write boundaries, rollback and separate native App handoff
+gates. Resume the one-photo experiment when loaded photos_prepare declares nativeUI.
+
 ## Native permission accepted; current tool schema still old — 2026-10-06
 
 Original-MCP health now verifies authorization 3/true. Installed 0.1.58 process

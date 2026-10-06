@@ -1,5 +1,34 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Fresh tool discovery and destination readback — 2026-10-06
+
+Fresh loaded tool discovery still advertises the legacy remote-posting rejection
+and omits nativeUI from photos_prepare. Original-MCP health independently verifies
+native authorization 3/authorized=true and the same system-library scope. Process
+readback still identifies the installed 0.1.58 service. Native permission is ready;
+the host-advertised sharing contract remains an unavailable prerequisite. No new
+prepare or apply was attempted against that undeclared field, and no UI opened.
+
+The original MCP re-read the approved existing source as livePhoto=true and
+shared=false. Exact local destination readback returns zero assets. A fresh cloud
+membership read completed with a stable, complete snapshot, zero shared copies,
+private access and owner-only participation. This independently confirms the
+retained test destination is empty; it does not establish sharing or Live playback.
+Exact source, local/cloud destination and read identifiers remain private.
+
+Available plugin-management capabilities provide no refresh/rescan operation.
+Bounded plugin discovery did not resolve this existing connection's backend ID or
+whether it is a direct custom connection or published plugin. That absence is not
+an access denial or evidence of a held update. The applicable next host step is
+the existing connection's Refresh and a new conversation for direct custom MCPs,
+or its connected server's Rescan and Live-definition inspection for published
+plugins, per the official links below. Resume posting only after loaded
+photos_prepare explicitly declares nativeUI; preserve the same main MCP and
+destination. No alternate authenticated CLI, metadata patch or second MCP is an
+accepted workaround.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Native permission verified; conversation tool-definition mismatch — 2026-10-06
 
 The owner completed the Mac permission prompt. Actual original-MCP health now
