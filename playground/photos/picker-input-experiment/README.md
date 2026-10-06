@@ -44,3 +44,23 @@ Live result on the development Mac: `requestLivePhoto` returned a non-degraded, 
 The installed SDK exposes Shared Album sheet overloads accepting `[PhotosPickerItem]` and `[PHPickerResult]`. A compile-only probe supplying `[PHLivePhoto]` was rejected (no matching overload); another trying `PhotosPickerItem(itemProvider:)` was rejected (no such public initializer). These are expected negative API probes, not successful feature builds. No sharing sheet was opened.
 
 Apple documents that [the identifier initializer creates an item without a representation](https://developer.apple.com/documentation/photosui/photospickeritem/init%28itemidentifier%3A%29). The observed behavior matches that documented contract. [PHImageManager](https://developer.apple.com/documentation/photos/phimagemanager) separately provides the direct Live Photo request. The missing step remains a supported way to supply programmatically obtained media to Shared Album publication, not a way to read Live Photo data.
+
+## Real-media route probes
+
+Direct mode also enumerates `NSSharingService` for the loaded Live Photo and for `NSItemProvider(item:typeIdentifier:)`, and attempts to load that custom provider back as a Live Photo. It inventories source resource types without exporting their bytes. An optional private `albumUUID` probes an exact Shared Album lookup and `canPerform(.addContent)` without a write. No service is performed.
+
+Observed on one actual original Live Photo:
+
+| Probe | Result |
+| --- | --- |
+| Direct PhotoKit Live Photo | Non-degraded load succeeded |
+| Identifier item before/after load | Both nil; no content types |
+| Custom provider declared as `com.apple.live-photo` | `canLoadObject` false; actual load failed with `NSItemProviderErrorDomain -1200` (could not coerce to PHLivePhoto) |
+| Sharing services for real Live Photo | Empty |
+| Sharing services for custom provider | Add to Photos only |
+| Source resource metadata | HEIC and QuickTime resources present, including original/adjusted resource roles; no bytes exported or pair publication verified |
+| Exact Shared Album lookup | Not found in this standalone query; add-content support therefore unverified |
+
+The service-discovery API is deprecated; this is a bounded enumeration result, not proof that every modern share extension is unavailable. Loading a Live Photo object into the generic secure-coding provider initializer did not provide the representation its reader expects. A separate compile-only probe also rejected `NSItemProvider(object: livePhoto)` because PHLivePhoto does not conform to NSItemProviderWriting. PHPickerResult construction is rejected because it has no accessible initializer.
+
+The existing upload input contract was checked offline: still mode accepted, paired mode rejected. No network upload, test media generation, or speculative pair packaging occurred. Static upload history does not establish current Live Photo support.

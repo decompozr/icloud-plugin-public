@@ -1,5 +1,11 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Existing routes retested with an actual Live Photo — 2026-10-06
+
+The independent read-only App loaded the approved original and tested it as a real object, rather than a type-only placeholder. Direct loading succeeded; a custom `NSItemProvider(item:typeIdentifier:)` registered `com.apple.live-photo` but could not load PHLivePhoto (`NSItemProviderErrorDomain -1200`). Sharing-service enumeration returned no services for the Live Photo object, and only Add to Photos for its custom provider. This deprecated discovery API is bounded evidence, not exhaustive modern-extension coverage.
+
+Resource metadata confirms HEIC and QuickTime source resources without exporting media. Exact target lookup failed in this standalone query, so its false add-content field does not establish unsupported album writing. Offline upload-schema checks accepted still mode and rejected paired mode; no upload was attempted. Compile-only probes also rejected public construction of PHPickerResult and the NSItemProviderWriting initializer for PHLivePhoto. Detailed results and limitations are in the standalone experiment README; private journals retain the live evidence. No production change or publication occurred.
+
 ## No-picker Live Photo read verified; sharing input boundary remains — 2026-10-06
 
 A standalone, owner-authorized read-only run fetched the exact approved original via public PhotoKit and obtained a non-degraded, non-cancelled `PHLivePhoto` at 2268 × 4032 without opening a picker. Identifier-created picker inputs returned nil with empty content types both before and after that successful load. A media-download delay alone does not explain this observed gap.

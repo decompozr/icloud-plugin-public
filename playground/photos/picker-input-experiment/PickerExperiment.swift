@@ -5,7 +5,7 @@ import SwiftUI
 import Darwin
 
 // Standalone read-only experiment. No production Helper or posting code is linked.
-struct Request: Decodable { let sessionId: UUID; let assetId: String? }
+struct Request: Decodable { let sessionId: UUID; let assetId: String?; let albumUUID: String? }
 struct ExperimentError: Error { let message: String }
 @available(macOS 27.0, *)
 @MainActor final class Experiment: NSObject, NSWindowDelegate {
@@ -93,6 +93,34 @@ struct ExperimentError: Error { let message: String }
             self.presentPicker()
         }
     }
+    func inspectRoutes(_ live: PHLivePhoto, asset: PHAsset) async -> [String: Any] {
+        // Discovery only: never invoke a sharing service or perform Photos changes.
+        let services = NSSharingService.sharingServices(forItems: [live]).map(\.title)
+        let provider = NSItemProvider(item: live, typeIdentifier: "com.apple.live-photo")
+        let providerServices = NSSharingService.sharingServices(forItems: [provider]).map(\.title)
+        let canLoad = provider.canLoadObject(ofClass: PHLivePhoto.self)
+        let roundTrip: [String: Any] = await withCheckedContinuation { continuation in
+            provider.loadObject(ofClass: PHLivePhoto.self) { object, error in
+                Task { @MainActor in
+                    var result: [String: Any] = ["livePhotoLoaded": object is PHLivePhoto]
+                    if let photo = object as? PHLivePhoto { result["size"] = ["width": photo.size.width, "height": photo.size.height] }
+                    if let error { result["errors"] = self.errors(error) }
+                    continuation.resume(returning: result)
+                }
+            }
+        }
+        let resources = PHAssetResource.assetResources(for: asset).map { ["type": $0.type.rawValue, "uniformTypeIdentifier": $0.uniformTypeIdentifier] as [String: Any] }
+        var routes: [String: Any] = ["liveObjectSharingServices": services, "providerSharingServices": providerServices,
+            "customProvider": ["registeredTypes": provider.registeredTypeIdentifiers, "canLoadLivePhoto": canLoad, "roundTrip": roundTrip],
+            "sourceResources": resources, "resourcesExported": false, "sharingServicePerformed": false]
+        if let expected = request.albumUUID {
+            let albums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumCloudShared, options: nil)
+            var target: PHAssetCollection?
+            albums.enumerateObjects { album, _, _ in if album.localIdentifier.split(separator: "/").first.map(String.init) == expected { target = album } }
+            routes["photoKitAlbum"] = ["exactTargetFound": target != nil, "canAddContent": target?.canPerform(.addContent) ?? false, "writeAttempted": false]
+        }
+        return routes
+    }
     func compareDirect(_ assetId: String) async {
         guard assetId.range(of: "^asset:[a-f0-9]{16}:[A-Fa-f0-9-]{36}$", options: .regularExpression) != nil,
               let uuid = assetId.split(separator: ":").last,
@@ -115,7 +143,10 @@ struct ExperimentError: Error { let message: String }
                     completed = true
                     var result: [String: Any] = ["livePhotoLoaded": live != nil, "degraded": false,
                         "cancelled": (info?[PHImageCancelledKey] as? Bool) == true]
-                    if let live { result["size"] = ["width": live.size.width, "height": live.size.height] }
+                    if let live {
+                        result["size"] = ["width": live.size.width, "height": live.size.height]
+                        result["routes"] = await self.inspectRoutes(live, asset: asset)
+                    }
                     if let error = info?[PHImageErrorKey] as? Error { result["errors"] = self.errors(error) }
                     continuation.resume(returning: result)
                 }
