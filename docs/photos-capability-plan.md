@@ -1,5 +1,18 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Live Photo experiment and implementation planning — 2026-10-05
+
+Owner requested experiment, knowledge reconciliation and then an implementation
+plan. [Live Photo upload evidence and plan](photos-live-upload-plan.md) records a
+bounded offline reader probe, current public Apple bundle inspection and primary
+resource documentation. The reader rejects paired mode even when synthetic still
+and motion paths exist; current shared publication is single-file. Public read
+models expose motion fields, but no paired write contract was verified. This is
+not proof that Apple lacks such a protocol. No account write or personal staging
+occurred. Valid-media extraction/pair validation and paired publication feasibility
+are explicit prerequisites to production transport work. Full dynamic upload,
+exact three-photo sharing and participant live acceptance remain open.
+
 ## Stage closeout and prototype retirement — 2026-10-05
 
 Owner requested stage closeout, main release/deployment and task-worktree cleanup.
