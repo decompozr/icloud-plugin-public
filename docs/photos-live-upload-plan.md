@@ -1,5 +1,75 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## No-UI automation surface comparison — 2026-10-06
+
+Owner requested investigating AppleScript, Shortcuts/App Intents, native private
+frameworks and private web APIs. Investigation is read-only; the public-native-only
+implementation preference remains. Listing a private candidate below does not
+authorize using it or changing permissions. No application was launched, shortcut
+run/imported/signed, Apple event sent, account request made or photo published in
+this research slice. Only CLI help, bundled definitions and public docs were read.
+
+| Surface | Evidence | Headless Live Photo -> true Shared Album status |
+| --- | --- | --- |
+| Photos AppleScript | Fresh inspection of installed Photos.sdef (Photos 12.0, build 911.0.134) exposes generic add-to-album, import, ordinary album/folder creation, export and slideshow commands. It has no shared-specific type or publish command. | No documented shared mutation route found. Generic `add` is not proof of Shared Album support. Runtime Apple event behavior was not tested because it may launch Photos or request automation permission. |
+| Shortcuts / App Intents | Apple's CLI supports running existing shortcuts, but actions can pause for user input. Apple publishes a photos.postToSharedAlbum schema with album, assets, files and comment; its perform implementation is app-owned. | Promising surface, not verified. Schema existence does not grant access to Apple's Photos action, prove macOS availability, guarantee headless behavior or preserve Live Photo motion. |
+| Native private frameworks | Prior retained declaration-only probe found MSASConnection shared mutation selectors; Photos carries restricted service/write entitlements. No service call or authenticated mutation was verified. | Technically suggestive, excluded from the current public-API implementation. Selector names cannot establish access or operation semantics; never copy restricted entitlements or impersonate Photos. |
+| Private iCloud web API | Prior same-MCP synthetic still upload/readback/removal evidence exists. Current public web bundle inspection in E2 identifies a single-file receipt publication builder. | Headless still publishing has evidence; paired Live Photo publishing does not. Excluded from the current public-native-only implementation, with no new session/login or speculative mutation. |
+
+Fresh local inspection host: macOS 27.0.1, build 26A434.
+AppleScript definition SHA-256:
+`821bd81909c2d19f6a26f125a4dc7b3d42bc44928fee535b25ede9003a44c121`.
+Source: `/System/Applications/Photos.app/Contents/Resources/Photos.sdef`.
+The absence of shared terms narrows the documented surface, not every possible
+undocumented application behavior. No repeated direct PhotoKit add experiment or
+resource reconstruction was attempted; the fresh rejection above remains evidence.
+
+### Important new App Intents finding and its limit
+
+[Apple's postToSharedAlbum schema](https://developer.apple.com/documentation/appintents/appschema/photosintent/posttosharedalbum)
+describes an action that an app implements; the sample leaves `perform()` for the
+developer. It is not a system Photos service invocation API. Writing that schema
+in our Swift Helper would not supply Apple's missing publication backend.
+
+Fresh local JSON action-metadata inspection found no posting action in the inspected
+Photos app, public Photos/PhotosUI framework trees or SiriPhotosAppIntentsExtension.
+The extension lists `SiriPhotosAppIntentsExtension` and `UpdatePhotoWarmthTool`;
+the Photos app's widget metadata lists widget configuration intents only. Extension
+metadata SHA-256: `5bfea69105b8eaeab641c204b54bd6522f2681d42f1ab28941fd82f9eb5f7ccc`.
+This bounded inventory does not cover every dynamically registered action or iOS;
+do not conclude that all current Photos actions are unavailable.
+
+[Apple's Shortcuts CLI guide](https://support.apple.com/guide/shortcuts-mac/run-shortcuts-from-the-command-line-apd455c82f02/mac)
+confirms command-line invocation and explains that input-seeking actions wait for
+the user. CLI help was read successfully; no shortcut was run. A process timeout
+would not prove a dialog never appeared, so do not execute an uninspected posting
+shortcut just to see whether it is headless.
+
+### Revised next experiment and acceptance
+
+Prioritize a verified Apple-provided posting action over inventing an App Intent
+backend. First obtain a read-only action definition or exported exact shortcut
+showing action identity, platform availability, fixed destination, original Photos
+entity input, execution mode and absence of picker/share-sheet/confirmation steps.
+No raw-image coercion is accepted as proof of Live Photo preservation. Do not
+import a third-party shortcut, browse the editor or use internal WorkflowKit execution
+APIs to satisfy this discovery step. If no public no-UI creation/invocation route
+or already-established compatible shortcut is available, record that missing input.
+
+Only after that structural gate, and through an explicitly integrated existing-MCP
+path, may a separately reviewed exact-source/destination one-attempt test proceed.
+It must verify one shared asset with motion and separate iPhone playback; CLI exit
+0 is not acceptance. Authentication prompts, locked-host behavior, cancellation and
+unknown outcomes need explicit handling without permission bypass or retry.
+
+Current conclusion: no public fully headless, motion-preserving Shared Album route
+has been verified. Shortcuts is an unresolved candidate; AppleScript offers no
+documented shared publishing contract, direct PhotoKit is rejected for the tested
+targets, and the two private alternatives remain outside implementation scope.
+Research produced no temporary media, vendor copies, new runtime or live operation
+requiring cleanup/reconciliation. Detailed historical private-native observations
+remain in the capability plan; they were not rerun or promoted to current acceptance.
+
 ## Fresh same-MCP native preflight — 2026-10-06
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.

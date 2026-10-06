@@ -1,5 +1,17 @@
 # Photos capability: active remote delivery plan and evidence
 
+## No-UI automation research — 2026-10-06
+
+The [four-surface comparison](photos-live-upload-plan.md#no-ui-automation-surface-comparison--2026-10-06)
+records fresh local Photos scripting/action metadata inspection and Apple primary
+documentation. A public postToSharedAlbum App Intent schema exists, but requires an
+app-owned implementation and does not itself invoke Photos. No posting action was
+found in the bounded inspected macOS metadata; this is not an exhaustive runtime
+or iOS inventory. Shortcuts remains a candidate needing a verified no-UI action
+contract. Generic AppleScript add-to-album is not shared publishing proof. Private
+native/web observations remain historical and outside the accepted public-native
+implementation. No UI, shortcut execution, account call or mutation occurred.
+
 ## Fresh no-UI native direct-add attempt — 2026-10-06
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
