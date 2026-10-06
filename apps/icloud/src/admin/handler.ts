@@ -9,6 +9,8 @@ export interface AppleCredential { user: string; appPassword: string }
 export interface AdminModule {id:string;title:string;fields:readonly {id:string;label:string}[];capabilities():Record<string,boolean>;updateCapabilities(next:Record<string,boolean>,confirm:boolean):Promise<Record<string,boolean>>}
 export interface AdminOptions {
  photosCloud?:PhotosCloudAdmin;
+ resetRuntime?:(mode:'connections'|'factory')=>string;
+ resetStatus?:(id:string)=>{mode:'connections'|'factory';phase:string}|null;
  renderPage?(request:Request,state:Parameters<typeof setupPage>[0]):Promise<Response>;
  systemStatus?():Promise<SystemStatus>;
  evidence?(ownerId:string):import('./evidence.js').EvidenceRow[];
@@ -50,8 +52,12 @@ export function createPrivateAdmin(options:AdminOptions) {
   const views:Record<string,'overview'|'accounts'|'connections'|'system'>={'/':'overview','/icloud/admin':'overview','/icloud/admin/accounts':'accounts','/icloud/admin/connections':'connections','/icloud/admin/system':'system'};
   const moduleMatch=/^\/icloud\/admin\/modules\/([a-z]+)\/capabilities$/.exec(path);
   const cloudAction=/^\/icloud\/admin\/photos\/cloud\/(status|setup|login|verify|send-code|recheck|revoke)$/.exec(path)?.[1];
-  if(!cloudAction&&!moduleMatch&&!Object.hasOwn(views,path)&&!['/icloud/admin/system-status','/icloud/admin/accounts/add','/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/setup/complete','/icloud/admin/credential','/icloud/admin/revoke','/icloud/admin/status','/icloud/admin/capabilities','/icloud/admin/plugin.zip','/icloud/admin/photos/status','/icloud/admin/photos/action'].includes(path))return json({error:'NOT_FOUND'},404);
+  if(!cloudAction&&!moduleMatch&&!Object.hasOwn(views,path)&&!['/icloud/admin/reset','/icloud/admin/reset/status','/icloud/admin/system-status','/icloud/admin/accounts/add','/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/setup/complete','/icloud/admin/credential','/icloud/admin/revoke','/icloud/admin/status','/icloud/admin/capabilities','/icloud/admin/plugin.zip','/icloud/admin/photos/status','/icloud/admin/photos/action'].includes(path))return json({error:'NOT_FOUND'},404);
   try {
+   if(path==='/icloud/admin/reset/status'){
+    if(request.method!=='GET')return json({error:'METHOD_NOT_ALLOWED'},405);
+    const value=options.resetStatus?.(url.searchParams.get('id')??'');return value?json(value):json({error:'NOT_FOUND'},404);
+   }
    if(cloudAction){
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
@@ -120,13 +126,20 @@ export function createPrivateAdmin(options:AdminOptions) {
      if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     }
     const status=await options.diagnostics();
-    const state:Parameters<typeof setupPage>[0]={photosCloudConfigured:!!options.photosCloud,photosConfigured:!!options.photosSetup,enrolled,ready:options.setupReady??ready(status),admin:Object.hasOwn(views,path),view:views[path]??'setup',...(url.searchParams.get('mode')==='account'?{mode:'account' as const}:{}),publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,localOwner:options.localOwner,connectionCommands:options.connectionCommands,presentation:options.presentation,modules:options.modules};
+    const state:Parameters<typeof setupPage>[0]={resetAvailable:!!options.resetRuntime,photosCloudConfigured:!!options.photosCloud,photosConfigured:!!options.photosSetup,enrolled,ready:options.setupReady??ready(status),admin:Object.hasOwn(views,path),view:views[path]??'setup',...(url.searchParams.get('mode')==='account'?{mode:'account' as const}:{}),publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,localOwner:options.localOwner,connectionCommands:options.connectionCommands,presentation:options.presentation,modules:options.modules};
     if(options.renderPage)return options.renderPage(request,state);
     return new Response(setupPage(state),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
    }
    if(request.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405);
    if(request.headers.get('origin')!==options.privateOrigin)return json({error:'ORIGIN_DENIED'},403);
    if(!(request.headers.get('content-type')?.split(';')[0]?.trim()==='application/json'))return json({error:'INVALID_INPUT'},400);
+   if(path==='/icloud/admin/reset'){
+    const session=await options.ownerAuth.ownerSession(request.headers);if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
+    if(!options.resetRuntime)return json({error:'NOT_AVAILABLE'},409);
+    const parsed=z.object({mode:z.enum(['connections','factory']),confirmation:z.string(),confirm:z.literal(true)}).strict().safeParse(await parseBody(request));
+    if(!parsed.success||parsed.data.confirmation!==(parsed.data.mode==='factory'?'RESET ALL':'RESET CONNECTIONS'))return json({error:'RESET_CONFIRMATION_REQUIRED'},400);
+    try{return json({id:options.resetRuntime(parsed.data.mode),phase:'queued'},202);}catch{return json({error:'RESET_BUSY'},409);}
+   }
    if(path==='/icloud/setup/complete') {
     if(options.store.ownerId()!==null)return json({error:'ENROLLMENT_CLOSED'},409);
     if(!(options.setupReady??ready(await options.diagnostics())))return json({error:'PREREQUISITES_REQUIRED'},409);

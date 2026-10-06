@@ -13,6 +13,8 @@
   import ModuleDialog from "./ModuleDialog.svelte";
   import RequirementDialog from "./RequirementDialog.svelte";
   import Modal from "./Modal.svelte";
+  import LanguageMenu from "./LanguageMenu.svelte";
+  import SystemReset from "./SystemReset.svelte";
   import RefreshButton from "./RefreshButton.svelte";
   let { state }: { state: AdminState } = $props();
   const copy = getContext<UiCopy>("copy"),
@@ -79,16 +81,7 @@
           aria-current={view === destination ? "page" : undefined}>{#if view===destination}<span class="active-indicator" aria-hidden="true"></span>{/if}<span class="tab-label">{t(key)}</span></a
         >{/each}
     </nav>{/if}
-  <label class="language" for="language"
-    >{t("language")}
-    <select
-      id="language"
-      value={locale?.current ?? "en"}
-      onchange={(e) => locale?.set(e.currentTarget.value as "en" | "zh-TW")}
-      ><option value="en">English</option><option value="zh-TW">繁體中文</option
-      ></select
-    ></label
-  >
+  <LanguageMenu/>
   </div>
   <div id="page-content" tabindex="-1">
     <div class="page-heading">
@@ -218,6 +211,7 @@
         </header>
         <p>{t("systemHelp")}</p>
         <div id="system-content"><AdminDashboard {model} view="system" /></div>
+        <SystemReset available={state.resetAvailable}/>
         <div class="actions">
           <button
             class="secondary"
@@ -298,9 +292,6 @@
 <style>
   .nav-bar{display:flex;align-items:flex-start;gap:.75rem;border-bottom:1px solid var(--ui-border);margin:1rem 0}
   .nav-bar .shell-nav{flex:1;min-width:0;margin:0;border:0}
-  .nav-bar .language{flex:none;margin:0 0 0 auto;min-height:2.25rem}
-  .nav-bar .language select{margin:0}
-  @media(max-width:700px){.nav-bar .language{font-size:0}.nav-bar .language select{font-size:.8125rem;max-width:7rem}}
 
   .page-heading,
   .card-header {

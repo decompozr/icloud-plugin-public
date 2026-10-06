@@ -232,3 +232,20 @@ The concurrent native workflow installed it before the Studio installer; all
 payload files match the clean-main build except verified SvelteKit build identity
 metadata. Live readback checked 544 conditions and doctor passed 13 checks from
 this Mac, without claiming off-tailnet or new provider acceptance.
+
+### Confirmed reset and language Menu (0.1.64)
+
+System & diagnostics gains connection reset and factory reset with key rotation;
+see system-reset.md for scope, confirmation, drain/restart and protected recovery.
+No live reset was executed. The admin language control consumes the actual pinned
+DecompozR Menu/Icon sources and dependencies, verified byte-identical to upstream.
+456 application/Studio/tooling tests (4,155 assertions), 11 built HTTP E2E tests
+(245 assertions), 45 isolated browser checks and native artifact lifecycle
+(1 test / 30 assertions) pass. Independent scoped reset review has no remaining
+blocker. UI/reset follow-ups do not remove the authorization for transport phase 3.
+
+The 0.1.63 release from 13ee81c0ff78f06f0ff4a4a1c409830fa3f71048 was installed
+through the supported updater. Payload hashes matched the clean-main artifact;
+configuration/custody and account/Passkey/grant/policy rows were preserved. Native
+readback checked 541 conditions and doctor passed 13 from this Mac. Protected
+rollback retains 0.1.62 and the pre-0.1.63 backup. No off-tailnet claim is made.
