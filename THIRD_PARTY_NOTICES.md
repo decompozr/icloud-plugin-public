@@ -16,3 +16,7 @@ The native HTML styling follows that design system's consumer guide and semantic
 color/control recipes. Studio bundles the Svelte server renderer and its runtime
 helpers. Their notices are preserved in `apps/studio/THIRD_PARTY_NOTICES.md`
 and the installed `assets/studio-LICENSES.txt`.
+
+Studio refresh, settings and add controls use the pinned DecompozR Design System
+Lucide icon geometry at the same source revision. Its ISC license is preserved in
+`apps/icloud/assets/lucide-LICENSE.txt` and the installed assets.

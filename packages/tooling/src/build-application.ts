@@ -32,4 +32,4 @@ await mkdir(join(output,'photos'),{recursive:true});
 for(const name of ['reader.py','metadata-write.py','cloud-session.py','cloud-session-requirements.txt','shared-stream-request.py','shared-stream-upload.py','shared-test-fixture.py'])await cp(join(source,'photos',name),join(output,'photos',name));
 await cp(join(source,'photos/native'),join(output,'photos/native'),{recursive:true});
 
-for(const name of ['inter.ttf','inter-OFL.txt'])await Bun.write(join(output,'assets',name),Bun.file(join(app,'assets',name)));
+for(const name of ['inter.ttf','inter-OFL.txt','lucide-LICENSE.txt'])await Bun.write(join(output,'assets',name),Bun.file(join(app,'assets',name)));

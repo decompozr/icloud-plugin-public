@@ -36,4 +36,9 @@ input:not([type=checkbox]):not([type=radio]),select{padding:.4375rem .5rem}
 .auth-layout [data-auth-scopes] h3:first-of-type{border-top:0;margin-top:0;padding-top:0}
 @media(max-width:540px){main{padding:0 1.25rem 2rem}.card{padding:1.25rem 0}.shell-nav a{min-height:2.25rem}}
 @media(pointer:coarse){.shell-nav a{min-height:2.75rem}}
+
+/* Continuous navigation with a shared active marker across document transitions. */
+.shell-nav{gap:0}.shell-nav a{position:relative;border-bottom:0;background:transparent;transition:color 160ms ease,background-color 160ms ease}.shell-nav a[aria-current=page]{background:transparent;border:0}.shell-nav .tab-label{position:relative;z-index:1}.shell-nav .active-indicator{position:absolute;inset:0;background:var(--ui-soft);border-bottom:2px solid var(--ui-focus);view-transition-name:studio-active-tab;pointer-events:none}
+::view-transition-group(studio-active-tab){animation-duration:180ms;animation-timing-function:ease-in-out}::view-transition-old(studio-active-tab),::view-transition-new(studio-active-tab){animation:none}::view-transition-old(root),::view-transition-new(root){animation:none}
+@media(prefers-reduced-motion:reduce){@view-transition{navigation:none}.shell-nav a{transition:none}::view-transition-group(studio-active-tab){animation:none}}
 `;

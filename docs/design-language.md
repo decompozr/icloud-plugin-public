@@ -26,8 +26,15 @@ historical and superseded by this adoption and the SvelteKit/Paraglide migration
 
 ## Requirement-based Studio setup
 
-Overview has separate service, accounts and capabilities cards. Loading uses
-skeletons; refresh controls sit at the upper right. Account summaries distinguish
+The language selector sits on the right of the navigation bar, sharing its row
+and divider. Overview has separate service, accounts and capabilities cards. Loading uses
+skeletons only before the first snapshot. Refreshes retain loaded content and card
+dimensions while the upper-right refresh icon shows activity. Module configuration
+uses a labeled gear icon button. Refresh, settings and add glyphs use the pinned
+DecompozR Icon catalog geometry and its 16px compact/stroke-2 recipe, with the
+Lucide notice bundled. No independently drawn refresh/settings glyph remains.
+Navigation has no inter-tab gap and a shared active marker uses native cross-document
+view transitions in supporting browsers, with reduced-motion opt-out. Account summaries distinguish
 stored app passwords from saved Apple Account web sessions. A saved authenticated
 session is not live-provider or cross-service acceptance.
 

@@ -457,5 +457,12 @@
   "newAccountOption": "新增帳號",
   "requirementsPage": "必要條件設定",
   "noAccountYet": "新增 iCloud 帳號以設定憑證與用戶端連線。",
-  "requirementsFailed": "無法確認必要條件，請重新整理或完成設定後再啟用。"
+  "requirementsFailed": "無法確認必要條件，請重新整理或完成設定後再啟用。",
+  "appPasswordShort": "App 密碼",
+  "appleSessionShort": "Apple 工作階段",
+  "credentialStoredShort": "已儲存",
+  "credentialMissingShort": "設定",
+  "sessionSavedShort": "已儲存",
+  "manageAppleSession": "管理 Apple Account 工作階段",
+  "runtimeFolder": "執行資料夾"
 }
