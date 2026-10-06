@@ -1,5 +1,9 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Explicit destination flow exercised — 2026-10-06
+
+The owner selected the existing upgraded test album in the App dropdown and explicitly confirmed sending. The journal records that exact target and the retained real picker item. Apple again immediately rejected the call with Cocoa -1 and the explicit add-content-permission message. The destination-choice UI therefore worked, while publication to the intended target did not. This result does not prove that the owner's account lacks permission in Photos itself; API/upgrade compatibility remains unresolved. No blind retry followed.
+
 ## Explicit destination confirmation added before invoking Apple — 2026-10-06
 
 The owner confirmed there was no visible Apple sharing UI or Post button in the prior no-default run. It went straight to the result callback. Do not claim that the owner confirmed the callback destination or that a second confirmation is guaranteed by the API.
