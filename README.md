@@ -16,7 +16,7 @@ Bun API backed by a pinned local osxphotos provider, with a Swift/PhotoKit helpe
 only where needed. Existing person labels and true Shared Album reads have been
 verified on the synced Mac library; native sharing and deletion source is implemented, with live acceptance pending.
 See the [build plan and evidence](docs/photos-capability-plan.md). Historical
-cloud protocol work remains isolated in [the experiment package](playground/photos/README.md).
+retired prototype history is described in [the experiment archive](playground/photos/README.md).
 An opt-in [Photos module](apps/icloud/src/photos/README.md) now implements read tools
 and reviewed album, metadata and deletion workflows. Empty ordinary-album lifecycle writes are verified; native asset writes and
 Shared Album upload remain unverified.
