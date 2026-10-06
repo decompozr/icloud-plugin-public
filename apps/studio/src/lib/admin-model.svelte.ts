@@ -20,6 +20,7 @@ class UiError extends Error {
   }
 }
 const errors: Record<string, string> = {
+  CONFIGURED_CAPABILITY_DISABLED: "photosCapabilityUnavailable",
   CREDENTIAL_REQUIRED: "requirementsMissing",
   PHOTOS_PERMISSIONS_REQUIRED: "requirementsMissing",
   CONFIRMATION_REQUIRED: "moduleConfirm",
@@ -362,14 +363,18 @@ export class AdminModel {
   async savePolicies(confirmEnable: boolean) {
     const changes = this.changes;
     this.policyConfirm = false;
+    let completed = 0;
     try {
-      for (const change of changes)
+      for (const change of changes) {
         await this.post(change.path, { policy: change.policy, confirmEnable });
+        completed++;
+      }
       this.discardPolicy();
       await this.refreshDashboard();
       this.message("policySaved");
-    } catch {
+    } catch (error) {
       await this.refreshDashboard();
+      if(completed===0&&error instanceof UiError&&error.key==="photosCapabilityUnavailable")throw error;
       throw new UiError(
         this.dashboardFailed ? "policyUnknown" : "policyPartial",
       );

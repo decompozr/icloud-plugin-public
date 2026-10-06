@@ -1,5 +1,13 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Photos deletion settings and module requirements — 2026-10-06
+
+The owner authorized opening the configured deletion ceiling after a UI save failed: the installation still had allow_delete=false, while the UI allowed checking the option and replaced the real rejection with a generic partial-save error. Release 0.1.68 exposes each configured Photos capability's availability, returns a precise CONFIGURED_CAPABILITY_DISABLED response without changing policy, preserves definite rejection feedback, and deduplicates repeated alerts. The installed ceiling is updated separately; owner policy and client OAuth grants remain controlled through existing setup/consent flows. Enabling a capability does not delete any photos.
+
+Labels use “Organize Photos” and “Delete photos.” The deletion explanation describes Recently Deleted, its 30-day recovery window unless permanently deleted earlier, and iCloud Photos synchronization. The underlying exact-operation prepare/apply protocol remains; an explicit user deletion instruction supplies the authority and no separate catalog review is mandatory. Recently Deleted is never emptied by these tools.
+
+Installation owner and Tailscale belong to system setup and are removed from all Mail, Calendar and Photos module dialogs. Photos permission instructions collapse when ready. Shared Album writes remain unsupported.
+
 ## Ordinary Photos restored; Shared Album writes unsupported — 2026-10-06
 
 PR #76 restores Photos in release 0.1.67 with a reduced native Helper. Original-MCP health reads the Photos snapshot and ordinary album inventory succeeds. The release omits shared cloud publication, upload sidecars and native posting UI. Shared mutation preparation and application reject before dispatch, including retained posting plans. Admin uses the name Photos and displays the shared-write limitation.

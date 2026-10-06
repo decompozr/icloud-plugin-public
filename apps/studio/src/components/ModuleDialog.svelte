@@ -37,16 +37,9 @@
     !model.dashboardFailed &&
       !!model.dashboard?.accounts.some((a) => a.credentialStored),
   );
-  const networkReady = $derived(
-    !model.systemStale &&
-      (model.state.localOwner ||
-        (model.system?.connectivity ?? model.status?.prerequisites)
-          ?.privateReachable === true),
-  );
   const ready = $derived(
     !enabling ||
       (!!model.state.enrolled &&
-        networkReady &&
         (id === "photos" ? permissionReady === true : credentialReady)),
   );
   $effect(() => {
@@ -100,20 +93,6 @@
   <section>
     <h3>{t("moduleRequirements")}</h3>
     <ul class="requirements">
-      <li>
-        <span>{t("requirementOwner")}</span><span
-          >{t(model.state.enrolled ? "ready" : "notReady")}</span
-        >
-      </li>
-      <li>
-        <span>Tailscale</span><span
-          >{t(networkReady ? "ready" : "notReady")}</span
-        >{#if !networkReady}<button
-            class="secondary"
-            onclick={() => (model.requirementDialog = "tailscale")}
-            >{t("setupRequirement")}</button
-          >{/if}
-      </li>
       {#if id === "photos"}<li>
           <span>{t("requirementPhotos")}</span><span
             >{t(
@@ -125,7 +104,7 @@
             )}</span
           >
         </li>
-        <PhotosSetup onverified={(value) => (permissionReady = value)} />
+        {#if permissionReady !== true}<PhotosSetup onverified={(value) => (permissionReady = value)} />{/if}
       {:else}<li>
           <span>{t("requirementCredential")}</span><span
             >{t(credentialReady ? "ready" : "notReady")}</span
@@ -153,10 +132,13 @@
             id={"scope-" + id + "-" + field.id}
             type="checkbox"
             checked={draft[field.id] ?? false}
-            disabled={model.busy}
+            disabled={model.busy || ("available" in field && field.available === false)}
             onchange={(e) => toggle(field.id, e.currentTarget.checked)}
           />
-        </li>{/each}
+        </li>
+        {#if id === "photos" && field.id === "delete"}<li class="muted">{t("photosDeleteHelp")}</li>{/if}
+        {#if "available" in field && field.available === false}<li class="muted">{t("photosCapabilityUnavailable")}</li>{/if}
+        {/each}
     </ul>
   </section>
   <p class="muted">{t("policyNote")}</p>
