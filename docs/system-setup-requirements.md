@@ -62,3 +62,12 @@ Accounts use a person silhouette and client connections use linked-chain geometr
 The navigation rail starts at the viewport left safe-area edge instead of inheriting the centered page gutter. Content keeps its own gap and maximum width; the brand retains its text inset.
 
 Credential controls and module toggle labels have 44px minimum touch targets on coarse pointers. Requested post-fix UI and UX audits follow deployment.
+
+## Post-fix independent audits for deployed 0.1.74
+
+Deployment source: f7c40c78c74aa39f5d891d22ba9553376745f50a. Installed payload matched 14,657 artifact files and all 13 runtime doctor checks passed. Two separate agents audited the matching-build fixture after installation.
+
+- UI: rail left 0px / width 44px; EN menu fits the viewport; semantic account/connection icons; 44px credential controls and 44x44px module labels under coarse-pointer emulation; no overflow at 390px or observed 1238px desktop. Earlier touch-size findings resolved.
+- UX: language selection focus and Escape return, Calendar dialog cancellation focus, settled refresh state and compact notification passed. No blocking finding in the checked flows.
+- Nonblocking recommendation: hover metric titles have no touch equivalent. A tap explanation could improve mobile discovery; not implemented in this release.
+- Limits: fixture rendering and interaction, not physical iPhone Safari, real remote authentication, Photos operations, screen-reader acceptance, or every screen. Existing per-origin passkey gating remains pending.
