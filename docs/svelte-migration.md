@@ -319,3 +319,13 @@ state readback. Existing main MCP profile stayed on the same account and mailbox
 listing succeeded (9). Concurrent native Photos work later restarted that release
 and advanced main. No new registration or provider write was needed. Preservation
 is an upgrade-time claim; later authorized configuration changes are separate.
+
+### Final delivery readback
+
+The three migration phases are implemented and delivered. Running 0.1.71 from
+cf05683f72bacb5e785bdeb0132a3f22bfa852c4 includes the requested shared icon shell
+and single-column overview. Its payload matches the clean-main rebuild except
+verified Kit build identity metadata. 13 actual HTTPS assets and 13 doctor checks
+pass. Existing main MCP retains the same account and reads 9 mailboxes. No new
+registration/grant, provider write or live reset was introduced for acceptance.
+Concurrent native Photos changes and current operator configuration are preserved.
