@@ -1,5 +1,11 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Standalone experiment supersedes production diagnostic approach — 2026-10-06
+
+The owner clarified that this is a native API experiment, not an MCP experiment, and explicitly authorized an independent read-only App. The implementation is now isolated in `playground/photos/picker-input-experiment`. No production tool, Helper, version, deployment or operation ledger is changed for it. The existing unresolved posting operation and its interlock remain intact.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Picker comparison deployed; live selection pending — 2026-10-06
 
 PR 70 merged at `3e9a9890525590b4c2e89141f7adcbc6bef06ddf`. Existing original service now runs immutable 0.1.62 with a signed Helper. Stopped backup SQLite integrity checks passed; configuration/custody hashes were preserved and 14,669 installed payload files matched staging. The source branch passed 428 tests / 2,909 assertions. Main received concurrent UI changes; its rebuilt version passed 425 tests / 2,834 assertions, application typechecks and Studio checks. These are same-agent checks, not independent review or live posting acceptance.
