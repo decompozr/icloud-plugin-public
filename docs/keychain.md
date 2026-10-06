@@ -119,6 +119,9 @@ SQLite and Keychain do not share a transaction. Persist intent before external
 operations; use exact identity/value readback and CAS before authority changes.
 HMAC metadata uses the original key. Full durability includes file+directory
 fsync and SQLite FULL/EXTRA settings. No PID-liveness-based stealing of old leases.
+Persistent journal modes must also be enforced: DELETE/TRUNCATE/PERSIST/WAL;
+MEMORY/OFF are rejected. FULL alone did not establish crash durability in the
+earlier guard, and that gap was reproduced and corrected.
 Cooperative leases do not prove older/custom/noncooperating writers stopped.
 
 Master authority must be discoverable before HMAC-dependent owner/auth DB startup.
