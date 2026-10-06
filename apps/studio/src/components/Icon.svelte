@@ -1,6 +1,7 @@
 <script lang="ts">
+ import DesignIcon from './DesignIcon.svelte';
   import { brandLinks, brandNodes } from "../branding.js";
-  let { name }: { name: "brand" | "passkey" } = $props();
+  let { name }: { name: "brand" | "passkey" | "settings" } = $props();
 </script>
 
 {#if name === "brand"}
@@ -26,6 +27,7 @@
         />{/each}</g
     ></svg
   >
+{:else if name === "settings"}<DesignIcon name="settings"/>
 {:else}
   <svg
     class="ui-icon"

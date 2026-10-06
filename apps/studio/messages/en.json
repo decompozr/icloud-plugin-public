@@ -457,5 +457,12 @@
   "newAccountOption": "Add a new account",
   "requirementsPage": "Setup requirements",
   "noAccountYet": "Add an iCloud account to configure credentials and client connections.",
-  "requirementsFailed": "A requirement could not be verified. Refresh or complete setup before enabling."
+  "requirementsFailed": "A requirement could not be verified. Refresh or complete setup before enabling.",
+  "appPasswordShort": "App password",
+  "appleSessionShort": "Apple session",
+  "credentialStoredShort": "Stored",
+  "credentialMissingShort": "Set up",
+  "sessionSavedShort": "Saved",
+  "manageAppleSession": "Manage Apple Account session",
+  "runtimeFolder": "Runtime folder"
 }

@@ -214,3 +214,21 @@ blank optional labels, missing requirements, cancellation and failed refresh.
 Independent review found no remaining scoped blocker after corrections. This
 follow-up uses version 0.1.62 because 0.1.61 was released by the parallel native
 Photos work; installed releases are never overwritten.
+
+### Overview usability refinements (0.1.63)
+
+Language is in the navigation bar. Tabs have no gap and the active marker uses
+native cross-document transitions on Studio admin routes, respecting reduced
+motion. Account credential status is a pair of compact modal-entry controls,
+with account creation at the header. Refresh retains loaded snapshots and card
+geometry; skeletons only appear before the first snapshot. Refresh/settings/add
+icons use the pinned DecompozR catalog, with the Lucide notice included. Service
+status exposes the private runtime folder. Build/typecheck, 25 scoped tests
+(1,180 assertions) and 40 isolated browser checks pass. No reset is executed;
+connection reset and factory reset with key rotation are the accepted next slice.
+
+0.1.62 running delivery was read back from current main 3e9a9890525590b4c2e89141f7adcbc6bef06ddf.
+The concurrent native workflow installed it before the Studio installer; all
+payload files match the clean-main build except verified SvelteKit build identity
+metadata. Live readback checked 544 conditions and doctor passed 13 checks from
+this Mac, without claiming off-tailnet or new provider acceptance.

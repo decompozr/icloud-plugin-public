@@ -1,3 +1,4 @@
+import {dirname} from 'node:path';
 import type {AppSettings} from '../server/settings.js';
 import type {TailscaleStatus} from './handler.js';
 import {prerequisites} from '../server/prerequisites.js';
@@ -16,6 +17,7 @@ export interface SystemStatus {
  exposure:{state:ObservedState;public:SystemOriginStatus;private:SystemOriginStatus;externalReachability:'unknown'};
  supervision:{state:'verified'|'unknown';label:string;matchesCurrentProcess:boolean|null};
  logs:{state:'unavailable'};
+ locations?:{runtimeDirectory:string;stateDirectory:string;installationDirectory:string|null};
 }
 export interface StatusCommandResult {exitCode:number;stdout:string}
 export interface SystemStatusDependencies {
@@ -23,7 +25,7 @@ export interface SystemStatusDependencies {
  command?:(argv:readonly string[])=>Promise<StatusCommandResult>;
  now?:()=>number;pid?:number;uptime?:()=>number;runtimeVersion?:string;version?:string;
  /** Only supply this after verifying the selected artifact metadata; source version is insufficient. */
- installedVersion?:string;
+ installedVersion?:string;installationDirectory?:string;
  platform?:string;uid?:number;
 }
 /** Fixed arguments, a wall-clock deadline and bounded stdout; never return stderr or raw output. */
@@ -67,7 +69,7 @@ function applyServe(value:unknown,result:SystemStatus,settings:AppSettings):bool
 }
 /** On-demand observations only. External MCP success belongs to account/client evidence. */
 export async function createSystemStatus(settings:AppSettings,deps:SystemStatusDependencies={}):Promise<SystemStatus>{
- const result:SystemStatus={checkedAt:new Date((deps.now??Date.now)()).toISOString(),process:{state:'running',pid:deps.pid??process.pid,uptimeSeconds:Math.max(0,Math.floor((deps.uptime??(()=>process.uptime()))())),version:deps.version??null,runtime:'Bun '+(deps.runtimeVersion??Bun.version)},installed:{state:deps.installedVersion?'verified':'unknown',version:deps.installedVersion??null},connectivity:{state:'unknown',installed:null,authenticated:null,online:null,privateReachable:null},exposure:{state:'unknown',public:originStatus(settings.public_origin,['/icloud','/.well-known/oauth-authorization-server/icloud/auth','/.well-known/oauth-protected-resource/icloud/mcp']),private:originStatus(settings.private_origin,['/icloud','/']),externalReachability:'unknown'},supervision:{state:'unknown',label:SERVICE_LABEL,matchesCurrentProcess:null},logs:{state:'unavailable'}};
+ const result:SystemStatus={checkedAt:new Date((deps.now??Date.now)()).toISOString(),process:{state:'running',pid:deps.pid??process.pid,uptimeSeconds:Math.max(0,Math.floor((deps.uptime??(()=>process.uptime()))())),version:deps.version??null,runtime:'Bun '+(deps.runtimeVersion??Bun.version)},installed:{state:deps.installedVersion?'verified':'unknown',version:deps.installedVersion??null},connectivity:{state:'unknown',installed:null,authenticated:null,online:null,privateReachable:null},exposure:{state:'unknown',public:originStatus(settings.public_origin,['/icloud','/.well-known/oauth-authorization-server/icloud/auth','/.well-known/oauth-protected-resource/icloud/mcp']),private:originStatus(settings.private_origin,['/icloud','/']),externalReachability:'unknown'},supervision:{state:'unknown',label:SERVICE_LABEL,matchesCurrentProcess:null},logs:{state:'unavailable'},locations:{runtimeDirectory:dirname(settings.state_directory),stateDirectory:settings.state_directory,installationDirectory:deps.installationDirectory??null}};
  const command=deps.command??boundedCommand;
  const safeCommand=async(argv:readonly string[])=>{const value=await command(argv);if(value.stdout.length>MAX_OUTPUT)throw new Error('Output limit');return value;};
  await Promise.all([

@@ -27,6 +27,7 @@ export const dashboardSchema = z.object({
   modules: z.record(z.record(z.boolean())).optional(),
 });
 export const systemSchema = z.object({
+ locations:z.object({runtimeDirectory:z.string(),stateDirectory:z.string(),installationDirectory:z.string().nullable()}).optional(),
   checkedAt: z.string().datetime(),
   process: z.object({
     state: z.literal("running"),
