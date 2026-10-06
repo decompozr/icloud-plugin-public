@@ -465,7 +465,7 @@
   .nav-bar {
     display:flex;
     flex-direction:column;
-    height:calc(100dvh - 2rem);
+    height:calc(100svh - 2rem);
     padding-bottom:env(safe-area-inset-bottom, 0px);
     overflow-y:auto;
     position: sticky;

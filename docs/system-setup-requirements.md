@@ -77,3 +77,7 @@ Deployment source: f7c40c78c74aa39f5d891d22ba9553376745f50a. Installed payload m
 The brand logo sits at the top of the navigation rail and the compact language menu at its bottom. Remove the separate brand text header. Use dynamic viewport height, safe-area bottom padding and scrollable rail overflow so short viewports retain access to all controls.
 
 Verified: build, clean Studio typecheck, 12 Studio tests, 390px viewport screenshot, and bottom language menu opening upwards within the viewport.
+
+## Stable language position during mobile scrolling (0.1.76)
+
+The full-height rail used 100dvh, which changes as Safari browser chrome expands/collapses. Its bottom-aligned language control therefore relaid out while the top controls stayed stable. Use 100svh so browser-chrome scrolling does not change rail height. The bottom control stays at the small-viewport boundary and may leave space below when browser chrome retracts. Physical iPhone scrolling remains device acceptance. Reference: https://webkit.org/blog/12445/new-webkit-features-in-safari-15-4/
