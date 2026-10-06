@@ -2,6 +2,15 @@
 
 ## Refreshed metadata accepted; native owner review pending — 2026-10-06
 
+The owner subsequently declined to operate any UI. The current supported public
+native path requires an exact picker selection and a separate human sharing action;
+the loaded original MCP exposes no established headless motion-preserving posting
+path. This is the concrete external blocker, rather than a metadata or permission
+failure. Latest durable status remains review_pending with the Helper alive; no
+picker result or posting completion is recorded. Retain the operation and its
+interlock for reconciliation. Do not claim cancellation or silently replace the
+owner action with automation, another MCP, direct CLI or still-only upload.
+
 The new native receiver's subsequent automatic turn loads photos_prepare with
 the explicit nativeUI opt-in. Original-MCP health verifies native authorization
 3/true. Exact source readback confirms the approved original Live Photo remains

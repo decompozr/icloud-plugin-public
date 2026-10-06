@@ -2,6 +2,10 @@
 
 ## Current acceptance: declared native sharing awaiting owner UI — 2026-10-06
 
+The owner declines UI interaction. The supported native path requires that action,
+so sharing is blocked externally with review_pending retained for reconciliation.
+No established headless motion-preserving route is exposed by the original MCP.
+
 After user-reported Refresh, the subsequent automatic native turn loads the
 explicit nativeUI sharing declaration. Original-MCP health and exact readbacks
 verify authorized access, the intact existing Live Photo and the retained empty
