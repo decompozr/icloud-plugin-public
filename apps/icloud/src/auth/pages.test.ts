@@ -9,8 +9,8 @@ test('signed continuation filters page parameters and preserves repeated resourc
  expect(parsed.has('theme')).toBe(false);
  expect(()=>signedOAuthQuery('?client_id=c')).toThrow();
 });
-test('public auth pages load a local typed browser bundle without inline ceremony code',()=>{
- for(const mode of ['sign-in','consent'] as const){const html=renderAuthPage(mode);expect(html).toContain('/icloud/assets/auth-browser.js');expect(html).toContain('aria-live="polite"');expect(html).not.toContain('navigator.credentials');}
+test('snapshot auth pages contain accessible inert markup without inline ceremony code',()=>{
+ for(const mode of ['sign-in','consent'] as const){const html=renderAuthPage(mode);expect(html).not.toContain('/icloud/assets/auth-browser.js');expect(html).toContain('aria-live="polite"');expect(html).not.toContain('navigator.credentials');}
 });
 test('private owner login returns to administration while public login has no admin destination',()=>{
  expect(renderAuthPage('sign-in',true)).toContain('data-auth-return="/icloud/admin"');

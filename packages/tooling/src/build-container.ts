@@ -11,7 +11,9 @@ try{
  for(const file of ['LICENSE','THIRD_PARTY_NOTICES.md','plugin.json'])await cp(join(root,file),join(context,file));
  for(const file of ['package.json','bun.lock','tsconfig.json','tsconfig.build.json','src'])await cp(join(root,'apps/icloud',file),join(context,'apps/icloud',file),{recursive:true});
  await mkdir(join(context,'apps/studio'),{recursive:true});
- for(const file of ['package.json','bun.lock','tsconfig.json','THIRD_PARTY_NOTICES.md','src','build'])await cp(join(root,'apps/studio',file),join(context,'apps/studio',file),{recursive:true});
+ for(const file of ['package.json','bun.lock','tsconfig.json','THIRD_PARTY_NOTICES.md','vite.config.ts','messages','src','build'])await cp(join(root,'apps/studio',file),join(context,'apps/studio',file),{recursive:true,filter:path=>!path.split('/').includes('paraglide')});
+ await mkdir(join(context,'apps/studio/project.inlang'),{recursive:true});
+ await cp(join(root,'apps/studio/project.inlang/settings.json'),join(context,'apps/studio/project.inlang/settings.json'));
  await mkdir(join(context,'apps/icloud/assets'),{recursive:true});
  for(const name of ['plugin-icon.png','inter.ttf','inter-OFL.txt'])await cp(join(root,'apps/icloud/assets',name),join(context,'apps/icloud/assets',name));
  for(const skill of ['icloud-mail','icloud-calendar','icloud-photos']){

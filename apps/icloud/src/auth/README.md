@@ -40,7 +40,8 @@ auth secret. Secret rotation requires an explicit migration, not silent replacem
 
 Provider state includes Passkeys, sessions, challenges, clients, consents and grants.
 It is distinct from the opaque owner credential store. Initialize one factory per
-auth DB at a time. `pages.ts` delegates sign-in/consent presentation to compiled Svelte Studio components and the connection handler owns account selection; `browser.ts` performs
+auth DB at a time. `pages.ts` delegates sign-in/consent presentation to compiled Svelte Studio components and the connection handler owns account selection; Studio performs hydrated browser interactions; the protocol-only compatibility
+`browser.ts` exposes
 same-origin SimpleWebAuthn ceremonies. Scope labels are supplied by composition as a string or locale-to-description map
 and inserted as text, rather than hardcoded Mail semantics. `scope-labels.ts` selects
 the current page locale (case-insensitive), then the module default, then the scope

@@ -16,3 +16,8 @@ Traditional Chinese entries. Admin/auth page and browser integration tests exerc
 copy use. This is not a translation-management service or evidence that every future
 feature is localized. New Mail/Calendar wording should preserve feature ownership
 while reusing genuinely shared interface language. See [design language](../../../../docs/design-language.md).
+
+Studio owns the source catalogs at `apps/studio/messages/en.json` and
+`zh-TW.json`, compiled by Paraglide for request-scoped SSR and reactive browser UI.
+These core compatibility resources are derived from the same JSON, rather than
+maintaining another translation dictionary.

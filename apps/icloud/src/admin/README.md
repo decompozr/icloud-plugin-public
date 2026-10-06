@@ -5,7 +5,8 @@ Use cases are checking prerequisites, completing first-owner enrollment, replaci
 or removing the stored provider credential, viewing connection/capability status,
 changing operator capabilities and downloading the configured plugin ZIP.
 `page.ts` adapts the host presentation/locale to the compiled Svelte renderer in
-`apps/studio`. Studio owns the shell and its browser compatibility controller.
+`apps/studio`. Studio owns the hydrated shell and reactive browser workflows. The handler supplies
+only an owner-checked presentation model to Kit, retaining mutation authority.
 
 ## Dependencies and boundary
 

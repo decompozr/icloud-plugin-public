@@ -1,3 +1,4 @@
+import { createCopy } from "./lib/copy.js";
 import { render } from "svelte/server";
 import Admin from "./components/Admin.svelte";
 import Auth from "./components/Auth.svelte";
@@ -26,13 +27,11 @@ function document(
   attributes: Record<string, string> = {},
   extraStyles = "",
 ) {
-  return `<!doctype html><html lang="${escape(locale)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(title)}</title><style>${styles}</style>${extraStyles?`<style>${extraStyles}</style>`:""}</head><body data-ui-framework="svelte" ${Object.entries(
+  return `<!doctype html><html lang="${escape(locale)}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(title)}</title><style>${styles}</style>${extraStyles ? `<style>${extraStyles}</style>` : ""}</head><body data-ui-framework="svelte" ${Object.entries(
     attributes,
   )
     .map(([key, value]) => `${key}="${escape(value)}"`)
-    .join(
-      " ",
-    )}>${body}<script type="module" src="/icloud/assets/${asset}"></script></body></html>`;
+    .join(" ")}>${body}</body></html>`;
 }
 export function renderAdmin(
   state: AdminState,
@@ -85,8 +84,8 @@ export function renderCredential(admin: boolean, copy: UiCopy): string {
   return render(Credential, { props: { admin }, context: context(copy) }).body;
 }
 export function renderPhotosSetup(): string {
-  return render(PhotosSetup).body;
+  return render(PhotosSetup, { context: context(createCopy(() => "en")) }).body;
 }
 export function renderPhotosCloud(): string {
-  return render(PhotosCloud).body;
+  return render(PhotosCloud, { context: context(createCopy(() => "en")) }).body;
 }

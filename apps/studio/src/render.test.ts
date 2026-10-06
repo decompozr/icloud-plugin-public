@@ -25,7 +25,7 @@ test('transient credential forms render empty and auth does not inherit a privat
   const html=renderAuth(mode,false,{},copy,'','en');
   expect(html).not.toContain('value="password"');expect(html).toContain('data-auth-return=""');
  }
- const html=renderCredential(true,copy);expect(html).toContain('id="password"');expect(html).not.toContain('value=');
+ const html=renderCredential(true,copy);expect(html).toContain('id="password"');expect(html).toMatch(/id="password"[^>]*value=""/);expect(html).not.toContain('value="fixture-secret"');
 });
 test('Photos setup modules remain inert until existing controllers attach',()=>{
  const local=renderPhotosSetup(),cloud=renderPhotosCloud();

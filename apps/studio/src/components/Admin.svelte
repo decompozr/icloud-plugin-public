@@ -1,13 +1,24 @@
 <script lang="ts">
-  import { getContext } from "svelte";
+  import { getContext, onMount } from "svelte";
   import type { AdminState, UiCopy } from "../contracts.js";
   import Copy from "./Copy.svelte";
   import Brand from "./Brand.svelte";
   import Icon from "./Icon.svelte";
   import PhotosSetup from "./PhotosSetup.svelte";
   import PhotosCloud from "./PhotosCloud.svelte";
+  import { AdminModel } from "../lib/admin-model.svelte.js";
+  import AdminDashboard from "./AdminDashboard.svelte";
+  import Credential from "./Credential.svelte";
   let { state }: { state: AdminState } = $props();
-  const { t } = getContext<UiCopy>("copy");
+  const copy = getContext<UiCopy>("copy");
+  const { t } = copy;
+  const locale = getContext<{
+    current: "en" | "zh-TW";
+    set(value: "en" | "zh-TW"): void;
+  }>("locale");
+  // svelte-ignore state_referenced_locally
+  const model = new AdminModel(state, copy);
+  onMount(() => model.start());
   const calendarCopy: Record<string, string> = {
     read: "calendarRead",
     write: "calendarWrite",
@@ -37,8 +48,48 @@
     ["/icloud/admin/system", "navSystem", "system"],
     ["/icloud/setup", "navSetup", "setup"],
   ];
-  const progressSteps=$derived(state.localOwner ? ["stepOwner","installationPolicy","stepConnection","stepClient"] : ["stepConnection","stepOwner","stepAccount","stepClient"]);
+  const progressSteps = $derived(
+    state.localOwner
+      ? ["stepOwner", "installationPolicy", "stepConnection", "stepClient"]
+      : ["stepConnection", "stepOwner", "stepAccount", "stepClient"],
+  );
+  function mixed(node: HTMLInputElement, values: boolean[]) {
+    const update = (v: boolean[]) => {
+      node.indeterminate = v.some(Boolean) && !v.every(Boolean);
+    };
+    update(values);
+    return { update };
+  }
+  function selection(service: string) {
+    const v = Object.values(model.draft[service] ?? {});
+    return v.length && v.every(Boolean)
+      ? "allPolicy"
+      : v.some(Boolean)
+        ? "mixedPolicy"
+        : "noPolicy";
+  }
+  async function copyField(id: string) {
+    const field = document.getElementById(id),
+      feedback = document.getElementById(id + "-feedback");
+    if (!field || !feedback) return;
+    try {
+      await navigator.clipboard.writeText(field.textContent?.trim() ?? "");
+      feedback.textContent = t("copied");
+      feedback.className = "sr-only";
+    } catch {
+      feedback.textContent = t("copyFailed");
+      feedback.className = "copy-feedback-error";
+      const range = document.createRange();
+      range.selectNodeContents(field);
+      window.getSelection()?.removeAllRanges();
+      window.getSelection()?.addRange(range);
+    }
+  }
 </script>
+
+<svelte:head
+  ><title>{t(state.admin ? "titleAdmin" : "titleSetup")}</title></svelte:head
+>
 
 {#snippet heading(key: string, path: string)}
   <h3>
@@ -58,7 +109,9 @@
 {#snippet back(index: number)}<button
     type="button"
     class="secondary"
-    data-back={index}><Copy copyKey="back" /></button
+    data-back={index}
+    disabled={model.busy}
+    onclick={() => model.step(index)}><Copy copyKey="back" /></button
   >{/snippet}
 {#snippet field(id: string, label: string, value: string, valueKey?: string)}
   <div class="copy-field">
@@ -75,6 +128,8 @@
       <button
         type="button"
         class="copy-icon"
+        onclick={() => void copyField(id)}
+        disabled={model.busy}
         data-clipboard={id}
         data-clipboard-label={label}
         aria-label={t("copyValue") + " " + t(label)}
@@ -116,6 +171,8 @@
   data-enrolled={state.enrolled}
   data-view={view}
   data-mode={state.mode ?? ""}
+  data-sveltekit-reload
+  aria-busy={model.busy}
 >
   <Brand><Copy copyKey="brand" /></Brand><a
     class="skip-link"
@@ -130,7 +187,11 @@
   </nav>
   <label class="language" for="language"
     ><Copy copyKey={"language"} />
-    <select id="language"
+    <select
+      id="language"
+      value={locale?.current ?? "en"}
+      onchange={(e) => locale?.set(e.currentTarget.value as "en" | "zh-TW")}
+      disabled={model.busy}
       ><option value="en" lang="en">English</option><option
         value="zh-TW"
         lang="zh-TW">繁體中文</option
@@ -147,11 +208,16 @@
         data-copy-label="progress"
         aria-label={t("progress")}
       >
-        {#each progressSteps as key, position}{@const index =
-            state.localOwner ? [1, 4, 0, 3][position] : position}
+        {#each progressSteps as key, position}{@const index = state.localOwner
+            ? [1, 4, 0, 3][position]
+            : position}
           <li
             data-progress={index}
-            aria-current={index === 0 ? "step" : undefined}
+            aria-current={index === model.currentStep ? "step" : undefined}
+            class:done={progressSteps.indexOf(key) <
+              (state.localOwner ? [1, 4, 0, 3] : [0, 1, 2, 3]).indexOf(
+                model.currentStep,
+              )}
           >
             <Copy copyKey={key} />
           </li>{/each}
@@ -159,39 +225,83 @@
     {#if state.admin && view === "overview"}<section class="card">
         <h2><Copy copyKey={"overviewTitle"} /></h2>
         <div id="overview-content" role="status" aria-live="polite">
-          <p><Copy copyKey={"statusLoading"} /></p>
+          <AdminDashboard {model} view="overview" />
         </div>
-        <div id="overview-next" class="actions"></div>
-        <button type="button" id="overview-refresh" class="secondary"
-          ><Copy copyKey={"retryDiagnostics"} /></button
+        <div id="overview-next" class="actions">
+          <a href="/icloud/admin/connections">{t("navConnections")}</a><a
+            href="/icloud/setup">{t("connectTitle")}</a
+          >
+        </div>
+        <button
+          type="button"
+          id="overview-refresh"
+          class="secondary"
+          onclick={() => {
+            model.polls = 0;
+            void model.run(() => model.refreshAll());
+          }}
+          disabled={model.busy}><Copy copyKey={"retryDiagnostics"} /></button
         >{#if state.localOwner}<details>
             <summary><Copy copyKey={"remoteOwnerTitle"} /></summary>
             <p><Copy copyKey={"remoteOwnerHelp"} /></p>
-            <button type="button" id="remote-owner-start" class="secondary"
-              ><Copy copyKey={"remoteOwnerStart"} /></button
+            <button
+              type="button"
+              id="remote-owner-start"
+              class="secondary"
+              disabled={model.busy}
+              onclick={() => {
+                if (window.confirm(t("remoteOwnerConfirm")))
+                  void model.run(async () => {
+                    const value = await model.post(
+                      "/icloud/admin/remote-owner",
+                      { confirm: true },
+                    );
+                    const url = new URL(value.url);
+                    if (url.protocol !== "https:") throw Error();
+                    model.remoteLink = url.href;
+                    setTimeout(
+                      () => (model.remoteLink = ""),
+                      value.expiresIn * 1000,
+                    );
+                  });
+              }}><Copy copyKey={"remoteOwnerStart"} /></button
             >
-            <div id="remote-owner-link"></div>
+            <div id="remote-owner-link">
+              {#if model.remoteLink}<a
+                  href={model.remoteLink}
+                  target="_blank"
+                  rel="noreferrer">{t("remoteOwnerOpen")}</a
+                >{/if}
+            </div>
           </details>{:else}{/if}
       </section>{:else}{/if}
     {#if state.admin && view === "system"}<section class="card">
         <h2><Copy copyKey={"systemTitle"} /></h2>
         <p><Copy copyKey={"systemHelp"} /></p>
-        <button type="button" id="system-refresh" class="secondary"
-          ><Copy copyKey={"retryDiagnostics"} /></button
+        <button
+          type="button"
+          id="system-refresh"
+          class="secondary"
+          onclick={() => void model.run(() => model.refreshSystem())}
+          disabled={model.busy}><Copy copyKey={"retryDiagnostics"} /></button
         >
         <div id="system-content" role="status" aria-live="polite">
-          <p><Copy copyKey={"statusLoading"} /></p>
+          <AdminDashboard {model} view="system" />
         </div>
       </section>{:else}{/if}
     {#if accounts}<section class="card dashboard">
         <h2><Copy copyKey={"accountsTitle"} /></h2>
-        <div id="accounts" role="list" aria-label={t("accountsTitle")}></div>
+        <div id="accounts" role="list" aria-label={t("accountsTitle")}>
+          <AdminDashboard {model} view="accounts" />
+        </div>
         <p>
           <a href="/icloud/setup?mode=account"
             ><Copy copyKey={"addAccount"} /></a
           >
         </p>
-        <div id="account-details"></div>
+        <div id="account-details" aria-live="polite">
+          <AdminDashboard {model} view="accountDetails" />
+        </div>
       </section>{:else}{/if}{#if policy}<section class="card">
         <h2><Copy copyKey={"installationPolicy"} /></h2>
         <p class="muted"><Copy copyKey={"installationPolicyHelp"} /></p>
@@ -204,10 +314,14 @@
               id="all-mail"
               data-capability-all
               type="checkbox"
-              disabled
+              checked={Object.values(model.draft.mail ?? {}).length > 0 &&
+                Object.values(model.draft.mail ?? {}).every(Boolean)}
+              use:mixed={Object.values(model.draft.mail ?? {})}
+              onchange={(e) => model.toggleAll("mail", e.currentTarget.checked)}
+              disabled={model.busy || !model.saved.mail}
             />
           </div>
-          <p data-selection-summary></p>
+          <p data-selection-summary>{t(selection("mail"))}</p>
           <details>
             <summary><Copy copyKey={"advancedScopes"} /></summary>
             <ul class="checks">
@@ -223,9 +337,12 @@
                       id="policy-input-{id}"
                       aria-label={copyKey ? t(copyKey) : (label ?? id)}
                       data-copy-label={copyKey}
-                      disabled
+                      checked={model.draft.mail?.[id] ?? false}
+                      onchange={(e) =>
+                        model.toggle("mail", id, e.currentTarget.checked)}
+                      disabled={model.busy || !model.saved.mail}
                     /><span id="policy-{id}"
-                      ><Copy copyKey={"unavailable"} /></span
+                      >{t(model.fieldStatus("mail", id))}</span
                     ></span
                   >
                 </li>{/each}
@@ -250,10 +367,16 @@
                 data-capability-all
                 type="checkbox"
                 aria-describedby="help-{module.id}"
-                disabled
+                checked={Object.values(model.draft[module.id] ?? {}).length >
+                  0 &&
+                  Object.values(model.draft[module.id] ?? {}).every(Boolean)}
+                use:mixed={Object.values(model.draft[module.id] ?? {})}
+                onchange={(e) =>
+                  model.toggleAll(module.id, e.currentTarget.checked)}
+                disabled={model.busy || !model.saved[module.id]}
               />
             </div>
-            <p data-selection-summary></p>
+            <p data-selection-summary>{t(selection(module.id))}</p>
             <details>
               <summary><Copy copyKey={"advancedScopes"} /></summary>
               <p id="help-{module.id}">
@@ -282,9 +405,16 @@
                         type="checkbox"
                         id="module-{module.id}-{field.id}"
                         data-module-field={field.id}
-                        disabled
+                        checked={model.draft[module.id]?.[field.id] ?? false}
+                        onchange={(e) =>
+                          model.toggle(
+                            module.id,
+                            field.id,
+                            e.currentTarget.checked,
+                          )}
+                        disabled={model.busy || !model.saved[module.id]}
                       /><span data-module-state={field.id}
-                        ><Copy copyKey={"unavailable"} /></span
+                        >{t(model.fieldStatus(module.id, field.id))}</span
                       ></span
                     >
                   </li>{/each}
@@ -296,50 +426,94 @@
             >
           </p>{/if}
         <p class="muted"><Copy copyKey={"policyNote"} /></p>
-        <p id="policy-dirty" role="status" hidden>
+        <p id="policy-dirty" role="status" hidden={!model.changes.length}>
           <Copy copyKey={"unsavedPolicy"} />
         </p>
         <div class="actions">
-          <button type="button" class="secondary" id="policy-discard" hidden
-            ><Copy copyKey={"discardPolicy"} /></button
-          ><button type="button" class="primary" id="policy-save" disabled
+          <button
+            type="button"
+            class="secondary"
+            id="policy-discard"
+            hidden={!model.changes.length}
+            onclick={() => model.discardPolicy()}
+            disabled={model.busy}><Copy copyKey={"discardPolicy"} /></button
+          ><button
+            type="button"
+            class="primary"
+            id="policy-save"
+            onclick={() => model.requestPolicy()}
+            disabled={model.busy || !model.changes.length}
             ><Copy copyKey={"policySave"} /></button
           >
         </div>
-        <div class="note" id="policy-confirm" hidden>
+        <div class="note" id="policy-confirm" hidden={!model.policyConfirm}>
           <p><Copy copyKey={"policyConfirm"} /></p>
-          <button type="button" class="primary" id="policy-confirm-yes"
-            ><Copy copyKey={"policyEnable"} /></button
+          <button
+            type="button"
+            class="primary"
+            id="policy-confirm-yes"
+            onclick={() =>
+              void model.run(() => model.savePolicies(true), "workingPolicy")}
+            disabled={model.busy}><Copy copyKey={"policyEnable"} /></button
           >
-          <button type="button" class="secondary" id="policy-confirm-no"
-            ><Copy copyKey={"cancel"} /></button
+          <button
+            type="button"
+            class="secondary"
+            id="policy-confirm-no"
+            onclick={() => {
+              model.policyConfirm = false;
+            }}
+            disabled={model.busy}><Copy copyKey={"cancel"} /></button
           >
         </div>
       </section>{:else}{/if}{#if connections}<section class="card">
         <h2><Copy copyKey={"connectionsTitle"} /></h2>
         <p><Copy copyKey={"connectionsHelp"} /></p>
-        <div id="connections-list" tabindex="-1"></div>
+        <div id="connections-list" tabindex="-1">
+          <AdminDashboard {model} view="connections" />
+        </div>
         <details>
           <summary><Copy copyKey={"registrationHistory"} /></summary>
-          <div id="registrations-list"></div>
+          <div id="registrations-list">
+            <AdminDashboard {model} view="registrations" />
+          </div>
         </details>
         <div
           id="connection-confirm"
           class="note"
-          hidden
           role="dialog"
           aria-modal="false"
           aria-labelledby="connection-confirm-title"
+          hidden={!model.pendingConnection}
         >
           <h3 id="connection-confirm-title">
             <Copy copyKey={"connectionImpact"} />
           </h3>
-          <div id="connection-impact"></div>
+          <div id="connection-impact">
+            <AdminDashboard {model} view="impact" />
+          </div>
           <div class="actions">
-            <button type="button" id="connection-confirm-yes" class="danger"
-              ><Copy copyKey={"confirmConnectionAction"} /></button
-            ><button type="button" id="connection-confirm-no" class="secondary"
-              ><Copy copyKey={"cancel"} /></button
+            <button
+              type="button"
+              id="connection-confirm-yes"
+              class={model.pendingConnection?.action === "upgrade"
+                ? "primary"
+                : "danger"}
+              onclick={() => void model.run(() => model.confirmConnection())}
+              disabled={model.busy}
+              ><Copy
+                copyKey={model.pendingConnection?.action === "upgrade"
+                  ? "confirmCapabilityUpgrade"
+                  : "confirmConnectionAction"}
+              /></button
+            ><button
+              type="button"
+              id="connection-confirm-no"
+              class="secondary"
+              onclick={() => {
+                model.pendingConnection = undefined;
+              }}
+              disabled={model.busy}><Copy copyKey={"cancel"} /></button
             >
           </div>
         </div>
@@ -351,14 +525,34 @@
         <p><Copy copyKey={"readinessHelp"} /></p>
         <label for="readiness-account"
           ><Copy copyKey={"readinessAccount"} /></label
-        ><select id="readiness-account"></select><label for="readiness-client"
+        ><select id="readiness-account" bind:value={model.readinessAccount}
+          ><option value="">{t("chooseContext")}</option
+          >{#each model.dashboard?.accounts ?? [] as a}<option value={a.id}
+              >{a.label === a.user ? a.user : a.label + " · " + a.user}</option
+            >{/each}</select
+        ><label for="readiness-client"
           ><Copy copyKey={"readinessClient"} /></label
-        ><select id="readiness-client"></select><button
+        ><select id="readiness-client" bind:value={model.readinessClient}
+          ><option value="">{t("chooseContext")}</option
+          >{#each model.clients ?? [] as c}<option value={c.clientId}
+              >{(c.name ?? "Client") + " · " + c.clientId}</option
+            >{/each}</select
+        ><button
           type="button"
           class="secondary"
-          id="readiness-refresh"><Copy copyKey={"retryDiagnostics"} /></button
+          id="readiness-refresh"
+          onclick={() =>
+            void model.run(async () => {
+              await Promise.allSettled([
+                model.refreshDashboard(),
+                model.refreshClients(),
+              ]);
+            })}
+          disabled={model.busy}><Copy copyKey={"retryDiagnostics"} /></button
         >
-        <div id="readiness-results" role="status" aria-live="polite"></div>
+        <div id="readiness-results" role="status" aria-live="polite">
+          <AdminDashboard {model} view="readiness" />
+        </div>
         <p><Copy copyKey={"readinessTestHelp"} /></p>
       </details>{:else}{/if}
     <div
@@ -367,7 +561,10 @@
     >
       {#if !state.admin}<p class="brand" id="onboarding-label">
           <Copy copyKey="shellSetup" />
-        </p>{/if}{#if state.admin}{:else}<section data-step="0">
+        </p>{/if}{#if state.admin}{:else}<section
+          data-step="0"
+          hidden={model.currentStep !== 0}
+        >
           <h2 tabindex="-1"><Copy copyKey={"connectionTitle"} /></h2>
           <p class="muted"><Copy copyKey={"connectionIntro"} /></p>
           <ul class="checks">
@@ -375,11 +572,35 @@
               >
                 <span><Copy copyKey={key} /></span><span
                   id="check-{key}"
-                  class="check-state"><Copy copyKey={"checking"} /></span
+                  class="check-state"
+                  ><Copy
+                    copyKey={model.status
+                      ? model.status.prerequisites[key]
+                        ? "ready"
+                        : "notReady"
+                      : "checking"}
+                  /></span
                 >
               </li>{/each}
           </ul>
-          <div id="connection-help" class="note" hidden></div>
+          <div
+            id="connection-help"
+            class="note"
+            hidden={!model.status ||
+              Object.values(model.status.prerequisites).every(Boolean)}
+          >
+            {model.status
+              ? t(
+                  !model.status.prerequisites.installed
+                    ? "missingInstall"
+                    : !model.status.prerequisites.authenticated
+                      ? "missingLogin"
+                      : !model.status.prerequisites.online
+                        ? "missingOnline"
+                        : "missingPrivate",
+                )
+              : ""}
+          </div>
           <details>
             <summary><Copy copyKey={"connectionHelp"} /></summary>
             <p>
@@ -404,35 +625,69 @@
               )}{/each}
           </details>
           <div class="actions">
-            <button id="connection-next" class="primary" disabled
+            <button
+              id="connection-next"
+              class="primary"
+              onclick={() =>
+                model.step(
+                  model.status?.enrolled
+                    ? state.mode === "account"
+                      ? 2
+                      : 3
+                    : 1,
+                )}
+              disabled={model.busy || !model.canContinue}
               ><Copy copyKey={"next"} /></button
-            ><button id="recheck" class="secondary"
-              ><Copy copyKey={"recheck"} /></button
+            ><button
+              id="recheck"
+              class="secondary"
+              onclick={() => void model.run(() => model.check())}
+              disabled={model.busy}><Copy copyKey={"recheck"} /></button
             >
           </div>
         </section>
-        <section data-step="1" hidden>
+        <section data-step="1" hidden={model.currentStep !== 1}>
           <h2 tabindex="-1"><Copy copyKey={"ownerTitle"} /></h2>
           <p><Copy copyKey={"ownerIntro"} /></p>
           <div class="note"><Copy copyKey={"ownerNote"} /></div>
-          <p id="owner-denied" class="error" hidden>
+          <p id="owner-denied" class="error" hidden={model.canRegister}>
             <Copy copyKey={"ownerDenied"} />
           </p>
-          <p id="passkey-existing" class="note" hidden>
+          <p
+            id="passkey-existing"
+            class="note"
+            hidden={!model.status?.passkeyRegistered}
+          >
             <Copy copyKey={"existingPasskey"} />
           </p>
           <div class="actions">
-            <button id="register" class="primary button-icon" disabled
-              ><Icon name="passkey" /><Copy copyKey={"register"} /></button
+            <button
+              id="register"
+              class="primary button-icon"
+              onclick={() =>
+                void model.run(() => model.enroll(), "passkeyLoading")}
+              disabled={model.busy || !model.canRegister}
+              ><Icon name="passkey" /><Copy
+                copyKey={model.status?.passkeyRegistered
+                  ? "resume"
+                  : "register"}
+              /></button
             >{@render back(0)}
           </div>
         </section>{/if}
       {#if accounts}<details id="account-maintenance">
           <summary><Copy copyKey={"accountMaintenance"} /></summary>
           <p class="muted"><Copy copyKey={"maintenanceHelp"} /></p>
-          {@html state.presentation?.credentialSection(true) ?? ""}
+          {#if state.presentation?.credentialStepLabel === "stepMail"}<Credential
+              admin={true}
+              {model}
+            />{:else}{@html state.presentation?.credentialSection(true) ??
+              ""}{/if}
         </details>{:else}{/if}
-      {#if state.admin}{:else}<section data-step="2" hidden>
+      {#if state.admin}{:else}<section
+          data-step="2"
+          hidden={model.currentStep !== 2}
+        >
           <h2 tabindex="-1"><Copy copyKey={"addAccount"} /></h2>
           <p><Copy copyKey={"accountWizardHelp"} /></p>
           <p>
@@ -447,13 +702,21 @@
               rel="noreferrer"><Copy copyKey={"appleGuide"} /></a
             >
           </div>
-          <form id="account-add">
+          <form
+            id="account-add"
+            onsubmit={(e) => {
+              e.preventDefault();
+              void model.run(() => model.add(), "saving");
+            }}
+          >
             <label for="account-user"><Copy copyKey={"email"} /></label><input
               id="account-user"
               type="email"
               required
               autocomplete="username"
               maxlength="254"
+              bind:value={model.user}
+              disabled={model.busy}
             /><label for="account-label"
               ><Copy copyKey={"accountLabel"} /></label
             ><input
@@ -461,6 +724,8 @@
               type="text"
               autocomplete="off"
               maxlength="100"
+              bind:value={model.label}
+              disabled={model.busy}
             /><label for="account-password"><Copy copyKey={"password"} /></label
             ><input
               id="account-password"
@@ -468,6 +733,13 @@
               required
               autocomplete="new-password"
               maxlength="256"
+              bind:value={model.accountPassword}
+              aria-invalid={model.invalidField === "account-password"
+                ? "true"
+                : undefined}
+              aria-describedby="error"
+              oninput={() => (model.invalidField = "")}
+              disabled={model.busy}
             /><small><Copy copyKey={"passwordHelp"} /></small>
             <div class="actions">
               <button id="account-add-save" class="primary" type="submit"
@@ -475,12 +747,23 @@
               ><a href="/"><Copy copyKey={"cancel"} /></a><button
                 id="account-skip"
                 class="secondary"
-                type="button"><Copy copyKey={"useSavedAccount"} /></button
+                type="button"
+                onclick={() => {
+                  if (
+                    model.dashboard?.accounts.some((a) => a.credentialStored)
+                  ) {
+                    model.step(3);
+                    window.dispatchEvent(new Event("photos-enrolled"));
+                  } else model.message("savedAccountRequired", true);
+                }}
+                disabled={model.busy ||
+                  !model.dashboard?.accounts.some((a) => a.credentialStored)}
+                ><Copy copyKey={"useSavedAccount"} /></button
               >
             </div>
           </form>
         </section>
-        <section data-step="3" hidden>
+        <section data-step="3" hidden={model.currentStep !== 3}>
           <h2 tabindex="-1"><Copy copyKey={"connectTitle"} /></h2>
           <p><Copy copyKey={"connectIntro"} /></p>
           <div class="note"><Copy copyKey={"endpointPrerequisite"} /></div>
@@ -567,15 +850,24 @@
             <a class="button" href="/"><Copy copyKey={"manage"} /></a>
           </div>
         </section>{/if}
-      <p id="result" class="status" role="status" aria-live="polite"></p>
-      <p id="error" class="error" role="alert" hidden></p>
+      <p id="result" class="status" role="status" aria-live="polite">
+        {!model.error && model.messageKey ? t(model.messageKey) : ""}
+      </p>
+      <p
+        id="error"
+        class="error"
+        role="alert"
+        hidden={!model.error || !model.messageKey}
+      >
+        {model.error && model.messageKey ? t(model.messageKey) : ""}
+      </p>
     </div>
     <noscript><p class="error"><Copy copyKey={"noScript"} /></p></noscript
     >{#if state.photosConfigured && (view === "system" || view === "setup")}<div
         id="photos-onboarding"
-        hidden={!state.enrolled}
+        hidden={!state.enrolled && !model.status?.enrolled}
       >
-        <PhotosSetup />
+        <PhotosSetup active={state.enrolled || model.status?.enrolled} />
       </div>{:else}{/if}{#if state.photosCloudConfigured && view === "system"}<PhotosCloud
       />{:else}{/if}
   </div>
