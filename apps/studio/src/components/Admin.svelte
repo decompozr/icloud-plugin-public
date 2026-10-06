@@ -200,10 +200,9 @@
   data-sveltekit-reload
   aria-busy={model.busy}
 >
-  <Brand>{t("brand")}</Brand><a class="skip-link" href="#page-content"
+  <div class="brand-row"><Brand>{t("brand")}</Brand></div><a class="skip-link" href="#page-content"
     >{t("skipContent")}</a
   >
-  <div class="shell-toolbar"><LanguageMenu /></div>
   <div class="admin-layout">
     <div class="nav-bar">
       {#if pageState.enrolled}<nav
@@ -228,14 +227,15 @@
                 name={destination === "overview"
                   ? "panels-top-left"
                   : destination === "accounts"
-                    ? "circle-dot"
+                    ? "user"
                     : destination === "connections"
-                      ? "git-branch"
+                      ? "connection"
                       : "settings"}
                 size="1.25rem"
               /></a
             >{/each}
         </nav>{/if}
+      <LanguageMenu rail />
     </div>
     <div id="page-content" tabindex="-1">
       <div class="page-heading">
@@ -450,12 +450,12 @@
 >
 
 <style>
-  .shell-toolbar {
-    display: flex;
-    justify-content: flex-end;
-    margin: 0.75rem 0;
-  }
+  main { max-width: none; padding-left: env(safe-area-inset-left, 0px); }
+  .brand-row { padding-left: 1.25rem; }
+  #page-content { width: 100%; max-width: 60rem; margin-inline: auto; min-width: 0; }
+
   .admin-layout {
+    margin-top: 1rem;
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr);
     gap: 1.25rem;

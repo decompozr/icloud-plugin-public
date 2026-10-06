@@ -1,6 +1,14 @@
 /** Pinned Lucide geometry. Semantic names are owned by DecompozR; see lucide-provenance.json. */
 export type IconNode = { readonly tag: 'path' | 'circle' | 'rect' | 'line' | 'polyline' | 'polygon' | 'ellipse'; readonly attributes: Readonly<Record<string, string>> };
 export const icons = {
+  // Local semantic geometry for account identity and linked connections.
+  "user": [
+    { tag: 'circle', attributes: { cx: '12', cy: '8', r: '4' } },
+    { tag: 'path', attributes: { d: 'M4 21v-2a8 8 0 0 1 16 0v2' } },
+  ],
+  "connection": [
+    { tag: 'path', attributes: { d: 'M10 14l4-4M8 16l-1 1a4.25 4.25 0 0 1-6-6l4-4a4.25 4.25 0 0 1 6 0M16 8l1-1a4.25 4.25 0 0 1 6 6l-4 4a4.25 4.25 0 0 1-6 0', transform: 'translate(1 0) scale(.9 1)' } },
+  ],
   "maximize": [{"tag": "path", "attributes": {"d": "M8 3H5a2 2 0 0 0-2 2v3"}}, {"tag": "path", "attributes": {"d": "M21 8V5a2 2 0 0 0-2-2h-3"}}, {"tag": "path", "attributes": {"d": "M3 16v3a2 2 0 0 0 2 2h3"}}, {"tag": "path", "attributes": {"d": "M16 21h3a2 2 0 0 0 2-2v-3"}}],
   "minimize": [{"tag": "path", "attributes": {"d": "M8 3v3a2 2 0 0 1-2 2H3"}}, {"tag": "path", "attributes": {"d": "M21 8h-3a2 2 0 0 1-2-2V3"}}, {"tag": "path", "attributes": {"d": "M3 16h3a2 2 0 0 1 2 2v3"}}, {"tag": "path", "attributes": {"d": "M16 21v-3a2 2 0 0 1 2-2h3"}}],
 

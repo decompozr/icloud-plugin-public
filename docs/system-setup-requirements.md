@@ -52,3 +52,13 @@ Credential controls wrap according to available card width (14rem flex basis), r
 Enabled scope totals also use an icon and count with a hover title and accessible label.
 
 Browser fixture verified at 430px and 390px: credential controls occupy separate rows with scrollWidth equal to clientWidth; all Service label/value row centers match within 0.01px.
+
+## Language in navigation (0.1.74)
+
+Move the compact language trigger below the navigation icons in the 44px rail. Remove the separate toolbar row; preserve the same accessible language menu and full option names.
+
+Accounts use a person silhouette and client connections use linked-chain geometry, consistently in navigation and totals.
+
+The navigation rail starts at the viewport left safe-area edge instead of inheriting the centered page gutter. Content keeps its own gap and maximum width; the brand retains its text inset.
+
+Credential controls and module toggle labels have 44px minimum touch targets on coarse pointers. Requested post-fix UI and UX audits follow deployment.

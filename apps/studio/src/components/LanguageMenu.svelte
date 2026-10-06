@@ -3,6 +3,7 @@
   import type { UiCopy } from "../contracts.js";
   import type { LocaleControl } from "../lib/ui-state.svelte.js";
   import Menu from "../lib/design-system/Menu.svelte";
+  let { rail = false }: { rail?: boolean } = $props();
   const { t } = getContext<UiCopy>("copy"),
     locale = getContext<LocaleControl>("locale");
   const items = $derived([
@@ -19,7 +20,7 @@
   ]);
 </script>
 
-<div class="language-menu" role="group" aria-label={t("language")}>
+<div class="language-menu" class:rail role="group" aria-label={t("language")}>
   <Menu
     label={locale?.current === "zh-TW" ? "繁中" : "EN"}
     {items}
@@ -28,6 +29,9 @@
 </div>
 
 <style>
+  .rail { margin: .5rem 0 0; width: 44px; }
+  .rail :global(.trigger) { width: 44px; height: 44px; padding: 0; border: 0; }
+  .rail :global(.trigger > svg) { display: none; }
   .language-menu {
     margin-left: auto;
     flex: none;

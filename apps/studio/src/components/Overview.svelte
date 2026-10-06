@@ -108,7 +108,7 @@
       <div class="card-tools"><button type="button" class="secondary icon-button" aria-label={t('addAccount')} title={t('addAccount')} disabled={!model.state.enrolled} onclick={()=>dialogs.openCredential('app-password',{mode:'add'})}><DesignIcon name="plus"/></button><RefreshButton id="accounts-refresh" label={t("refreshAccounts")} busy={model.accountsLoading||model.busy} onclick={()=>model.run(()=>model.refreshCard('accounts'))}/></div>
     </header>
     {#if model.state.admin&&model.accountsLoading&&!model.dashboard}<Skeleton rows={3}/>{:else}
-      <div class="counts"><div title={t('accountNumber')}><DesignIcon name="circle-dot"/><strong>{model.dashboard?.accounts.length??0}</strong><span class="sr-only">{t('accountNumber')}</span></div><div title={t('authorizedNumber')}><DesignIcon name="git-branch"/><strong>{model.connections?model.connections.length:t('unknownValue')}</strong><span class="sr-only">{t('authorizedNumber')}</span></div></div>
+      <div class="counts"><div title={t('accountNumber')}><DesignIcon name="user"/><strong>{model.dashboard?.accounts.length??0}</strong><span class="sr-only">{t('accountNumber')}</span></div><div title={t('authorizedNumber')}><DesignIcon name="connection"/><strong>{model.connections?model.connections.length:t('unknownValue')}</strong><span class="sr-only">{t('authorizedNumber')}</span></div></div>
       {#each model.dashboard?.accounts??[] as account(account.id)}
         {@const savedSession=model.webSessions[account.id]?.phase==='authenticated'}
         <article class="account">
@@ -182,6 +182,8 @@
 </div>
 
 <style>
+ @media(pointer:coarse){.credential-control{min-height:44px}.module-toggle{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}}
+
  .scope-count{display:inline-flex;align-items:center;gap:.25rem;vertical-align:middle}
 
  .runtime-path{display:flex;align-items:center;gap:.375rem;min-width:0}.runtime-path code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem}
