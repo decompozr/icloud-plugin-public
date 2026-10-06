@@ -7,12 +7,6 @@ Photos uses the same shared host and authorization flow with a Mac-local provide
 Installed release and live remote acceptance are separate evidence. See the
 [generic capability contract](../apps/icloud/src/modules/README.md#generic-capability-onboarding-and-acceptance).
 
-Use Bun by default for application code, tooling and test/experiment runners.
-The language preference is Bun, then Python, then Swift: use a later choice only
-when a necessary capability requires it, and explain that constraint. Existing
-Photos Python/Swift integrations do not authorize broader use of those languages.
-An existing experiment runner is not a reason to introduce another Python runner.
-
 ## Feature ownership and shared infrastructure
 
 Mail owns its domain, services, iCloud adapters, MCP tool definitions and durable

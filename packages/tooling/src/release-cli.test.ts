@@ -21,24 +21,23 @@ test('released CLI installs itself at standard prefix and runs preserved configu
   const cli=join(artifact,'icloud-plugin'),prefix=join(home,'.decompozr/plugins/icloud');
   expect((await execute(cli,'install')).code).toBe(0);
   expect(await readlink(join(prefix,'current'))).toBe('releases/0.1.20-'+process.platform+'-'+process.arch);
-  const preservedConfig='public_origin="https://example.test"\nprivate_origin="https://example.test:8443"\nstate_directory="state"\nmaster_key_file="custody/key"\ninstallation_marker="custody/marker"';
-  await mkdir(join(prefix,'runtime'),{mode:0o700});await Bun.write(join(prefix,'runtime/config.toml'),preservedConfig);
+  await mkdir(join(prefix,'runtime'),{mode:0o700});await Bun.write(join(prefix,'runtime/config.toml'),'preserved-config');
   const preserved=['config.toml','state.sqlite','custody.key','unknown.txt'];
   for(const file of preserved){
    if(file!=='config.toml')await Bun.write(join(prefix,'runtime',file),`preserved-${file}`);
    await chmod(join(prefix,'runtime',file),0o600);
   }
   const before=await Promise.all(preserved.map(async file=>({file,bytes:await Bun.file(join(prefix,'runtime',file)).text(),mode:(await stat(join(prefix,'runtime',file))).mode&0o777})));
-  expect((await execute(join(prefix,'current/icloud-plugin'),'run')).out.trim()).toBe(preservedConfig);
-  expect((await execute(join(prefix,'current/icloud-plugin'),'run','--prepare-local-owner','--no-open')).out.trim()).toBe(preservedConfig+'\nfixture-local-proof-no-open');expect((await execute(cli,'install','--prepare-local-owner')).code).not.toBe(0);expect((await execute(cli,'install')).code).not.toBe(0);
+  expect((await execute(join(prefix,'current/icloud-plugin'),'run')).out.trim()).toBe('preserved-config');
+  expect((await execute(join(prefix,'current/icloud-plugin'),'run','--prepare-local-owner','--no-open')).out.trim()).toBe('preserved-config\nfixture-local-proof-no-open');expect((await execute(cli,'install','--prepare-local-owner')).code).not.toBe(0);expect((await execute(cli,'install')).code).not.toBe(0);
   expect((await execute(cli,'update')).code).not.toBe(0);
   expect((await execute(cli,'install','--initialize')).code).not.toBe(0);
-  expect(await Bun.file(join(prefix,'runtime/config.toml')).text()).toBe(preservedConfig);
+  expect(await Bun.file(join(prefix,'runtime/config.toml')).text()).toBe('preserved-config');
   expect((await execute(cli,'uninstall')).code).toBe(0);
-  expect(await Bun.file(join(prefix,'runtime/config.toml')).text()).toBe(preservedConfig);
+  expect(await Bun.file(join(prefix,'runtime/config.toml')).text()).toBe('preserved-config');
   expect(await Bun.file(join(prefix,'.icloud-install')).exists()).toBe(true);
   expect((await execute(cli,'install')).code).toBe(0);
-  expect((await execute(join(prefix,'current/icloud-plugin'),'run')).out.trim()).toBe(preservedConfig);
+  expect((await execute(join(prefix,'current/icloud-plugin'),'run')).out.trim()).toBe('preserved-config');
   for(const value of before){
    expect(await Bun.file(join(prefix,'runtime',value.file)).text()).toBe(value.bytes);
    expect((await stat(join(prefix,'runtime',value.file))).mode&0o777).toBe(value.mode);

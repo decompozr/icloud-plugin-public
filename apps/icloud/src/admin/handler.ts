@@ -2,14 +2,12 @@ import { z } from 'zod';
 import type {PhotosCloudAdmin} from '../photos/cloud-setup.js';
 import {PhotosError} from '../photos/contracts.js';
 import type { OwnerSecretStore } from '../storage/owner-store.js';
-import type {AccountCredentialReader} from '../storage/account-credential-reader.js';
 import type {SystemStatus} from './system-status.js';
 import { setupPage,type AdminPresentation } from './page.js';
 export interface TailscaleStatus { installed: boolean; authenticated: boolean; online: boolean; privateReachable: boolean }
 export interface AppleCredential { user: string; appPassword: string }
 export interface AdminModule {id:string;title:string;fields:readonly {id:string;label:string}[];capabilities():Record<string,boolean>;updateCapabilities(next:Record<string,boolean>,confirm:boolean):Promise<Record<string,boolean>>}
 export interface AdminOptions {
- credentialReader?:Pick<AccountCredentialReader,'listAccounts'>;
  photosCloud?:PhotosCloudAdmin;
  systemStatus?():Promise<SystemStatus>;
  evidence?(ownerId:string):import('./evidence.js').EvidenceRow[];
@@ -100,11 +98,7 @@ export function createPrivateAdmin(options:AdminOptions) {
    if(request.method==='GET' && path==='/icloud/admin/status') {
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
-    const accounts=options.credentialReader?options.credentialReader.listAccounts(session.user.id).map(state=>{
-     if(state.ownerId!==session.user.id)throw Error('Credential owner mismatch');
-     return{id:state.account.id,user:state.account.user,label:state.account.label,credentialStored:state.account.credentialStored&&state.status!=='revoked'&&state.status!=='recovery_required'};
-    }):options.store.listAccounts(session.user.id);
-    return json({accounts,evidence:options.evidence?.(session.user.id)??[],capabilities:options.capabilities?.()??null,modules:Object.fromEntries((options.modules??[]).map(module=>[module.id,module.capabilities()]))});
+    return json({accounts:options.store.listAccounts(session.user.id),evidence:options.evidence?.(session.user.id)??[],capabilities:options.capabilities?.()??null,modules:Object.fromEntries((options.modules??[]).map(module=>[module.id,module.capabilities()]))});
    }
    if(request.method==='GET' && path==='/icloud/setup/status') {
     const status=await options.diagnostics(),enrolled=options.store.ownerId()!==null;
@@ -142,9 +136,6 @@ export function createPrivateAdmin(options:AdminOptions) {
    if(path==='/icloud/admin/accounts/add') {
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
-    // Native custody writes require a dedicated transactional adapter. Never
-    // reuse legacy SQLite mutations when a custody reader has been selected.
-    if(options.credentialReader)return json({error:'CREDENTIAL_MAINTENANCE_UNAVAILABLE'},409);
     const parsed=z.object({user:z.string().trim().email().max(254),label:z.string().trim().max(100).optional(),appPassword:z.string().min(1).max(256)}).strict().safeParse(await parseBody(request));
     if(!parsed.success)return json({error:'INVALID_INPUT'},400);
     const user=parsed.data.user.toLowerCase();
@@ -175,7 +166,6 @@ export function createPrivateAdmin(options:AdminOptions) {
    if(path==='/icloud/admin/credential'||path==='/icloud/admin/revoke') {
     const session=await options.ownerAuth.ownerSession(request.headers);
     if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
-    if(options.credentialReader)return json({error:'CREDENTIAL_MAINTENANCE_UNAVAILABLE'},409);
     if(path==='/icloud/admin/revoke') {
      const body=z.object({accountId:z.string().min(1)}).strict().safeParse(await parseBody(request));if(!body.success)return json({error:'INVALID_INPUT'},400);
      options.store.revokeAccountSecret(session.user.id,body.data.accountId);noteMutation(mutationKey(session.user.id,body.data.accountId));return json({revoked:'local-provider-credential'});

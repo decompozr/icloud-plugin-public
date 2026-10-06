@@ -61,16 +61,3 @@ test('Photos evidence observes actual reads and never health, writes or incomple
  expect(evidence.list('owner')[0]!.reads.photos_query).toBe(new Date(now).toISOString());
  expect(evidence.list('owner')[0]!.reads).not.toHaveProperty('photos_health');
 });
-
-test('optional custody snapshot invalidates in-flight readiness on authority epoch without changing credential revision',()=>{
- const db=new Database(':memory:');try{
-  for(const table of ['oauthClient','oauthConsent','oauthAccessToken','oauthRefreshToken','session']){db.exec(`CREATE TABLE ${table}(id TEXT,clientId TEXT,userId TEXT)`);db.query(`INSERT INTO ${table} VALUES('id','client','owner')`).run();}
-  const store={ownerId:()=> 'owner',accountGeneration:()=>undefined} as unknown as OwnerSecretStore;
-  let custodyEpoch=1,status:'active'|'recovery_required'='active',stored=true;
-  const custody={account:()=>({ownerId:'owner',account:{id:'account',user:'owner@example.test',label:'Owner',credentialStored:stored},revision:1,custodyEpoch,authority:'keychain' as const,status})};
-  const snapshot=evidenceState(db,store,()=>['calendar.read'],()=>0,custody),p=principal(Date.now()),evidence=new ReadinessEvidence(snapshot);
-  const first=snapshot(p,'calendar');expect(first).toBeDefined();expect(evidenceState(db,store,()=>['calendar.read'],()=>0)(p,'calendar')).toBeUndefined();
-  evidence.observe(p);const finish=evidence.start(p,'calendar_query_events');custodyEpoch++;expect(snapshot(p,'calendar')).not.toBe(first);finish?.(ok);expect(evidence.list('owner')).toEqual([]);
-  evidence.observe(p);evidence.start(p,'calendar_query_events')?.(ok);expect(evidence.list('owner')[0]!.reads.calendar_query_events).toBeDefined();status='recovery_required';expect(snapshot(p,'calendar')).toBeUndefined();expect(evidence.list('owner')).toEqual([]);status='active';stored=false;expect(snapshot(p,'calendar')).toBeUndefined();
- }finally{db.close();}
-});

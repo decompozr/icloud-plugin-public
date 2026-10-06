@@ -29,27 +29,6 @@ sharing also require read/write. Provider credentials come only from the
 authenticated account context. Activation validates CalDAV; subsequent calls
 observe current policy and credential revocation.
 
-## Master-key custody validation
-
-`SqliteCalendarLedger.validateExistingPayloads` reads a supplied existing SQLite
-snapshot, without invoking the constructor, creating schema, rewriting policy,
-converting dispatch state or closing the caller's DB. The authenticated migration
-baseline supplies policy owners and every retained owner/account namespace,
-including revoked accounts. All policy, operation and sync rows must authenticate
-under the unchanged `calendar-ledger-v1` derivation and stored owner/kind/id AAD;
-unknown namespaces/kinds, malformed payloads and wrong keys fail with redacted
-recovery errors. It returns only counts and clears private decryption/key buffers.
-Parsed JS objects/strings cannot be reliably erased.
-
-The validator shares decryption with normal reads. Its complete encrypted row
-snapshot also prevents a failed validation from leaving a cached Bun iterator at
-the next row on retry. Fixtures cover populated readonly snapshots, retained
-accounts, every ciphertext kind, AAD mismatch and repeated wrong-key rejection.
-Caller-owned baseline completeness, stopped maintenance, missing/deleted-row
-detection and complete installation validation remain separate requirements;
-empty stores provide no cryptographic key evidence. This does not enable native
-Keychain custody or establish K0/K2 acceptance.
-
 ## Supported semantics and limits
 
 Commands cover calendars, finite event queries/availability, event/series/instance

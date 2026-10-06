@@ -35,16 +35,6 @@ Apple password or revoke OAuth grants. Plugin export is owner-only and contains 
 server secrets. The configured public MCP URL is connection guidance, not a
 readiness check or permission to activate routing.
 
-An optional custody reader projects dashboard account metadata from authenticated
-authority without reading a password or exposing journal fields. Native authority
-can report a stored credential after SQLite ciphertext is cleared; this is not
-proof of Keychain availability or provider readiness. Reader failures deny status
-without falling back to SQLite. When this reader is supplied, account add, rotation
-and revocation currently return `CREDENTIAL_MAINTENANCE_UNAVAILABLE` before provider
-validation or legacy writes. A transactional custody maintenance adapter is still
-required. Production composition supplies no reader, retaining its existing file
-custody behavior until native activation gates pass.
-
 ## Verification and limitations
 
 Colocated handler/page tests cover authorization, setup retries, provider rejection,

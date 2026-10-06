@@ -19,9 +19,8 @@ import express from'express';
 import {OperationMonitor} from '../observability/operations.js';
 import {HttpLifecycle} from './lifecycle.js';
 import{Database}from'bun:sqlite';
-import{ownerAuthSecret}from'../auth/key-contexts.js';
+import{createHash}from'node:crypto';
 import{join,dirname}from'node:path';
-import{custodyDirectory}from'./settings.js';
 import{readFileSync}from'node:fs';
 import{createBootstrapAccess}from'../auth/bootstrap.js';
 import{z}from'zod';
@@ -65,7 +64,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
   const p=settings.photos;
   photosAdmin=createPhotosAdmin({database:deps.authDatabase,store:deps.store,ceiling:{read:true,write:p.allow_writes,delete:p.allow_writes&&p.allow_delete}});
   const policy=photosAdmin.policy;
-  const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,reviewDirectory:join(custodyDirectory(settings),'photos-shared-reviews'),sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
+  const photos=new PhotosService(deps.authDatabase,new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,reviewDirectory:join(dirname(settings.master_key_file),'photos-shared-reviews'),sidecarDirectory:join(deps.assetsDirectory,'../photos')}),policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
   runtime.register(photosRegistration(photos,policy));
  }
  await runtime.start();
@@ -74,9 +73,9 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  const scopeLabels=Object.fromEntries(runtime.scopeDescriptors.map(scope=>[scope.name,{default:scope.description,...scope.descriptionLocales}]));
  const diagnostics=deps.diagnostics??(()=>prerequisites(settings));
  const pairing=settings.local_origin?createRemoteOwnerPairing(settings.private_origin,()=>deps.store.ownerId()):undefined;
- const auth=await createOwnerAuth({database:deps.authDatabase,...(pairing?{registrationOwnerId:()=>deps.store.ownerId(),checkRegistrationProof:(proof:string)=>{if(deps.store.ownerId()!==null){if(proof!==pairing.proof)throw Error('Remote owner pairing required');}else deps.store.checkBootstrapProof(proof);}}:{}),onOAuthError:reconnect.noteError,publicBaseURL:settings.public_origin,privateOrigin:settings.private_origin,rpID:new URL(settings.public_origin).hostname,secret:ownerAuthSecret(deps.masterKey,'remote'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,allowedScopes:()=>runtime.allowedScopes,ownerId:()=>deps.store.ownerId(),checkBootstrapProof:proof=>deps.store.checkBootstrapProof(proof),accountStore:deps.store,validateCredential:mailModule.admin.validateCredential});
+ const auth=await createOwnerAuth({database:deps.authDatabase,...(pairing?{registrationOwnerId:()=>deps.store.ownerId(),checkRegistrationProof:(proof:string)=>{if(deps.store.ownerId()!==null){if(proof!==pairing.proof)throw Error('Remote owner pairing required');}else deps.store.checkBootstrapProof(proof);}}:{}),onOAuthError:reconnect.noteError,publicBaseURL:settings.public_origin,privateOrigin:settings.private_origin,rpID:new URL(settings.public_origin).hostname,secret:createHash('sha256').update(deps.masterKey).update('owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,allowedScopes:()=>runtime.allowedScopes,ownerId:()=>deps.store.ownerId(),checkBootstrapProof:proof=>deps.store.checkBootstrapProof(proof),accountStore:deps.store,validateCredential:mailModule.admin.validateCredential});
  const bootstrap=createBootstrapAccess({login:settings.bootstrap_owner_login,origin:settings.private_origin,isEnrolled:()=>deps.store.ownerId()!==null});
- const internalProof=deps.bootstrapProof??(()=>readFileSync(join(custodyDirectory(settings),'bootstrap-proof'),'utf8'));
+ const internalProof=deps.bootstrapProof??(()=>readFileSync(join(dirname(settings.master_key_file),'bootstrap-proof'),'utf8'));
  const setupState=async(request:Request)=>{let passkeyRegistered=false;try{const session=await auth.enrollmentSession(request.headers);passkeyRegistered=bootstrap.resumed(request,session.user.id);}catch{}return{bootstrapAuthorized:bootstrap.allowed(request),passkeyRegistered};};
  let policyEpoch=0;
  const evidence=new ReadinessEvidence(evidenceState(deps.authDatabase,deps.store,()=>runtime.allowedScopes,()=>policyEpoch));
@@ -148,7 +147,7 @@ export async function createApplication(settings:AppSettings,deps:ApplicationDep
  let localApp:express.Express|undefined;
  if(settings.local_origin){
   const localOrigin=settings.local_origin,access=createLocalOwnerAccess(settings,()=>deps.store.ownerId());
-  const localAuth=await createOwnerAuth({database:deps.authDatabase,publicBaseURL:localOrigin,privateOrigin:localOrigin,rpID:'localhost',sessionOnly:true,cookiePrefix:'icloud_local',accountStore:deps.store,allowedScopes:()=>runtime.allowedScopes,secret:ownerAuthSecret(deps.masterKey,'local'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,ownerId:()=>deps.store.ownerId(),registrationOwnerId:()=>deps.store.ownerId(),checkRegistrationProof:value=>access.checkProof(value),checkBootstrapProof:()=>{throw Error('Local proof required');}});
+  const localAuth=await createOwnerAuth({database:deps.authDatabase,publicBaseURL:localOrigin,privateOrigin:localOrigin,rpID:'localhost',sessionOnly:true,cookiePrefix:'icloud_local',accountStore:deps.store,allowedScopes:()=>runtime.allowedScopes,secret:createHash('sha256').update(deps.masterKey).update('local-owner-auth-v1').digest('hex'),resource:settings.public_origin+'/icloud/mcp',scopes:runtime.declaredScopes,ownerId:()=>deps.store.ownerId(),registrationOwnerId:()=>deps.store.ownerId(),checkRegistrationProof:value=>access.checkProof(value),checkBootstrapProof:()=>{throw Error('Local proof required');}});
   const localAdmin=createPrivateAdmin({...(photosCloud?{photosCloud}:{}),...(photosPermissions?{photosSetup:photosPermissions}:{}),connectionCommands:connectionCommands(settings),privateOrigin:localOrigin,setupReady:true,localOwner:true,store:deps.store,ownerAuth:localAuth,diagnostics,setupState:async request=>{let passkeyRegistered=false;try{const current=await localAuth.enrollmentSession(request.headers);passkeyRegistered=access.authorize(request).user===current.user.id;}catch{}return{bootstrapAuthorized:(()=>{try{access.authorize(request);return true;}catch{return false;}})(),passkeyRegistered,localOwner:true};},systemStatus:deps.systemStatus??(()=>createSystemStatus(settings,{prerequisites:()=>diagnostics(),...versions})),evidence:owner=>evidence.list(owner),publicMcpUrl:new URL('/icloud/mcp',settings.public_origin).href,...mailModule.admin,updateCapabilities:async(...args)=>{try{return await mailModule.admin.updateCapabilities!(...args);}finally{policyEpoch++;}},modules:[{...calendarModule.admin,updateCapabilities:async(...args)=>{try{return await calendarModule.admin.updateCapabilities(...args);}finally{policyEpoch++;}}},...(photosAdmin?[{...photosAdmin.admin,updateCapabilities:async(...args:Parameters<typeof photosAdmin.admin.updateCapabilities>)=>{try{return await photosAdmin!.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[])]});
   localApp=express();localApp.disable('x-powered-by');localApp.use(lifecycle.admission);
   // A local RP has exactly one Host. Remote/private proxy Hosts never reach it.

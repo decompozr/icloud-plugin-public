@@ -1,11 +1,10 @@
 import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {lstatSync,readFileSync,writeFileSync,unlinkSync,existsSync} from 'node:fs';
-import {join} from 'node:path';
+import {dirname,join} from 'node:path';
 import {z} from 'zod';
 import type {AppSettings} from '../server/settings.js';
-import {custodyDirectory} from '../server/settings.js';
 const schema=z.object({proof:z.string().min(32).max(128),expires:z.number(),owner:z.string().nullable()}).strict();
-const pathFor=(settings:AppSettings)=>join(custodyDirectory(settings),'local-owner-proof');
+const pathFor=(settings:AppSettings)=>join(dirname(settings.master_key_file),'local-owner-proof');
 /** Explicit OS-owner custody, never inferred from localhost or proxy headers. */
 export function prepareLocalOwner(settings:AppSettings,owner:string|null,now=Date.now()){
  if(!settings.local_origin)throw Error('Configure an explicit local_origin before preparing local enrollment');

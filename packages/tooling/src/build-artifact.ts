@@ -1,4 +1,4 @@
-import {artifactSchema,packageVersionSchema,currentCustodyCompatibility} from './artifact.js';
+import {artifactSchema,packageVersionSchema} from './artifact.js';
 import {cp,mkdir,rm,chmod} from 'node:fs/promises';
 import {resolve,join,dirname} from 'node:path';
 const root=resolve(import.meta.dir,'../../..');
@@ -23,6 +23,6 @@ try{
  await cp(join(root,'packages/tooling/src/runtime.sh'),join(output,'runtime.sh'));
  await chmod(join(output,'runtime.sh'),0o755);
  const metadata=packageVersionSchema.parse(await Bun.file(join(root,'apps/icloud/package.json')).json() as unknown);
- await Bun.write(join(output,'artifact.json'),JSON.stringify(artifactSchema.parse({format:1,name:'icloud-plugin',version:metadata.version,platform:process.platform,arch:process.arch,bun:Bun.version,custodyCompatibility:currentCustodyCompatibility}),null,2)+'\n');
+ await Bun.write(join(output,'artifact.json'),JSON.stringify(artifactSchema.parse({format:1,name:'icloud-plugin',version:metadata.version,platform:process.platform,arch:process.arch,bun:Bun.version}),null,2)+'\n');
  console.log(output);
 }catch(error){await rm(output,{recursive:true,force:true});throw error;}

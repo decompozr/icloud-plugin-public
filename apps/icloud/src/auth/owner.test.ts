@@ -7,9 +7,6 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createOwnerAuth} from './owner.js';
-import type {AccountCredentialState} from '../storage/account-credential-reader.js';
-import {createStoppedOwnerAuthorization} from './stopped-owner.js';
-import {InstallationAccess} from '../server/installation-access.js';
 const hash=(v:string|Uint8Array)=>createHash('sha256').update(v).digest();
 const b64=(v:Uint8Array)=>Buffer.from(v).toString('base64url');
 const encoder=new Encoder({useRecords:false,mapsAsObjects:false});
@@ -26,7 +23,7 @@ function response(challenge:string,origin:string,register:boolean,uv=true,counte
 const challengeSchema=z.object({challenge:z.string()});
 const clientSchema=z.object({client_id:z.string()});
 const tokensSchema=z.object({access_token:z.string(),refresh_token:z.string()});
-for(const custody of [false,true])test(`owner component actual private Passkey enrollment OAuth resource refresh revoke and isolation (${custody?'custody':'legacy'})`,async()=>{
+test('owner component actual private Passkey enrollment OAuth resource refresh revoke and isolation',async()=>{
  const directory=mkdtempSync(join(tmpdir(),'icloud-auth-test-')),databasePath=join(directory,'auth.sqlite');
  let db=new Database(databasePath);let handler:(r:Request)=>Promise<Response>=async()=>new Response('starting');
  const server=Bun.serve({hostname:'127.0.0.1',port:0,fetch:r=>handler(r)}),base=`http://127.0.0.1:${server.port}`;
@@ -34,18 +31,14 @@ for(const custody of [false,true])test(`owner component actual private Passkey e
  let owner:string|undefined;const proof='fixture-proof';
  const accounts=[{id:'original-mailbox',user:'first@icloud.com',label:'First',credentialStored:true},{id:'second-mailbox',user:'second@icloud.com',label:'Second',credentialStored:true}];
  let legacyId:string|null=accounts[0]!.id;
- const stored=(account:typeof accounts[number])=>custody?{...account,credentialStored:false}:account;
- const accountStore={listAccounts:()=>accounts.map(stored),legacyAccountId:()=>legacyId,account:(_owner:string,id:string)=>{const account=accounts.find(a=>a.id===id);if(!account)throw Error('Account unavailable');return stored(account);},addAccount:()=>{throw Error('Not exercised');}};
- let custodyEpoch=1,custodyUnavailable=false;
- const inspect=(ownerId:string,accountId:string):AccountCredentialState=>{if(custodyUnavailable||ownerId!==owner)throw Error('Custody unavailable');const account=accounts.find(item=>item.id===accountId);if(!account)throw Error('Absent');return{ownerId,account:{...account},revision:1,custodyEpoch,authority:account.credentialStored?'keychain':'none',status:account.credentialStored?'active':'revoked'};};
- const credentialReader=custody?{account:inspect,listAccounts:(ownerId:string)=>accounts.map(account=>inspect(ownerId,account.id)),assertCurrent(snapshot:AccountCredentialState){const current=inspect(snapshot.ownerId,snapshot.account.id);if(current.custodyEpoch!==snapshot.custodyEpoch||current.authority!==snapshot.authority||!current.account.credentialStored)throw Error('Custody changed');}}:undefined;
+ const accountStore={listAccounts:()=>accounts,legacyAccountId:()=>legacyId,account:(_owner:string,id:string)=>{const account=accounts.find(a=>a.id===id);if(!account)throw Error('Account unavailable');return account;},addAccount:()=>{throw Error('Not exercised');}};
  const cookies=new Map<string,string>();
  const request=async(path:string,body?:Record<string,unknown>,form=false,privateRoute=false)=>{
   const r=new Request(base+path,{method:body?'POST':'GET',headers:{origin:base,cookie:[...cookies].map(([k,v])=>`${k}=${v}`).join('; '),'x-bootstrap-proof':proof,...(body?{'content-type':form?'application/x-www-form-urlencoded':'application/json'}:{})},body:body?(form?new URLSearchParams(z.record(z.string()).parse(body)):JSON.stringify(body)):undefined});
   const res=privateRoute?await component.privateHandler(r):await fetch(r,{redirect:'manual'});
   for(const cookie of res.headers.getSetCookie()){const pair=cookie.split(';')[0]!,at=pair.indexOf('=');cookies.set(pair.slice(0,at),pair.slice(at+1));}return res;
  };
- const config={accountStore,credentialReader,database:db,publicBaseURL:base,privateOrigin:base,rpID:'127.0.0.1',secret:'fixture-long-only-secret-production-never-123',resource:base+'/icloud/mcp',scopes:['mail.read','mail.write','mail.send','calendar.read','calendar.write','calendar.schedule','calendar.share','offline_access'],allowedScopes:()=>enabledScopes,ownerId:()=>owner,checkBootstrapProof:(value:string)=>{if(value!==proof)throw Error('Denied');}};
+ const config={accountStore,database:db,publicBaseURL:base,privateOrigin:base,rpID:'127.0.0.1',secret:'fixture-long-only-secret-production-never-123',resource:base+'/icloud/mcp',scopes:['mail.read','mail.write','mail.send','calendar.read','calendar.write','calendar.schedule','calendar.share','offline_access'],allowedScopes:()=>enabledScopes,ownerId:()=>owner,checkBootstrapProof:(value:string)=>{if(value!==proof)throw Error('Denied');}};
  db.exec('CREATE TABLE plugin_auth_private (id TEXT PRIMARY KEY, value TEXT NOT NULL)');
  db.query('INSERT INTO plugin_auth_private VALUES (?,?)').run('resource-client','legacy-encrypted-record');
  let component=await createOwnerAuth({...config,scopes:config.scopes.filter(scope=>!scope.startsWith('calendar.'))});
@@ -271,7 +264,7 @@ for(const custody of [false,true])test(`owner component actual private Passkey e
   const wrongResource=await request(authorizationPath.replace(encodeURIComponent(base+'/icloud/mcp'),encodeURIComponent(base+'/other')));
   expect(new URL(wrongResource.headers.get('location')!,base).searchParams.get('error')).toBe('invalid_target');
   // Mint a genuine pre-upgrade grant with no account reference, then upgrade with two accounts present.
-  component=await createOwnerAuth({...config,database:db,accountStore:undefined,credentialReader:undefined});handler=component.publicHandler;
+  component=await createOwnerAuth({...config,database:db,accountStore:undefined});handler=component.publicHandler;
   const legacyStart=await request(authorizationPath.replace('fixture-state','legacy-state'));
   let legacyCallback=new URL(legacyStart.headers.get('location')!,base);
   if(legacyCallback.pathname==='/icloud/consent')legacyCallback=new URL(z.object({url:z.string()}).parse(await(await request('/icloud/auth/oauth2/consent',{accept:true,oauth_query:legacyCallback.search.slice(1)})).json()).url);
@@ -283,12 +276,6 @@ for(const custody of [false,true])test(`owner component actual private Passkey e
   expect((await component.verifyBearer('Bearer '+legacyTokens.access_token)).accountId).toBe('original-mailbox');
   const legacyRefresh=tokensSchema.parse(await(await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:legacyTokens.refresh_token,resource:base+'/icloud/mcp'},true)).json());
   expect((await component.verifyBearer('Bearer '+legacyRefresh.access_token)).accountId).toBe('original-mailbox');
-  if(custody){
-   custodyEpoch++;expect((await component.verifyBearer('Bearer '+legacyRefresh.access_token)).accountId).toBe('original-mailbox');
-   custodyUnavailable=true;await expect(component.verifyBearer('Bearer '+legacyRefresh.access_token)).rejects.toThrow();custodyUnavailable=false;
-   accounts[0]!.credentialStored=false;await expect(component.verifyBearer('Bearer '+legacyRefresh.access_token)).rejects.toThrow();accounts[0]!.credentialStored=true;
-   expect((await component.verifyBearer('Bearer '+legacyRefresh.access_token)).accountId).toBe('original-mailbox');
-  }
   db.close();db=new Database(databasePath);component=await createOwnerAuth({...config,database:db});handler=component.publicHandler;
   expect((await component.verifyBearer('Bearer '+legacyRefresh.access_token)).accountId).toBe('original-mailbox');
   // A fresh owner has no legacy mapping. Existing new accounts must never supply a fallback.
@@ -319,21 +306,7 @@ for(const custody of [false,true])test(`owner component actual private Passkey e
   expect(resumed.status).toBe(200);
   const resumeBody=z.object({url:z.string()}).parse(await resumed.json());
   expect(new URL(resumeBody.url,base).pathname).toBe('/icloud/connect');
-  if(custody){
-   accounts[0]!.credentialStored=false;
-   const denied=await request('/icloud/auth/oauth2/token',{grant_type:'refresh_token',client_id:client.client_id,refresh_token:legacyRefresh.refresh_token,resource:base+'/icloud/mcp'},true);
-   expect(denied.status).not.toBe(200);expect(await denied.text()).not.toContain('access_token');
-   await expect(component.verifyBearer('Bearer '+legacyRefresh.access_token)).rejects.toThrow();
-  }
-  // Authenticate the genuine resumed Passkey session after stopping HTTP,
-  // without invoking the Better Auth factory or refreshing its session.
-  await server.stop(true);
-  const access=InstallationAccess.acquire(directory,'maintenance');
-  try{
-   const before=db.query('SELECT * FROM session').all(),authorization=createStoppedOwnerAuthorization({database:db,access,custodyDirectory:directory,request:new Request(base+'/icloud/maintenance',{headers:{origin:base,cookie:[...cookies].map(([key,value])=>key+'='+value).join('; ')}}),origin:base,cookieName:'icloud.session_token',secret:config.secret,ownerId:()=>owner});
-   expect(authorization.ownerId).toBe(owner);authorization.assertAuthorized();expect(db.query('SELECT * FROM session').all()).toEqual(before);
-   db.query('DELETE FROM session WHERE userId=?').run(owner!);expect(()=>authorization.assertAuthorized()).toThrow('denied');
-  }finally{access.release();}
+
 
  }finally{await server.stop(true);db.close();rmSync(directory,{recursive:true,force:true});}
 });

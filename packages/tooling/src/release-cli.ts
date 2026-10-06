@@ -19,8 +19,8 @@ export async function releaseCli(args:string[],artifactDirectory:string){
   else throw Error(`Unknown option: ${option}`);
  }
  if(action==='install'||action==='update'){
-  if(initialize||prepareLocalOwner||noOpen)throw Error('Installation does not configure or initialize runtime');
-  console.log(await installArtifact(artifactDirectory,prefix,action==='update',config));
+  if(config||initialize||prepareLocalOwner||noOpen)throw Error('Installation does not configure or initialize runtime');
+  console.log(await installArtifact(artifactDirectory,prefix,action==='update'));
   console.log(`Installed at ${prefix}`);
  }else if(action==='run'){
   const child=Bun.spawn([process.execPath,join(artifactDirectory,'apps/icloud/dist/index.js'),'--config',config??join(prefix,'runtime/config.toml'),...(initialize?['--initialize']:[]),...(prepareLocalOwner?['--prepare-local-owner']:[]),...(noOpen?['--no-open']:[])],{cwd:artifactDirectory,stdin:'inherit',stdout:'inherit',stderr:'inherit'});
@@ -30,7 +30,7 @@ export async function releaseCli(args:string[],artifactDirectory:string){
   if(config||initialize||prepareLocalOwner||noOpen)throw Error('Uninstall does not configure runtime');
   await uninstallArtifact(prefix);
  }else if(action==='--help'||action==='help'){
-  console.log('icloud-plugin install|update [--prefix PATH] [--config PATH]\nicloud-plugin uninstall [--prefix PATH]\nicloud-plugin run [--prefix PATH] [--config PATH] [--initialize|--prepare-local-owner [--no-open]]\nInstall/update --config selects compatibility inspection only; no configuration changes.\nDefault installation: ~/.decompozr/plugins/icloud');
+  console.log('icloud-plugin install|update|uninstall [--prefix PATH]\nicloud-plugin run [--prefix PATH] [--config PATH] [--initialize|--prepare-local-owner [--no-open]]\nDefault installation: ~/.decompozr/plugins/icloud');
  }else throw Error('Usage: icloud-plugin install|update|run|uninstall|--help');
 }
 if(import.meta.main)await releaseCli(process.argv.slice(2),import.meta.dir);

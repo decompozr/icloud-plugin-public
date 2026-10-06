@@ -38,35 +38,6 @@ is enabled. Opaque tokens permit provider introspection/revocation; internal res
 client secrets remain encrypted server-side under a key derived from the persistent
 auth secret. Secret rotation requires an explicit migration, not silent replacement.
 
-`key-contexts.ts` shares the existing remote/local auth derivations, issuer/resource
-storage ID and resource-client AES envelope with the actual writer/reader. The
-contexts and hex intermediate encoding remain unchanged. Temporary encryption/
-decryption buffers are cleared; returned auth-secret/client strings cannot be
-reliably erased in JS. Stored-client decode failure stops startup rather than
-registering a replacement verifier.
-
-The administrative `validateResourceClientCiphertexts` uses a supplied existing
-SQLite handle and read snapshot. It requires the authenticated baseline's selected
-v2 record ID and decrypts every retained row, including inactive legacy records,
-using the original master-derived remote secret. It returns only counts, never
-creates schema, registers clients, repairs records or closes the caller's DB.
-Unsupported/corrupt retained records require explicit remediation. The historical
-envelope has no AAD: crypto/shape/presence validation does not establish that a
-ciphertext belongs to its row ID or verify the corresponding OAuth registry.
-It is not Passkey/token/cookie authentication or full installation acceptance.
-Migration activation still requires the complete consumer inventory and K0.
-Validation materializes the complete encrypted row snapshot before decryption:
-on Bun 1.4.2, a cached `query().iterate()` interrupted by a callback error can
-resume at a later row on the next invocation. Repeated wrong-key/corrupt-record
-fixtures ensure retries cannot skip earlier failures.
-
-Four synthetic tests cover old/new cipher interoperability, readonly retained
-records, wrong/missing/corrupt state and actual factory/reopen preservation.
-The actual factory fixture awaits a real handler to settle Better Auth's lazy
-context before closing its DB. Initial fixture lifetime failure was corrected;
-no passing result is inferred from that failed run. Existing auth regressions
-also pass; this does not access live accounts or native Keychain.
-
 Provider state includes Passkeys, sessions, challenges, clients, consents and grants.
 It is distinct from the opaque owner credential store. Initialize one factory per
 auth DB at a time. `pages.ts` renders sign-in/consent pages and the connection handler owns account selection; `browser.ts` performs
@@ -96,43 +67,3 @@ string-array column mapping on reopen. Do not suppress these diagnostics or patc
 installed library code merely to silence them; repeat reopen/consent/introspection
 checks when upgrading. See [setup/auth](../../../../docs/setup-and-auth.md) and
 [scope diagnosis](../../../../docs/oauth-request-scope-diagnosis.md).
-
-## Optional custody metadata
-
-OAuth account connection now accepts an optional custody metadata reader for
-chooser listing, selection and persisted consent lookup. It retains existing
-account UUID/session/request binding and one-time consent consumption without
-secret IO or journal fields. Snapshot fences after awaited continuation and signed
-consent verification reject late publication after revocation/custody changes.
-Unavailable authority cannot use SQLite status as fallback. Account addition
-with this reader returns CREDENTIAL_MAINTENANCE_UNAVAILABLE until a transactional
-custody writer is integrated. Synthetic signed OAuth requests with actual journal
-state cover successful native selection and revocation during continuation.
-Owner-auth now accepts the same optional reader for grant reference checks,
-refresh response authorization, bearer account validation and client recovery.
-Exact owner/account metadata is fenced through assertCurrent; reader errors or
-revoked authority deny access without SQLite/another-account fallback. Existing
-legacy mapping, grant references, scopes, Passkeys and auth derivations remain
-unchanged. The full local HTTP/Passkey/OAuth fixture runs in legacy and injected
-custody modes with cleared legacy credential metadata, exercising refresh,
-recovery, restart and account isolation. Epoch-only changes preserve existing
-grants; unavailable/revoked custody denies bearer and revoked refresh issuance.
-These custody ports are synthetic metadata, not real Keychain availability or
-sealed caller proof. Snapshot checks do not establish atomicity between provider
-token issuance and concurrent custody mutation; operational exclusion/acceptance
-remains required. Production application composition still supplies no reader.
-
-## Stopped owner session authorization
-
-Stopped owner authorization now has an inactive read-only verifier using the
-installed Better Auth HMAC-SHA256 signed session cookie and existing session/user
-rows. It requires the real InstallationAccess maintenance lease for the exact
-custody directory, configured origin/cookie name/auth derivation and authenticated
-owner binding. Reusable guards reject expiry, deletion, owner/session replacement
-or lost exclusion without invoking auth migrations, session refresh/cache or
-enrollment. Genuine local Passkey/OAuth fixtures stop HTTP and validate their
-issued cookie while preserving persisted session rows; synthetic negative cases
-cover scope/signature/duplicate-cookie/schema failures and runtime-lock denial.
-This is a session-authorization primitive, not a sealed native caller or an
-operational migration command. Safe retained DB/key/marker opening, operator
-selection, older-writer exclusion, K0 and command composition remain required.
