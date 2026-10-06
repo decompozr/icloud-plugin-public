@@ -55,7 +55,7 @@
           ? model.systemLoading || model.busy
           : model.busy}
         onclick={() =>
-          void model.run(() =>
+          model.run(() =>
             model.state.admin ? model.refreshCard("service") : model.check(),
           )}
       />
@@ -105,7 +105,7 @@
   >
     <header>
       <h2>{t("accountsCard")}</h2>
-      <div class="card-tools"><button type="button" class="secondary icon-button" aria-label={t('addAccount')} title={t('addAccount')} disabled={!model.state.enrolled} onclick={()=>dialogs.openCredential('app-password',{mode:'add'})}><DesignIcon name="plus"/></button><RefreshButton id="accounts-refresh" label={t("refreshAccounts")} busy={model.accountsLoading||model.busy} onclick={()=>void model.run(()=>model.refreshCard('accounts'))}/></div>
+      <div class="card-tools"><button type="button" class="secondary icon-button" aria-label={t('addAccount')} title={t('addAccount')} disabled={!model.state.enrolled} onclick={()=>dialogs.openCredential('app-password',{mode:'add'})}><DesignIcon name="plus"/></button><RefreshButton id="accounts-refresh" label={t("refreshAccounts")} busy={model.accountsLoading||model.busy} onclick={()=>model.run(()=>model.refreshCard('accounts'))}/></div>
     </header>
     {#if model.state.admin&&model.accountsLoading&&!model.dashboard}<Skeleton rows={3}/>{:else}
       <div class="counts"><div><strong>{model.dashboard?.accounts.length??0}</strong><span>{t('accountNumber')}</span></div><div><strong>{model.connections?model.connections.length:t('unknownValue')}</strong><span>{t('authorizedNumber')}</span></div></div>
@@ -137,7 +137,7 @@
         id="capabilities-refresh"
         label={t("refreshCapabilities")}
         busy={model.accountsLoading || model.busy}
-        onclick={() => void model.run(() => model.refreshCard("capabilities"))}
+        onclick={() => model.run(() => model.refreshCard("capabilities"))}
       />
     </header>
 

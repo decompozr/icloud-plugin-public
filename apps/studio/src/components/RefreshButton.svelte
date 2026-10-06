@@ -8,9 +8,15 @@
   }: {
     label: string;
     busy?: boolean;
-    onclick: () => void;
+    onclick: () => void | Promise<void>;
     id?: string;
   } = $props();
+  let pending = $state(false);
+  async function refresh() {
+    if (busy || pending) return;
+    pending = true;
+    try { await onclick(); } finally { pending = false; }
+  }
 </script>
 
 <button
@@ -19,9 +25,10 @@
   class="secondary icon-button"
   aria-label={label}
   title={label}
-  disabled={busy}
-  {onclick}
-  ><span class:spinning={busy}><DesignIcon name="refresh"/></span>
+  disabled={busy || pending}
+  aria-busy={pending}
+  onclick={refresh}
+  >{#if pending}<span class="spinning"><DesignIcon name="refresh"/></span>{:else}<span><DesignIcon name="refresh"/></span>{/if}
   </button>
 
 <style>
