@@ -28,6 +28,12 @@ Public-API-only and original-main-MCP boundaries remain in effect; private mutat
 or file reconstruction is not authorized by the automation requirement alone.
 Preserve the one prior native operation until its durable result is reconciled.
 
+The original MCP subsequently reconciled that operation as cancelled, with native
+result cancelled_before_posting and nativeProcessAlive=false after its pre-post
+timeout. No picker or posting completion occurred. Fresh original-source readback
+still reports livePhoto=true/shared=false. Recovery evidence remains retained;
+the operation is not a successful publication and will not be retried as a UI path.
+
 ## Refreshed metadata accepted; native owner review pending — 2026-10-06
 
 The owner subsequently declined to operate any UI. The current supported public
