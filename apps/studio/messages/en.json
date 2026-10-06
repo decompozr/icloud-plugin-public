@@ -1,4 +1,5 @@
 {
+  "emptyValue": "Empty",
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "connectionCommand": "Routing command",
   "selectAllCapabilities": "Select all capabilities",

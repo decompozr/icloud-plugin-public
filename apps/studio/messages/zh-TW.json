@@ -1,4 +1,5 @@
 {
+  "emptyValue": "空白",
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "connectionCommand": "路由指令",
   "selectAllCapabilities": "選取所有功能",

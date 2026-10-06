@@ -117,7 +117,7 @@
         </li>
         {#if id === "photos" && field.id === "delete"}<li class="muted">{t("photosDeleteHelp")}</li>{/if}
         {#if "available" in field && field.available === false}<li class="muted">{t("photosCapabilityUnavailable")}</li>{/if}
-        {/each}
+        {:else}<li class="muted">{t("emptyValue")}</li>{/each}
     </ul>
   </section>
   <p class="muted">{t("moduleConsentShort")}</p>
@@ -149,6 +149,11 @@
 </Modal>
 
 <style>
+  h3 {
+    border-top: 0;
+    padding-top: 0;
+    margin-top: 1rem;
+  }
   .confirmation {
     display: flex;
     gap: 0.75rem;

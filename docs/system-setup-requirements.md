@@ -24,3 +24,7 @@ Visual verification uses a disposable account/permission fixture, never real Pho
 ## Deployed UI acceptance
 
 Release 0.1.69 was built from merged PR #79, installed and payload-verified. Build/typechecks, 12 Studio tests, 436 application tests and 11 tooling tests passed; installed doctor passed 13 checks. Original-MCP Photos health reports native authorization=3. Browser verification used a disposable fixture, including automatic collapse after simulated permission completion and Calendar module requirements without Tailscale. No live permission prompts or photo mutations were automated. The 0.1.68 deletion configuration ceiling remains open, with saved owner policy and OAuth consent unchanged.
+
+## Module dialog spacing correction (0.1.70)
+
+The completed credential step and the Allowed actions heading both supplied a separator. Keep the step separator and remove the heading border and excess top padding. An empty allowed-action list explicitly says Empty (localized); it is not represented by unexplained whitespace. Verified: application build, Studio typecheck (zero errors/warnings), 12 Studio tests, and browser fixture inspection showing a single separator; the heading computed border and padding are both zero. Authentication gates remain unchanged.
