@@ -1,5 +1,73 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+> **Shared Album writes parked (2026-10-06).** Ordinary Photos is restored; publication experiments remain stopped. Historical running/pending instructions below are superseded. See [consolidated evidence, unresolved challenges and resume checklist](photos-parked.md).
+
+## Direct original-MCP still upload rejected for upgraded protocol — 2026-10-06
+
+The owner explicitly approved a still-only upload of the selected original photo directly through the original MCP. A fresh remote inventory identified the exact test album with owner rights and `protocol=modern_or_encrypted`, with managementReady=false. An upload_shared_asset preparation using original representation and explicit still mode reached rejected with `unsupported_shared_album_protocol`. No apply or binary upload occurred.
+
+This isolates a confirmed limitation of the existing MCP upload implementation: it does not support the target's upgraded protocol even for a static photo. It is not a Live Photo pairing failure or proof that the owner's account lacks album permission. The native controller's separate permission rejection remains unexplained; this result must not be substituted as its proven cause. No legacy album was created or substituted.
+
+## Explicit destination flow exercised — 2026-10-06
+
+The owner selected the existing upgraded test album in the App dropdown and explicitly confirmed sending. The journal records that exact target and the retained real picker item. Apple again immediately rejected the call with Cocoa -1 and the explicit add-content-permission message. The destination-choice UI therefore worked, while publication to the intended target did not. This result does not prove that the owner's account lacks permission in Photos itself; API/upgrade compatibility remains unresolved. No blind retry followed.
+
+## Explicit destination confirmation added before invoking Apple — 2026-10-06
+
+The owner confirmed there was no visible Apple sharing UI or Post button in the prior no-default run. It went straight to the result callback. Do not claim that the owner confirmed the callback destination or that a second confirmation is guaranteed by the API.
+
+The standalone App now exposes its own album dropdown, initially unselected, and a destination-confirmation button warning that invocation may publish immediately. It always passes the chosen native ID. The prior unresolved destination is disabled to avoid repeating that uncertain publication. Actual selected items remain in-process. The owner authorized rerunning with explicit album choice; linking/signature checks passed and the new session is running. Previous outcome evidence remains preserved; no source or shared-copy deletion occurred.
+
+## Manual-destination run returned a different destination — 2026-10-06
+
+The actual-picker sheet with no prefilled album returned success with a destination identity different from the approved test album. This is not intended-destination acceptance. The owner reports being unable to see how to select a Shared Album. Original-MCP local readback shows the intended test album remains empty, while source comparison in the callback's album is ambiguous between two candidates (one matching dimensions, one not). This does not establish which copy was newly published or motion/cloud playback. Exact private identities and callback journal are retained. No automatic retry, deletion or further posting is authorized by this uncertain result. The next step is UI clarification and read-only outcome reconciliation.
+
+## Upgraded album and actual picker posting baseline — 2026-10-06
+
+The owner upgraded the existing test album and explicitly authorized using its currently visible same-name replacement identity. No album was created by this experiment. Native lookup of the former identity failed; the replacement resolved as a true Shared Album. The actual manually selected picker item loaded a Live Photo successfully and was retained in the same process for Apple's posting sheet.
+
+With the destination's native local identifier prefilled, Apple immediately returned `NSCocoaErrorDomain -1` with a specific description: the user does not have permission to add content to the shared album. This is a more specific result than the earlier generic identifier-only failure; it does not establish a media-provider failure or explain whether upgraded-album support or identifier interpretation is responsible.
+
+A separate operator-driven comparison omits `defaultAlbumIdentifier` so Apple's UI can choose the upgraded destination. It does not bypass a permission check or press Post. Its result remains pending. The prior initial report of Post was corrected by the owner to clicking macOS Allow only. Original-resolution sharing is documented for upgraded albums in [Apple support](https://support.apple.com/en-us/108916); neither resolution nor motion delivery has been verified for this test. Old destinations will not be recreated or silently substituted.
+
+## Existing routes retested with an actual Live Photo — 2026-10-06
+
+The independent read-only App loaded the approved original and tested it as a real object, rather than a type-only placeholder. Direct loading succeeded; a custom `NSItemProvider(item:typeIdentifier:)` registered `com.apple.live-photo` but could not load PHLivePhoto (`NSItemProviderErrorDomain -1200`). Sharing-service enumeration returned no services for the Live Photo object, and only Add to Photos for its custom provider. This deprecated discovery API is bounded evidence, not exhaustive modern-extension coverage.
+
+Resource metadata confirms HEIC and QuickTime source resources without exporting media. Exact target lookup failed in this standalone query, so its false add-content field does not establish unsupported album writing. Offline upload-schema checks accepted still mode and rejected paired mode; no upload was attempted. Compile-only probes also rejected public construction of PHPickerResult and the NSItemProviderWriting initializer for PHLivePhoto. Detailed results and limitations are in the standalone experiment README; private journals retain the live evidence. No production change or publication occurred.
+
+## No-picker Live Photo read verified; sharing input boundary remains — 2026-10-06
+
+A standalone, owner-authorized read-only run fetched the exact approved original via public PhotoKit and obtained a non-degraded, non-cancelled `PHLivePhoto` at 2268 × 4032 without opening a picker. Identifier-created picker inputs returned nil with empty content types both before and after that successful load. A media-download delay alone does not explain this observed gap.
+
+The local SDK's Shared Album sheet overloads require picker-item/result arrays. Compile-only probes rejected a `PHLivePhoto` array and an attempted `PhotosPickerItem(itemProvider:)` initializer. Apple explicitly documents that the identifier-only initializer supplies no representation. This narrows the remaining problem to supplying an accepted publication input; it does not establish a supported conversion or no-UI posting route. No sharing UI or publication occurred; production MCP/Helper and unknown-write records were untouched. See the standalone experiment README for sources and protocol.
+
+## Actual standalone input comparison completed — 2026-10-06
+
+One operator-selected Live Photo completed the independent A/B comparison. Both public items carried the same local identifier. The identifier-created item advertised no content types and `loadTransferable(PHLivePhoto.self)` returned nil. The actual picker result advertised `public.heic` and `public.jpeg`, and loaded a non-nil Live Photo with dimensions 2268 × 4032. The public items compared unequal. The result was durably saved and displayed in the experiment window.
+
+This demonstrates a usable media representation in the real picker item that the identifier-only constructor did not supply in this run. Content-type strings alone did not describe Live Photo transfer capability. It does not prove the cause of the earlier generic sharing-sheet error or establish automatic publishing. No sharing sheet, album change, export/import, or production/MCP operation occurred. The earlier single-selection experiment remained alive after recording mismatch; its exact PID was verified and sent SIGTERM. The completed result window remains available for the operator to close normally.
+
+## Exploratory selection flow corrected — 2026-10-06
+
+The first standalone picker used single selection and immediately rejected a photo that did not match the fixed target. The owner could not complete the intended flow. Its identifier-only baseline had no supported content types and returned no Live Photo; no actual selected-input comparison completed.
+
+The corrected standalone experiment supports one to twelve user-selected Live Photos and the system picker's Add/Done step. For each selected item it constructs the identifier-only counterpart for that same photo, compares both loads, and retains a readable result window. The owner explicitly requested the exploratory multi-selection flow; this does not broaden the production sharing destination or authorize publication. Compilation and signature verification passed, and a fresh diagnostic session was launched. No MCP or production installation was involved.
+
+## Standalone experiment supersedes production diagnostic approach — 2026-10-06
+
+The owner clarified that this is a native API experiment, not an MCP experiment, and explicitly authorized an independent read-only App. The implementation is now isolated in `playground/photos/picker-input-experiment`. No production tool, Helper, version, deployment or operation ledger is changed for it. The existing unresolved posting operation and its interlock remain intact.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Picker comparison deployed; live selection pending — 2026-10-06
+
+PR 70 merged at `3e9a9890525590b4c2e89141f7adcbc6bef06ddf`. Existing original service now runs immutable 0.1.62 with a signed Helper. Stopped backup SQLite integrity checks passed; configuration/custody hashes were preserved and 14,669 installed payload files matched staging. The source branch passed 428 tests / 2,909 assertions. Main received concurrent UI changes; its rebuilt version passed 425 tests / 2,834 assertions, application typechecks and Studio checks. These are same-agent checks, not independent review or live posting acceptance.
+
+The first Helper setup raced the dist rebuild and failed; setup was rerun successfully after build completion. An initial main-test command used the wrong log path and did not run; the corrected invocation passed. The initial doctor invocation pointed at runtime state instead of the installed artifact and failed that check; the corrected installed-current check is recorded separately. No failed attempt is counted as passing.
+
+Original MCP health reports PhotoKit authorization 0 for the changed ad-hoc Helper binary. Its existing authorization entry point was opened; renewed OS consent is pending. No comparison operation or photo publication has occurred in this deployment. UI is authorized for this diagnostic exploration only; final acceptance still requires no-UI publication. The next live test is one real selection of the approved original, comparison of public media-loading results, then observation and cancellation of Apple's sheet without Post.
+
 ## Real-selection comparison authorized — 2026-10-06
 
 The owner clarified that UI is permitted for exploration; the final outcome must

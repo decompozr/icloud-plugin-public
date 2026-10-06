@@ -14,13 +14,14 @@
     setup = false,
   }: { model: AdminModel; dialogs: DialogCenter; setup?: boolean } = $props();
   const { t } = getContext<UiCopy>("copy");
+  const moduleOrder:Record<string,number>={mail:0,calendar:1,photos:2};
   const modules = $derived([
     { id: "mail", title: "Mail" },
     ...(model.state.modules ?? []).map((m) => ({
       id: m.id,
       title: m.id === "photos" ? t("photosTitle") : m.title,
     })),
-  ].sort((a,b)=>(["mail","calendar","photos"].indexOf(a.id)+4)%4-(["mail","calendar","photos"].indexOf(b.id)+4)%4));
+  ].sort((a,b)=>(moduleOrder[a.id]??99)-(moduleOrder[b.id]??99)));
   const network = $derived(
     model.system?.connectivity ?? model.status?.prerequisites,
   );
@@ -116,7 +117,7 @@
             <button type="button" class="secondary credential-control" title={t('appPasswordStatus')+': '+t(account.credentialStored?'ready':'notReady')} aria-label={t(account.credentialStored?'editAppPassword':'openAppPassword')} onclick={()=>dialogs.openCredential('app-password',{accountId:account.id,mode:'rotate'})}>
               <DesignIcon name="pencil"/><span>{t('appPasswordShort')}</span><span class="credential-pill" class:ready={account.credentialStored}>{t(account.credentialStored?'credentialStoredShort':'credentialMissingShort')}</span>
             </button>
-            <button type="button" class="secondary credential-control" title={t('appleSessionStatus')+': '+t(savedSession?'sessionAuthenticated':model.webSessions[account.id]?.phase?'sessionMissing':'sessionUnknown')} aria-label={t(savedSession?'manageAppleSession':'openAppleSession')} onclick={()=>dialogs.openCredential('apple-account',{accountId:account.id})}>
+            <button type="button" class="secondary credential-control" disabled={!model.state.photosCloudConfigured} title={t('appleSessionStatus')+': '+t(savedSession?'sessionAuthenticated':model.webSessions[account.id]?.phase?'sessionMissing':'sessionUnknown')} aria-label={t(savedSession?'manageAppleSession':'openAppleSession')} onclick={()=>dialogs.openCredential('apple-account',{accountId:account.id})}>
               <DesignIcon name="circle-dot"/><span>{t('appleSessionShort')}</span><span class="credential-pill" class:ready={savedSession}>{t(savedSession?'sessionSavedShort':model.webSessions[account.id]?.phase?'credentialMissingShort':'unknownValue')}</span>
             </button>
           </div>
@@ -174,6 +175,8 @@
             > <button type="button" class="secondary icon-button configure-button" aria-label={t('moduleConfigure')+' '+module.title} title={t('moduleConfigure')} disabled={!model.state.enrolled||model.busy} onclick={()=>openModule(module.id)}><Icon name="settings"/></button>
           </div>
         </div>{/each}{/if}
+
+    {#if modules.some(module=>module.id==='photos')}<p class="muted" data-testid="photos-shared-write-unsupported">{t("photosUnsupported")}</p>{/if}
     {#if model.dashboardFailed}<p class="muted">{t("freshnessFailed")}</p>{/if}
   </section>
 </div>

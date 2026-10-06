@@ -129,3 +129,10 @@ test("originless form token exchange and refresh reach authoritative OAuth handl
     expect(result.status).toBe(200);
   }
 });
+
+test('Photos remains configured with localized shared-write fine print',async()=>{
+ for(const [locale,copy] of [['en',en],['zh-TW',zh]] as const){
+  const response=await studio.admin(new Request('https://private.example.invalid/icloud/admin',{headers:{cookie:'PARAGLIDE_LOCALE='+locale}}),{enrolled:true,ready:true,admin:true,view:'overview',modules:[{id:'photos',title:'Photos',fields:[{id:'read',label:'Read'}]}]});
+  const html=await response.text();expect(html).toContain('data-testid="photos-shared-write-unsupported"');expect(html).toContain(copy.photosUnsupported);expect(html).not.toContain('Mac Photos library');
+ }
+});

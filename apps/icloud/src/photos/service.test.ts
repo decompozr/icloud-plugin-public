@@ -19,21 +19,16 @@ test('module requires delete consent and rejects unsafe input without provider c
 test('expired plans and repeated unknown intents cannot execute',async()=>{const t=setup();try{const plan=await t.service.prepare({action:'create_album',title:'Old'});t.db.query('UPDATE photos_operations SET expires=0 WHERE id=?').run(plan.operationId);await expect(t.service.apply(plan.operationId,true)).rejects.toThrow('plan_expired');const unknown=await t.service.prepare({action:'create_album',title:'Unknown'});t.db.query("UPDATE photos_operations SET status='outcome_unknown' WHERE id=?").run(unknown.operationId);await expect(t.service.prepare({action:'create_album',title:'Unknown'})).rejects.toThrow('unresolved_operation');expect(t.calls()).toBe(0);}finally{t.db.close();}});
 test('different plans cannot race a library write',async()=>{const t=setup();try{let release!:()=>void;const gate=new Promise<void>(r=>release=r);t.provider.apply=async()=>{await gate;return {status:'applied'};};const a=await t.service.prepare({action:'create_album',title:'A'}),b=await t.service.prepare({action:'create_album',title:'B'});const running=t.service.apply(a.operationId,true);await expect(t.service.apply(b.operationId,true)).rejects.toThrow('another_operation_in_progress');release();await running;expect((await t.service.apply(b.operationId,true)).status).toBe('applied');}finally{t.db.close();}});
 const sharedIntent={action:'post_to_shared_album',albumId:'album:1234567890abcdef:shared:22222222-2222-2222-2222-222222222222',assetIds:[id]};
-test('remote native UI sharing requires opt-in, rechecks launch authorization and never relaunches',async()=>{
- const t=setup();let launched=0;
- t.provider.openReview=async(_mutation,_snapshot,_id,authorize)=>{authorize!();launched++;return {status:'review_pending'};};
+test('shared publication is disabled even with native UI opt-in and retained plans',async()=>{
+ const t=setup();let launched=0;t.provider.openReview=async()=>{launched++;return {status:'review_pending'};};
  try{
-  await expect(t.service.prepareRemote(sharedIntent)).rejects.toThrow('remote_shared_album_posting_unavailable');
-  const plan=await t.service.prepareRemote({...sharedIntent,nativeUI:true});
-  expect((await t.service.applyRemote(plan.operationId,true)).status).toBe('review_pending');
-  await t.service.applyRemote(plan.operationId,true);expect(launched).toBe(1);expect(t.calls()).toBe(0);
- }finally{t.db.close();}
-});
-test('revocation during native preparation stops launch through its final authorization callback',async()=>{
- const t=setup();let launched=0;
- t.provider.openReview=async(_mutation,_snapshot,_id,authorize)=>{t.revoke();authorize!();launched++;return {status:'review_pending'};};
- try{const plan=await t.service.prepareRemote({...sharedIntent,nativeUI:true});
-  expect((await t.service.applyRemote(plan.operationId,true)).status).toBe('rejected');expect(launched).toBe(0);
+  for(const intent of [sharedIntent,{...sharedIntent,nativeUI:true},{action:'add_to_album',albumId:sharedIntent.albumId,assetIds:[id]}])await expect(t.service.prepareRemote(intent)).rejects.toThrow('shared_album_write_unsupported');
+  const retained=await t.service.prepare({...sharedIntent,nativeUI:true});
+  await expect(t.service.applyRemote(retained.operationId,true)).rejects.toThrow('shared_album_write_unsupported');
+  expect(launched).toBe(0);expect(t.calls()).toBe(0);
+  const registration=photosRegistration(t.service,t.policy);
+  expect(registration.tools.some(t=>t.tool.name.startsWith('photos_shared_'))).toBe(false);
+  expect(JSON.stringify(registration.tools.find(t=>t.tool.name==='photos_prepare')!.tool.inputSchema)).not.toContain('post_to_shared_album');
  }finally{t.db.close();}
 });
 test('native sharing is a single-use asynchronous review, including service restart and uncertain completion',async()=>{

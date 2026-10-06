@@ -1,4 +1,3 @@
-import {stageUploadSource,releaseUploadSource,type StagedUploadSource} from './upload-source.js';
 import {existsSync} from 'node:fs';
 import {mkdtemp,writeFile,readFile,stat,rm,open} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -6,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {join,dirname,isAbsolute} from 'node:path';
 import {z} from 'zod';
 import {assetSchema,albumSchema,mutationSchema,cleanupCandidateSchema,PhotosError,type Mutation,type PhotosProvider} from './contracts.js';
-import {readReview,reserveReview} from './shared-review.js';
+import {readReview} from './shared-review.js';
 const moduleDirectory=dirname(fileURLToPath(import.meta.url));
 const base=existsSync(join(moduleDirectory,'reader.py'))?moduleDirectory:join(moduleDirectory,'photos');
 const envelope=z.discriminatedUnion('ok',[z.object({ok:z.literal(true),result:z.unknown()}).strict(),z.object({ok:z.literal(false),error:z.string().regex(/^[a-z_]{1,80}$/)}).strict()]);
@@ -80,20 +79,6 @@ export class LocalPhotosProvider implements PhotosProvider {
   }
   throw new PhotosError('unsupported_command');
  }
- /** Private staging for reviewed sharing; never returns source paths to MCP. */
- async stageUpload(assetId:string,representation:'original'|'edited',livePhotoMode?:'still'){
-  if(!this.settings.stateDirectory)throw new PhotosError('upload_runtime_not_configured');
-  const source=await this.reader('upload_source',{assetId,representation,livePhotoMode});
-  return stageUploadSource(source,{library:this.settings.library,directory:join(this.settings.stateDirectory,'shared-upload-staging'),assetId});
- }
- async stageTestUpload(operationId:string):Promise<StagedUploadSource>{
-  if(!this.settings.stateDirectory)throw new PhotosError('upload_runtime_not_configured');
-  return z.object({assetId:z.string(),filename:z.literal('Photos capability test.png'),representation:z.literal('original'),livePhotoStillOnly:z.literal(false),mediaType:z.literal('photo'),bytes:z.number().int().positive(),sha256:z.string().regex(/^[a-f0-9]{64}$/),privatePath:z.string().refine(isAbsolute)}).strict().parse(await runProcess([this.settings.python,join(this.settings.sidecarDirectory??base,'shared-test-fixture.py')],{directory:join(this.settings.stateDirectory,'shared-upload-staging'),operationId}));
- }
- async releaseUpload(source:StagedUploadSource){
-  if(!this.settings.stateDirectory)throw new PhotosError('upload_runtime_not_configured');
-  await releaseUploadSource(source,join(this.settings.stateDirectory,'shared-upload-staging'));
- }
  async inspect(mutation:Mutation){
   const state=snapshot.parse(await this.reader('inspect',mutation));
   if(mutation.action!=='set_metadata')await this.native('probe',mutation);
@@ -103,21 +88,8 @@ export class LocalPhotosProvider implements PhotosProvider {
  private native(command:string,mutation:Mutation){return runNative(this.settings.nativeHelper,{command,mutation},this.settings.timeoutMs);}
  private reviewPath(){const directory=this.settings.reviewDirectory??(this.settings.stateDirectory?join(this.settings.stateDirectory,'shared-reviews'):undefined);if(!directory)throw new PhotosError('review_runtime_not_configured');return directory;}
  async reviewStatus(operationId:string){return readReview(this.reviewPath(),operationId);}
- async openReview(mutation:Mutation,expected:unknown,operationId:string,authorize?:()=>void){
-  if(mutation.action!=='post_to_shared_album'||mutation.nativeUI!==true)throw new PhotosError('native_ui_opt_in_required');
-  if(!authorize)throw new PhotosError('native_launch_authorization_required');
-  const current=await this.inspect(mutation);
-  if(JSON.stringify(current)!==JSON.stringify(expected))throw new PhotosError('stale_plan');
-  const directory=this.reviewPath();
-  await reserveReview(directory,operationId);
-  // The reserved identity survives launch errors and must never be relaunched.
-  const manifest=await open(join(directory,operationId+'.manifest.json'),'wx',0o600);
-  try{await manifest.writeFile(JSON.stringify({operationId,entries:current.assets.map(asset=>({assetId:asset.id}))}));await manifest.sync();}finally{await manifest.close();}
-  const result=await runNative(this.settings.nativeHelper,{command:'shared_review',operationId,directory,mutation,expiresAt:Date.now()+5*60*1000},this.settings.timeoutMs,authorize);
-  return z.object({operationId:z.literal(operationId),status:z.literal('review_pending'),localReadbackVerified:z.literal(false),serverSyncVerified:z.literal(false)}).strict().parse(result);
- }
  async apply(mutation:Mutation,expected:unknown){
-  if(mutation.action==='post_to_shared_album')throw new PhotosError('native_review_required');
+  if(mutation.action==='post_to_shared_album'||('albumId' in mutation&&mutation.albumId.includes(':shared:')))throw new PhotosError('shared_album_write_unsupported');
   const current=snapshot.parse(await this.reader('inspect',mutation));
   if(JSON.stringify(current)!==JSON.stringify(expected))throw new PhotosError('stale_plan');
   const result=mutation.action==='set_metadata'

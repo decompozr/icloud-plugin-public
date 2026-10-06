@@ -6,7 +6,7 @@ import {ModuleRuntime} from '../modules/runtime.js';
 import {createServer} from '../mcp/server.js';
 import {createPrivateAdmin,type AdminOptions} from '../admin/handler.js';
 import {createPhotosAdmin} from './admin.js';
-import {photosRegistration} from './module.js';
+import {photosRegistration} from './archived-sharing-module.js';
 import {PhotosService} from './service.js';
 import type {PhotosProvider} from './contracts.js';
 
@@ -68,6 +68,10 @@ test('local and remote Photos admin share policy while each enforces its own own
   expect((await request(1,'/icloud/admin/modules/photos/capabilities',{policy:{read:true,write:true,delete:false},confirmEnable:false})).status).toBe(409);
   expect((await request(1,'/icloud/admin/modules/photos/capabilities',{policy:{read:true,write:true,delete:false},confirmEnable:true})).status).toBe(200);
   expect(module.policy()).toEqual({read:true,write:true,delete:false});
+  const blocked=await request(1,'/icloud/admin/modules/photos/capabilities',{policy:{read:true,write:true,delete:true},confirmEnable:true});
+  expect(blocked.status).toBe(409);expect(await blocked.json()).toEqual({error:'CONFIGURED_CAPABILITY_DISABLED'});
+  expect(module.policy()).toEqual({read:true,write:true,delete:false});
+
  }finally{db.close();}
 });
 

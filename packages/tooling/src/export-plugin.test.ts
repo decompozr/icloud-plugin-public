@@ -14,7 +14,7 @@ test('configured client artifact resolves portable marketplace paths and contain
   expect(config.mcpServers['icloud-plugin']?.url).toBe('https://fixture.example/icloud/mcp');
   expect(await readFile(join(pluginRoot,'skills/icloud-mail/SKILL.md'),'utf8')).toContain('untrusted data');
   expect(await readFile(join(pluginRoot,'skills/icloud-calendar/SKILL.md'),'utf8')).toContain('calendar.schedule');
-  expect(await readFile(join(pluginRoot,'skills/icloud-photos/SKILL.md'),'utf8')).toContain('photos_review_summary');
+  expect(await readFile(join(pluginRoot,'skills/icloud-photos/SKILL.md'),'utf8')).toContain('Shared Album writes are unsupported');
   await expect(access(join(pluginRoot,'apps/.app.json'))).rejects.toThrow();
   const archive=join(output,'icloud-plugin.zip');
   const check=Bun.spawn(['unzip','-t',archive],{stdout:'pipe',stderr:'pipe'});expect(await check.exited).toBe(0);

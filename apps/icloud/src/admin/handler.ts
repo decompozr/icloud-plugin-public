@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import type {PhotosCloudAdmin} from '../photos/cloud-setup.js';
-import {PhotosError} from '../photos/contracts.js';
+interface PhotosCloudAdmin {status(accountId?:string):Promise<unknown>;setup():Promise<unknown>;action(input:{action:'login'|'verify'|'send_code'|'recheck'|'revoke';accountId:string;password?:string;code?:string;confirm?:true}):Promise<unknown>;}
+
 import type { OwnerSecretStore } from '../storage/owner-store.js';
 import type {SystemStatus} from './system-status.js';
 import { setupPage,type AdminPresentation } from './page.js';
 export interface TailscaleStatus { installed: boolean; authenticated: boolean; online: boolean; privateReachable: boolean }
 export interface AppleCredential { user: string; appPassword: string }
-export interface AdminModule {id:string;title:string;fields:readonly {id:string;label:string}[];capabilities():Record<string,boolean>;updateCapabilities(next:Record<string,boolean>,confirm:boolean):Promise<Record<string,boolean>>}
+export interface AdminModule {id:string;title:string;fields:readonly {id:string;label:string;available?:boolean}[];capabilities():Record<string,boolean>;updateCapabilities(next:Record<string,boolean>,confirm:boolean):Promise<Record<string,boolean>>}
 export interface AdminOptions {
  photosCloud?:PhotosCloudAdmin;
  resetRuntime?:(mode:'connections'|'factory')=>string;
@@ -74,7 +74,7 @@ export function createPrivateAdmin(options:AdminOptions) {
      const parsed=schemas[cloudAction as keyof typeof schemas].safeParse(await parseBody(request));if(!parsed.success)return json({error:'INVALID_INPUT'},400);
      if(cloudAction==='setup')return json(await options.photosCloud.setup());
      return json(await options.photosCloud.action({...parsed.data as {accountId:string},action:cloudAction==='send-code'?'send_code':cloudAction as 'login'|'verify'|'recheck'|'revoke'}));
-    }catch(e){return json({error:e instanceof PhotosError?e.code:'cloud_setup_failed'},409);}
+    }catch(e){return json({error:e instanceof Error && e.constructor.name==='PhotosError' && 'code' in e && typeof e.code==='string'?e.code:'cloud_setup_failed'},409);}
    }
    if(path.startsWith('/icloud/admin/photos/')){
     const session=await options.ownerAuth.ownerSession(request.headers);
@@ -184,7 +184,7 @@ export function createPrivateAdmin(options:AdminOptions) {
      const permission=await options.photosSetup.status();
      if(typeof permission!=='object'||permission===null||!('ready'in permission)||permission.ready!==true)return json({error:'PHOTOS_PERMISSIONS_REQUIRED'},409);
     }
-    return json({capabilities:await target.updateCapabilities(parsed.data.policy,parsed.data.confirmEnable)});
+    try{return json({capabilities:await target.updateCapabilities(parsed.data.policy,parsed.data.confirmEnable)});}catch(error){if(error instanceof Error&&'code' in error&&error.code==='configured_capability_disabled')return json({error:'CONFIGURED_CAPABILITY_DISABLED'},409);throw error;}
    }
    if(path==='/icloud/admin/credential'||path==='/icloud/admin/revoke') {
     const session=await options.ownerAuth.ownerSession(request.headers);
