@@ -352,7 +352,7 @@ test('application local owner custody enrollment and confirmed remote pairing pr
  const store=SqliteOwnerStore.provision({databasePath:join(directory,'owner.sqlite'),markerPath:join(directory,'custody/marker'),masterKey,bootstrapProof:proof}),db=new Database(join(directory,'auth.sqlite'));
  const localPort=await freePort(),privatePort=await freePort(),publicPort=await freePort(),localOrigin=`http://localhost:${localPort}`,remoteOrigin='https://owner.fixture.invalid:8443';
  const settings={local_origin:localOrigin,public_origin:'https://owner.fixture.invalid',private_origin:remoteOrigin,public_port:publicPort,private_port:privatePort,host:'127.0.0.1' as const,runtime_mode:'native' as const,state_directory:directory,master_key_file:join(directory,'custody/key'),installation_marker:join(directory,'custody/marker'),allow_send:false,allow_writes:false,tailscale_binary:'unused'};
- const app=await createApplication(settings,{store,masterKey,authDatabase:db,assetsDirectory:join(directory,'assets'),bootstrapProof:()=>proof,diagnostics:async()=>({installed:false,authenticated:false,online:false,privateReachable:false})});
+ const app=await createApplication(settings,{store,masterKey,authDatabase:db,assetsDirectory:join(directory,'assets'),studioDirectory:join(import.meta.dir,'../../../studio/dist/kit'),bootstrapProof:()=>proof,diagnostics:async()=>({installed:false,authenticated:false,online:false,privateReachable:false})});
  const localServer=app.localApp!.listen(localPort,'127.0.0.1'),remoteServer=app.privateApp.listen(privatePort,'127.0.0.1');
  await Promise.all([localServer,remoteServer].map(server=>new Promise<void>(resolve=>server.once('listening',resolve))));
  const localCookies=new Map<string,string>(),remoteCookies=new Map<string,string>();
@@ -377,6 +377,7 @@ test('application local owner custody enrollment and confirmed remote pairing pr
   expect((await request('/icloud/setup/begin',{proof:remoteTicket},true,{host:'evil.invalid'})).status).toBe(403);
   expect((await request('/icloud/setup/begin',{proof:remoteTicket},true)).status).toBe(200);
   expect((await request('/icloud/setup/begin',{proof:remoteTicket},true,{},new Map())).status).toBe(403);
+  const pairingPage=await request('/icloud/setup?mode=remote-owner',undefined,true);expect(pairingPage.status).toBe(200);const pairingHtml=await pairingPage.text();expect(pairingHtml).toContain('data-ui-framework="sveltekit"');expect(pairingHtml).toContain('/icloud/_studio/');
   const remoteID=randomBytes(24),remoteReg=await(await request('/icloud/auth/passkey/generate-register-options',undefined,true)).json() as {challenge:string};
   expect((await request('/icloud/auth/passkey/verify-registration',{response:response(remoteReg.challenge,remoteOrigin,true,true,1,'owner.fixture.invalid',remoteID),createSession:true},true)).status).toBe(200);
   expect((await request('/icloud/setup/complete',{},true)).status).toBe(200);expect(store.ownerId()).toBe(owner);

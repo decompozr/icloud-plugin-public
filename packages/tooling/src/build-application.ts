@@ -16,10 +16,10 @@ const entries:string[]=[];
 for await(const path of new Bun.Glob('**/*.ts').scan(source))if(!path.includes('test-fixtures/')&&!path.endsWith('.test.ts')&&!path.endsWith('.worker.ts'))entries.push(resolve(source,path));
 const server=await Bun.build({entrypoints:entries,root:source,outdir:output,target:'bun',packages:'external',splitting:true});
 if(!server.success)throw new AggregateError(server.logs,'Application build failed');
+await cp(join(repository,'apps/studio/dist/kit'),join(output,'studio'),{recursive:true});
 await mkdir(join(output,'assets'),{recursive:true});
 await cp(join(repository,'apps/studio/THIRD_PARTY_NOTICES.md'),join(output,'assets/studio-LICENSES.txt'));
 await Bun.write(join(output,'assets/runtime-version.json'),JSON.stringify({version:sourceMetadata.version})+'\n');
-for(const name of ['auth-browser.js','admin-browser.js'])await cp(join(repository,'apps/studio/dist/assets',name),join(output,'assets',name));
 await Bun.write(join(output,'assets/plugin-icon.png'),Bun.file(join(app,'assets/plugin-icon.png')));
 console.log('Built private application modules and browser assets; test files excluded.');
 

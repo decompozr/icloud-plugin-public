@@ -1,6 +1,6 @@
 {
   "name": "@icloud-plugin/icloud",
-  "version": "0.1.59",
+  "version": "0.1.60",
   "private": true,
   "type": "module",
   "description": "Personal iCloud Mail MCP server with authenticated remote transport",
@@ -11,7 +11,7 @@
     "start": "bun ./dist/index.js",
     "dev": "bun run build:browser && bun --watch ./src/index.ts",
     "runtime": "bun ./dist/index.js",
-    "build:browser": "bun run --cwd ../studio build && mkdir -p dist/assets && cp ../studio/dist/assets/*.js dist/assets/",
+    "build:browser": "bun run --cwd ../studio build",
     "build:types": "tsc --project tsconfig.build.json"
   },
   "dependencies": {

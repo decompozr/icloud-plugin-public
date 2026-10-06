@@ -34,8 +34,8 @@ scenario('installed artifact initializes explicitly, restarts without resetting 
    expect((await fetch(publicBase+'/icloud/mcp',{method:'POST',headers:{'content-type':'application/json'},body:'{}'})).status).toBe(401);
    const setup=await fetch(base+'/icloud/setup');
    expect(await setup.text()).toContain('Tailscale');
-   const script=await fetch(base+'/icloud/assets/admin-browser.js');expect(script.status).toBe(200);expect(script.headers.get('content-type')).toContain('javascript');expect((await script.text()).length).toBeGreaterThan(1000);
-   expect((await fetch(publicBase+'/icloud/assets/auth-browser.js')).status).toBe(200);
+   const signin=await fetch(base+'/icloud/sign-in');expect(signin.status).toBe(200);const html=await signin.text();expect(html).toContain('data-ui-framework="sveltekit"');const asset=html.match(/(?:src|href)="([^" ]*\/icloud\/_studio\/[^" ]+\.js)"/);expect(asset).not.toBeNull();const script=await fetch(new URL(asset![1]!,base));expect(script.status).toBe(200);expect(script.headers.get('content-type')).toContain('javascript');
+   expect((await fetch(publicBase+'/icloud/assets/auth-browser.js')).status).toBe(404);
    child.kill('SIGTERM');expect(await child.exited).toBe(0);child=undefined;
    await expect(fetch(base+'/icloud/setup/health')).rejects.toThrow();
    expect(await readFile(join(dir,'custody/master.key'))).toEqual(key);

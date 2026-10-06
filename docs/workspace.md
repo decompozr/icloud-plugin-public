@@ -1,7 +1,8 @@
 # Independent packages and application boundaries
 
 The runtime application is `apps/icloud`; `apps/studio` owns its Svelte
-presentation and browser assets. Studio is built before the runtime application. There is no
+SvelteKit presentation and Paraglide catalogs. Studio is built before the runtime
+application; its compiled server/client output is embedded in that artifact. There is no
 separate `apps/server` and no production MCP client. Codex and ChatGPT consume
 Streamable HTTP; stdio is not an initial interface. `docs/` stays authoritative,
 and `playground/` remains separate experiments with independent packages/locks.

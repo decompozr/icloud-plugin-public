@@ -59,7 +59,7 @@ including initialization, restart, custody preservation and shutdown. Deployment
 is recorded separately after verification. Retain the previous installed release and a protected stopped-state
 backup for recovery. No automatic second-phase activation precedes owner acceptance.
 
-## Phase 1 deployed; owner acceptance pending
+## Phase 1 deployed and owner accepted
 
 Native 0.1.59 was built from clean remote main commit
 `03ae50d7350e52cfb0e4229126e3ce9b19410a4a` and installed on October 6, 2026.
@@ -95,4 +95,48 @@ and selecting the prior release. No rollback was required.
 Owner testing uses `http://localhost:4102/icloud/admin` or the existing private
 Tailscale admin URL on port 8443. Check real Passkey login, all five destinations,
 English/Traditional Chinese, mobile layout and normal account/policy interactions.
-Phase two remains unstarted until the owner reports `pass` for this deployment.
+The owner reported `pass` on October 6, 2026; phase two is authorized.
+
+## Phase 2 implementation and verification
+
+The second-phase candidate is 0.1.60. Studio now serves hydrated SvelteKit pages
+using adapter-node embedded in the existing Bun service. Admin/setup, owner login,
+account choice, consent and Photos permissions/cloud setup have reactive Svelte
+state. Whole-page DOM controllers and their legacy browser assets are retired.
+
+Paraglide compiles `messages/en.json` and `messages/zh-TW.json`; both catalogs have
+matching keys. The message-format compiler plugin is pinned locally. Cookie-first,
+English-fallback locale resolution is request-scoped on the server and reactive
+in the browser. Language selection persists across document navigation without
+rewriting OAuth/MCP URLs or adding language prefixes. Core compatibility helpers
+retain i18next over the same catalogs; browser presentation uses Paraglide.
+
+The trusted listener/Host/source dispatcher remains outside SvelteKit. Page models
+are supplied only after authoritative owner checks; module functions, stores and
+credentials are not serialized. Protocol APIs transparently retain core handlers,
+exact private Origin/JSON checks, body limits and OAuth policy. They bypass Kit page
+CSRF/i18n processing: a default Kit CSRF check was observed rejecting originless
+OAuth token forms, so protocol forwarding was kept outside that page pipeline.
+This is an explicit architecture decision, not a grant to weaken private checks.
+
+Pages use nonce CSP, no-store and no-referrer. Compiled client assets have an exact
+file allowlist; unknown assets, non-read methods and server assets are rejected.
+Public/private routing and both local/remote owner pairing remain isolated.
+Navigation performs document reloads to recheck owner authority and clear volatile
+credentials. Diagnostic polling remains bounded, pauses for drafts/hidden pages,
+and preserves dated historical evidence separately from fresh authorization/read
+claims. No provider write or native permission prompt runs automatically.
+
+Verification before final native delivery: component checking has zero diagnostics;
+Studio 10 tests / 932 assertions, application 426 tests / 2,906 assertions, tooling
+11 tests / 141 assertions, built E2E 11 tests / 257 assertions and isolated Chrome
+86 checks passed. Real synthetic OAuth code/refresh forms omit Origin. Independent
+read-only review found and rechecked two corrected regressions: originless token
+forms and remote-owner page hydration. Its focused transport check passed 5 tests /
+878 assertions, including concurrent bilingual SSR and cookie preservation.
+The disposable native candidate passed 1 lifecycle test / 30 assertions, including
+actual Kit bootstrap and hashed-asset delivery. Installed/live evidence is recorded
+after deployment; synthetic results do not establish physical Passkeys, live
+remote-client OAuth or provider acceptance. A Linux image was not executed.
+
+The owner will test the deployed second-phase candidate before phase three starts.

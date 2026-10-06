@@ -9,6 +9,7 @@ export interface AppleCredential { user: string; appPassword: string }
 export interface AdminModule {id:string;title:string;fields:readonly {id:string;label:string}[];capabilities():Record<string,boolean>;updateCapabilities(next:Record<string,boolean>,confirm:boolean):Promise<Record<string,boolean>>}
 export interface AdminOptions {
  photosCloud?:PhotosCloudAdmin;
+ renderPage?(request:Request,state:Parameters<typeof setupPage>[0]):Promise<Response>;
  systemStatus?():Promise<SystemStatus>;
  evidence?(ownerId:string):import('./evidence.js').EvidenceRow[];
  modules?:readonly AdminModule[];
@@ -119,7 +120,9 @@ export function createPrivateAdmin(options:AdminOptions) {
      if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     }
     const status=await options.diagnostics();
-    return new Response(setupPage({photosCloudConfigured:!!options.photosCloud,photosConfigured:!!options.photosSetup,enrolled,ready:options.setupReady??ready(status),admin:Object.hasOwn(views,path),view:views[path]??'setup',...(url.searchParams.get('mode')==='account'?{mode:'account' as const}:{}),publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,localOwner:options.localOwner,connectionCommands:options.connectionCommands,presentation:options.presentation,modules:options.modules}),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
+    const state:Parameters<typeof setupPage>[0]={photosCloudConfigured:!!options.photosCloud,photosConfigured:!!options.photosSetup,enrolled,ready:options.setupReady??ready(status),admin:Object.hasOwn(views,path),view:views[path]??'setup',...(url.searchParams.get('mode')==='account'?{mode:'account' as const}:{}),publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,localOwner:options.localOwner,connectionCommands:options.connectionCommands,presentation:options.presentation,modules:options.modules};
+    if(options.renderPage)return options.renderPage(request,state);
+    return new Response(setupPage(state),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
    }
    if(request.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405);
    if(request.headers.get('origin')!==options.privateOrigin)return json({error:'ORIGIN_DENIED'},403);

@@ -11,3 +11,7 @@ releases/
 apps/icloud/build/
 
 __pycache__/
+
+apps/studio/.svelte-kit/
+apps/studio/src/lib/paraglide/
+apps/studio/project.inlang/cache/

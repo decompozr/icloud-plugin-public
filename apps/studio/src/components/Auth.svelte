@@ -1,32 +1,284 @@
 <script lang="ts">
-  import { getContext } from "svelte";
-  import type { UiCopy, AuthMode } from "../contracts.js";
+  import { getContext, onMount } from "svelte";
+  import { z } from "zod";
+  import type { UiCopy, AuthMode, ScopeLabels } from "../contracts.js";
+  import {
+    AuthFailure,
+    request,
+    signedOAuthQuery,
+    destination,
+    signIn,
+  } from "../lib/auth-protocol.js";
   import Brand from "./Brand.svelte";
   import Icon from "./Icon.svelte";
-  let { mode }: { mode: AuthMode } = $props();
+  let {
+    mode,
+    privateAdmin = false,
+    scopeLabels = {},
+  }: {
+    mode: AuthMode;
+    privateAdmin?: boolean;
+    scopeLabels?: ScopeLabels;
+  } = $props();
   const { authT } = getContext<UiCopy>("copy");
-  const consent = $derived(mode === "consent"),
-    connect = $derived(mode === "connect");
+  const locale = getContext<{ current: string }>("locale");
+  // svelte-ignore state_referenced_locally
+  let busy = $state(false),
+    ready = $state(mode === "sign-in"),
+    message = $state(""),
+    error = $state(false),
+    adding = $state(false);
+  let user = $state(""),
+    password = $state(""),
+    label = $state("");
+  let accounts = $state<
+      Array<{
+        id: string;
+        user: string;
+        label: string;
+        credentialStored: boolean;
+      }>
+    >([]),
+    selected = $state<{ user: string; label: string } | undefined>(),
+    client = $state<{ id: string; name?: string } | undefined>();
+  let scopes = $state<string[]>([]),
+    chosen = $state<string[]>([]);
+  const statusSchema = z.object({
+    accounts: z.array(
+      z.object({
+        id: z.string(),
+        user: z.string(),
+        label: z.string(),
+        credentialStored: z.boolean(),
+      }),
+    ),
+    selectedAccount: z
+      .object({
+        id: z.string(),
+        user: z.string(),
+        label: z.string(),
+        credentialStored: z.boolean(),
+      })
+      .optional(),
+    client: z.object({ id: z.string(), name: z.string().optional() }),
+    permissions: z.array(z.string()),
+  });
+  const display = (account: { label: string; user: string }) =>
+    !account.label.trim() ||
+    account.label.toLowerCase() === account.user.toLowerCase()
+      ? { primary: account.user }
+      : { primary: account.label, secondary: account.user };
+  const scopeLabel = (scope: string) => {
+    const known: Record<string, string> = {
+      offline_access: "scopeOffline",
+      "photos.read": "scopePhotosRead",
+      "photos.write": "scopePhotosWrite",
+      "photos.delete": "scopePhotosDelete",
+    };
+    if (known[scope]) return authT(known[scope]);
+    const value = scopeLabels[scope];
+    return typeof value === "string"
+      ? value
+      : (value?.[locale?.current ?? "en"] ?? value?.default ?? scope);
+  };
+  const groups = $derived(
+    [
+      { title: "permissionMail", prefix: "mail." },
+      { title: "permissionCalendar", prefix: "calendar." },
+      { title: "permissionPhotos", prefix: "photos." },
+      { title: "permissionConnection", prefix: "" },
+    ]
+      .map((group) => ({
+        ...group,
+        scopes: scopes.filter((scope) =>
+          group.prefix
+            ? scope.startsWith(group.prefix)
+            : !["mail.", "calendar.", "photos."].some((prefix) =>
+                scope.startsWith(prefix),
+              ),
+        ),
+      }))
+      .filter((group) => group.scopes.length),
+  );
+  async function run(action: () => Promise<void>) {
+    if (busy) return;
+    busy = true;
+    message = "working";
+    error = false;
+    try {
+      await action();
+      message = "";
+    } catch (e) {
+      message = e instanceof AuthFailure ? e.key : "actionFailed";
+      error = true;
+    } finally {
+      busy = false;
+    }
+  }
+  async function load() {
+    const value = statusSchema.parse(
+      await (
+        await request(
+          "/icloud/connect/status?" +
+            new URLSearchParams({
+              oauth_query: signedOAuthQuery(location.search),
+            }),
+        )
+      ).json(),
+    );
+    accounts = value.accounts;
+    selected = value.selectedAccount;
+    client = value.client;
+    if (mode === "consent") {
+      if (!value.selectedAccount?.credentialStored)
+        throw new AuthFailure("chooseAccount");
+      scopes = value.permissions;
+      chosen = [...scopes];
+      ready = scopes.length > 0;
+    }
+  }
+  function go(value: unknown) {
+    const url = destination(value);
+    if (!url) throw new AuthFailure("incompleteAuthorization");
+    location.assign(url);
+  }
+  async function consent(accept: boolean) {
+    password = "";
+    if (accept && !chosen.length) throw new AuthFailure("selectPermission");
+    go(
+      await (
+        await request("/icloud/auth/oauth2/consent", {
+          accept,
+          ...(accept ? { scope: chosen.join(" ") } : {}),
+          oauth_query: signedOAuthQuery(location.search),
+        })
+      ).json(),
+    );
+  }
+  async function add() {
+    const input = {
+      user,
+      appPassword: password,
+      ...(label.trim() ? { label: label.trim() } : {}),
+    };
+    password = "";
+    try {
+      go(
+        await (
+          await request("/icloud/connect/add", {
+            oauth_query: signedOAuthQuery(location.search),
+            ...input,
+          })
+        ).json(),
+      );
+    } catch (e) {
+      let stored = false;
+      try {
+        await load();
+        stored = accounts.some(
+          (a) =>
+            a.credentialStored &&
+            a.user.toLowerCase() === input.user.trim().toLowerCase(),
+        );
+      } catch {}
+      if (
+        stored &&
+        (!(e instanceof AuthFailure) ||
+          !["ACCOUNT_EXISTS", "PROVIDER_VALIDATION_FAILED"].includes(
+            e.code ?? "",
+          ))
+      )
+        throw new AuthFailure("savedReconnect");
+      throw e;
+    } finally {
+      password = "";
+    }
+  }
+  onMount(() => {
+    if (mode !== "sign-in") void run(load);
+    const clear = () => {
+      password = "";
+    };
+    window.addEventListener("pagehide", clear);
+    window.addEventListener("pageshow", clear);
+    return () => {
+      clear();
+      window.removeEventListener("pagehide", clear);
+      window.removeEventListener("pageshow", clear);
+    };
+  });
 </script>
 
-<main class="auth-layout">
+<svelte:head
+  ><title
+    >{authT(
+      mode === "connect"
+        ? "titleConnect"
+        : mode === "consent"
+          ? "titleConsent"
+          : "titleSignIn",
+    )} · {authT("product")}</title
+  ></svelte:head
+>
+<main class="auth-layout" data-sveltekit-reload>
   <Brand>{authT("product")}</Brand>
   <div class="card">
     <h1>
       {authT(
-        connect
+        mode === "connect"
           ? "headingConnect"
-          : consent
+          : mode === "consent"
             ? "headingConsent"
             : "headingSignIn",
       )}
     </h1>
-    {#if connect}<p class="muted">{authT("introConnect")}</p>
-      <div data-connect-accounts></div>
-      <button class="secondary" type="button" data-connect-add
-        >{authT("addAccount")}</button
+    {#if mode === "connect"}
+      <p class="muted">{authT("introConnect")}</p>
+      <div data-connect-accounts hidden={adding}>
+        {#each accounts as account (account.id)}{@const d =
+            display(account)}<button
+            type="button"
+            class="secondary account-choice"
+            disabled={busy || !account.credentialStored}
+            onclick={() =>
+              void run(async () =>
+                go(
+                  await (
+                    await request("/icloud/connect/select", {
+                      oauth_query: signedOAuthQuery(location.search),
+                      accountId: account.id,
+                    })
+                  ).json(),
+                ),
+              )}
+            ><span>{d.primary}</span>{#if d.secondary}<span
+                class="account-address">{d.secondary}</span
+              >{/if}{#if !account.credentialStored}<span class="account-address"
+                >{authT("accountUnavailable")}</span
+              >{/if}</button
+          >{/each}
+      </div>
+      <button
+        class="secondary"
+        type="button"
+        data-connect-add
+        hidden={adding}
+        disabled={busy}
+        onclick={() => {
+          adding = true;
+          queueMicrotask(() =>
+            document.getElementById("connect-email")?.focus(),
+          );
+        }}>{authT("addAccount")}</button
       >
-      <form data-connect-form hidden>
+      <form
+        data-connect-form
+        hidden={!adding}
+        onsubmit={(e) => {
+          e.preventDefault();
+          void run(add);
+        }}
+      >
         <label for="connect-email">{authT("email")}</label><input
           id="connect-email"
           name="user"
@@ -34,13 +286,16 @@
           required
           maxlength="320"
           autocomplete="username"
-        /><label for="connect-password">{authT("password")}</label><input
+          bind:value={user}
+        />
+        <label for="connect-password">{authT("password")}</label><input
           id="connect-password"
           name="appPassword"
           type="password"
           required
           maxlength="256"
           autocomplete="new-password"
+          bind:value={password}
         /><small>{authT("passwordHelp")}</small>
         <p>
           <a
@@ -53,41 +308,119 @@
           id="connect-label"
           name="label"
           maxlength="120"
+          bind:value={label}
         />
         <div class="actions">
-          <button class="primary" type="submit">{authT("saveAccount")}</button
-          ><button class="secondary" type="button" data-connect-back
-            >{authT("backToAccounts")}</button
+          <button class="primary" type="submit" disabled={busy}
+            >{authT("saveAccount")}</button
+          ><button
+            class="secondary"
+            type="button"
+            data-connect-back
+            disabled={busy}
+            onclick={() => {
+              adding = false;
+              user = "";
+              password = "";
+              label = "";
+            }}>{authT("backToAccounts")}</button
           >
         </div>
-      </form>{:else}{#if consent}<p class="muted">{authT("introConsent")}</p>
-        <p data-auth-account></p>
-        <p class="muted" data-auth-photos-library hidden>
-          {authT("photosLibrary")}
-        </p>
-        <p class="auth-client" data-auth-client></p>
-        <details class="auth-client-details">
-          <summary>{authT("clientIdentifier")}</summary><small
-            data-auth-client-id
-          ></small>
-        </details>
-        <fieldset data-auth-scopes>
-          <legend>{authT("permissions")}</legend>
-        </fieldset>{:else}<p class="muted">{authT("introSignIn")}</p>{/if}{/if}
+      </form>
+    {:else if mode === "consent"}
+      <p class="muted">{authT("introConsent")}</p>
+      <p data-auth-account>
+        {selected
+          ? authT("selectedAccount") +
+            ": " +
+            display(selected).primary +
+            (display(selected).secondary
+              ? " · " + display(selected).secondary
+              : "")
+          : ""}
+      </p>
+      <p
+        class="muted"
+        data-auth-photos-library
+        hidden={!scopes.some((scope) => scope.startsWith("photos."))}
+      >
+        {authT("photosLibrary")}
+      </p>
+      <p class="auth-client" data-auth-client>
+        {client?.name ?? (client ? authT("unknownClient") : "")}
+      </p>
+      <details>
+        <summary>{authT("clientIdentifier")}</summary><small data-auth-client-id
+          >{client?.id ?? ""}</small
+        >
+      </details>
+      <fieldset data-auth-scopes>
+        <legend>{authT("permissions")}</legend>{#each groups as group}<h3>
+            {authT(group.title)}
+          </h3>
+          {#each group.scopes as scope}<label class="permission-choice"
+              ><input
+                type="checkbox"
+                value={scope}
+                bind:group={chosen}
+                data-auth-scope
+                disabled={busy}
+              /><span>{scopeLabel(scope)}</span></label
+            >{/each}{/each}
+      </fieldset>
+    {:else}<p class="muted">{authT("introSignIn")}</p>{/if}
     <div class="actions">
-      {#if connect}{:else}<button
+      {#if mode !== "connect"}<button
           class="primary button-icon"
           type="button"
           data-auth-primary
-          >{#if consent}{:else}<Icon name="passkey" />{/if}{authT(
-            consent ? "allow" : "usePasskey",
+          disabled={busy || !ready}
+          onclick={() =>
+            void run(() =>
+              mode === "sign-in" ? signIn(privateAdmin) : consent(true),
+            )}
+          >{#if mode === "sign-in"}<Icon name="passkey" />{/if}{authT(
+            mode === "consent" ? "allow" : "usePasskey",
           )}</button
-        >{/if}{#if consent || connect}<button
+        >{/if}{#if mode !== "sign-in"}<button
           class="secondary"
           type="button"
-          data-auth-deny>{authT(connect ? "cancel" : "deny")}</button
-        >{:else}{/if}
+          data-auth-deny
+          disabled={busy}
+          onclick={() => void run(() => consent(false))}
+          >{authT(mode === "connect" ? "cancel" : "deny")}</button
+        >{/if}
     </div>
-    <p class="status" role="status" aria-live="polite" data-auth-status></p>
+    <p
+      class:error
+      class="status"
+      role="status"
+      aria-live="polite"
+      data-auth-status
+    >
+      {message ? authT(message) : ""}
+    </p>
   </div>
 </main>
+
+<style>
+  :global([data-auth-scopes]) {
+    border: 0;
+    padding: 0;
+    margin: 1.5rem 0;
+  }
+  .permission-choice {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.75rem;
+    border: 1px solid var(--ui-edge);
+    border-radius: 0.375rem;
+    margin: 0.5rem 0;
+    font-weight: 400;
+    cursor: pointer;
+  }
+  .permission-choice input {
+    margin-top: 0.15rem;
+  }
+</style>

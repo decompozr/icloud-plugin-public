@@ -8,6 +8,9 @@ COPY apps/studio/package.json apps/studio/bun.lock ./apps/studio/
 RUN cd apps/studio && bun install --frozen-lockfile
 RUN cd apps/icloud && bun install --frozen-lockfile
 RUN cd packages/tooling && bun install --frozen-lockfile
+COPY apps/studio/messages ./apps/studio/messages
+COPY apps/studio/project.inlang/settings.json ./apps/studio/project.inlang/
+COPY apps/studio/vite.config.ts ./apps/studio/
 COPY apps/studio/src ./apps/studio/src
 COPY apps/studio/build ./apps/studio/build
 COPY apps/studio/tsconfig.json apps/studio/THIRD_PARTY_NOTICES.md ./apps/studio/
