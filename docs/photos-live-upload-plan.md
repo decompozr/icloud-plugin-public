@@ -1,5 +1,27 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Native reincarnation continuation: metadata blocker revalidated — 2026-10-06
+
+The distinct native receiver consumed the full packet and recorded sole ownership.
+A subsequent automatically recovered same-thread turn performed original-MCP
+health, source and destination reads. Authorization remains 3/authorized=true;
+the approved original source remains livePhoto=true/shared=false. Local membership
+is empty, and a fresh complete, stable cloud snapshot is empty, private and
+owner-only. No prepare/apply or posting UI was invoked.
+
+The loaded photos_prepare declaration still omits nativeUI and advertises remote
+posting rejection. Read-only installed payload inspection now finds the running
+service at 0.1.60, whose registration still requires explicit nativeUI. This
+version differs from the earlier 0.1.58 deployment receipt; the receiver did not
+perform that update and does not extend the old receipt's integrity or source
+claims to this version. Bounded available plugin discovery did not resolve the
+connection type or exact backend identity. No supported refresh/rescan tool was
+found, and no actual held/rejected update was observed. The external prerequisite
+remains updated host-advertised metadata through the applicable existing
+connection Refresh or published-server Rescan/Live-definition path below.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Fresh tool discovery and destination readback — 2026-10-06
 
 Fresh loaded tool discovery still advertises the legacy remote-posting rejection
