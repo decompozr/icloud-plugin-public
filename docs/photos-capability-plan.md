@@ -1,5 +1,40 @@
 # Photos capability: active remote delivery plan and evidence
 
+## App Intent experiment: schema is not an executable publisher — 2026-10-06
+
+Fresh SDK probes accept the postToSharedAlbum schema reference but reject calling
+perform on that schema. Bounded installed metadata for Siri Photos, Photos widget
+and ActionKit contains no corresponding publication action. Existing shortcuts
+do not identify a compatible workflow; none was executed. No UI/account operation
+or production implementation resulted. [Evidence and precise missing prerequisite](photos-live-upload-plan.md#app-intent-candidate-sdk-and-installed-action-preflight--2026-10-06)
+keep dynamic-action availability unresolved rather than claiming universal absence.
+
+## Required acceptance: fully automated, no UI — 2026-10-06
+
+The owner requires completion by the agent without human interaction or computer
+control. Fresh original-MCP direct-add preflight rejects the exact retained test
+Shared Album with shared_album_write_unsupported; no operation or write results.
+Changing input transport to argv does not add a headless posting API. Installed
+SDK contracts still require picker results for the supported posting controller.
+[Current evidence and boundaries](photos-live-upload-plan.md#required-acceptance-automated-publication-without-ui--2026-10-06)
+keep automated publication unsupported until a compliant path is verified.
+
+## Current acceptance: declared native sharing awaiting owner UI — 2026-10-06
+
+The owner declines UI interaction. The supported native path requires that action,
+so sharing is blocked externally with review_pending retained for reconciliation.
+No established headless motion-preserving route is exposed by the original MCP.
+
+After user-reported Refresh, the subsequent automatic native turn loads the
+explicit nativeUI sharing declaration. Original-MCP health and exact readbacks
+verify authorized access, the intact existing Live Photo and the retained empty
+true Shared Album, including complete stable private cloud membership. The
+receiver reviewed the exact plan and applied once; durable review_pending status
+confirms a live Helper. Owner picker/sharing interaction, posting reconciliation,
+independent membership and iPhone Live playback remain unverified.
+[Current experiment and retained boundaries](photos-live-upload-plan.md#refreshed-metadata-accepted-native-owner-review-pending--2026-10-06)
+preserve the same main MCP, source, destination and unknown-outcome interlock.
+
 ## Current acceptance: fresh loaded schema still unavailable — 2026-10-06
 
 > Private user-validation details omitted. This sanitized record does not establish live-user acceptance.

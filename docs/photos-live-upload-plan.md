@@ -1,5 +1,144 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Direct-identifier SwiftUI presentation experiment — 2026-10-06
+
+The owner authorized trying a sharing window with the existing photo already
+supplied, without another picker selection. The installed macOS 27 SDK exposes
+both PhotosPickerItem(itemIdentifier:) and a photosSharedAlbumPostingSheet
+overload accepting those items. A compile-only probe of this exact combination
+passes. Identifier-only items have no media representation; actual loading,
+Live Photo preservation and publication remain unverified.
+
+The Helper now passes the reviewed source identifier directly to this public
+SwiftUI sheet with the exact default album. It never presses Post, exports media,
+reconstructs a Live Photo or falls back to a new session. Native errors retain a
+domain/code in the durable journal. Opening the sheet is conservatively an unknown
+posting outcome until its callback/dismissal is reconciled. Existing one-use
+reservation, final authorization, source/destination validation and no-retry
+rules remain. This is an experiment, not headless-publication acceptance.
+
+Validation: full Swift Helper link and application build/typechecks pass; 427
+application tests / 2,907 assertions pass. Initial checks failed on missing Studio
+build output, version alignment and a new test literal type; these were corrected
+before the passing sequential rerun. Verification is same-agent, not independent.
+
+The separate NSSharingService type-only inventory returned no Shared Album
+service; the Live Photo declaration returned Add to Photos only. That inventory
+does not prove all native routes unavailable. The prior picker operation was
+confirmed cancelled before posting. No successful publication is recorded.
+
+## App Intent candidate: SDK and installed-action preflight — 2026-10-06
+
+At the owner's request, tested the postToSharedAlbum candidate without UI or an
+account operation. A Swift SDK positive probe referencing
+AppSchema.Intent.photos.postToSharedAlbum typechecks successfully. A separate
+negative probe attempting perform() fails with `some AppSchemaIntent has no
+member perform`. This verifies the schema reference is available but is not an
+executable Photos publication intent. [Apple's implementation contract](https://developer.apple.com/documentation/appintents/appschema/photosintent/posttosharedalbum)
+requires the adopting app to implement perform; an empty result cannot publish.
+
+Fresh bounded installed metadata inventory covers SiriPhotosAppIntentsExtension
+(2 actions), PhotosReliveWidget (2 actions) and ActionKit (19 actions). None contains
+postToSharedAlbum. The Siri Photos extension exposes its extension entry and
+UpdatePhotoWarmthTool. This is not an exhaustive dynamic action registry or an
+iOS availability claim. Five existing shortcuts were listed; none is identifiable
+as the required posting workflow from its name. No shortcut was run, imported,
+signed or modified, and no private framework execution API was invoked.
+
+The supported Shortcuts CLI runs an existing named workflow and does not expose
+direct schema execution or action discovery. RunSystemShortcutIntent is unavailable
+on macOS in the installed SDK. Consequently an Apple-provided executable posting
+action or an inspectable no-UI shortcut with exact asset/destination semantics is
+still missing. No live App Intent publishing test occurred; no production code
+was changed to wrap an unimplemented backend. Existing original-MCP and no-UI
+boundaries remain active. Private evidence records probe sources, diagnostics,
+metadata hashes and inventory limits.
+
+## Required acceptance: automated publication without UI — 2026-10-06
+
+The owner requires the agent to complete sharing automatically, with no human UI
+interaction and no computer-control automation by either party. The assisted
+native experiment does not meet this acceptance. No further UI session may be
+opened under the current requirement.
+
+Fresh original-MCP add_to_album preparation for the exact retained test Shared
+Album and approved Live Photo returns shared_album_write_unsupported, with no
+operation ID and no write. This extends direct-add evidence to the actual test
+destination, rather than only the earlier comparison albums.
+
+Read-only installed SDK inspection confirms PHSharedAlbumPostingViewController
+accepts PHPickerResult items and exposes no public headless post method. PHPickerResult
+has no public initializer; its provider and asset identifier are read-only. Picker
+preselection returns empty item providers, as [Apple documents](https://developer.apple.com/documentation/photosui/phpickerconfiguration-swift.struct/preselectedassetidentifiers).
+The Helper already receives exact asset and destination IDs through JSON. Changing
+that input transport to argv cannot provide the missing posting implementation.
+The [postToSharedAlbum App Intent schema](https://developer.apple.com/documentation/appintents/appschema/photosintent/posttosharedalbum)
+describes an app-implemented action; its perform method still needs a backend.
+Bounded installed Shortcuts intent-definition inspection found no corresponding
+posting entry, which is not proof that every dynamic action is unavailable.
+
+No compliant headless motion-preserving route is established for the exact target.
+Public-API-only and original-main-MCP boundaries remain in effect; private mutation
+or file reconstruction is not authorized by the automation requirement alone.
+Preserve the one prior native operation until its durable result is reconciled.
+
+The original MCP subsequently reconciled that operation as cancelled, with native
+result cancelled_before_posting and nativeProcessAlive=false after its pre-post
+timeout. No picker or posting completion occurred. Fresh original-source readback
+still reports livePhoto=true/shared=false. Recovery evidence remains retained;
+the operation is not a successful publication and will not be retried as a UI path.
+
+## Refreshed metadata accepted; native owner review pending — 2026-10-06
+
+The owner subsequently declined to operate any UI. The current supported public
+native path requires an exact picker selection and a separate human sharing action;
+the loaded original MCP exposes no established headless motion-preserving posting
+path. This is the concrete external blocker, rather than a metadata or permission
+failure. Latest durable status remains review_pending with the Helper alive; no
+picker result or posting completion is recorded. Retain the operation and its
+interlock for reconciliation. Do not claim cancellation or silently replace the
+owner action with automation, another MCP, direct CLI or still-only upload.
+
+The new native receiver's subsequent automatic turn loads photos_prepare with
+the explicit nativeUI opt-in. Original-MCP health verifies native authorization
+3/true. Exact source readback confirms the approved original Live Photo remains
+intact and unshared. The retained local true Shared Album is empty; a fresh cloud
+membership read is complete, stable, empty, private and owner-only.
+
+The original MCP prepared an exact one-source nativeUI plan. After reviewing the
+source and destination, the receiver applied that operation once. Durable status
+is review_pending with a live native Helper and the exact manifest source. Owner
+interaction with the official picker and sharing window is now required. No
+posting completion, destination membership or iPhone Live playback is verified.
+Private receipts retain the exact operation, source/destination and turn IDs.
+Do not relaunch or create another plan while this operation remains unresolved.
+The earlier metadata blocker is resolved for this loaded sharing declaration;
+connection type and 0.1.60 deployment provenance remain separate unknowns.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
+## Native reincarnation continuation: metadata blocker revalidated — 2026-10-06
+
+The distinct native receiver consumed the full packet and recorded sole ownership.
+A subsequent automatically recovered same-thread turn performed original-MCP
+health, source and destination reads. Authorization remains 3/authorized=true;
+the approved original source remains livePhoto=true/shared=false. Local membership
+is empty, and a fresh complete, stable cloud snapshot is empty, private and
+owner-only. No prepare/apply or posting UI was invoked.
+
+The loaded photos_prepare declaration still omits nativeUI and advertises remote
+posting rejection. Read-only installed payload inspection now finds the running
+service at 0.1.60, whose registration still requires explicit nativeUI. This
+version differs from the earlier 0.1.58 deployment receipt; the receiver did not
+perform that update and does not extend the old receipt's integrity or source
+claims to this version. Bounded available plugin discovery did not resolve the
+connection type or exact backend identity. No supported refresh/rescan tool was
+found, and no actual held/rejected update was observed. The external prerequisite
+remains updated host-advertised metadata through the applicable existing
+connection Refresh or published-server Rescan/Live-definition path below.
+
+> Private user-validation details omitted. This sanitized record does not establish live-user acceptance.
+
 ## Fresh tool discovery and destination readback — 2026-10-06
 
 Fresh loaded tool discovery still advertises the legacy remote-posting rejection
