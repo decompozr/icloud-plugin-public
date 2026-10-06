@@ -249,3 +249,11 @@ through the supported updater. Payload hashes matched the clean-main artifact;
 configuration/custody and account/Passkey/grant/policy rows were preserved. Native
 readback checked 541 conditions and doctor passed 13 from this Mac. Protected
 rollback retains 0.1.62 and the pre-0.1.63 backup. No off-tailnet claim is made.
+
+0.1.64 was released and installed from clean main
+349d2ce6754fb11147b40f844eb53bb36fef0c53. Installed payload matches the artifact,
+configuration/master-key custody and account/Passkey/grant/policy records remain
+unchanged, and both databases pass integrity checks. Native readback checked 550
+conditions and doctor passed 13 from this Mac. Backup is the private runtime
+pre-0.1.64-20261006T180611Z snapshot; 0.1.63 remains installed for rollback.
+No production reset was performed. Third-phase transport work now proceeds.
