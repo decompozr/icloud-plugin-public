@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {brandLinks,brandNodes} from "../branding.js";
+  import { brandLinks, brandNodes } from "../branding.js";
   let { name }: { name: "brand" | "passkey" } = $props();
 </script>
 
@@ -11,7 +11,20 @@
     viewBox="0 0 256 256"
     width="32"
     height="32"
-    > <rect width="256" height="256" fill="#FFFFFF"/><g stroke="currentColor" stroke-width="12" stroke-linecap="round"><path d={brandLinks}/>{#each brandNodes as node}<rect x={node.x} y={node.y} width="52" height="52" rx="10" fill="#FFFFFF"/>{/each}</g></svg
+  >
+    <rect width="256" height="256" fill="#FFFFFF" /><g
+      stroke="currentColor"
+      stroke-width="12"
+      stroke-linecap="round"
+      ><path d={brandLinks} />{#each brandNodes as node}<rect
+          x={node.x}
+          y={node.y}
+          width="52"
+          height="52"
+          rx="10"
+          fill="#FFFFFF"
+        />{/each}</g
+    ></svg
   >
 {:else}
   <svg

@@ -23,7 +23,7 @@ function gate(){
 
 // Keep the production policy getters, admin update and durable ledger. Only owner
 // credentials and provider IO are synthetic; no provider or filesystem is accessed.
-function fixture(kind:'reply'|'draft',pauseAt:'preparation'|'submission'){
+async function fixture(kind:'reply'|'draft',pauseAt:'preparation'|'submission'){
  const database=new Database(':memory:'),blocked=gate();const calls:string[]=[];
  const unexpected=()=>{throw Error('Unexpected fixture operation');};
  const prepare=async()=>{calls.push('prepare');if(pauseAt==='preparation')await blocked.pause();};
@@ -46,7 +46,7 @@ function fixture(kind:'reply'|'draft',pauseAt:'preparation'|'submission'){
    draft:async(input,mailbox)=>{await submit();return{mailbox,uid:81,uidValidity:'901',messageId:input.messageId};}
   })
  });
- let module=build();
+ let module=build();await module.admin.updateCapabilities({read:true,write:true,send:true,unsubscribe:true},true);
  const entry=()=>{const found=module.registration.tools.find(tool=>tool.tool.name===(kind==='reply'?'mail_reply':'mail_draft_create'));assert.ok(found);return found;};
  return{
   blocked,calls,enabled:()=>entry().enabled(),policy:()=>module.admin.capabilities(),
@@ -60,7 +60,7 @@ function fixture(kind:'reply'|'draft',pauseAt:'preparation'|'submission'){
 for(const kind of ['reply','draft'] as const){
  for(const capability of [kind==='reply'?'send':'write','read'] as const){
   test(`${kind}: revoking ${capability} during preparation prevents submission and persists rejection`,async()=>{
-   const f=fixture(kind,'preparation');let pending:ReturnType<typeof f.run>|undefined;
+   const f=await fixture(kind,'preparation');let pending:ReturnType<typeof f.run>|undefined;
    try{
     assert.equal(f.enabled(),true);pending=f.run();await f.blocked.waiting;
     await f.update({...f.policy(),[capability]:false});assert.equal(f.enabled(),false);assert.deepEqual(f.calls,['prepare']);
@@ -74,7 +74,7 @@ for(const kind of ['reply','draft'] as const){
   });
  }
  test(`${kind}: disabling policy after provider invocation allows the accepted operation to finish`,async()=>{
-  const f=fixture(kind,'submission');let pending:ReturnType<typeof f.run>|undefined;
+  const f=await fixture(kind,'submission');let pending:ReturnType<typeof f.run>|undefined;
   try{
    pending=f.run();await f.blocked.waiting;assert.deepEqual(f.calls,['prepare','submit']);
    await f.update({...f.policy(),[kind==='reply'?'send':'write']:false});assert.equal(f.enabled(),false);

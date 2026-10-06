@@ -163,7 +163,14 @@ export function createPrivateAdmin(options:AdminOptions) {
     if(!parsed.success)return json({error:'INVALID_INPUT'},400);
     const current=target.capabilities();
     if(Object.keys(parsed.data.policy).length!==Object.keys(current).length||Object.keys(parsed.data.policy).some(key=>!Object.hasOwn(current,key)))return json({error:'INVALID_INPUT'},400);
-    if(Object.entries(parsed.data.policy).some(([key,value])=>value&&!current[key as keyof typeof current])&&!parsed.data.confirmEnable)return json({error:'CONFIRMATION_REQUIRED'},409);
+    const enabling=Object.entries(parsed.data.policy).some(([key,value])=>value&&!current[key as keyof typeof current]);
+    if(enabling&&!parsed.data.confirmEnable)return json({error:'CONFIRMATION_REQUIRED'},409);
+    if(enabling&&(moduleMatch?.[1]!=='photos')&&!options.store.listAccounts(session.user.id).some(account=>account.credentialStored))return json({error:'CREDENTIAL_REQUIRED'},409);
+    if(enabling&&moduleMatch?.[1]==='photos'){
+     if(!options.photosSetup)return json({error:'PHOTOS_PERMISSIONS_REQUIRED'},409);
+     const permission=await options.photosSetup.status();
+     if(typeof permission!=='object'||permission===null||!('ready'in permission)||permission.ready!==true)return json({error:'PHOTOS_PERMISSIONS_REQUIRED'},409);
+    }
     return json({capabilities:await target.updateCapabilities(parsed.data.policy,parsed.data.confirmEnable)});
    }
    if(path==='/icloud/admin/credential'||path==='/icloud/admin/revoke') {

@@ -24,7 +24,7 @@ export interface MailModuleDependencies {
 }
 const credentialSchema=z.object({user:z.string().email(),appPassword:z.string().min(1)}).strict();
 export function createMailModule(settings:AppSettings,deps:MailModuleDependencies){
- const operatorPolicy=new SqliteOperatorPolicy(deps.authDatabase,{read:true,write:settings.allow_writes,send:settings.allow_send,unsubscribe:settings.allow_writes});
+ const operatorPolicy=new SqliteOperatorPolicy(deps.authDatabase,{read:false,write:false,send:false,unsubscribe:false});
  const capabilities=()=>operatorPolicy.snapshot();
  const scopes=()=>{const p=capabilities();return p.read?['mail.read',...(p.write?['mail.write']:[]),...(p.send?['mail.send']:[])]:[];};
  const provider=deps.provider??(credential=>new ICloudMailAdapter({user:credential.user,password:credential.appPassword}));

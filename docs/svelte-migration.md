@@ -191,3 +191,18 @@ pass; the browser fixture passes 89 checks, including computed checkbox gap,
 fieldset border, font weight and absence of blocked stylesheet errors. Desktop and
 mobile screenshots were inspected. Third-phase work is already authorized by the
 owner's overall pass and follows this requested visual delivery without another gate.
+
+### Requirement-based setup follow-up
+
+The owner requested separate Overview cards, reusable credential modals, toasts,
+refresh icons and requirement-based setup instead of the wizard. Fresh operator
+policies now default disabled for every module; saved choices and grants are kept.
+Mail/Calendar elevation requires a stored app password, while Photos elevation
+rechecks native permission readiness. No permission prompt runs automatically.
+Apple Account status and sign-in reuse the existing Shared Album web session only.
+
+Self-checking: 434 application/Studio tests (3,875 assertions), 11 built HTTP E2E
+tests (245 assertions), 11 tooling tests (141 assertions), Studio typecheck and
+compiled build pass. Browser requirement and consent acceptance is tracked in the
+release verification entry once complete. Evidence is synthetic and does not
+claim a new Apple, Photos, Passkey or external client authorization.

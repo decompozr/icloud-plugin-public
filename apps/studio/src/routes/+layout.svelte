@@ -1,6 +1,11 @@
 <script lang="ts">
   import { setContext } from "svelte";
   import type { Snippet } from "svelte";
+  import {ToastCenter,DialogCenter} from '../lib/ui-state.svelte.js';
+  import Toaster from '../components/Toaster.svelte';
+  import CredentialModals from '../components/CredentialModals.svelte';
+  const toast=new ToastCenter(),dialogs=new DialogCenter();
+  setContext('toast',toast);setContext('dialogs',dialogs);
   import { pageStyles } from "../styles.js";
   import { createCopy } from "../lib/copy.js";
   import { setLocale, type Locale } from "../lib/paraglide/runtime.js";
@@ -26,3 +31,4 @@
 
 <svelte:head>{@html "<style>" + pageStyles + "</style>"}</svelte:head>
 {@render children()}
+<CredentialModals center={dialogs}/><Toaster center={toast}/>

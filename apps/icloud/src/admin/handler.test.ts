@@ -14,7 +14,7 @@ async function fixture(ready=true,seedAccount=false){
 }
 test('private prerequisites precede credentials and block completion',async()=>{
  const f=await fixture(false);try{
-  const html=await(await fetch(f.url+'/icloud/setup')).text();expect(html).toContain('data-step="0"');expect(html).toContain('data-step="1" hidden');expect(html).toContain('data-step="2" hidden');expect(html.match(/data-step=/g)).toHaveLength(4);expect(html).not.toContain('id="proof"');
+  const html=await(await fetch(f.url+'/icloud/setup')).text();expect(html).toContain('Setup requirements');expect(html).not.toContain('data-step=');expect(html).not.toContain('id="proof"');
   expect((await f.post('/icloud/setup/complete',{user:'owner@example.invalid',appPassword:'dummy-secret'})).status).toBe(409);
  }finally{await f.close();}
 });
@@ -41,11 +41,10 @@ test('admin browser navigation redirects missing session to fixed private sign-i
 });
 
 test('dashboard status and capability mutations require owner and explicit elevation consent',async()=>{
- const f=await fixture();try{
-  await f.post('/icloud/setup/complete',{});
+ const f=await fixture(true,true);try{
   expect((await fetch(f.url+'/icloud/admin/status')).status).toBe(403);
   const get=()=>fetch(f.url+'/icloud/admin/status',{headers:{'x-fixture-session':'owner'}});
-  const initial=await(await get()).text();expect(initial).toContain('accounts');expect(initial).not.toContain('dummy-secret');expect(initial).not.toContain('owner@example');
+  const initial=await(await get()).text();expect(initial).toContain('accounts');expect(initial).not.toContain('dummy-secret');expect(initial).not.toContain('appPassword');
   const policy={read:true,write:true,send:true,unsubscribe:false};
   expect((await f.post('/icloud/admin/capabilities',{policy:{...policy,undeclared:true},confirmEnable:true})).status).toBe(400);
   expect((await f.post('/icloud/admin/capabilities',{policy:{read:true},confirmEnable:true})).status).toBe(400);
@@ -55,7 +54,7 @@ test('dashboard status and capability mutations require owner and explicit eleva
   expect((await f.post('/icloud/admin/capabilities',{policy,confirmEnable:true})).status).toBe(200);
   expect((await(await get()).json()).capabilities.send).toBe(true);
   expect((await f.post('/icloud/admin/capabilities',{policy:{...policy,send:false},confirmEnable:false})).status).toBe(200);
-  expect((await f.post('/icloud/admin/revoke',{})).status).toBe(400);expect((await(await get()).json()).accounts).toEqual([]);
+  expect((await f.post('/icloud/admin/revoke',{})).status).toBe(400);expect((await(await get()).json()).accounts).toHaveLength(1);
  }finally{await f.close();}
 });
 
@@ -71,7 +70,7 @@ test('dashboard status and capability mutations require owner and explicit eleva
  const after=await(await get()).json();expect(after.accounts[0]).toEqual({...account,credentialStored:false});
  }finally{await f.close();}
  });
-test('Calendar capability administration is separate from Mail and owner protected',async()=>{const f=await fixture();try{await f.post('/icloud/setup/complete',{});const policy={read:true,write:true,schedule:false,share:false};const endpoint='/icloud/admin/modules/calendar/capabilities';expect((await f.post(endpoint,{policy,confirmEnable:true},'other')).status).toBe(403);expect((await f.post(endpoint,{policy,confirmEnable:false})).status).toBe(409);expect((await f.post(endpoint,{policy,confirmEnable:true})).status).toBe(200);const status=await(await fetch(f.url+'/icloud/admin/status',{headers:{'x-fixture-session':'owner'}})).json();expect(status.modules.calendar).toEqual(policy);expect(status.capabilities.send).toBe(false);}finally{await f.close();}});
+test('Calendar capability administration is separate from Mail and owner protected',async()=>{const f=await fixture(true,true);try{const policy={read:true,write:true,schedule:false,share:false};const endpoint='/icloud/admin/modules/calendar/capabilities';expect((await f.post(endpoint,{policy,confirmEnable:true},'other')).status).toBe(403);expect((await f.post(endpoint,{policy,confirmEnable:false})).status).toBe(409);expect((await f.post(endpoint,{policy,confirmEnable:true})).status).toBe(200);const status=await(await fetch(f.url+'/icloud/admin/status',{headers:{'x-fixture-session':'owner'}})).json();expect(status.modules.calendar).toEqual(policy);expect(status.capabilities.send).toBe(false);}finally{await f.close();}});
 
 function credentialFixture(validateCredential:(credential:AppleCredential)=>Promise<void>){
  const dir=mkdtempSync(join(tmpdir(),'icloud-admin-race-')),proof=randomBytes(32).toString('hex');
@@ -153,4 +152,17 @@ test('concurrent account additions recheck duplicates after asynchronous provide
  const handler=createPrivateAdmin({privateOrigin:'https://private.invalid',store:f.store,ownerAuth:{ownerSession:async()=>({user:{id:'owner'}}),enrollmentSession:async()=>({user:{id:'owner'}})},diagnostics:async()=>({installed:true,authenticated:true,online:true,privateReachable:true}),validateCredential:async credential=>{if(credential.appPassword==='slow')await barrier.validate();}});
  function createRequest(appPassword:string){return handler(new Request('https://private.invalid/icloud/admin/accounts/add',{method:'POST',headers:{origin:'https://private.invalid','content-type':'application/json'},body:JSON.stringify({user:'new@example.invalid',appPassword})}));}
  try{const slow=post('slow');await barrier.entered;expect((await post('fast')).status).toBe(201);barrier.release();expect((await slow).status).toBe(409);expect(f.store.listAccounts('owner').filter(a=>a.user==='new@example.invalid')).toHaveLength(1);}finally{barrier.release();f.close();}
+});
+
+test('missing app passwords block fresh Mail and Calendar activation but allow disabling',async()=>{
+ const f=await fixture();try{
+  expect((await f.post('/icloud/setup/complete',{})).status).toBe(200);
+  const get=()=>fetch(f.url+'/icloud/admin/status',{headers:{'x-fixture-session':'owner'}});
+  const initial=await(await get()).json();expect(Object.values(initial.capabilities).every(v=>v===false)).toBe(true);
+  for(const [path,policy] of [['/icloud/admin/capabilities',{read:true,write:false,send:false,unsubscribe:false}],['/icloud/admin/modules/calendar/capabilities',{read:true,write:false,schedule:false,share:false}]] as const){
+   const blocked=await f.post(path,{policy,confirmEnable:true});expect(blocked.status).toBe(409);expect(await blocked.json()).toEqual({error:'CREDENTIAL_REQUIRED'});
+   expect((await f.post(path,{policy:Object.fromEntries(Object.keys(policy).map(k=>[k,false])),confirmEnable:false})).status).toBe(200);
+  }
+  expect((await(await get()).json()).capabilities).toEqual(initial.capabilities);
+ }finally{await f.close();}
 });

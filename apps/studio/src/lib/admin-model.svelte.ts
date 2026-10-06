@@ -13,12 +13,16 @@ import {
   type ClientImpact,
 } from "../../../icloud/src/admin/readiness.js";
 import { registerOwner } from "./auth-protocol.js";
+import type { ToastCenter } from "./ui-state.svelte.js";
 class UiError extends Error {
   constructor(readonly key: string) {
     super(key);
   }
 }
 const errors: Record<string, string> = {
+  CREDENTIAL_REQUIRED: "requirementsMissing",
+  PHOTOS_PERMISSIONS_REQUIRED: "requirementsMissing",
+  CONFIRMATION_REQUIRED: "moduleConfirm",
   PROVIDER_VALIDATION_FAILED: "providerError",
   PREREQUISITES_REQUIRED: "prerequisiteError",
   ENROLLMENT_CLOSED: "closedError",
@@ -49,6 +53,17 @@ export const scopeCopy: Record<string, string> = {
 };
 export class AdminModel {
   busy = $state(false);
+  systemLoading = $state(true);
+  accountsLoading = $state(true);
+  clientsLoading = $state(true);
+  webSessions = $state<
+    Record<string, { phase?: string; dependencyReady?: boolean }>
+  >({});
+  moduleDialog = $state<string>();
+  requirementDialog = $state<
+    "tailscale" | "owner" | "photos" | "client" | undefined
+  >();
+
   invalidField = $state("");
   messageKey = $state("");
   error = $state(false);
@@ -87,6 +102,7 @@ export class AdminModel {
   constructor(
     readonly state: AdminState,
     readonly copy: UiCopy,
+    readonly toast?: ToastCenter,
   ) {}
   get view() {
     return this.state.view ?? (this.state.admin ? "accounts" : "setup");
@@ -146,14 +162,15 @@ export class AdminModel {
   message(key: string, error = false) {
     this.messageKey = key;
     this.error = error;
+    if (key) this.toast?.push(key, error ? "error" : "success");
   }
   async run(action: () => Promise<void>, loading = "connectionLoading") {
     if (this.busy) return;
     this.busy = true;
-    this.message(loading);
+    this.messageKey = "";
+    this.error = false;
     try {
       await action();
-      if (this.messageKey === loading) this.message("");
     } catch (e) {
       this.message(e instanceof UiError ? e.key : "retry", true);
     } finally {
@@ -208,15 +225,10 @@ export class AdminModel {
           (location.search.includes("mode=") ? location.search : ""),
       ),
     );
-    this.message(
-      this.ownerMode
-        ? ""
-        : Object.values(this.status.prerequisites).every(Boolean)
-          ? "connectionReady"
-          : "connectionNotReady",
-    );
+    this.messageKey = "";
   }
   async refreshDashboard() {
+    this.accountsLoading = true;
     try {
       const next = dashboardSchema.parse(
         await this.get("/icloud/admin/status"),
@@ -233,9 +245,12 @@ export class AdminModel {
           next.accounts.length === 1 ? next.accounts[0]!.id : "";
     } catch {
       this.dashboardFailed = true;
+    } finally {
+      this.accountsLoading = false;
     }
   }
   async refreshClients() {
+    this.clientsLoading = true;
     try {
       const value = recoverySchema.parse(
         await this.get("/icloud/admin/oauth-clients"),
@@ -249,9 +264,12 @@ export class AdminModel {
           this.clients.length === 1 ? this.clients[0]!.clientId : "";
     } catch {
       this.diagnosticsFailed = true;
+    } finally {
+      this.clientsLoading = false;
     }
   }
   async refreshSystem() {
+    this.systemLoading = true;
     try {
       this.system = systemSchema.parse(
         await this.get("/icloud/admin/system-status"),
@@ -259,6 +277,8 @@ export class AdminModel {
       this.systemStale = false;
     } catch {
       this.systemStale = true;
+    } finally {
+      this.systemLoading = false;
     }
   }
   async refreshAll() {
@@ -415,12 +435,7 @@ export class AdminModel {
       this.status.passkeyRegistered = true;
       this.status.enrolled = true;
     }
-    if (this.state.localOwner || this.ownerMode)
-      location.assign("/icloud/admin");
-    else {
-      this.step(2);
-      window.dispatchEvent(new Event("photos-enrolled"));
-    }
+    location.assign("/icloud/admin");
   }
   async preview(clientId: string, action: "revoke" | "remove" | "upgrade") {
     const v = clientPreviewSchema.parse(
@@ -526,6 +541,45 @@ export class AdminModel {
       };
     });
   }
+  async refreshSessions() {
+    if (!this.state.photosCloudConfigured || !this.dashboard) return;
+    await Promise.allSettled(
+      this.dashboard.accounts.map(async (account) => {
+        try {
+          this.webSessions[account.id] = await this.get(
+            "/icloud/admin/photos/cloud/status?accountId=" +
+              encodeURIComponent(account.id),
+          );
+        } catch {
+          this.webSessions[account.id] = {};
+        }
+      }),
+    );
+  }
+  async refreshCard(kind: "service" | "accounts" | "capabilities" | "all") {
+    if (kind === "service") await this.refreshSystem();
+    else if (kind === "accounts") {
+      await Promise.allSettled([
+        this.refreshDashboard(),
+        this.refreshClients(),
+      ]);
+      await this.refreshSessions();
+    } else if (kind === "capabilities") await this.refreshDashboard();
+    else {
+      await this.refreshAll();
+      await this.refreshSessions();
+    }
+    if (
+      (kind === "service" && this.systemStale) ||
+      (kind === "accounts" &&
+        (this.dashboardFailed || this.diagnosticsFailed)) ||
+      (kind === "capabilities" && this.dashboardFailed) ||
+      (kind === "all" &&
+        (this.dashboardFailed || this.diagnosticsFailed || this.systemStale))
+    )
+      this.message("statusError", true);
+    else this.message("refreshed");
+  }
   start() {
     this.ownerMode = ["local-owner", "remote-owner"].includes(
       new URLSearchParams(location.search).get("mode") ?? "",
@@ -534,8 +588,10 @@ export class AdminModel {
       "owner-proof",
     );
     void this.run(async () => {
-      if (this.state.admin) await this.refreshAll();
-      else {
+      if (this.state.admin) {
+        await this.refreshAll();
+        await this.refreshSessions();
+      } else {
         await this.check();
         if (this.ownerMode) this.step(1);
         else if (this.status?.enrolled) {
@@ -546,6 +602,10 @@ export class AdminModel {
         } else if (this.status?.ready) this.step(1);
       }
     });
+    const credentialsChanged = () => {
+      void this.refreshDashboard().then(() => this.refreshSessions());
+    };
+    window.addEventListener("studio:credentials-updated", credentialsChanged);
     const poll = setInterval(() => {
       this.now = Date.now();
       if (this.busy || document.hidden || this.hasDraft || this.polls >= 10)
@@ -597,6 +657,10 @@ export class AdminModel {
     window.addEventListener("pageshow", show);
     return () => {
       clearInterval(poll);
+      window.removeEventListener(
+        "studio:credentials-updated",
+        credentialsChanged,
+      );
       hide();
       window.removeEventListener("beforeunload", leave);
       document.removeEventListener("click", click);

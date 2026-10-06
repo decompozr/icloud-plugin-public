@@ -2,6 +2,19 @@
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
   import type { UiCopy } from "../contracts.js";
+  let {
+    preferredAccountId,
+    inModal = false,
+    oncomplete,
+    onbusy,
+  }: {
+    preferredAccountId?: string;
+    inModal?: boolean;
+    oncomplete?: () => void;
+    onbusy?: (value:boolean) => void;
+  } = $props();
+  const toast =
+    getContext<import("../lib/ui-state.svelte.js").ToastCenter>("toast");
   const { t } = getContext<UiCopy>("copy");
   let busy = $state(false),
     account = $state(""),
@@ -64,27 +77,30 @@
   }
   async function run(action: () => Promise<void>) {
     if (busy) return;
-    busy = true;
+    busy = true;onbusy?.(true);
     try {
       await action();
     } catch {
       message = "photosCloudFailed";
+      toast?.push(message, "error");
     } finally {
-      busy = false;
+      busy = false;onbusy?.(false);
     }
   }
   async function action(path: string, extra: Record<string, unknown> = {}) {
     if (!account) throw Error();
     const result = await request(path, { accountId: account, ...extra });
     await refresh();
+    oncomplete?.();
     if (result.phase === "verification_failed")
-      message = "photosVerificationFailed";
+      toast?.push("photosVerificationFailed", "error");
     else if (result.phase === "unsupported_authentication")
-      message = "photosCloudUnsupported";
+      toast?.push("photosCloudUnsupported", "error");
     else if (
       ["delivery_failed", "authentication_required"].includes(result.phase)
     )
-      message = "photosCloudNewRequest";
+      toast?.push("photosCloudNewRequest", "error");
+    else if (result.phase === "authenticated") toast?.push("auth_signedIn");
   }
   const clear = () => {
     password = "";
@@ -108,7 +124,12 @@
           ),
         })
         .parse(await r.json()).accounts;
-      if (accounts.length === 1) account = accounts[0]!.id;
+      if (
+        preferredAccountId &&
+        accounts.some((a) => a.id === preferredAccountId)
+      )
+        account = preferredAccountId;
+      else if (accounts.length === 1) account = accounts[0]!.id;
       await refresh();
     });
     window.addEventListener("pagehide", clear);
@@ -144,12 +165,7 @@
         >{a.label === a.user ? a.user : a.label + " · " + a.user}</option
       >{/each}</select
   >
-  <p id="photos-cloud-status" role="status" aria-live="polite">
-    {t(message || statusKey)}{message === "photosVerificationFailed"
-      ? " " +
-        t("photosVerification_" + (status?.verificationMethod ?? "unknown"))
-      : ""}
-  </p>
+  <p id="photos-cloud-status" class="muted">{t(statusKey)}</p>
   <button
     type="button"
     id="photos-cloud-install"
@@ -209,7 +225,7 @@
       type="text"
       inputmode="numeric"
       autocomplete="one-time-code"
-      pattern="[0-9]{6}"
+      pattern={"[0-9]{6}"}
       maxlength="6"
       required
       bind:value={code}
@@ -239,7 +255,7 @@
     disabled={busy}
     onclick={() => {
       if (!confirm) {
-        message = "photosCloudNeedConfirm";
+        toast?.push("photosCloudNeedConfirm", "error");
         return;
       }
       void run(async () => {

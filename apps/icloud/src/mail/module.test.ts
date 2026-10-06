@@ -10,7 +10,7 @@ import type {OwnerSecretStore} from '../storage/owner-store.js';
 import type {AppSettings} from '../server/settings.js';
 import {MailOperationError,type MailSession} from './domain/mail.js';
 
-async function fixture(moveUnknown=false,revokeOnMove=false,revokeOnMetadata=false){
+async function fixture(moveUnknown=false,revokeOnMove=false,revokeOnMetadata=false,activate=true){
  const database=new Database(':memory:');const users: string[]=[];const sends:string[]=[];const moves:string[]=[];
  const accounts=[{id:'a',user:'a@icloud.com',label:'Personal',credentialStored:true},{id:'b',user:'b@icloud.com',label:'Work',credentialStored:true}];
  const store={ownerId:()=> 'owner',legacyAccountId:()=> 'a',account:(_owner:string,id:string)=>accounts.find(a=>a.id===id)??null,readAccountSecret:(_owner:string,id:string)=>new TextEncoder().encode(JSON.stringify({user:accounts.find(a=>a.id===id)!.user,appPassword:'test-password'}))} as unknown as OwnerSecretStore;
@@ -20,10 +20,11 @@ async function fixture(moveUnknown=false,revokeOnMove=false,revokeOnMetadata=fal
   const session:MailSession={supportsMove:true,list:async()=>[{path:'INBOX',name:credential.user,selectable:true},{path:'Drafts',name:'Drafts',specialUse:'\\Drafts',selectable:true},{path:'Archive',name:'Archive',specialUse:'\\Archive',selectable:true}],select:async()=>({uidValidity:'123',uidNext:3,supportsKeywords:true,release(){}}),search:async()=>[2,1],summaries:async uids=>uids.map(uid=>({uid,subject:credential.user,from:[],flags:[]})),metadata:async()=>{if(revokeOnMetadata){await Promise.resolve();accounts.find(account=>account.user===credential.user)!.credentialStored=false;}return{attachments:[],size:source.length};},download:async()=>({contentType:'message/rfc822',chunks:(async function*(){yield source;})(),cancel(){}}),mark:async()=>true,flag:async()=>true,tag:async()=>true,move:async()=>{moves.push(credential.user);if(revokeOnMove)accounts.find(account=>account.user===credential.user)!.credentialStored=false;if(moveUnknown)throw new MailOperationError('outcome_unknown','Source removal unconfirmed',{copiedTarget:{mailbox:'Archive',uid:81,uidValidity:'901'}});return{uid:1,uidValidity:'123'};}};
   return{withSession:async run=>{users.push(credential.user);await new Promise(resolve=>setTimeout(resolve,5));return run(session);},parse:async()=>({to:[],text:credential.user}),send:async()=>({messageId:'fixture',accepted:[],rejected:[]})};
  },outboundProvider:credential=>({send:async input=>{sends.push(credential.user);await new Promise(resolve=>setTimeout(resolve,5));return{messageId:input.messageId,accepted:input.to,rejected:[]};},draft:async()=>({mailbox:'Drafts',uid:2,uidValidity:'123',messageId:'fixture'})})});
+ if(activate)await module.admin.updateCapabilities({read:true,write:true,send:true,unsubscribe:true},true);
  const runtime=new ModuleRuntime().register(module.registration);await runtime.start();
  const connections: Array<{client:Client;server:ReturnType<typeof createServer>}>=[];
  async function connect(accountId?:string){const server=createServer(runtime,settings.public_origin,new Set(['mail.read','mail.write','mail.send']),operation=>operation(),{ownerId:'owner',accountId});const client=new Client({name:'fixture',version:'1'});const[a,b]=InMemoryTransport.createLinkedPair();await server.connect(a);await client.connect(b);connections.push({client,server});return client;}
- return{connect,users,sends,moves,accounts,close:async()=>{for(const c of connections){await c.client.close();await c.server.close();}await runtime.dispose();database.close();}};
+ return{admin:module.admin,connect,users,sends,moves,accounts,close:async()=>{for(const c of connections){await c.client.close();await c.server.close();}await runtime.dispose();database.close();}};
 }
 function result(response:Awaited<ReturnType<Client['callTool']>>){return JSON.parse((response.content as Array<{text:string}>)[0]!.text);}
 
@@ -110,5 +111,15 @@ for(const name of ['mail_move','mail_batch'] as const)test(`${name} preserves co
   const denied=await b.callTool({name,arguments:args});
   expect(denied.isError).toBe(true);expect(result(denied).error.code).toBe('forbidden');
   expect(f.users.length).toBe(calls);expect(f.moves).toEqual(['b@icloud.com']);
+ }finally{await f.close();}
+});
+
+test('a fresh Mail module exposes no provider access until explicit activation',async()=>{
+ const f=await fixture(false,false,false,false);try{
+  expect(f.admin.capabilities()).toEqual({read:false,write:false,send:false,unsubscribe:false});
+  const client=await f.connect('a');expect((await client.callTool({name:'mail_list_mailboxes',arguments:{}})).isError).toBe(true);expect(f.users).toEqual([]);
+  await expect(f.admin.updateCapabilities({read:true,write:false,send:false,unsubscribe:false},false)).rejects.toThrow();
+  await f.admin.updateCapabilities({read:true,write:false,send:false,unsubscribe:false},true);
+  expect((await client.callTool({name:'mail_list_mailboxes',arguments:{}})).isError).not.toBe(true);expect(f.users).toEqual(['a@icloud.com']);
  }finally{await f.close();}
 });

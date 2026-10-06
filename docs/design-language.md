@@ -24,13 +24,29 @@ the inline glyph and 256px SVG/PNG download assets. Regenerate exports with
 legal trademark-clearance opinion. Earlier cloud/teal/i18next sections below are
 historical and superseded by this adoption and the SvelteKit/Paraglide migration.
 
-## Current element styling contract
+## Requirement-based Studio setup
 
-Administration, setup, sign-in and consent use the DecompozR Design System consumer guide (source revision `c0863d99015cfd6b039755f2f2fb94ce5ee47aa7`). Its Milk Green semantic roles, 14/20 body and label typography, 16/24 headings, 36px normal controls, 44px coarse-pointer targets, 4px control radius, 6px surface radius and 2px focus outline supersede the historical teal styling below. Preserve the iCloud identity and native semantic HTML. The shared UI stylesheet adapts the guide to this server-rendered application; it is not an installation of the Svelte component library.
+Overview has separate service, accounts and capabilities cards. Loading uses
+skeletons; refresh controls sit at the upper right. Account summaries distinguish
+stored app passwords from saved Apple Account web sessions. A saved authenticated
+session is not live-provider or cross-service acceptance.
 
-All capability sections use the same labeled checkbox rows, explicit primary/secondary actions, confirmation treatment and persisted-state feedback. Text fields must not impose their width/padding on checkboxes. English and Traditional Chinese copy use the existing translation mechanism. Account instructions describe the selected account and shared iCloud credential accurately. Authentication and provider operations retain their existing handlers.
+App-password entry and the existing Shared Album web session use separate shared
+modals. Public signed OAuth connection uses the app-password modal; Apple session
+management remains owner-only. Transient passwords and verification codes clear
+before submission and when their components close. Native dialogs restore focus,
+keep notifications visible above the backdrop and prevent closing pending requests.
+Action results use translated toasts. Failed refreshes retain observations with
+persistent stale-state labels and an error notification.
 
-Verification for this adoption: application typecheck, declaration/browser build and 24 existing admin/auth tests (175 assertions) and 10 tooling tests (134 assertions) pass. Chrome inspection of the isolated fixture confirmed rendering, Calendar enable confirmation focus, saved effective state, and live English/Traditional Chinese switching. This is synthetic UI evidence, not a new provider or Passkey test. Dedicated phone-device and forced-color verification remains unperformed. Production has not been updated by this change.
+Setup is driven by missing requirements, with Tailscale instructions, owner
+registration, credential entry and explicit Photos permission controls. The legacy
+setup URL remains available as a requirements dashboard. No wizard step sequence
+or automatic native permission prompt remains. New installations seed every Mail,
+Calendar and Photos capability disabled. Existing stored policy choices and OAuth
+grants survive upgrades. Enabling proposes minimal read, then requires completion
+and explicit confirmation; disabling and cancellations preserve persisted state.
+The backend rechecks stored credentials or Photos readiness before elevation.
 
 ## Historical design decisions (superseded where conflicting)
 
