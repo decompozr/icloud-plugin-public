@@ -34,3 +34,9 @@ The completed credential step and the Allowed actions heading both supplied a se
 Notifications align to the right and shrink to their message, capped at 22rem and viewport width minus 4rem. Embedded notifications use the same compact card; empty notification stacks reserve no space. Refresh feedback says Updated. This release includes the 0.1.70 separator correction, which was merged but not deployed separately.
 
 Verified: application build, Studio typecheck with zero errors/warnings, 12 Studio tests, and a 390px browser viewport. Updated notification measured 135px wide with a 16px right inset.
+
+## Finite busy indicators (0.1.72)
+
+A failed first Photos status request left both requirements in checking because no result existed. Failed requests now show the error state. Refresh arrows track their own awaited action instead of global busy flags, so unrelated controls do not rotate; completion replaces the animated element with a static one. Existing request timeouts remain in force.
+
+Verified in the disposable browser fixture: completed refresh has aria-busy=false and animation=none; a failed first Photos request produces two error requirements with animation=none. Build, Studio typecheck, and 12 Studio tests passed. The exact icon observed on the remote phone is not yet identified.

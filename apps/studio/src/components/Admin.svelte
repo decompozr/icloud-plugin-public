@@ -244,7 +244,7 @@
             id="overview-refresh"
             label={t("refreshPage")}
             busy={model.busy}
-            onclick={() => void model.run(() => model.refreshCard("all"))}
+            onclick={() => model.run(() => model.refreshCard("all"))}
           />{/if}
       </div>
       {#if view === "overview" || !pageState.admin}<Overview
@@ -259,7 +259,7 @@
               label={t("refreshAccounts")}
               busy={model.busy}
               onclick={() =>
-                void model.run(() => model.refreshCard("accounts"))}
+                model.run(() => model.refreshCard("accounts"))}
             />
           </header>
           <div id="accounts" role="list">
@@ -319,7 +319,7 @@
               label={t("refreshAccounts")}
               busy={model.busy}
               onclick={() =>
-                void model.run(() => model.refreshCard("accounts"))}
+                model.run(() => model.refreshCard("accounts"))}
             />
           </header>
           <p>{t("connectionsHelp")}</p>
@@ -363,7 +363,7 @@
               id="system-refresh"
               label={t("refreshService")}
               busy={model.busy}
-              onclick={() => void model.run(() => model.refreshCard("service"))}
+              onclick={() => model.run(() => model.refreshCard("service"))}
             />
           </header>
           <p>{t("systemHelp")}</p>

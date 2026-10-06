@@ -89,10 +89,10 @@
 </script>
 
 <section id="photos-setup" aria-label={t("photosTitle")}>
- <RequirementStep title={t('photosRead')} state={!last?'checking':last.libraryReadable?'done':'todo'} hint={t('photosReadInstruction')}>
+ <RequirementStep title={t('photosRead')} state={failed?'error':!last?'checking':last.libraryReadable?'done':'todo'} hint={t('photosReadInstruction')}>
   {#if !last?.libraryReadable}<button type="button" class="primary" data-photos-action="files" disabled={busy} onclick={()=>void run('files')}>{t('photosLibraryOpen')}</button>{/if}
  </RequirementStep>
- <RequirementStep title={t('photosOrganizeAccess')} state={!last?'checking':last.authorization==='authorized'?'done':'todo'} hint={t('photosAccessInstruction')}>
+ <RequirementStep title={t('photosOrganizeAccess')} state={failed?'error':!last?'checking':last.authorization==='authorized'?'done':'todo'} hint={t('photosAccessInstruction')}>
   {#if last?.authorization!=='authorized'}<button type="button" class="primary" data-photos-action="authorize" disabled={busy} onclick={()=>void run('authorize')}>{t('photosAuthorizationRequest')}</button>
    {#if last?.authorization==='denied'||last?.authorization==='restricted'}<button type="button" class="secondary" data-photos-action="photos" disabled={busy} onclick={()=>void run('photos')}>{t('photosAuthorizationOpen')}</button>{/if}
   {/if}
