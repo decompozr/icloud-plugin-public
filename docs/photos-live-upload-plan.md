@@ -1,5 +1,11 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Direct original-MCP still upload rejected for upgraded protocol — 2026-10-06
+
+The owner explicitly approved a still-only upload of the selected original photo directly through the original MCP. A fresh remote inventory identified the exact test album with owner rights and `protocol=modern_or_encrypted`, with managementReady=false. An upload_shared_asset preparation using original representation and explicit still mode reached rejected with `unsupported_shared_album_protocol`. No apply or binary upload occurred.
+
+This isolates a confirmed limitation of the existing MCP upload implementation: it does not support the target's upgraded protocol even for a static photo. It is not a Live Photo pairing failure or proof that the owner's account lacks album permission. The native controller's separate permission rejection remains unexplained; this result must not be substituted as its proven cause. No legacy album was created or substituted.
+
 ## Explicit destination flow exercised — 2026-10-06
 
 The owner selected the existing upgraded test album in the App dropdown and explicitly confirmed sending. The journal records that exact target and the retained real picker item. Apple again immediately rejected the call with Cocoa -1 and the explicit add-content-permission message. The destination-choice UI therefore worked, while publication to the intended target did not. This result does not prove that the owner's account lacks permission in Photos itself; API/upgrade compatibility remains unresolved. No blind retry followed.
