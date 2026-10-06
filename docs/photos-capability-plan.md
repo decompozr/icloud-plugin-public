@@ -1,5 +1,11 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Ordinary Photos restored; Shared Album writes unsupported — 2026-10-06
+
+PR #76 restores Photos in release 0.1.67 with a reduced native Helper. Original-MCP health reads the Photos snapshot and ordinary album inventory succeeds. The release omits shared cloud publication, upload sidecars and native posting UI. Shared mutation preparation and application reject before dispatch, including retained posting plans. Admin uses the name Photos and displays the shared-write limitation.
+
+Build/typechecks and 12 Studio, 436 application and 11 tooling tests passed; 13 installed doctor checks passed. The installed payload was read back against the main-source artifact. System permissions had been explicitly reset during the previous whole-Photos cleanup: initial restored health reported native authorization=0, and the existing setup entry point requested renewed consent. Ordinary write execution is not yet live acceptance. Shared-publication research remains parked with all uncertainty evidence retained.
+
 > **Shared Album writes parked (2026-10-06).** Ordinary Photos is restored; publication experiments remain stopped. Historical running/pending instructions below are superseded. See [consolidated evidence, unresolved challenges and resume checklist](photos-parked.md).
 
 ## App Intent experiment: schema is not an executable publisher — 2026-10-06
