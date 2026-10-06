@@ -1,5 +1,38 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Native permission verified; conversation tool-definition mismatch — 2026-10-06
+
+The owner completed the Mac permission prompt. Actual original-MCP health now
+reports authorization 3/authorized=true with the same library scope. Local process
+inspection confirms the running service is 0.1.58. Pure local inspection of its
+installed tool registration exposes nativeUI=true in the shared-post intent and
+the updated description; no account operation was made through that inspection.
+
+One read-only original-MCP prepare attempt included the deployed opt-in field,
+but returned remote_shared_album_posting_unavailable, with no operation ID or UI.
+The conversation's tool description/schema still lacks that field, even after the
+owner reported reopening the conversation. The reason is not conclusively traced:
+a cached/held client definition or argument normalization is an inference, not a
+verified server input trace. Do not claim that the owner failed to refresh.
+
+[Official connection metadata instructions](https://developers.openai.com/plugins/deploy/connect-chatgpt#refresh-metadata)
+require refreshing a directly connected custom MCP and then starting a new
+conversation. Reopening this existing conversation is not that final step. For
+published plugins, [hosted tool updates](https://developers.openai.com/plugins/deploy/submission#update-to-your-mcp-server)
+use scanning/review; old definitions can remain live while an update is held.
+No portal scan/review result was inspected, so no rejection or held update is
+being claimed for this plugin. Do not create another MCP, read tokens for a direct
+CLI call, remove UI opt-in, or rewrite account permissions to bypass this gap.
+
+Continue in a fresh conversation with the existing connection, first checking
+that photos_prepare advertises nativeUI. Reuse the exact source/destination IDs
+in private .flow-runtime/native-sharing/state.json; do not create another album.
+Prepare once, review the returned exact plan, and confirmed apply may open the
+user-operated picker/share flow. Sharing, cloud membership and iPhone Live playback
+remain unexecuted. Photos authorization is now satisfied; tool-definition acceptance
+is the remaining prerequisite to invoking this candidate through the host.
+
+
 ## Installed native sharing candidate; owner activation pending — 2026-10-06
 
 PR 61 merged the existing-asset native sharing candidate; PR 62 corrected the

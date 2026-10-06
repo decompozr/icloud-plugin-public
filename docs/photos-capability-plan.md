@@ -1,5 +1,17 @@
 # Photos capability: active remote delivery plan and evidence
 
+## Native permission accepted; current tool schema still old — 2026-10-06
+
+Original-MCP health now verifies authorization 3/true. Installed 0.1.58 process
+and locally generated registration schema include nativeUI. This conversation
+still advertises the old schema; one prepare returned the default no-UI rejection,
+without an operation ID or posting. Argument stripping/definition caching is an
+inference, not a captured input trace. Official custom-connection guidance requires
+Refresh followed by a new conversation; published plugins use scan/review updates.
+No platform rejection was inspected. [Evidence and continuation](photos-live-upload-plan.md#native-permission-verified-conversation-tool-definition-mismatch--2026-10-06)
+preserve the same connection and exact private source/destination. No photo is shared.
+
+
 ## Installed 0.1.58 sharing candidate; no photo shared — 2026-10-06
 
 PRs 61/62 merged; immutable verified main eb58aae produced installed 0.1.58 and
