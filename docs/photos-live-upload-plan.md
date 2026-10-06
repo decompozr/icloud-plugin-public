@@ -1,5 +1,11 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+## Exploratory selection flow corrected — 2026-10-06
+
+The first standalone picker used single selection and immediately rejected a photo that did not match the fixed target. The owner could not complete the intended flow. Its identifier-only baseline had no supported content types and returned no Live Photo; no actual selected-input comparison completed.
+
+The corrected standalone experiment supports one to twelve user-selected Live Photos and the system picker's Add/Done step. For each selected item it constructs the identifier-only counterpart for that same photo, compares both loads, and retains a readable result window. The owner explicitly requested the exploratory multi-selection flow; this does not broaden the production sharing destination or authorize publication. Compilation and signature verification passed, and a fresh diagnostic session was launched. No MCP or production installation was involved.
+
 ## Standalone experiment supersedes production diagnostic approach — 2026-10-06
 
 The owner clarified that this is a native API experiment, not an MCP experiment, and explicitly authorized an independent read-only App. The implementation is now isolated in `playground/photos/picker-input-experiment`. No production tool, Helper, version, deployment or operation ledger is changed for it. The existing unresolved posting operation and its interlock remain intact.

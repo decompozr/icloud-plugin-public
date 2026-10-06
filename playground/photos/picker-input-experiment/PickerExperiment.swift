@@ -5,20 +5,19 @@ import SwiftUI
 import Darwin
 
 // Standalone read-only experiment. No production Helper or posting code is linked.
-struct Request: Decodable { let assetId: String; let sessionId: UUID }
+struct Request: Decodable { let sessionId: UUID }
 struct ExperimentError: Error { let message: String }
 @available(macOS 27.0, *)
 @MainActor final class Experiment: NSObject, NSWindowDelegate {
     let request: Request
     let journal: FileHandle
-    var asset: PHAsset?
-    var selected: PhotosPickerItem?
+    var selected: [PhotosPickerItem] = []
+    var processing = false
     var pickerVisible = false
     var finished = false
     var selecting = false
     var window: NSWindow!
     let label = NSTextField(wrappingLabelWithString: "Read-only input comparison. No sharing window or publication is implemented.")
-    var baseline: [String: Any]?
     init(request: Request, directory: String) throws {
         self.request = request
         let attrs = try FileManager.default.attributesOfItem(atPath: directory)
@@ -27,10 +26,6 @@ struct ExperimentError: Error { let message: String }
               attrs[.posixPermissions] as? Int == 0o700,
               (attrs[.ownerAccountID] as? NSNumber)?.uint32Value == getuid() else {
             throw ExperimentError(message: "Evidence directory must be an owner-only real directory (0700).")
-        }
-        guard request.assetId.range(of: "^asset:[a-f0-9]{16}:[A-Fa-f0-9-]{36}$", options: .regularExpression) != nil,
-              UUID(uuidString: String(request.assetId.split(separator: ":").last!)) != nil else {
-            throw ExperimentError(message: "Invalid scoped asset ID.")
         }
         let fd = open(directory + "/" + request.sessionId.uuidString.lowercased() + ".jsonl", O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
         guard fd >= 0 else { throw ExperimentError(message: "Session already exists or journal cannot be created. No relaunch.") }
@@ -51,7 +46,7 @@ struct ExperimentError: Error { let message: String }
         NSApplication.shared.terminate(nil)
     }
     func redact(_ text: String) -> String {
-        var result = text.replacingOccurrences(of: request.assetId, with: "[asset]")
+        var result = text
         for pattern in ["[A-Fa-f0-9]{8}-[A-Fa-f0-9-]{27,}", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+", "(?:https?|file)://[^\\s]+", "/(?:Users|private|var|Volumes)/[^\\s]+"] {
             result = result.replacingOccurrences(of: pattern, with: "[redacted]", options: .regularExpression)
         }
@@ -67,8 +62,8 @@ struct ExperimentError: Error { let message: String }
         }
         return chain
     }
-    func inspect(_ item: PhotosPickerItem, group: String) async -> [String: Any] {
-        var result: [String: Any] = ["identifierMatches": item.itemIdentifier == asset?.localIdentifier,
+    func inspect(_ item: PhotosPickerItem, expectedIdentifier: String, group: String) async -> [String: Any] {
+        var result: [String: Any] = ["identifierMatches": item.itemIdentifier == expectedIdentifier,
             "contentTypes": Array(item.supportedContentTypes.prefix(64)).map(\.identifier)]
         do {
             try record("loading", ["input": group])
@@ -79,7 +74,7 @@ struct ExperimentError: Error { let message: String }
         return result
     }
     func present() {
-        let button = NSButton(title: "Start read-only comparison", target: self, action: #selector(start))
+        let button = NSButton(title: "Select Live Photos to compare", target: self, action: #selector(start))
         let stack = NSStackView(views: [label, button]); stack.orientation = .vertical; stack.spacing = 18
         stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 220), styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
@@ -93,42 +88,69 @@ struct ExperimentError: Error { let message: String }
             let authorization = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
             guard !self.finished else { return }
             guard authorization == .authorized else { self.finish("permission_required", ["authorization": authorization.rawValue]); return }
-            let uuid = String(self.request.assetId.split(separator: ":").last!)
-            guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [uuid + "/L0/001"], options: nil).firstObject,
-                  asset.mediaSubtypes.contains(.photoLive) else { self.finish("approved_live_photo_not_found"); return }
-            self.asset = asset
-            let baseline = await self.inspect(PhotosPickerItem(itemIdentifier: asset.localIdentifier), group: "identifierOnly")
-            guard !self.finished else { return }; self.baseline = baseline
-            do { try self.record("baseline_completed", ["identifierOnly": baseline]) }
-            catch { self.finish("journal_failed"); return }
             self.presentPicker()
         }
     }
     func presentPicker() {
         pickerVisible = true
-        let selected = Binding<PhotosPickerItem?>(get: { [weak self] in self?.selected }, set: { [weak self] item in
-            guard let self, !self.finished, self.selected == nil, let item else { return }
-            guard item.itemIdentifier == self.asset?.localIdentifier else { self.finish("selection_mismatch"); return }
-            self.selected = item; self.pickerVisible = false
-            Task { @MainActor in
-                let actual = await self.inspect(item, group: "userSelected")
-                guard !self.finished, let baseline = self.baseline, let asset = self.asset else { return }
-                self.finish("comparison_completed", ["identifierOnly": baseline, "userSelected": actual,
-                    "itemsEqual": PhotosPickerItem(itemIdentifier: asset.localIdentifier) == item])
-            }
+        let selected = Binding<[PhotosPickerItem]>(get: { [weak self] in self?.selected ?? [] }, set: { [weak self] items in
+            guard let self, !self.finished, !self.processing else { return }
+            self.selected = items
         })
         let visible = Binding<Bool>(get: { [weak self] in self?.pickerVisible == true }, set: { [weak self] value in
             guard let self else { return }; self.pickerVisible = value
             if !value { DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-                guard let self, self.selected == nil else { return }; self.finish("cancelled")
+                guard let self else { return }; self.compareSelection()
             } }
         })
-        let view = Text("Select only the agreed original Live Photo. The experiment closes after saving the comparison; nothing is posted.")
+        let view = Text("Select up to 12 Live Photos, then click Add or Done in the picker. Each selected photo is compared with its own identifier-created input. Nothing is posted.")
             .padding(24).frame(width: 520, height: 220)
-            .photosPicker(isPresented: visible, selection: selected, matching: .livePhotos, preferredItemEncoding: .current, photoLibrary: .shared())
+            .photosPicker(isPresented: visible, selection: selected, maxSelectionCount: 12, matching: .livePhotos, preferredItemEncoding: .current, photoLibrary: .shared())
         window.contentViewController = NSHostingController(rootView: view)
     }
-    func windowWillClose(_ notification: Notification) { finish("cancelled") }
+    func compareSelection() {
+        guard !processing, !finished else { return }
+        guard !selected.isEmpty else { finish("cancelled"); return }
+        processing = true
+        window.contentViewController = nil
+        label.stringValue = "Comparing \(selected.count) selected Live Photos…"
+        window.contentView = label
+        Task { @MainActor in
+            var comparisons: [[String: Any]] = []
+            for (index, item) in self.selected.enumerated() {
+                guard !self.finished else { return }
+                guard let identifier = item.itemIdentifier else {
+                    comparisons.append(["index": index + 1, "status": "picker_identifier_missing", "contentTypes": item.supportedContentTypes.map(\.identifier)])
+                    continue
+                }
+                let idOnly = PhotosPickerItem(itemIdentifier: identifier)
+                let baseline = await self.inspect(idOnly, expectedIdentifier: identifier, group: "identifierOnly[\(index + 1)]")
+                let actual = await self.inspect(item, expectedIdentifier: identifier, group: "userSelected[\(index + 1)]")
+                guard !self.finished else { return }
+                let comparison: [String: Any] = ["index": index + 1, "status": "compared", "identifierOnly": baseline,
+                    "userSelected": actual, "itemsEqual": idOnly == item]
+                comparisons.append(comparison)
+                do { try self.record("item_compared", comparison) } catch { self.finish("journal_failed"); return }
+            }
+            do { try self.record("comparison_completed", ["count": comparisons.count, "comparisons": comparisons]) }
+            catch { self.finish("journal_failed"); return }
+            self.finished = true
+            let summary = comparisons.map { c -> String in
+                guard let a = c["identifierOnly"] as? [String: Any], let b = c["userSelected"] as? [String: Any] else {
+                    return "Photo \(c["index"]!): picker did not provide an identifier."
+                }
+                return "Photo \(c["index"]!): ID input loaded Live Photo = \(a["livePhotoLoaded"]!), selected input loaded = \(b["livePhotoLoaded"]!)"
+            }.joined(separator: "\n\n")
+            let result = NSTextField(wrappingLabelWithString: "Comparison saved. No photos posted.\n\n" + summary)
+            let close = NSButton(title: "Done — close experiment", target: self, action: #selector(self.closeResult))
+            let stack = NSStackView(views: [result, close]); stack.orientation = .vertical; stack.spacing = 16
+            stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
+            self.window.contentView = stack
+            self.window.setContentSize(NSSize(width: 640, height: min(720, 140 + comparisons.count * 55)))
+        }
+    }
+    @objc func closeResult() { NSApplication.shared.terminate(nil) }
+    func windowWillClose(_ notification: Notification) { if finished { closeResult() } else { finish("cancelled") } }
 }
 @main struct Main {
     @MainActor static func main() {
