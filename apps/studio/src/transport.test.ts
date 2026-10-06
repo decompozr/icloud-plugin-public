@@ -129,3 +129,13 @@ test("originless form token exchange and refresh reach authoritative OAuth handl
     expect(result.status).toBe(200);
   }
 });
+
+test('parked Photos stays visible with a disabled control and localized unsupported reason',async()=>{
+ for(const [locale,copy] of [['en',en],['zh-TW',zh]] as const){
+  const response=await studio.admin(new Request('https://private.example.invalid/icloud/admin',{headers:{cookie:'PARAGLIDE_LOCALE='+locale}}),{enrolled:true,ready:true,admin:true,view:'overview'});
+  const html=await response.text();
+  expect(html).toContain('data-testid="photos-unsupported"');
+  expect(html).toContain(copy.photosUnsupported);
+  expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*disabled[^>]*aria-label="[^"]*Photos|<input[^>]*type="checkbox"[^>]*disabled[^>]*aria-label="[^"]*照片/);
+ }
+});

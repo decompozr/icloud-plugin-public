@@ -483,5 +483,6 @@
   "resetRequestFailed": "重設未被接受，請確認擁有者登入後再試。",
   "resetUnavailable": "此執行環境不提供重設。",
   "resetUnknown": "無法確認重設是否已被接受。請勿重複提交，請檢查服務診斷或登入／設定頁面。",
-  "installationFolder": "安裝資料夾"
+  "installationFolder": "安裝資料夾",
+  "photosUnsupported": "已停用 — 不支援。目前尚無可用的照片分享方案。"
 }

@@ -1,5 +1,7 @@
 # Live Photo upload: experiment, knowledge and implementation plan
 
+> **Parked by the owner (2026-10-06).** Production Photos is removed; experiments are stopped. Historical running/pending instructions below are superseded. See [consolidated evidence, unresolved challenges and resume checklist](photos-parked.md).
+
 ## Direct original-MCP still upload rejected for upgraded protocol — 2026-10-06
 
 The owner explicitly approved a still-only upload of the selected original photo directly through the original MCP. A fresh remote inventory identified the exact test album with owner rights and `protocol=modern_or_encrypted`, with managementReady=false. An upload_shared_asset preparation using original representation and explicit still mode reached rejected with `unsupported_shared_album_protocol`. No apply or binary upload occurred.
