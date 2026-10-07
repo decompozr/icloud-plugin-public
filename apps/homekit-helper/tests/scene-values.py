@@ -32,7 +32,7 @@ action["target"]=target
 try check(try LifecycleStore.addedAction([action],baseline:[],target:target,value:true)==operation)
 denied{_ = try LifecycleStore.addedAction([action,action],baseline:[],target:target,value:true)}
 let name=try LifecycleStore.resourceName("Office Light On",operationId:operation)
-precondition(name.contains("Office Light On") && name.contains(operation) && !name.contains("Test"))
+precondition(name.contains("Office Light On") && name.contains(operation) && !name.contains("Test") && name.hasSuffix(operation) && !name.contains("]"))
 denied{_ = try LifecycleStore.resourceName(" ",operationId:operation)}
 denied{_ = try LifecycleStore.resourceName("Name",operationId:"name")}
 precondition(SceneReadbackPolicy.summarize([["status":"verified"]])["individualActionsVerified"] as? Bool == true)
