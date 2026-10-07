@@ -98,3 +98,11 @@ Owner status validates each shallow navigation. Back uses latest-response fencin
 open modals and pending operations block it. Overview uses one column and explicit
 Mail, Calendar, Photos module order. Path copy controls use full values and toasts.
 Clipboard acceptance uses disposable fixtures, not the live clipboard.
+
+## Static completed requirement markers (0.1.78)
+
+Loading and completed requirement markers use distinct DOM branches. The spinner
+node is removed on completion; static markers explicitly use no animation or
+transform. Disposable browser acceptance verifies both Photos checkmarks have
+zero animations before and after recheck, and the old loading node is disconnected.
+Chrome fixture evidence does not establish physical iOS Safari acceptance.
