@@ -1,1 +1,0 @@
-{"name":"icloud-calendar-offline-spike","private":true,"type":"module","scripts":{"test":"bun test","demo":"bun demo.ts","full-demo":"bun full-demo.ts"},"dependencies":{"ical.js":"2.2.1","fast-xml-parser":"5.11.1"}}

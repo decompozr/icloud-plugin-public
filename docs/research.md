@@ -1,5 +1,7 @@
 # Mailbox implementation research and Bun experiments
 
+> Historical experiment commands and `playground/` paths below are retained as dated evidence. The prototypes were retired on 2026-10-07; use [current replacements and source history](research/retired-prototypes.md).
+
 Research dated 2026-10-01. This compares mechanics and records scratch evidence;
 it does not approve production implementation or select an approach. The
 [mailbox scope](mailbox-tools.md), prose-first workflow and Codex/ChatGPT focus
@@ -46,7 +48,7 @@ COPYUID values but does not implement or prove a stale-identity guard.
 
 ## Actual scratch results
 
-Run from [the isolated playground](../playground/README.md):
+Run from [the isolated playground](research/prototype-archive/overview.md):
 
 ```sh
 cd playground
@@ -104,7 +106,7 @@ rules, approval decisions and reports stay with the calling agent.
 ## Systematic extension: identity and failure observations
 
 The extended mail experiments are specified in
-[playground goals](../playground/extended-goals.md) and L2–L6 of the register.
+[playground goals](research/prototype-archive/mail-goals.md) and L2–L6 of the register.
 Actual ImapFlow observations:
 
 - Missing UID fetch returns `false`; a new connection exposes changed
@@ -146,6 +148,6 @@ IP. Stop/start retained the bind-mounted counter (observed values 1 then 2).
 Only host access through the published localhost port continued to reset; its
 cause is unresolved. Alpine lacked Bun, so this does not validate a Bun/MCP
 container image. All owned temporary containers and mounts were removed, with
-zero remaining container inventory. See [runtime evidence](../playground/runtime/README.md)
+zero remaining container inventory. See [runtime evidence](research/prototype-archive/runtime.md)
 and [the experiment register](experiments.md). No daemon/network/Tailscale change
 or additional full-suite run was needed for this documentation correction.

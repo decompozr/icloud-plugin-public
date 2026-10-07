@@ -1,5 +1,7 @@
 # Experiment register
 
+> Historical experiment commands and `playground/` paths below are retained as dated evidence. The prototypes were retired on 2026-10-07; use [current replacements and source history](research/retired-prototypes.md).
+
 > **2026-10-04 closeout:** Experiments are closed. See [Photos capability plan](photos-capability-plan.md) for the authoritative current evidence, accepted local provider architecture, comparison limits and implementation phases. Older checkpoints below are historical.
 
 ## Calendar production follow-up (2026-10-03 UTC)
@@ -83,7 +85,7 @@ into a product decision. Never record an unexecuted check as passing.
 Question: can upstream-shaped asset/master metadata preserve scoped identity,
 explicit renditions and bounded pagination in Bun? The
 [acceptance and source notes](photos-feasibility.md) define the paired-page subset
-and provider limitations; the [isolated package](../playground/photos/README.md)
+and provider limitations; the [isolated package](research/prototype-archive/photos.md)
 contains executable synthetic fixtures and a loopback demo. This is independent
 of the historical E/L-series counts below and does not establish live iCloud
 access or a selected production provider.
@@ -164,13 +166,13 @@ run; the table above groups those investigations into the shared L-series.
 - **Mail L2–L6:** `cd playground && bun run test`: 15 tests/67 assertions passed after review strengthened two checks
   on Bun 1.4.2. This includes prior baseline coverage. Unsafe fallback assertions
   reproduce failed safety expectations, not safe mailbox behavior. See
-  [research](research.md) and [mail goals](../playground/extended-goals.md).
+  [research](research.md) and [mail goals](research/prototype-archive/mail-goals.md).
 - **Auth L7–L8:** worker reports `bun test playground/auth`: 30 tests/49 assertions passed on
   Bun 1.4.2. Actual SimpleWebAuthn synthetic cryptographic verification and jose
   token checks are combined with clearly identified grant/PKCE models. An actual ephemeral loopback HTTP authorization redirect/token/resource roundtrip
   was also tested with a fake client. No real browser enrollment or Codex/ChatGPT
   OAuth connection was tested. See
-  [auth goals and results](../playground/auth/README.md).
+  [auth goals and results](research/prototype-archive/auth.md).
 
 Remaining deployment/provider E-series criteria do not become verified merely
 because their related local L-series investigation completed.
@@ -179,12 +181,12 @@ because their related local L-series investigation completed.
   passed. Separate processes raced one-use SQLite enrollment; synthetic credentials
   were encrypted, recovered after restart, rotated and locally revoked. Passkeys,
   real provider validation, production key provisioning and recovery are excluded.
-  See [setup evidence and limits](../playground/setup/README.md).
+  See [setup evidence and limits](research/prototype-archive/setup.md).
 - **Runtime L1/process L10:** worker reports 2 tests/19 assertions using actual MCP
   SDK loopback transport and a dummy process restart/persistence fixture. No cloud
   client or provider interoperability is implied. The corrected Apple-container fixture passed direct-IP HTTP and stop/start
   persistence; localhost port publication still reset. Bun-container compatibility
-  remains unverified. See [runtime goals](../playground/runtime/README.md).
+  remains unverified. See [runtime goals](research/prototype-archive/runtime.md).
 
 - **Container portion of L10 — partial success:** worker used only the running
   Apple container service and cached Alpine image. After correcting the temporary
@@ -196,7 +198,7 @@ because their related local L-series investigation completed.
   Alpine had no Bun, so no Bun-image/MCP container test occurred. Owned containers
   and temporary mounts were removed and final inventory was zero. No daemon,
   host-network or Tailscale changes were made. See
-  [runtime evidence](../playground/runtime/README.md).
+  [runtime evidence](research/prototype-archive/runtime.md).
 
 The finite local round L1–L10 has recorded outcomes, including unsafe behavior
 and the unresolved localhost publication expectation. Live iCloud capabilities, real Passkey browser
@@ -228,17 +230,17 @@ Reference architecture and standards research now inform
 These close unspecified internal formats without claiming live provider support.
 The local setup follow-up reports **5 tests/37 assertions**, adding fail-closed
 missing-state/marker behavior, authenticated same-owner recovery and one-use proof
-replay checks. See [setup evidence](../playground/setup/README.md). The earlier
+replay checks. See [setup evidence](research/prototype-archive/setup.md). The earlier
 51-test aggregate is historical; it does not include this follow-up or subsequent
 auth-provider/runtime follow-ups. No aggregate rerun is claimed here.
 
-Auth-provider follow-up: [isolated candidate evidence](../playground/auth-provider/README.md)
+Auth-provider follow-up: [isolated candidate evidence](research/prototype-archive/auth-provider.md)
 reports **1 test/15 assertions** for Better Auth 1.7.7 on Bun 1.4.2: real migrations,
 HTTP discovery, native public-client registration, anonymous login redirect and
 invalid-grant rejection. Successful owner/code/refresh/client integration remains
 unverified. This narrows framework feasibility without selecting it.
 
-Runtime follow-up completed: [final evidence](../playground/runtime/README.md)
+Runtime follow-up completed: [final evidence](research/prototype-archive/runtime.md)
 records successful host-loopback proxy → direct container IP, restart/IP
 rediscovery, and verified official Linux Bun1.4.2 dummy HTTP/persistence/shutdown
 inside disposable Alpine. Required runtime packages were installed only inside
@@ -259,7 +261,7 @@ then personal test-event create/update/delete. All three were exercised against
 synthetic loopback fixtures; live iCloud acceptance remains open for all three.
 The application fixture uses JSON discovery/query responses and is not an
 independent CalDAV server. See [Calendar findings](calendar-feasibility.md#sequential-application-experiment-2026-10-03-utc)
-and the [runnable playground](../playground/calendar/README.md).
+and the [runnable playground](research/prototype-archive/calendar.md).
 
 | ID | Question | Observable acceptance | Evidence and status |
 | --- | --- | --- | --- |

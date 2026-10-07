@@ -44,3 +44,17 @@ Legacy signed v0.14/v0.15 payloads remain recognized for rollback. New artifacts
 the approved owner/account/Home and grants; it never repeats operations or adopts
 resources by name. Retain rollback releases and uncertain receipts. Source/build
 success is not physical control, natural push or whole-module acceptance.
+
+## Offline policy checks
+
+Run from the repository root:
+
+```sh
+python3 apps/homekit-helper/tests/presentation.py
+python3 apps/homekit-helper/tests/control-journal.py
+python3 apps/homekit-helper/tests/runtime-boundaries.py
+```
+
+These compile exact Foundation-only production policies without HomeKit/device
+I/O. Explicit signed-helper read acceptance tools live in
+[`apps/e2e/native/homekit`](../e2e/native/homekit/README.md), separate from fixtures.
