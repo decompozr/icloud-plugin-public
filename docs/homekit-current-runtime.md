@@ -1,7 +1,7 @@
 # HomeKit integration into the current runtime
 
-Status (2026-10-07): deployed locally in 0.1.94 from main commit
-`30d06e4770c60f00fa4cf6bc6083837089e8069b`. **The complete HomeKit roadmap is not
+Status (2026-10-07): deployed locally in 0.1.96 from main commit
+`46ccf77941b94d2953e3d0c2d68a66bc552f1b3d`. **The complete HomeKit roadmap is not
 accepted.** The retained `plan-homekit-end-to-end` branch preserves the original
 roadmap and experimental evidence. Later dated sections below record delivery and
 acceptance; earlier implementation checkpoints are historical.
@@ -482,3 +482,32 @@ The host now preserves a bounded exact-operation native rejection receipt, strip
 unrecognized fields; control and unrelated native error behavior stay unchanged.
 Any corrected creation is a distinct reviewed operation after confirming absence,
 not an automatic retry of the failed command.
+
+## Scene definition staging on production 0.1.96
+
+PR #125 (71a01f6) delivered scene policy/readback; PR #126 (46ccf77) corrected
+the observed invalid name and preserved native rejection evidence. Signed clean-main
+Release 0.1.96 is installed with native manifest
+`6b866e20ac08dfc78b027c11101cee97b6f45f94f11931cefa78a3cb650fa7d8`.
+The stopped installer preserves databases/custody; supported enrollment reconciles
+the same owner/account/Home/user and new source pin without changing client grants.
+Native ledgers remain in the stable owner/account/Home directory; old operation
+results remain retained. Doctor and actual connected MCP readiness pass.
+
+The failed 0.1.95 operation was not replayed. Its native receipt identifies the
+naming rejection; all 118 scene snapshots contained no matching operation marker,
+with scene/automation counts 118/100 throughout that non-atomic inspection.
+A distinct corrected operation then created the App-owned Office Light On scene,
+followed by one exact power characteristic action with desired true. Another
+operation created the Office Light Off scene with desired false. All four definition
+mutations completed with independent SDK definition readback and exact ownership
+proof. Actual MCP execution previews pass, each showing exactly one approved-device
+power action and no trigger references. Prepared execution plans were cancelled
+without dispatch while owner effect/trigger selection remains pending.
+
+No scene execution, device write or existing household automation mutation occurred
+for this slice. Independent fresh MCP read remains OFF. The two staged definitions
+are retained for the requested next acceptance, not temporary orphan resources.
+Scene execution/readback and automation create/link/enable/trigger acceptance remain
+open; the first async target/trigger question is still pending. No automatic clock,
+sensor threshold, fallback duration or household automation target was selected.
