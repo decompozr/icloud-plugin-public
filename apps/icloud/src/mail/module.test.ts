@@ -6,7 +6,7 @@ import {createMailModule} from './module.js';
 import {ModuleRuntime} from '../modules/runtime.js';
 import {createServer} from '../mcp/server.js';
 import {OperationMonitor} from '../observability/operations.js';
-import type {OwnerSecretStore} from '../storage/owner-store.js';
+import type {OwnerSecretStore} from '../../../../modules/account/dist/index.js';
 import type {AppSettings} from '../server/settings.js';
 import {MailOperationError,type MailSession} from './domain/mail.js';
 

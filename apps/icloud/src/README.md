@@ -1,5 +1,9 @@
 # iCloud application source
 
+Account backend ownership has moved to `modules/account`; server/process ownership
+remains in the transitional app until the next phases. See [the accepted Studio
+server migration](../../../docs/studio-server-migration.md).
+
 The application composes shared infrastructure with feature modules. Mail owns its
 complete behavior under `mail/`; the host consumes registered capabilities. The
 central [architecture](../../../docs/architecture.md) explains composition and the
@@ -11,9 +15,9 @@ central [architecture](../../../docs/architecture.md) explains composition and t
 | [mail](mail/README.md) | Mail use cases, providers, tools and feature state |
 | [server](server/README.md) | Listeners, transport, settings and composition |
 | [mcp](mcp/README.md) | Generic MCP host and registered-tool dispatch |
-| [auth](auth/README.md) | Owner Passkeys, OAuth, token and session verification |
+| [auth](../../../modules/account/src/auth/README.md) | Owner Passkeys, OAuth, token and session verification |
 | [admin](admin/README.md) | Private setup and owner-management interface |
-| [storage](storage/README.md) | Owner enrollment and opaque secret custody |
+| [storage](../../../modules/account/src/storage/README.md) | Owner enrollment and opaque secret custody |
 | [observability](observability/README.md) | Operation lifecycle and bounded telemetry |
 | [plugin](plugin/README.md) | Configured downloadable client artifact |
 | [ui](ui/README.md) | Shared page styles and markup primitives |

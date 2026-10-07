@@ -8,7 +8,7 @@ import {photosRegistration} from '../photos/module.js';
 import {
   createLocalOwnerAccess,
   createRemoteOwnerPairing,
-} from "../auth/local-owner.js";
+} from "../../../../modules/account/dist/index.js";
 import { createStudio } from "../../../studio/dist/transport.js";
 import { ReconnectCapture } from "../observability/reconnect.js";
 import { runtimeVersions } from "./versions.js";
@@ -34,11 +34,11 @@ import { Database } from "bun:sqlite";
 import { createHash } from "node:crypto";
 import { join, dirname, resolve } from "node:path";
 import { readFileSync } from "node:fs";
-import { createBootstrapAccess } from "../auth/bootstrap.js";
+import { createBootstrapAccess } from "../../../../modules/account/dist/index.js";
 import { z } from "zod";
 import type { AppSettings } from "./settings.js";
-import type { OwnerSecretStore } from "../storage/owner-store.js";
-import { createOwnerAuth } from "../auth/owner.js";
+import type { OwnerSecretStore } from "../../../../modules/account/dist/index.js";
+import { createOwnerAuth } from "../../../../modules/account/dist/index.js";
 import { createPrivateAdmin, type TailscaleStatus } from "../admin/handler.js";
 import { createHttpApp } from "./http.js";
 import { FetchListener, guardHost } from "./listener.js";

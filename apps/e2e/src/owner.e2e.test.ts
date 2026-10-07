@@ -9,7 +9,7 @@ import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {z} from 'zod';
 import {createApplication} from '../../icloud/dist/server/application.js';
-import {SqliteOwnerStore} from '../../icloud/dist/storage/owner-store.js';
+import {SqliteOwnerStore} from '../../icloud/dist/account/index.js';
 import type {AppSettings} from '../../icloud/dist/server/settings.js';
 import type {MailGateway,MailSession,MailMessageInput,SendResult} from '../../icloud/dist/mail/domain/mail.js';
 import {passkeyResponse} from './helpers/owner-passkey.js';
