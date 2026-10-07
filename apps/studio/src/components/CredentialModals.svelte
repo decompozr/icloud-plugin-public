@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ActionButton from "./ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
   import type { UiCopy } from "../contracts.js";
@@ -49,7 +50,12 @@
   }
   $effect(() => {
     const value = current;
-    if(!value){password="";user="";label="";return;}
+    if (!value) {
+      password = "";
+      user = "";
+      label = "";
+      return;
+    }
     if (value && value.generation !== generation) {
       generation = value.generation;
       password = "";
@@ -167,14 +173,15 @@
       {t("webSessionHelp")}
     </p>
     {#if !accounts.length}<p>{t("noAccountYet")}</p>
-      <button
+      <ActionButton
         class="primary"
         onclick={() => center.openCredential("app-password", { mode: "add" })}
-        >{t("addAccount")}</button
-      >{:else}<PhotosCloud
+        label={t("addAccount")}
+        icon="plus"
+      />{:else}<PhotosCloud
         preferredAccountId={current.options.accountId}
         inModal
-        onbusy={value=>busy=value}
+        onbusy={(value) => (busy = value)}
         oncomplete={() =>
           window.dispatchEvent(new Event("studio:credentials-updated"))}
       />{/if}
@@ -231,11 +238,20 @@
         >
       </p>
       <div class="actions">
-        <button class="primary" type="submit" disabled={busy}
-          >{t("saveAccount")}</button
-        ><button class="secondary" type="button" disabled={busy} onclick={close}
-          >{t("cancel")}</button
-        >
+        <ActionButton
+          class="primary"
+          type="submit"
+          disabled={busy}
+          label={t("saveAccount")}
+          icon="check"
+        /><ActionButton
+          class="secondary"
+          type="button"
+          disabled={busy}
+          onclick={close}
+          label={t("cancel")}
+          icon="close"
+        />
       </div>
     </form>{/if}
 </Modal>

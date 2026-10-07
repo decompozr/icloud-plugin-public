@@ -1,4 +1,6 @@
 <script lang="ts">
+  import AccountCard from "./AccountCard.svelte";
+  import ActionButton from "./ActionButton.svelte";
   import { getContext, onMount, tick, untrack } from "svelte";
   import type { AdminState, UiCopy } from "../contracts.js";
   import { AdminModel } from "../lib/admin-model.svelte.js";
@@ -265,61 +267,37 @@
       {:else if view === "accounts"}<section class="card">
           <header class="card-header">
             <h2>{t("accountsTitle")}</h2>
-            <RefreshButton
-              label={t("refreshAccounts")}
-              busy={model.busy}
-              onclick={() => model.run(() => model.refreshCard("accounts"))}
-            />
+            <div class="card-tools">
+              <ActionButton
+                icon="plus"
+                label={t("addAccount")}
+                disabled={model.busy}
+                onclick={() =>
+                  dialogs.openCredential("app-password", { mode: "add" })}
+              />
+              <RefreshButton
+                label={t("refreshAccounts")}
+                busy={model.busy}
+                onclick={() => model.run(() => model.refreshCard("accounts"))}
+              />
+            </div>
           </header>
-          <div id="accounts" role="list">
-            {#each model.dashboard?.accounts ?? [] as account}<article
-                role="listitem"
-                class="account-row"
-              >
-                <h3>
-                  {account.label === account.user
-                    ? account.user
-                    : account.label + " · " + account.user}
-                </h3>
-                <p>
-                  {t(
-                    account.credentialStored
-                      ? "credentialSaved"
-                      : "credentialMissing",
-                  )}
-                </p>
-                <div class="actions">
-                  <button
-                    type="button"
-                    class="secondary"
-                    onclick={() =>
-                      dialogs.openCredential("app-password", {
-                        accountId: account.id,
-                        mode: "rotate",
-                      })}>{t("editAppPassword")}</button
-                  ><button
-                    type="button"
-                    class="secondary"
-                    onclick={() =>
-                      dialogs.openCredential("apple-account", {
-                        accountId: account.id,
-                      })}>{t("openAppleSession")}</button
-                  ><button
-                    type="button"
-                    class="danger"
-                    onclick={() => (model.revokeAccount = account.id)}
-                    >{t("revoke")}</button
-                  >
-                </div>
-              </article>{/each}
+          <div id="accounts" class="account-list" role="list">
+            {#each model.dashboard?.accounts ?? [] as account (account.id)}
+              <AccountCard {account} {model} {dialogs} />
+            {/each}
           </div>
-          <button
-            type="button"
-            class="secondary"
-            onclick={() =>
-              dialogs.openCredential("app-password", { mode: "add" })}
-            >{t("addAccount")}</button
-          >
+          {#if model.dashboard && !model.dashboard.accounts.length}<p
+              class="muted"
+            >
+              {t("noAccountYet")}
+            </p>{/if}
+          {#if model.dashboardFailed || model.diagnosticsFailed}<p
+              class="muted"
+              role="status"
+            >
+              {t("freshnessFailed")}
+            </p>{/if}
         </section>
       {:else if view === "connections"}<section class="card">
           <header class="card-header">
@@ -330,7 +308,10 @@
               onclick={() => model.run(() => model.refreshCard("accounts"))}
             />
           </header>
-          <p>{t("connectionsHelp")}</p>
+          <details>
+            <summary>{t("photosPermissionHelpShort")}</summary>
+            <p>{t("connectionsHelp")}</p>
+          </details>
           <div id="connections-list" tabindex="-1">
             <AdminDashboard {model} view="connections" />
           </div>
@@ -374,21 +355,23 @@
               onclick={() => model.run(() => model.refreshCard("service"))}
             />
           </header>
-          <p>{t("systemHelp")}</p>
+
           <div id="system-content">
             <AdminDashboard {model} view="system" />
           </div>
           <SystemReset available={pageState.resetAvailable} />
           <div class="actions">
-            <button
+            <ActionButton
               class="secondary"
               onclick={() => (model.requirementDialog = "tailscale")}
-              >{t("tailscaleSetup")}</button
-            >{#if pageState.photosConfigured}<button
+              label={t("tailscaleSetup")}
+              icon="settings"
+            />{#if pageState.photosConfigured}<ActionButton
                 class="secondary"
                 onclick={() => (model.requirementDialog = "photos")}
-                >{t("photosPermissions")}</button
-              >{/if}
+                label={t("photosPermissions")}
+                icon="settings"
+              />{/if}
           </div>
         </section>{/if}
     </div>
@@ -408,7 +391,7 @@
   ><div id="connection-confirm">
     <div id="connection-impact"><AdminDashboard {model} view="impact" /></div>
     <div class="actions">
-      <button
+      <ActionButton
         id="connection-confirm-yes"
         type="button"
         class={model.pendingConnection?.action === "upgrade"
@@ -416,19 +399,21 @@
           : "danger"}
         disabled={model.busy}
         onclick={() => void model.run(() => model.confirmConnection())}
-        >{t(
+        label={t(
           model.pendingConnection?.action === "upgrade"
             ? "confirmCapabilityUpgrade"
             : "confirmConnectionAction",
-        )}</button
-      ><button
+        )}
+        icon="check"
+      /><ActionButton
         id="connection-confirm-no"
         type="button"
         class="secondary"
         disabled={model.busy}
         onclick={() => (model.pendingConnection = undefined)}
-        >{t("cancel")}</button
-      >
+        label={t("cancel")}
+        icon="close"
+      />
     </div>
   </div></Modal
 >
@@ -444,16 +429,19 @@
     )?.user}
   </p>
   <div class="actions">
-    <button
+    <ActionButton
       class="danger"
       disabled={model.busy}
       onclick={() => void model.run(() => model.revoke(), "revoking")}
-      >{t("revokeYes")}</button
-    ><button
+      label={t("revokeYes")}
+      icon="trash-2"
+    /><ActionButton
       class="secondary"
       disabled={model.busy}
-      onclick={() => (model.revokeAccount = "")}>{t("cancel")}</button
-    >
+      onclick={() => (model.revokeAccount = "")}
+      label={t("cancel")}
+      icon="close"
+    />
   </div></Modal
 >
 
@@ -476,6 +464,7 @@
     padding-top: 0.5rem;
   }
   #page-content {
+    grid-column: 2;
     width: 100%;
     max-width: 60rem;
     margin-inline: auto;
@@ -491,11 +480,13 @@
   .nav-bar {
     display: flex;
     flex-direction: column;
-    height: calc(100svh - 2rem);
+    height: calc(100dvh - 2rem);
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    overflow-y: auto;
-    position: sticky;
+    overflow: visible;
+    position: fixed;
     top: 1rem;
+    left: max(0px, env(safe-area-inset-left, 0px));
+    width: 44px;
     margin: 0;
   }
   .nav-bar .shell-nav {
@@ -519,13 +510,12 @@
   .card-header h2 {
     margin: 0;
   }
-  .account-row {
-    padding: 0.75rem 0;
-    border-top: 1px solid var(--ui-border);
-  }
-  .account-row h3 {
-    padding: 0;
-    margin: 0;
-    border: 0;
+  @media (max-height: 320px) {
+    .nav-brand {
+      display: none;
+    }
+    .nav-language {
+      padding-top: 0;
+    }
   }
 </style>

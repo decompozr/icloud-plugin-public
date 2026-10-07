@@ -151,3 +151,65 @@ node is removed on completion; static markers explicitly use no animation or
 transform. Disposable browser acceptance verifies both Photos checkmarks have
 zero animations before and after recheck, and the old loading node is disconnected.
 Chrome fixture evidence does not establish physical iOS Safari acceptance.
+
+## Compact admin actions and account cards (2026-10-07)
+
+Owner-requested scope: put Add (+) beside Refresh, group each account identity,
+credential/session status and actions in one card, replace application action
+buttons with catalog icons and hover explanations, reduce default admin prose,
+and match the cloud's rendered stroke to the navigation icons.
+
+Acceptance: all product action buttons use the shared catalog Button adapter with
+translated accessible names and explanations; preserve disabled/pending behavior,
+form submission, confirmation and modal focus. Account status stays visible and
+separate from actions, including unknown/stale observations. Supplementary help
+and diagnostics use progressive disclosure; fields and explicit consent remain
+readable. Check desktop/mobile rendering, keyboard explanations, dialogs and
+notifications using disposable fixtures. Keep pinned vendor sources unchanged.
+Menu option labels remain readable choices inside the pinned menu; its trigger
+is an icon. No release, merge or installation is authorized by this task.
+
+Plan: shared action adapter and button inventory; account cards and compact
+admin details; shared logo and generated assets; build/type/regression and
+browser self-checking. The current task worktree owns fixture artifacts under
+ignored `.flow-runtime/admin-redesign/`; retain source for local review.
+
+Source implementation: Accounts and Overview reuse AccountCard. Add (+) and
+Refresh share the header; credential/session status uses catalog Tags independently
+of edit/session/removal icons. Missing observations remain unknown and refresh
+failures retain a visible stale-state notice. Statistics icons and numbers are
+both 16px. Module status and each enabled permission use Tags; the unchanged pinned
+Switch proposes the existing configuration dialog and preserves persisted policy
+until save. The icon rail is fixed with no inner scroll; short viewports hide only
+the decorative brand so navigation stays available.
+
+ActionButton consumes the unchanged catalog Button and Icon with translated
+accessible names, native hover explanations and keyboard-focus explanations.
+Legacy button recipes no longer override the catalog. The catalog has no critical
+Button variant: the shared adapter explicitly extends its face variables with
+existing critical semantic tokens, preserving disabled/loading and focus behavior.
+The existing project-owned Passkey glyph is preserved as the established
+non-catalog authentication icon; it is sized through the same control metrics.
+Language uses an icon trigger while menu options remain readable choices.
+Supplementary connection, reset and Home helper help and System diagnostics use
+disclosure. Consent and destructive impact/confirmation text remain visible.
+
+The cloud stroke is 13.333333 in its 256px viewBox: at 32px it matches the 20px
+navigation icon's stroke-2 recipe (1.666667px). SVG/PNG exports were regenerated.
+The unused legacy HomeKit string renderer is unreferenced by the application;
+active HomeKit uses Studio and the shared adapter.
+
+Self-checking: full application build and Studio/application type checks pass
+with zero Svelte warnings. Studio passes 23 tests including icon-only actions
+across admin/auth/credential/Photos routes; application passes 512 tests. The
+legacy auth assertion was updated to the catalog's secondary recipe, retaining
+its Passkey and denial semantics. Desktop Chrome fixtures visibly confirm account
+cards and matching density, and computed readback confirms icon-only named actions,
+16px statistics and fixed/visible-overflow rail. A switch opens the existing
+configuration dialog. The native discard confirmation blocks browser automation;
+cancellation outcome, mobile wrapping, final critical-color readback and modal/toast
+placement remain unverified. Source checks are not visual or installed acceptance.
+Local-only delivery: no push, PR, merge, release or installation is part of this
+request. The task checkout is retained. Recovery fixture, state and raw test/build
+logs remain in ignored `.flow-runtime/admin-redesign/` while browser verification
+awaits dismissal of the Chrome native confirmation. Flow reflection is deselected.

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ActionButton from "./ActionButton.svelte";
   import { getContext, onMount, tick, untrack } from "svelte";
   import type { Snippet } from "svelte";
   import type { UiCopy } from "../contracts.js";
@@ -71,13 +72,14 @@
 >
   <header>
     <h2 id={titleId}>{title}</h2>
-    <button
+    <ActionButton
       type="button"
       class="secondary icon-button"
-      aria-label={t("closeModal")}
       disabled={busy}
-      onclick={onclose}>×</button
-    >
+      onclick={onclose}
+      label={t("closeModal")}
+      icon="close"
+    />
   </header>
   <div class="modal-content">
     {#if toast && open}<Toaster

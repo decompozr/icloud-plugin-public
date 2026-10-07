@@ -1,4 +1,8 @@
 <script lang="ts">
+  import ActionButton from "./ActionButton.svelte";
+  import { getContext } from "svelte";
+  import type { UiCopy } from "../contracts.js";
+  const { t } = getContext<UiCopy>("copy");
   import Copy from "./Copy.svelte";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
   let { admin, model }: { admin: boolean; model?: AdminModel } = $props();
@@ -61,51 +65,60 @@
       disabled={model?.busy ?? true}
     /><small><Copy copyKey="passwordHelp" /></small>
     <div class="actions">
-      <button
+      <ActionButton
         id="save"
         class="primary"
         type="submit"
         disabled={!account || model?.busy}
-        ><Copy copyKey={admin ? "saveAdmin" : "save"} /></button
-      >{#if !admin}<button
+        label={t(admin ? "saveAdmin" : "save")}
+        icon="check"
+      />{#if !admin}<ActionButton
           type="button"
           class="secondary"
           data-back="1"
-          onclick={() => model?.step(1)}><Copy copyKey="back" /></button
-        >{/if}
+          onclick={() => model?.step(1)}
+          label={t("back")}
+          icon="arrow-right"
+        />{/if}
     </div>
   </form>
   {#if admin}<div class="section-divider">
       <h2><Copy copyKey="revokeTitle" /></h2>
       <p class="muted"><Copy copyKey="revokeIntro" /></p>
-      <button
+      <ActionButton
         id="revoke"
         class="danger"
         disabled={!account || model?.busy}
         onclick={() => {
           if (model) model.revokeAccount = model.selectedAccount;
-        }}><Copy copyKey="revoke" /></button
-      >
+        }}
+        label={t("revoke")}
+        icon="trash-2"
+      />
       <div id="revoke-confirm" hidden={!model?.revokeAccount} class="note">
         <p id="revoke-account">
           {account ? account.label + " · " + account.user : ""}
         </p>
         <p><Copy copyKey="revokeConfirm" /></p>
-        <button
+        <ActionButton
           id="revoke-yes"
           class="danger"
           disabled={model?.busy}
           onclick={() => {
             if (model) void model.run(() => model!.revoke(), "revoking");
-          }}><Copy copyKey="revokeYes" /></button
-        ><button
+          }}
+          label={t("revokeYes")}
+          icon="trash-2"
+        /><ActionButton
           id="revoke-cancel"
           class="secondary"
           disabled={model?.busy}
           onclick={() => {
             if (model) model.revokeAccount = "";
-          }}><Copy copyKey="cancel" /></button
-        >
+          }}
+          label={t("cancel")}
+          icon="close"
+        />
       </div>
     </div>{/if}
 </section>

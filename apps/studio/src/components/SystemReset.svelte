@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ActionButton from "./ActionButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { ToastCenter } from "../lib/ui-state.svelte.js";
@@ -92,15 +93,24 @@
 
 <section class="reset-section">
   <h2>{t("resetTitle")}</h2>
-  <p class="muted">{t("resetSummary")}</p>
+  <details>
+    <summary>{t("photosPermissionHelpShort")}</summary>
+    <p>{t("resetSummary")}</p>
+  </details>
   {#if available}<div class="actions">
-      <button
+      <ActionButton
         type="button"
         class="secondary"
-        onclick={() => open("connections")}>{t("resetConnections")}</button
-      ><button type="button" class="danger" onclick={() => open("factory")}
-        >{t("resetFactory")}</button
-      >
+        onclick={() => open("connections")}
+        label={t("resetConnections")}
+        icon="unplug"
+      /><ActionButton
+        type="button"
+        class="danger"
+        onclick={() => open("factory")}
+        label={t("resetFactory")}
+        icon="trash-2"
+      />
     </div>{:else}<p class="muted">{t("resetUnavailable")}</p>{/if}
 </section>
 <Modal
@@ -127,14 +137,21 @@
       disabled={busy}
     />
     <div class="actions">
-      <button
+      <ActionButton
         type="button"
         class="danger"
         disabled={busy || confirmation !== phrase}
-        onclick={() => void submit()}>{t("resetConfirm")}</button
-      ><button type="button" class="secondary" disabled={busy} onclick={close}
-        >{t("cancel")}</button
-      >
+        onclick={() => void submit()}
+        label={t("resetConfirm")}
+        icon="trash-2"
+      /><ActionButton
+        type="button"
+        class="secondary"
+        disabled={busy}
+        onclick={close}
+        label={t("cancel")}
+        icon="close"
+      />
     </div>{/if}</Modal
 >
 
