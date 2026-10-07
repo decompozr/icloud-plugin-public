@@ -171,3 +171,12 @@ Chrome fixture self-checking confirms all four badge color roles, bordered Revie
 no focused outline/shadow in the review dialog, and normal Review/Cancel interaction.
 The 390px viewport wraps badges and Review without horizontal overflow. Screenshots
 use synthetic accounts/grants; this does not establish physical iPhone acceptance.
+
+Release 0.1.86 deployed from clean verified remote main
+`6734ad43667dc08004957339817ec48b3ec8a859` after PR #106. Signed provenance,
+installed payload hashes, health/doctor and protected config/custody readbacks passed;
+owner/Home policy, binding and OAuth grants were unchanged. The actual authenticated
+Chrome Connections page also confirmed the four badge colors, bordered Review and
+no connection-list outline. No actual Review confirmation or grant update occurred.
+Private receipts/screenshots remain in `.flow-runtime/homekit-background/connection-visuals`.
+Physical iPhone checks remain unverified. HomeKit physical control stays disabled.
