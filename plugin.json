@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "icloud-plugin",
-  "version": "0.1.83",
+  "version": "0.1.84",
   "description": "Manage iCloud Mail, Calendar and Photos. Shared Album writes are unsupported.",
   "license": "MIT",
   "keywords": [

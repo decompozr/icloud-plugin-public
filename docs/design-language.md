@@ -2,6 +2,33 @@
 
 ## Current Surface design adoption (2026-10-06)
 
+Logo selection (2026-10-07): the owner selected the plain, plump cloud outline
+after rejecting modular-link, robot, tunnel and decorated-cloud concepts. Use
+one continuous olive outline with an empty interior, a larger right-hand lobe,
+smaller left shoulder and softly rounded ends. No eyes or other decoration.
+Scope is the shared Studio glyph and generated plugin assets.
+Acceptance is matching geometry across admin/auth and SVG/PNG exports, legibility
+at the existing 32px rail size, and passing Studio build/type checks. Preview
+renders are task-owned temporary artifacts. Deployment was subsequently requested
+to the existing native installation; release 0.1.84 preserves the 0.1.83 runtime
+features, settings and signed HomeKit helper, with 0.1.83 retained for rollback.
+
+The selected raster preview was rebuilt as a compact SVG path so small UI
+glyphs stay sharp. The inline glyph has no background fill; the downloadable
+PNG retains its white background.
+
+Selected-version self-checking: Studio build passes, Svelte reports zero errors
+or warnings, and the existing suite passes 12 tests / 1,158 assertions. Admin
+and auth SSR contain the shared cloud geometry. SVG and PNG exports match the
+source; the 256px PNG is 4,204 bytes. The 256px and 32px renders were visually
+inspected. Task-owned temporary build log and small preview were removed after
+recording these results. The committed task checkout is retained for review.
+The updated-main deployment candidate passes the repository checkpoint: type
+checks, build, 531 Studio/application/tooling tests and 11 HTTP E2E tests.
+Installation and live acceptance remain separate until the deployer records
+installed-version, payload, health and browser readbacks in the existing private
+runtime deployment records. No external-client acceptance is implied.
+
 Studio follows the owner-selected Surface design reference at
 `https://mac-mini.duckbill-ionian.ts.net:8463/workspace/surface/main/design/`.
 Observed controls use DecompozR Inter, 14px/20px body and field typography,
@@ -17,11 +44,11 @@ restrictions and origin/authorization checks remain intact. Browser verification
 now captures CSP console errors and checks computed styles, not only asset HTTP
 success. The prior inline-only style policy was reproduced blocking Kit CSS.
 
-The current project mark is an original olive, asymmetric rounded cloud agent on
-white. It shares the interface's Milk Green palette. Studio owns the inline glyph
-and generated SVG/PNG assets; regenerate with `bun run --cwd apps/studio render:brand`.
-Earlier modular-link and cloud/teal/i18next notes are historical and superseded.
-This is a project identity, not a legal trademark-clearance opinion.
+The selected cloud outline replaces the prior modular-link proposal. One source in Studio generates
+the inline glyph and 256px SVG/PNG download assets. Regenerate exports with
+`bun run --cwd apps/studio render:brand`. This is an original project mark, not a
+legal trademark-clearance opinion. Earlier cloud/teal/i18next sections below are
+historical and superseded by this adoption and the SvelteKit/Paraglide migration.
 
 ## Home connection and notification controls (0.1.83)
 
