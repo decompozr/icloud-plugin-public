@@ -19,3 +19,16 @@ signed helper before claiming current native acceptance.
 
 Offline production policy checks are under `apps/homekit-helper/tests/`; they
 compile Foundation-only Swift without launching HomeKit or requesting permission.
+
+Modern production subscription acceptance uses the official v2 client:
+
+```sh
+bun apps/e2e/native/homekit/subscriptions-listen.ts HTTPS_MCP_URL PRIVATE_OUTPUT
+```
+
+It requires fresh owner OAuth consent for `homekit.read`, uses an ephemeral loopback
+callback and keeps credentials only in memory. After the exact feed acknowledgment,
+the owner changes the previously approved Office Light through Apple Home or its
+physical switch, ON then OFF. The client reads exact-ID journal pages after each
+update signal and rejects foreign targets, session changes or gaps. It sends no
+physical writes and does not prove an agent host wakes a conversation.

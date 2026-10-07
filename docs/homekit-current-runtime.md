@@ -380,3 +380,26 @@ Direct read-only TCC database inspection remains unavailable under existing OS
 access; no permission expansion or system database edits were attempted. App-owned scene execution/enable, natural native/client
 push and sleep/logout/login/retention acceptance remain open; this does not mark
 the whole HomeKit roadmap complete. Shortcuts and graph service remain deferred.
+
+## Native modern MCP subscription milestone
+
+The owner selected natural HomeKit changes to MCP event subscription as the next
+production milestone, before scene/automation acceptance and without Nerve. The
+HTTP host adds the official SDK v2 modern `subscriptions/listen` path beside the
+existing legacy transport. Each stream owns a private event bus, exact verified
+owner/account/scopes, selected bound resource feeds, acknowledgment/correlation
+framing, and idempotent removal. Authorization is checked before publish and every
+30 seconds while idle, including Home unlink/source generation/policy boundaries.
+There are at most 32 streams and 32 resource URIs per stream; each ends after five
+minutes or 256 update signals. Clients explicitly reconnect and read the retained
+event page with its session/cursor, reporting gaps rather than fabricating continuity.
+
+Notification filters do not grant new access. Only already-consented Home reads
+are used; no controls, household automation changes, inferred presence, Nerve
+adapter or agent-wake behavior are added. Modern SDK wire checks and real loopback
+HTTP fixture events are source verification, not physical/native acceptance or
+Claude compatibility. A separate official-client acceptance script obtains fresh
+owner OAuth consent for `homekit.read` only, stores tokens only in memory, and waits
+for owner-generated Office Light ON/OFF observations through the deployed endpoint.
+No device write command exists in that script. Natural/provider push, existing
+production authorization and client delivery must pass before closing this milestone.

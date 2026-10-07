@@ -5,6 +5,8 @@ import type { OperationMonitor } from "../observability/operations.js";
 /** Owns only this application's listeners and sockets; never kills a process. */
 export class HttpLifecycle {
   private draining = false;
+  private readonly drainHandlers = new Set<()=>Promise<void>>();
+  onDrain(handler:()=>Promise<void>){this.drainHandlers.add(handler);return()=>this.drainHandlers.delete(handler);}
   private requests = 0;
   private tasks = 0;
   private sockets = new Map<Socket, number>();
@@ -73,6 +75,7 @@ export class HttpLifecycle {
   ): Promise<void> {
     this.draining = true;
     monitor.beginDrain();
+    await Promise.allSettled([...this.drainHandlers].map(handler=>handler()));
     const closed = servers.map(
       (server) => new Promise<void>((resolve) => server.close(() => resolve())),
     );
