@@ -316,3 +316,32 @@ the account/action/switch/logo, toast and fixed-shell changes. The integrated
 checkpoint passes Studio/application/tooling type checks and build, 550 unit tests
 and 11 HTTP E2E tests. Repository Actions has no configured workflows; remote CI is
 not claimed. The authorized deployment retains the prior release and signed helper.
+
+## Installed admin redesign 0.1.88
+
+PR #110 merged at `c77b1ae6e51296533e764db38e3d232e1eb1991e` and the clean,
+remote-verified main source produced the local 0.1.88 release. The shipped update
+command installed it at the existing native prefix and started the installed CLI.
+All 14,698 artifact files/symlinks match installed payload readback. The existing
+signed HomeKit helper was reused from its verified Release receipt because its
+source SHA256 matches main; no native authorization or configuration was changed.
+
+The running and installed system readbacks both report 0.1.88; health, private
+admin and protected system status return 200. Both linked compiled stylesheets
+return 200 and contain the fixed viewport/content-scroll shell, while the document
+contains the icon-action adapter and admin-only body scroll lock. This is actual
+installed HTTP acceptance, not computed-style or browser visual acceptance.
+All 13 doctor checks pass. Config/custody bytes and modes match before deployment;
+both databases pass integrity checks and owner, policy, bindings and client grants
+remain unchanged. Only runtime-owned OAuth resource/rate-limit tables changed on
+startup/readback. The 0.1.87 release and protected stopped backup remain usable for
+rollback. The archive SHA256 is
+`baa33819d8b562fabf0350e51cf48b8e0362687048bafdf804734dd39ba46b10`.
+
+Private deployment receipts are retained at the existing runtime's
+`deployments/admin-redesign-0.1.88/`; backup is
+`backups/pre-0.1.88-admin-redesign/`. Source verification passed 550 unit tests and
+11 HTTP E2E tests; GitHub Actions has no configured workflows, so remote CI is N/A.
+No browser is currently connected and Safari's native window lookup is unavailable:
+final installed scroll/spacing/toast visual acceptance, native discard cancellation,
+mobile dialogs/toast placement and physical iPhone acceptance remain unverified.
