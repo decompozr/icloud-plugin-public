@@ -151,3 +151,23 @@ node is removed on completion; static markers explicitly use no animation or
 transform. Disposable browser acceptance verifies both Photos checkmarks have
 zero animations before and after recheck, and the old loading node is disconnected.
 Chrome fixture evidence does not establish physical iOS Safari acceptance.
+
+## Connection action and permission color refinement
+
+The owner requested a distinct Review new capabilities button, no focus-ring visuals
+throughout this application, and different colors for granted actions. Review uses
+the pinned secondary Button's default bordered appearance inside its warning; other
+quiet actions retain their existing recipe. Shared application CSS suppresses focused
+outlines/shadows, including the programmatically focused connection-list container.
+Focus, keyboard navigation, dialog recovery and handlers remain operational.
+
+PermissionTag reuses the unmodified pinned Tag geometry and typography. The pinned
+Tag only exposes neutral/sage tones; additional semantic colors are an explicit
+consumer extension, not a vendor change: read uses informational blue, edit/definitions
+sage, outbound/schedule/share warm amber, and delete/control critical rose. The shared
+adapter consumes catalog semantic tokens; labels remain visible and authoritative.
+
+Chrome fixture self-checking confirms all four badge color roles, bordered Review,
+no focused outline/shadow in the review dialog, and normal Review/Cancel interaction.
+The 390px viewport wraps badges and Review without horizontal overflow. Screenshots
+use synthetic accounts/grants; this does not establish physical iPhone acceptance.
