@@ -531,3 +531,27 @@ Source, denial/revocation tests, signed clean-main build and local deployment pr
 owner policy activation and fresh client consent. Only then repeat the already
 owner-selected washroom ON → native Turn Off Third Floor sequence. No direct-write
 emulation is accepted as a native scene test.
+
+## Existing scene source deployed; fresh consent pending
+
+PR #128 merged as b31ba1b; signed clean-main 0.1.97 is installed. Native manifest
+`bc41a6dd69184a13c7a77ea40c770b29360d632bbc0a9e6ad02c30c196fbbb85` passes
+signature/source verification. Signed native inspection confirms the exact existing
+Turn Off Third Floor scene's nine supported actions can be previewed with the
+host authorization bit, and remain denied without it. This is read-only native
+acceptance, not OAuth or physical scene execution.
+
+41 host checks, 22 native policy/journal checks and 22 scene/provider checks pass;
+full builds/typechecks report zero Svelte errors/warnings. No PR CI checks were
+configured; checks are same-agent. Owner enrollment reconciles the same approved
+owner/account/Home/user and new pin, preserving client grants. Doctor and actual
+existing MCP control health pass. New scenes policy remains false; actual health
+reports sceneExecutionCapabilityEnabled/ConsentGranted/Enabled all false.
+
+The owner was given the concrete UI activation and connection capability-review
+steps. Do not enable policy or expand grants automatically. After those steps,
+perform the already requested two Master Washroom lights ON, then one native
+executeActionSet for Turn Off Third Floor, followed by its bounded action readback
+and independent target reads. Until then this milestone is deployed but physical
+scene acceptance remains open. Existing definitions and automation management
+permissions remain unchanged; no new physical writes occurred for this extension.
