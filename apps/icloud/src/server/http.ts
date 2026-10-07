@@ -112,7 +112,7 @@ export function createHttpApp(
           resource,
           principal.scopes,
           (operation) => lifecycle.track(operation),
-          { ownerId: principal.subject, accountId: principal.accountId },
+          { ownerId: principal.subject, accountId: principal.accountId, signal:request.signal, authorize:async()=>{const current=await verify(request.headers.get('authorization')??undefined);if(current.subject!==principal.subject||current.accountId!==principal.accountId||[...principal.scopes].some(s=>!current.scopes.has(s)))throw Error('Authorization changed');} },
           (tool) => evidence?.start(principal, tool),
         );
         const transport = new WebStandardStreamableHTTPServerTransport({

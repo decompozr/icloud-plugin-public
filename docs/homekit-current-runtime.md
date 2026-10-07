@@ -105,3 +105,65 @@ Private recovery: `.flow-runtime/homekit-background/ui-deployment/summary.json`,
 `pre-0.1.83`, `ui-release-builds/build-wvli_rj7/result.json`. Retain installed rollback
 releases and uncertain old experimental resources. No existing Home automation was
 changed. The incomplete acceptance gates above remain required.
+
+## Production control implementation plan (active)
+
+Owner: sole replacement native root, same assigned worktree, branch
+`implement-homekit-production-controls`. Existing publication, merge and signed
+local deployment authority persists; no physical acceptance target is authorized.
+
+1. Add a default-false configuration ceiling and migrated default-false owner
+   `control` policy. Declare independent `homekit.control` OAuth consent; preserve
+   existing read/definition policy and client grants on upgrade.
+2. Add exact-ID bounded prepare/apply/cancel/outcome contracts. Store reviewed
+   target/revision and intent before native dispatch; reserve each operation once
+   across reconnect/restart. Cancellation, revocation, expiry or changed binding
+   before dispatch denies execution; after possible dispatch retain unknown state.
+3. Extend the scoped signed helper mode with revision checks, metadata/type checks,
+   shared app-owned resource ledger, supported scene/trigger restrictions and
+   durable control outcomes. Unknown/mismatch results retain provider evidence and
+   never retry or imply physical completion. Read reconciliation adds observation
+   only; it cannot prove the original operation caused the observed state.
+4. Self-check with realistic denial, stale target, duplicate/concurrent apply,
+   crash-reservation, cancellation, revocation/re-enrollment and mismatch fixtures;
+   build/sign, publish/merge and deploy from verified clean remote main. Preserve
+   rollback/custody/grants and verify installed default-disabled controls/read health.
+
+Whole-task external gates remain fresh same-client consent/read/push, explicit
+owner-approved target/effect for physical control, and sleep/logout/login checks.
+No fixture or deployment health result closes those gates. Shortcuts and graph
+service remain deferred; unsupported/opaque trigger bodies stay explicit.
+
+### Control slice verification and upgrade boundary
+
+Implemented for 0.1.84 with signed helper v0.15: separate control consent and
+configuration/owner policy; exact-target reviewed plans; native revision, ownership
+and supported-definition restrictions; persistent once-only reservations; cancellation
+and final pre-dispatch authorization checks; original unknown/mismatch retention;
+read-only journal/current-target reconciliation. No control permission derives from
+definition-management permission. Existing household resources are not adopted by name.
+
+Self-checking: 546 combined application, Studio and tooling tests passed; application
+and tooling typechecks, full application build and Studio diagnostics passed (zero
+Svelte errors/warnings). Twenty exact Foundation-only production policy/journal checks
+passed, including retained mismatch, crash reservation, conflict, large streaming
+history and partial-journal denial. Signed Release v0.15 development build verified
+source SHA/embedded pin/team and closed its task window. Actual native read/preview
+accepted the exact approved characteristic, denied an unowned scene and found no
+operation reservation; control apply calls and physical writes were zero. Compiled
+shared-HTTP native reads, resource subscribe/unsubscribe and read-only reconnect passed
+with fixture principals; natural push and installed-client acceptance remain unverified.
+
+Private receipts: `control-development-builds/build-ejt_wpyu/result.json`,
+`control-read-preview-HCikHU/summary.json`, `m3-http-native-xk9Ppz/summary.json`, and
+`reincarnation-20261007/final-tests.log` beneath the ignored HomeKit evidence root.
+Review was same-agent self-review; no independent review is claimed.
+
+The upgrade stages the new helper but keeps the current enrolled v0.14 helper's
+immutable retained-release path and source pin for established read/definition use.
+Default-disabled controls, Home binding rows and OAuth grants remain unchanged.
+Explicit owner helper-pin/enrollment reconciliation is needed before v0.15 controls
+can be enabled, followed by fresh client consent and a concrete target/effect approval.
+This upgrade does not perform those actions. Retained v0.14 payloads remain valid
+for signed read/definition rollback. No sleep/logout/login or disk-deletion policy
+acceptance is claimed; histories and uncertain resources remain retained.

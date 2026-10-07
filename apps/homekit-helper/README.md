@@ -7,7 +7,7 @@ The helper has no public listener. macOS native Home authorization is separate f
 OAuth account/Home enrollment in the existing authenticated MCP.
 
 This is a development candidate, not an installed production release. Current
-protocol is v0.14.0. Signing configuration and the upstream license are preserved
+protocol is v0.15.0. Signing configuration and the upstream license are preserved
 in `native/`; task-branch artifacts must not be installed as production releases.
 
 ## Build
@@ -103,3 +103,28 @@ retained privately alongside the successful run. Build commands auto-close only
 their exact completed task Terminal windows.
 
 Production payload staging requires a successful Release configuration receipt; Debug builds remain local test artifacts. Local deployment uses the established Apple Development signing identity; no public Developer ID/notarization claim is made.
+
+
+Production controls use an explicit `--production-controls` flag together with the
+scoped lifecycle directory. The existing host separately requires configured
+`allow_control`, default-disabled owner `control` policy, `homekit.read` and fresh
+`homekit.control` client consent. None is inherited from `homekit.automations`.
+A prepare/apply plan binds exact IDs, current definition/metadata revision and
+persisted once-only operation identity. Scene execution is limited to owned,
+unreferenced user-defined scenes with at most 64 supported actions; enable-state
+control is limited to owned calendar/characteristic event triggers and their owned
+scenes. Opaque/predicate/timer/presence bodies and array/dictionary writes remain
+explicitly unsupported in this control slice. Definition ownership/reference
+protections remain in place.
+
+Host and native journals retain unknown/mismatch outcomes; reconnect never retries.
+Reconciliation reads the native operation receipt and current target observation
+separately without changing the original outcome or claiming causal physical
+completion. Journal replay streams 64 KiB chunks with 256 KiB record bounds, retains
+all history and fails closed on partial/corrupt records. Disk retention/deletion
+policy and sleep/logout/login acceptance remain unresolved production gates.
+
+The host continues accepting the signed, source-pinned v0.14 read/definition helper
+for upgrade/rollback. Production control requires v0.15. Existing Home enrollment
+pins and OAuth grants are preserved; moving enrollment to a new source pin requires
+explicit owner enrollment reconciliation and client consent, not automatic elevation.

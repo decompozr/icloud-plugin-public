@@ -53,6 +53,7 @@ export const scopeCopy: Record<string, string> = {
   "photos.write": "photosWrite",
   "photos.delete": "photosDelete",
   "homekit.read": "homekitRead",
+  "homekit.control": "homekitControl",
   "homekit.automations": "homekitAutomations",
 };
 export class AdminModel {

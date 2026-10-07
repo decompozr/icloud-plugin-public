@@ -17,7 +17,7 @@ def request(method,params):
    assert 'error' not in r,r
    return r['result']
 try:
- initial=request('initialize',{});assert initial['serverInfo']['version']=='0.14.0'
+ initial=request('initialize',{});assert initial['serverInfo']['version']=='0.15.0'
  for _ in range(50):
   r=request('tools/call',{'name':'homekit_status','arguments':{}});status=json.loads(r['content'][0]['text'])
   if status['ready'] and status['authorized']:break

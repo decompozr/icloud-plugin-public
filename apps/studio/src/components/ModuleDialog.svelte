@@ -118,7 +118,7 @@
           />
         </li>
         {#if id === "photos" && field.id === "delete"}<li class="muted">{t("photosDeleteHelp")}</li>{/if}
-        {#if "available" in field && field.available === false}<li class="muted">{t(id==='homekit'?'homekitAutomationDisabled':"photosCapabilityUnavailable")}</li>{/if}
+        {#if "available" in field && field.available === false}<li class="muted">{t(id==='homekit'?(field.id==='control'?'homekitControlDisabled':'homekitAutomationDisabled'):"photosCapabilityUnavailable")}</li>{/if}
         {:else}<li class="muted">{t("emptyValue")}</li>{/each}
     </ul>
   </section>
