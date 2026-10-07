@@ -30,3 +30,4 @@ test('composed Photos readiness stays separate from authorization and health',()
  expect(observedProviderRead('calendar',{calendar_list_calendars:now}).listedAt).toBe(now);
  expect(observedProviderRead('calendar',{calendar_list_calendars:now,calendar_query_events:now}).verifiedAt).toBe(now);
 });
+test('HomeKit inventory is catalog evidence; health is not a read; fresh characteristic read is separate',()=>{expect(observedProviderRead('homekit',{homekit_health:'2026-10-06T10:00:00Z'})).toEqual({verifiedAt:undefined,listedAt:undefined});expect(observedProviderRead('homekit',{homekit_automation_inventory:'2026-10-06T10:00:00Z'})).toEqual({verifiedAt:undefined,listedAt:'2026-10-06T10:00:00Z'});expect(observedProviderRead('homekit',{homekit_read:'2026-10-06T10:01:00Z'}).verifiedAt).toBe('2026-10-06T10:01:00Z');});

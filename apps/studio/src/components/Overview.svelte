@@ -14,7 +14,7 @@
     setup = false,
   }: { model: AdminModel; dialogs: DialogCenter; setup?: boolean } = $props();
   const { t } = getContext<UiCopy>("copy");
-  const moduleOrder:Record<string,number>={mail:0,calendar:1,photos:2};
+  const moduleOrder:Record<string,number>={mail:0,calendar:1,photos:2,homekit:3};
   const modules = $derived([
     { id: "mail", title: "Mail" },
     ...(model.state.modules ?? []).map((m) => ({

@@ -8,6 +8,7 @@ export interface TailscaleStatus { installed: boolean; authenticated: boolean; o
 export interface AppleCredential { user: string; appPassword: string }
 export interface AdminModule {id:string;title:string;fields:readonly {id:string;label:string;available?:boolean}[];capabilities():Record<string,boolean>;updateCapabilities(next:Record<string,boolean>,confirm:boolean):Promise<Record<string,boolean>>}
 export interface AdminOptions {
+ homekit?:{status():Promise<unknown>;enroll(input:unknown):Promise<unknown>;revoke(input:unknown):Promise<unknown>};
  photosCloud?:PhotosCloudAdmin;
  resetRuntime?:(mode:'connections'|'factory')=>string;
  resetStatus?:(id:string)=>{mode:'connections'|'factory';phase:string}|null;
@@ -51,12 +52,24 @@ export function createPrivateAdmin(options:AdminOptions) {
   const url=new URL(request.url),path=url.pathname;
   const views:Record<string,'overview'|'accounts'|'connections'|'system'>={'/':'overview','/icloud/admin':'overview','/icloud/admin/accounts':'accounts','/icloud/admin/connections':'connections','/icloud/admin/system':'system'};
   const moduleMatch=/^\/icloud\/admin\/modules\/([a-z]+)\/capabilities$/.exec(path);
+  const homekitAction=/^\/icloud\/admin\/homekit\/(status|enroll|revoke)$/.exec(path)?.[1];
   const cloudAction=/^\/icloud\/admin\/photos\/cloud\/(status|setup|login|verify|send-code|recheck|revoke)$/.exec(path)?.[1];
-  if(!cloudAction&&!moduleMatch&&!Object.hasOwn(views,path)&&!['/icloud/admin/reset','/icloud/admin/reset/status','/icloud/admin/system-status','/icloud/admin/accounts/add','/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/setup/complete','/icloud/admin/credential','/icloud/admin/revoke','/icloud/admin/status','/icloud/admin/capabilities','/icloud/admin/plugin.zip','/icloud/admin/photos/status','/icloud/admin/photos/action'].includes(path))return json({error:'NOT_FOUND'},404);
+  if(!homekitAction&&!cloudAction&&!moduleMatch&&!Object.hasOwn(views,path)&&!['/icloud/admin/reset','/icloud/admin/reset/status','/icloud/admin/system-status','/icloud/admin/accounts/add','/icloud/setup','/icloud/admin','/icloud/setup/status','/icloud/setup/complete','/icloud/admin/credential','/icloud/admin/revoke','/icloud/admin/status','/icloud/admin/capabilities','/icloud/admin/plugin.zip','/icloud/admin/photos/status','/icloud/admin/photos/action'].includes(path))return json({error:'NOT_FOUND'},404);
   try {
    if(path==='/icloud/admin/reset/status'){
     if(request.method!=='GET')return json({error:'METHOD_NOT_ALLOWED'},405);
     const value=options.resetStatus?.(url.searchParams.get('id')??'');return value?json(value):json({error:'NOT_FOUND'},404);
+   }
+   if(homekitAction){
+    const session=await options.ownerAuth.ownerSession(request.headers);
+    if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
+    if(!options.homekit)return json({error:'NOT_AVAILABLE'},404);
+    if(homekitAction==='status'&&request.method==='GET')return json(await options.homekit.status());
+    if(homekitAction==='status'||request.method!=='POST')return json({error:'METHOD_NOT_ALLOWED'},405);
+    if(request.headers.get('origin')!==options.privateOrigin)return json({error:'ORIGIN_DENIED'},403);
+    if(request.headers.get('content-type')?.split(';')[0]?.trim()!=='application/json')return json({error:'INVALID_INPUT'},400);
+    const input=await parseBody(request);
+    return json(await (homekitAction==='enroll'?options.homekit.enroll(input):options.homekit.revoke(input)));
    }
    if(cloudAction){
     const session=await options.ownerAuth.ownerSession(request.headers);
@@ -126,7 +139,7 @@ export function createPrivateAdmin(options:AdminOptions) {
      if(session.user.id!==options.store.ownerId())return json({error:'OWNER_REQUIRED'},403);
     }
     const status=await options.diagnostics();
-    const state:Parameters<typeof setupPage>[0]={resetAvailable:!!options.resetRuntime,photosCloudConfigured:!!options.photosCloud,photosConfigured:!!options.photosSetup,enrolled,ready:options.setupReady??ready(status),admin:Object.hasOwn(views,path),view:views[path]??'setup',...(url.searchParams.get('mode')==='account'?{mode:'account' as const}:{}),publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,localOwner:options.localOwner,connectionCommands:options.connectionCommands,presentation:options.presentation,modules:options.modules};
+    const state:Parameters<typeof setupPage>[0]={homekitConfigured:!!options.homekit,resetAvailable:!!options.resetRuntime,photosCloudConfigured:!!options.photosCloud,photosConfigured:!!options.photosSetup,enrolled,ready:options.setupReady??ready(status),admin:Object.hasOwn(views,path),view:views[path]??'setup',...(url.searchParams.get('mode')==='account'?{mode:'account' as const}:{}),publicMcpUrl:options.publicMcpUrl,pluginDownload:!!options.pluginArchive,localOwner:options.localOwner,connectionCommands:options.connectionCommands,presentation:options.presentation,modules:options.modules};
     if(options.renderPage)return options.renderPage(request,state);
     return new Response(setupPage(state),{headers:{...headers,'content-type':'text/html; charset=utf-8','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"}});
    }

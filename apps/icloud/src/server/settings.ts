@@ -9,6 +9,7 @@ const schema=z.object({
  host:z.enum(['127.0.0.1','::1','0.0.0.0']).default('127.0.0.1'),
  runtime_mode:z.enum(['native','container']).default('native'),
  photos:z.object({python:z.string().min(1),library:z.string().min(1),native_helper:z.string().min(1),web_python:z.string().min(1).optional(),allow_writes:z.boolean().default(false),allow_delete:z.boolean().default(false)}).strict().optional(),
+ homekit:z.object({python:z.string().min(1),native_app:z.string().min(1),source_sha256:z.string().regex(/^[a-f0-9]{64}$/),signing_team:z.string().regex(/^[A-Z0-9]{10}$/),allow_automations:z.boolean().default(false)}).strict().optional(),
  bootstrap_owner_login:z.string().min(1).max(320).optional(),
  private_proxy_address:z.string().ip().optional(),
  state_directory:z.string().min(1),master_key_file:z.string().min(1),installation_marker:z.string().min(1),
@@ -26,5 +27,6 @@ export function readSettings(path:string):AppSettings{
  if(result.tailscale_status_file)result.tailscale_status_file=resolve(dirname(path),result.tailscale_status_file);
  if(result.photos){if(result.runtime_mode!=='native')throw Error('Photos requires native macOS runtime');for(const field of ['python','library','native_helper'] as const)result.photos[field]=resolve(dirname(path),result.photos[field]);}
  if(result.photos?.web_python)result.photos.web_python=resolve(dirname(path),result.photos.web_python);
+ if(result.homekit){if(result.runtime_mode!=='native')throw Error('HomeKit requires native macOS runtime');for(const field of ['python','native_app'] as const)result.homekit[field]=resolve(dirname(path),result.homekit[field]);}
  return result;
 }

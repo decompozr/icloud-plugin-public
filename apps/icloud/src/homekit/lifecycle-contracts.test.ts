@@ -1,0 +1,16 @@
+import {expect,test} from 'bun:test';
+import {lifecycleMutationSchema} from './lifecycle-contracts.js';
+const id='00000000-0000-4000-8000-000000000001';
+const common={homeId:id,operationId:id};
+const exact={...common,kind:'automation',resourceId:id,expectedRevision:'a'.repeat(64)};
+const event={kind:'calendar',hour:8,minute:30,timeZone:'America/Toronto'};
+test('disabled standard creation supports allowlisted event shape',()=>{expect(lifecycleMutationSchema.parse({...common,action:'createAutomation',name:'Invented',events:[event]}).action).toBe('createAutomation');});
+test('predicate, arbitrary text and enabling are not executable input',()=>{for(const input of [{...common,action:'createAutomation',name:'Invented',events:[event],predicate:'true'},{...common,action:'createAutomation',name:'Invented',events:[{kind:'shortcut',text:'run anything'}]},{...exact,action:'enable',enabled:true},{...common,action:'executeScene',sceneId:id}])expect(()=>lifecycleMutationSchema.parse(input)).toThrow();});
+test('edits require exact UUID, expected revision and bounded schedule',()=>{for(const input of [{...exact,action:'rename',expectedRevision:'old',name:'Invented'},{...exact,action:'rename',resourceId:'same name',name:'Invented'},{...common,action:'createAutomation',name:'Invented',events:[{...event,hour:24}]},{...common,action:'createAutomation',name:'Invented',events:Array(17).fill(event)}])expect(()=>lifecycleMutationSchema.parse(input)).toThrow();});
+test('foreign principal fields and incompatible resource kind fail',()=>{expect(()=>lifecycleMutationSchema.parse({...exact,action:'delete',ownerId:'invented'})).toThrow();expect(()=>lifecycleMutationSchema.parse({...exact,kind:'scene',action:'updateEvents',events:[event]})).toThrow();});
+test('characteristic actions describe target values without issuing a device write',()=>{expect(lifecycleMutationSchema.parse({...exact,kind:'scene',action:'addAction',target:{accessoryId:id,serviceId:id,characteristicId:id},value:false}).action).toBe('addAction');});
+
+test('event initialization schema is allowed; native requires empty owned trigger, later edits require exact existing IDs',()=>{expect(lifecycleMutationSchema.parse({...exact,action:'updateEvents',events:[event]}).action).toBe('updateEvents');expect(lifecycleMutationSchema.parse({...exact,action:'updateEvents',events:[{...event,eventId:id}]}).action).toBe('updateEvents');});
+test('provider-relative clock requires explicit null timezone; injected calendar is rejected',()=>{expect(lifecycleMutationSchema.parse({...common,action:'createAutomation',name:'Invented',events:[{...event,timeZone:null}]}).action).toBe('createAutomation');expect(()=>lifecycleMutationSchema.parse({...common,action:'createAutomation',name:'Invented',events:[{...event,calendar:'gregorian'}]})).toThrow();});
+
+test('updating an action preserves exact membership and rejects retargeting or execution fields',()=>{const input={...exact,kind:'scene',action:'updateAction',actionId:id,value:true};expect(lifecycleMutationSchema.parse(input).action).toBe('updateAction');expect(()=>lifecycleMutationSchema.parse({...input,target:{accessoryId:id,serviceId:id,characteristicId:id}})).toThrow();expect(()=>lifecycleMutationSchema.parse({...input,execute:true})).toThrow();expect(()=>lifecycleMutationSchema.parse({...input,kind:'automation'})).toThrow();});

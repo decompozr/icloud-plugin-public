@@ -12,6 +12,7 @@ import type { ModuleRuntime } from "../modules/runtime.js";
 import type { Config } from "../config.js";
 import type { Principal } from "../auth/verify.js";
 import { createVerifier } from "../auth/verify.js";
+import {ResourceSessions} from './resource-sessions.js';
 import { createServer } from "../mcp/server.js";
 const reply = (body: unknown, status = 200, headers?: HeadersInit) =>
   Response.json(body, { status, headers });
@@ -31,6 +32,7 @@ export function createHttpApp(
   const resource = config.publicUrl,
     metadataPath = "/.well-known/oauth-protected-resource/icloud/mcp",
     metadataUrl = new URL(resource).origin + metadataPath;
+  const resourceSessions=new ResourceSessions(runtime,resource,verify,lifecycle,{},evidence);
   const principals = new WeakMap<IngressContext, Principal>();
   return new FetchListener({
     origin: new URL(resource).origin,
@@ -88,6 +90,9 @@ export function createHttpApp(
           { "cache-control": "no-store" },
         );
       if (path === "/icloud/mcp") {
+        const principal = principals.get(context);
+        if(!principal)return new Response(null,{status:401});
+        if(request.method!=="POST"){const response=await resourceSessions.handle(request,context,principal);if(response)return response;}
         if (request.method !== "POST")
           return new Response(null, {
             status: 405,
@@ -101,8 +106,7 @@ export function createHttpApp(
         );
         if (!parsed.success)
           return reply({ error: "Invalid MCP request" }, 400);
-        const principal = principals.get(context);
-        if (!principal) return new Response(null, { status: 401 });
+        const response=await resourceSessions.handle(request,context,principal,parsed.data);if(response)return response;
         const server = createServer(
           runtime,
           resource,
