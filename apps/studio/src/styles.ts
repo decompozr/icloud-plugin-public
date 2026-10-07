@@ -48,4 +48,6 @@ input:not([type=checkbox]):not([type=radio]),select{padding:.4375rem .5rem}
 .shell-nav .active-indicator{position:absolute;left:0;right:0;top:0;border-radius:4px;background:var(--ui-soft);border-left:2px solid var(--ui-focus);pointer-events:none;transition:top 180ms ease}
 @view-transition{navigation:none}@media(prefers-reduced-motion:reduce){.shell-nav .active-indicator{transition:none}}
 ${actionStyles}
+/* Preserve the existing owner-selected focus appearance policy. */
+*:focus,*:focus-visible,.permission-choice:has(input:focus-visible){outline:none!important;box-shadow:none!important}
 `;

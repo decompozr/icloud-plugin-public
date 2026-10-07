@@ -309,3 +309,10 @@ Chrome connections retained 7/12/3 badges and now show their applicable module
 labels in canonical order. Grants, binding and policies remained unchanged.
 Private screenshots and rollout receipts: `.flow-runtime/homekit-background/grouped-permissions`.
 The exact fixture server was stopped; the production page remains available.
+
+Release preparation: integrate the latest grouped Connections presentation without
+changing its permission colors or focus appearance policy. Version 0.1.88 includes
+the account/action/switch/logo, toast and fixed-shell changes. The integrated
+checkpoint passes Studio/application/tooling type checks and build, 550 unit tests
+and 11 HTTP E2E tests. Repository Actions has no configured workflows; remote CI is
+not claimed. The authorized deployment retains the prior release and signed helper.
