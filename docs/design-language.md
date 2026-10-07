@@ -152,6 +152,115 @@ transform. Disposable browser acceptance verifies both Photos checkmarks have
 zero animations before and after recheck, and the old loading node is disconnected.
 Chrome fixture evidence does not establish physical iOS Safari acceptance.
 
+## Compact admin actions and account cards (2026-10-07)
+
+Owner-requested scope: put Add (+) beside Refresh, group each account identity,
+credential/session status and actions in one card, replace application action
+buttons with catalog icons and hover explanations, reduce default admin prose,
+and match the cloud's rendered stroke to the navigation icons.
+
+Acceptance: all product action buttons use the shared catalog Button adapter with
+translated accessible names and explanations; preserve disabled/pending behavior,
+form submission, confirmation and modal focus. Account status stays visible and
+separate from actions, including unknown/stale observations. Supplementary help
+and diagnostics use progressive disclosure; fields and explicit consent remain
+readable. Check desktop/mobile rendering, keyboard explanations, dialogs and
+notifications using disposable fixtures. Keep pinned vendor sources unchanged.
+Menu option labels remain readable choices inside the pinned menu; its trigger
+is an icon. No release, merge or installation is authorized by this task.
+
+Plan: shared action adapter and button inventory; account cards and compact
+admin details; shared logo and generated assets; build/type/regression and
+browser self-checking. The current task worktree owns fixture artifacts under
+ignored `.flow-runtime/admin-redesign/`; retain source for local review.
+
+Source implementation: Accounts and Overview reuse AccountCard. Add (+) and
+Refresh share the header; credential/session status uses catalog Tags independently
+of edit/session/removal icons. Missing observations remain unknown and refresh
+failures retain a visible stale-state notice. Statistics icons and numbers are
+both 16px. Module status and each enabled permission use Tags; the unchanged pinned
+Switch proposes the existing configuration dialog and preserves persisted policy
+until save. The icon rail is fixed with no inner scroll; short viewports hide only
+the decorative brand so navigation stays available.
+
+ActionButton consumes the unchanged catalog Button and Icon with translated
+accessible names, native hover explanations and keyboard-focus explanations.
+Legacy button recipes no longer override the catalog. The catalog has no critical
+Button variant: the shared adapter explicitly extends its face variables with
+existing critical semantic tokens, preserving disabled/loading and focus behavior.
+The existing project-owned Passkey glyph is preserved as the established
+non-catalog authentication icon; it is sized through the same control metrics.
+Language uses an icon trigger while menu options remain readable choices.
+Supplementary connection, reset and Home helper help and System diagnostics use
+disclosure. Consent and destructive impact/confirmation text remain visible.
+
+The cloud stroke is 13.333333 in its 256px viewBox: at 32px it matches the 20px
+navigation icon's stroke-2 recipe (1.666667px). SVG/PNG exports were regenerated.
+The unused legacy HomeKit string renderer is unreferenced by the application;
+active HomeKit uses Studio and the shared adapter.
+
+Self-checking: full application build and Studio/application type checks pass
+with zero Svelte warnings. Studio passes 23 tests including icon-only actions
+across admin/auth/credential/Photos routes; application passes 512 tests. The
+legacy auth assertion was updated to the catalog's secondary recipe, retaining
+its Passkey and denial semantics. Desktop Chrome fixtures visibly confirm account
+cards and matching density, and computed readback confirms icon-only named actions,
+16px statistics and fixed/visible-overflow rail. A switch opens the existing
+configuration dialog. The native discard confirmation blocks browser automation;
+cancellation outcome, mobile wrapping, final critical-color readback and modal/toast
+placement remain unverified. Source checks are not visual or installed acceptance.
+Local-only delivery: no push, PR, merge, release or installation is part of this
+request. The task checkout is retained. Recovery fixture, state and raw test/build
+logs remain in ignored `.flow-runtime/admin-redesign/` while browser verification
+awaits dismissal of the Chrome native confirmation. Flow reflection is deselected.
+
+## Toast mouse drag completion (2026-10-07)
+
+Observed defect: SwipeToast waited for pointerup, so a mouse released outside the
+browser could leave a toast stranded mid-drag. Acceptance is dismissal completing
+without an in-window release once a mouse right-drag reaches the existing 64px
+threshold. Short/left/vertical drags stay reversible; touch/pen retain release-based
+completion. The adapter commits mouse dismissal during pointermove, fences other
+pointer IDs, settles lost capture and resets uncommitted drags on window blur.
+Catalog Toast remains unchanged, with existing exit/focus and reduced-motion handling.
+
+Toast self-checking: Studio build, typecheck (zero errors/warnings) and 25 tests
+pass. In the final compiled Chrome fixture, a 40px right-drag/release restores
+0px with the toast retained. An 80px drag removes the toast after its exit transition
+while the mouse button remains held and no pointerup has been sent; moving/releasing
+outside the 1238px viewport afterward does not strand a card. A subsequent blur/cancel
+cannot reset an already-committed exit. This is Chrome input/DOM evidence, not a
+physical Safari window-edge or iPhone acceptance claim. The production installation
+is unchanged. A screenshot of the empty notification area is retained under the
+chat's visualization artifacts as `toast-dismissed-before-release.png`.
+
+The restored browser fixture also verifies 390px width without horizontal overflow,
+fixed rail, 16px statistic glyphs/numbers and critical action color. Account identity
+now occupies a full mobile row above its actions to avoid narrow email wrapping.
+Earlier native discard-confirmation/cancellation checks and physical-device checks
+remain unverified. Task-owned preview processes are stopped after self-checking;
+raw logs are reconciled here and removed. The fixture script and task metadata remain
+for resuming those broader checks. No merge, publication or installation occurred.
+
+## Fixed admin shell and content scrolling (2026-10-07)
+
+The owner clarified that document/body scrolling and the large centered-content
+gap are defects. Normalize admin layout ownership: fixed viewport-sized main,
+a non-scrolling rail within that shell, and one scrollable content pane. Remove
+the 60rem centered width and consume available space beside the rail using pinned
+spacing/control metrics. Root/body overflow rules apply only to the admin/setup
+shell; auth pages retain normal document scrolling. Acceptance: document scroll
+stays zero while the content pane scrolls; rail bounds remain stable; the content
+starts one catalog gap after the rail; desktop/mobile have no horizontal overflow.
+
+Shell source self-checking: Studio build/typecheck pass with zero Svelte warnings;
+25 tests pass. Explicit `minmax(0,1fr)` row sizing bounds the scrolling pane, safe-area
+insets preserve the rail controls, and shallow navigation resets the pane to its top.
+Current live visual acceptance is unavailable: CUA lists no connected browsers and
+Safari reports `cgWindowNotFound`. The screenshot's 0.1.87 legacy controls
+are not evidence of this task branch being installed. Do not claim the fixed shell
+has been deployed or visually accepted. Local changes remain reviewable on the task
+branch, pending browser acceptance and separate merge/install authorization.
 ## Connection action and permission color refinement
 
 The owner requested a distinct Review new capabilities button, no focus-ring visuals
@@ -206,3 +315,39 @@ Home module settings use a short readiness status and one connection-consent foo
 The embedded dialog omits the helper/Dock implementation note and duplicate linking
 explanation. Standalone linking retains its brief no-device/no-permission-change
 notice. Explicit unchecked Home-link approval and all handlers remain unchanged.
+
+Release preparation: integrate the latest grouped Connections presentation without
+changing its permission colors or focus appearance policy. Version 0.1.88 includes
+the account/action/switch/logo, toast and fixed-shell changes. The integrated
+checkpoint passes Studio/application/tooling type checks and build, 550 unit tests
+and 11 HTTP E2E tests. Repository Actions has no configured workflows; remote CI is
+not claimed. The authorized deployment retains the prior release and signed helper.
+
+## Installed admin redesign 0.1.88
+
+PR #110 merged at `c77b1ae6e51296533e764db38e3d232e1eb1991e` and the clean,
+remote-verified main source produced the local 0.1.88 release. The shipped update
+command installed it at the existing native prefix and started the installed CLI.
+All 14,698 artifact files/symlinks match installed payload readback. The existing
+signed HomeKit helper was reused from its verified Release receipt because its
+source SHA256 matches main; no native authorization or configuration was changed.
+
+The running and installed system readbacks both report 0.1.88; health, private
+admin and protected system status return 200. Both linked compiled stylesheets
+return 200 and contain the fixed viewport/content-scroll shell, while the document
+contains the icon-action adapter and admin-only body scroll lock. This is actual
+installed HTTP acceptance, not computed-style or browser visual acceptance.
+All 13 doctor checks pass. Config/custody bytes and modes match before deployment;
+both databases pass integrity checks and owner, policy, bindings and client grants
+remain unchanged. Only runtime-owned OAuth resource/rate-limit tables changed on
+startup/readback. The 0.1.87 release and protected stopped backup remain usable for
+rollback. The archive SHA256 is
+`baa33819d8b562fabf0350e51cf48b8e0362687048bafdf804734dd39ba46b10`.
+
+Private deployment receipts are retained at the existing runtime's
+`deployments/admin-redesign-0.1.88/`; backup is
+`backups/pre-0.1.88-admin-redesign/`. Source verification passed 550 unit tests and
+11 HTTP E2E tests; GitHub Actions has no configured workflows, so remote CI is N/A.
+No browser is currently connected and Safari's native window lookup is unavailable:
+final installed scroll/spacing/toast visual acceptance, native discard cancellation,
+mobile dialogs/toast placement and physical iPhone acceptance remain unverified.

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Button from "../lib/design-system/Button.svelte";
+  import ActionButton from "./ActionButton.svelte";
   import PermissionTag from "./PermissionTag.svelte";
   import { permissionGroups } from "../lib/permission-groups.js";
   import { typographyStyle } from "../lib/design-system/typography.js";
@@ -50,19 +50,23 @@
 {#snippet action(
   clientId: string,
   kind: "upgrade" | "revoke" | "remove",
-)}<Button
+)}<ActionButton
     variant="secondary"
-    appearance={kind === "upgrade" ? "default" : "quiet"}
     disabled={model.busy}
     onclick={() => void model.run(() => model.preview(clientId, kind))}
-    >{t(
+    label={t(
       kind === "upgrade"
         ? "reviewCapabilities"
         : kind === "revoke"
           ? "revokeConnection"
           : "removeConnection",
-    )}</Button
-  >{/snippet}
+    )}
+    icon={kind === "upgrade"
+      ? "search"
+      : kind === "revoke"
+        ? "unplug"
+        : "trash-2"}
+  />{/snippet}
 {#if view === "overview"}
   {#if !model.checkedAt}<p>{t("statusLoading")}</p>{/if}
   {@render line(
@@ -117,25 +121,33 @@
     model.checkedAt,
   )}
 {:else if view === "accounts"}
-  {#each model.dashboard?.accounts ?? [] as account (account.id)}<p
+  {#each model.dashboard?.accounts ?? [] as account (account.id)}<article
       role="listitem"
     >
-      <button
-        type="button"
-        class="secondary account-choice"
-        data-account-id={account.id}
-        aria-pressed={model.selectedAccount === account.id}
-        disabled={model.busy}
-        onclick={() => model.chooseAccount(account.id)}
-        >{account.label === account.user
-          ? account.user
-          : account.label + " · " + account.user}<span class="account-address"
-          >{t(
-            account.credentialStored ? "credentialSaved" : "credentialMissing",
-          )}</span
-        ><span class="account-address">Mail · Calendar</span></button
-      >
-    </p>{/each}
+      <div class="account-selection">
+        <div class="account-identity">
+          {account.label === account.user
+            ? account.user
+            : account.label + " · " + account.user}<span class="account-address"
+            >{t(
+              account.credentialStored
+                ? "credentialSaved"
+                : "credentialMissing",
+            )}</span
+          ><span class="account-address">Mail · Calendar</span>
+        </div>
+        <ActionButton
+          type="button"
+          class="secondary"
+          data-account-id={account.id}
+          aria-pressed={model.selectedAccount === account.id}
+          disabled={model.busy}
+          onclick={() => model.chooseAccount(account.id)}
+          icon="arrow-right"
+          label={t("connectionAccount") + ": " + account.user}
+        />
+      </div>
+    </article>{/each}
 {:else if view === "accountDetails"}
   {#if model.dashboard?.accounts.find((a) => a.id === model.selectedAccount)}{@const account =
       model.dashboard.accounts.find(
@@ -272,79 +284,85 @@
   {#if !model.system}{@render line(
       "systemTitle",
       t("unavailable"),
-    )}{:else}{@const s = model.system}{@render snapshot(
-      model.systemStale,
-      s.checkedAt,
-    )}{@render line(
-      "serverProcess",
-      t("running") +
-        " · PID " +
-        s.process.pid +
-        " · " +
-        s.process.uptimeSeconds +
-        "s",
-    )}{@render line(
+    )}{:else}{@const s = model.system}{@render line(
       "runningVersion",
       s.process.version ?? t("unknownValue"),
-    )}{@render line("runtimeVersion", s.process.runtime)}{@render line(
-      "installedVersion",
-      s.installed.version ?? t("unknownValue"),
     )}
-    {#if s.locations}<div class="system-path">
-        <strong>{t("runtimeFolder")}:</strong><code
-          title={s.locations.runtimeDirectory}
-          >{s.locations.runtimeDirectory}</code
-        ><CopyButton
-          value={s.locations.runtimeDirectory}
-          label={t("copyRuntimeFolder")}
-        />
-      </div>
-      <div class="system-path">
-        <strong>{t("installationFolder")}:</strong><code
-          title={s.locations.installationDirectory ?? undefined}
-          >{s.locations.installationDirectory ?? t("unknownValue")}</code
-        ><CopyButton
-          value={s.locations.installationDirectory ?? undefined}
-          label={t("copyValue")}
-        />
-      </div>{/if}
-    {#each ["installed", "authenticated", "online", "privateReachable"] as key}{@render line(
-        key,
-        t(
-          s.connectivity[key as keyof typeof s.connectivity] === true
-            ? "verifiedValue"
-            : "notVerifiedValue",
-        ),
-      )}{/each}
-    {#each ["public", "private"] as kind}{@const exposure =
-        s.exposure[kind as "public" | "private"]}
-      <article>
-        <h3>{t(kind === "public" ? "publicExposure" : "privateExposure")}</h3>
-        {@render line("originLabel", exposure.origin)}{@render line(
-          "funnelConfig",
+    <details>
+      <summary>{t("systemDiagnosticsShort")}</summary>{@render snapshot(
+        model.systemStale,
+        s.checkedAt,
+      )}{@render line(
+        "serverProcess",
+        t("running") +
+          " · PID " +
+          s.process.pid +
+          " · " +
+          s.process.uptimeSeconds +
+          "s",
+      )}{@render line(
+        "runningVersion",
+        s.process.version ?? t("unknownValue"),
+      )}{@render line("runtimeVersion", s.process.runtime)}{@render line(
+        "installedVersion",
+        s.installed.version ?? t("unknownValue"),
+      )}
+      {#if s.locations}<div class="system-path">
+          <strong>{t("runtimeFolder")}:</strong><code
+            title={s.locations.runtimeDirectory}
+            >{s.locations.runtimeDirectory}</code
+          ><CopyButton
+            value={s.locations.runtimeDirectory}
+            label={t("copyRuntimeFolder")}
+          />
+        </div>
+        <div class="system-path">
+          <strong>{t("installationFolder")}:</strong><code
+            title={s.locations.installationDirectory ?? undefined}
+            >{s.locations.installationDirectory ?? t("unknownValue")}</code
+          ><CopyButton
+            value={s.locations.installationDirectory ?? undefined}
+            label={t("copyValue")}
+          />
+        </div>{/if}
+      {#each ["installed", "authenticated", "online", "privateReachable"] as key}{@render line(
+          key,
           t(
-            exposure.funnelAllowed === null
-              ? "unknownValue"
-              : exposure.funnelAllowed
-                ? "allowedValue"
-                : "notAllowedValue",
+            s.connectivity[key as keyof typeof s.connectivity] === true
+              ? "verifiedValue"
+              : "notVerifiedValue",
           ),
-        )}{#each exposure.routes as route}<p>
-            <strong>{route.path}: </strong>{t(
-              route.mapped === null
+        )}{/each}
+      {#each ["public", "private"] as kind}{@const exposure =
+          s.exposure[kind as "public" | "private"]}
+        <article>
+          <h3>{t(kind === "public" ? "publicExposure" : "privateExposure")}</h3>
+          {@render line("originLabel", exposure.origin)}{@render line(
+            "funnelConfig",
+            t(
+              exposure.funnelAllowed === null
                 ? "unknownValue"
-                : route.mapped
-                  ? "mappedValue"
-                  : "notMappedValue",
-            )}
-          </p>{/each}
-      </article>{/each}
-    {@render line("externalReachability", t("externalUnknown"))}{@render line(
-      "supervision",
-      s.supervision.state === "verified"
-        ? s.supervision.label + " · " + t("verifiedValue")
-        : t("supervisionUnknown"),
-    )}{@render line("limitedLogs", t("logsUnavailable"))}{/if}
+                : exposure.funnelAllowed
+                  ? "allowedValue"
+                  : "notAllowedValue",
+            ),
+          )}{#each exposure.routes as route}<p>
+              <strong>{route.path}: </strong>{t(
+                route.mapped === null
+                  ? "unknownValue"
+                  : route.mapped
+                    ? "mappedValue"
+                    : "notMappedValue",
+              )}
+            </p>{/each}
+        </article>{/each}
+      {@render line("externalReachability", t("externalUnknown"))}{@render line(
+        "supervision",
+        s.supervision.state === "verified"
+          ? s.supervision.label + " · " + t("verifiedValue")
+          : t("supervisionUnknown"),
+      )}{@render line("limitedLogs", t("logsUnavailable"))}
+    </details>{/if}
 {/if}
 
 <style>

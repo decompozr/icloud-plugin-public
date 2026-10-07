@@ -20,18 +20,27 @@
   ]);
 </script>
 
-<div class="language-menu" class:rail role="group" aria-label={t("language")}>
-  <Menu
-    label={locale?.current === "zh-TW" ? "繁中" : "EN"}
-    {items}
-    compact
-  />
+<div
+  class="language-menu"
+  class:rail
+  role="group"
+  aria-label={t("language")}
+  title={t("language")}
+>
+  <Menu label={t("language")} icon="message-square" {items} compact />
 </div>
 
 <style>
-  .rail { margin: .5rem 0 0; width: 44px; }
-  .rail :global(.trigger) { width: 44px; height: 44px; padding: 0; border: 0; }
-  .rail :global(.trigger > svg) { display: none; }
+  .rail {
+    margin: 0.5rem 0 0;
+    width: 44px;
+  }
+  .rail :global(.trigger) {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+  }
   .language-menu {
     margin-left: auto;
     flex: none;

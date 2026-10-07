@@ -533,5 +533,6 @@
   "homekitControlDisabled": "實體控制已由執行設定停用。啟用須另行取得擁有者核准及新的用戶端同意。",
   "homekitControl": "控制裝置及本 app 擁有的場景／自動化",
   "homekitRead": "讀取 Home",
-  "homekitAutomations": "管理場景與停用自動化"
+  "homekitAutomations": "管理場景與停用自動化",
+  "systemDiagnosticsShort": "診斷資訊"
 }

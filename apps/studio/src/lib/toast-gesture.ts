@@ -6,3 +6,7 @@ export function toastDrag(dx: number, dy: number) {
 export function toastDismissed(offset: number) {
   return offset >= 64;
 }
+/** Mouse dismissal commits before release so leaving the window cannot strand it. */
+export function toastDragCommitted(offset: number, pointerType: string) {
+  return pointerType === "mouse" && toastDismissed(offset);
+}
