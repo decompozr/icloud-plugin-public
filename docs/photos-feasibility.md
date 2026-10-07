@@ -1,5 +1,7 @@
 # Photos preparation: bounded metadata experiment
 
+> Historical experiment commands and `playground/` paths below are retained as dated evidence. The prototypes were retired on 2026-10-07; use [current replacements and source history](research/retired-prototypes.md).
+
 > **2026-10-04 closeout:** Experiments are closed. See [Photos capability plan](photos-capability-plan.md) for the authoritative current evidence, accepted local provider architecture, comparison limits and implementation phases. Older checkpoints below are historical.
 
 Current direction: direct HTTP access to iCloud Photos, without browser automation

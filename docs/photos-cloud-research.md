@@ -1,5 +1,7 @@
 # Direct HTTP iCloud Photos: upstream research
 
+> Historical experiment commands and `playground/` paths below are retained as dated evidence. The prototypes were retired on 2026-10-07; use [current replacements and source history](research/retired-prototypes.md).
+
 > **2026-10-04 closeout:** Experiments are closed. See [Photos capability plan](photos-capability-plan.md) for the authoritative current evidence, accepted local provider architecture, comparison limits and implementation phases. Older checkpoints below are historical.
 
 Research date: 2026-10-03. Source inspection, offline cloud-record experiments
@@ -345,7 +347,7 @@ is an architectural recommendation, not an implementation or performance benchma
 
 ## Executed cloud-record decoder experiment
 
-The [isolated cloud decoder](../playground/photos/README.md) accepts synthetic
+The [isolated cloud decoder](research/prototype-archive/photos.md) accepts synthetic
 `CPLAsset` fields, preserves cloud database/zone/asset identity and decodes
 `captionEnc`, `keywordsEnc` and `locationEnc` using the source-backed formats.
 The first version delegated plist parsing to a small Python standard-library
@@ -390,7 +392,7 @@ read in one process. Default output contains aggregate evidence; explicit
 IDs and scopes for local selection, followed by `--album-id` to read members.
 Credentials, cookies and signed URLs are never printed or persisted. No actual
 account login or cloud response has yet been obtained, and the overall goal
-remains unfinished. See the [probe commands and limits](../playground/photos/README.md#direct-http-bun-probe).
+remains unfinished. See the [probe commands and limits](research/prototype-archive/photos.md#direct-http-bun-probe).
 
 ## Remaining acceptance and staged scope
 

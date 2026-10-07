@@ -18,7 +18,7 @@ The client export and installed runtime plugin template include both
 module, disabled by default; packaging its guidance does not enable its scopes.
 Both skills use the same configured MCP endpoint. Exports contain only the
 manifest, these skills, the configured MCP connection, icon and license notices;
-playground experiments, credentials, state and recovery ledgers are excluded.
+research archives, test-only tools, credentials, state and recovery ledgers are excluded.
 
 Install/update switch local versioned releases while preserving state, custody
 and owner policy outside those releases. Uninstall removes only the marked
@@ -35,5 +35,5 @@ assembled Calendar registration exposed no tools with disabled policy and
 independently exposed read, write, scheduling and sharing tools as enabled.
 Temporary install/update/uninstall/reinstall preserved dummy owner state,
 credential and policy bytes. Release contents included Calendar runtime and
-both skills, excluding playground and test modules. No real connection or runtime
+both skills, excluding research archives and test modules. No real connection or runtime
 was installed. These checks establish packaging, not live provider acceptance.
