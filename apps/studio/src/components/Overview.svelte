@@ -1,19 +1,19 @@
 <script lang="ts">
-  import AccountCard from "./AccountCard.svelte";
-  import ModuleSwitch from "./ModuleSwitch.svelte";
-  import Tag from "../lib/design-system/Tag.svelte";
+  import AccountCard from "../../../../modules/account/ui/AccountCard.svelte";
+  import ModuleSwitch from "../../../../packages/ui/src/components/ModuleSwitch.svelte";
+  import Tag from "../../../../packages/ui/src/design-system/Tag.svelte";
   import { scopeCopy } from "../lib/admin-model.svelte.js";
-  import { controlMetrics } from "../lib/design-system/controlMetrics.js";
-  import { spacing } from "../lib/design-system/spacing.js";
-  import ActionButton from "./ActionButton.svelte";
+  import { controlMetrics } from "../../../../packages/ui/src/design-system/controlMetrics.js";
+  import { spacing } from "../../../../packages/ui/src/design-system/spacing.js";
+  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
   import type { DialogCenter } from "../lib/ui-state.svelte.js";
-  import CopyButton from "./CopyButton.svelte";
-  import RefreshButton from "./RefreshButton.svelte";
-  import Skeleton from "./Skeleton.svelte";
-  import DesignIcon from "./DesignIcon.svelte";
+  import CopyButton from "../../../../packages/ui/src/components/CopyButton.svelte";
+  import RefreshButton from "../../../../packages/ui/src/components/RefreshButton.svelte";
+  import Skeleton from "../../../../packages/ui/src/components/Skeleton.svelte";
+  import DesignIcon from "../../../../packages/ui/src/components/DesignIcon.svelte";
   let {
     model,
     dialogs,
@@ -173,9 +173,11 @@
       </div>
       <div class="account-list" role="list">
         {#each model.dashboard?.accounts ?? [] as account (account.id)}<AccountCard
-            {account}
-            {model}
-            {dialogs}
+            {account} {dialogs}
+            busy={model.busy}
+            sessionPhase={model.webSessions[account.id]?.phase}
+            sessionAvailable={!!model.state.photosCloudConfigured}
+            onrevoke={(id)=>{model.revokeAccount=id}}
           />{/each}
       </div>
       {#if model.dashboard && !model.dashboard.accounts.length}<p class="muted">

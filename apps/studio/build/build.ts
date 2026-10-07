@@ -1,4 +1,4 @@
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, rm, cp } from "node:fs/promises";
 import { join } from "node:path";
 import { svelteServerPlugin } from "./svelte-plugin.js";
 const root = join(import.meta.dir, ".."),
@@ -30,9 +30,9 @@ const types = Bun.spawn(
     "--declaration",
     "--emitDeclarationOnly",
     "--outDir",
-    dist,
+    join(dist,"types"),
     "--rootDir",
-    join(root, "src"),
+    join(root, "../.."),
     "--target",
     "ES2022",
     "--module",
@@ -47,6 +47,18 @@ const types = Bun.spawn(
   { stdout: "inherit", stderr: "inherit" },
 );
 if ((await types.exited) !== 0) throw Error("Studio declaration build failed");
+await cp(join(dist,"types/apps/studio/src"),dist,{recursive:true});
+// Keep public declarations portable; shared type-only contracts are embedded.
+const contractsPath=join(dist,'contracts.d.ts');
+const contracts=(await Bun.file(contractsPath).text()).replace(/export type \{[^}]+\} from ["'][^"']*packages\/ui\/src\/contracts\.js["'];\n/g,'');
+const sharedTypes=await Bun.file(join(root,'../../packages/ui/src/contracts.d.ts')).text();
+const publicTypes=sharedTypes.slice(sharedTypes.indexOf('export interface UiCopy'),sharedTypes.indexOf('export interface ModuleRequirementsProps'));
+await Bun.write(contractsPath,publicTypes+'\n'+contracts);
+await mkdir(join(dist,'shared'),{recursive:true});
+await cp(join(dist,'types/packages/ui/src/branding.d.ts'),join(dist,'shared/branding.d.ts'));
+const indexPath=join(dist,'index.d.ts');
+await Bun.write(indexPath,(await Bun.file(indexPath).text()).replace('../../../packages/ui/src/branding.js','./shared/branding.js'));
+await rm(join(dist,"types"),{recursive:true,force:true});
 const adminKeys = Object.keys(
   await Bun.file(join(root, "messages/en.json")).json(),
 ).filter((key) => key !== "$schema" && !key.startsWith("auth_"));

@@ -147,3 +147,21 @@ own package. Existing locked dependency versions were retained.
 Container build definitions now install the app and tooling separately. Linux
 execution was not rerun: the local Apple Container API server was not running or
 registered with launchd. Historical Linux checks do not validate this new layout.
+
+## Flow task runtime
+
+Agent task records, raw logs, fixture screenshots and candidate artifacts use the
+project-relative ignored `.decompozr/flow/run/`. This is development workflow state,
+not the installed service's configuration, account database or key custody.
+
+Top-level task JSON files are compact checkpoints: goal/phase, accepted decisions,
+verification, PR/source/deployment references and next step. Completed records are
+history, not live runtime/version reports. Temporary signed-build receipts record
+verified source/signature and artifact paths; nested package/artifact JSON belongs
+to build outputs. None replaces the installed service's protected `runtime/`.
+
+The active checkout's legacy directory was moved after its writers completed; the
+byte-preserving move was checked before task-reference reconciliation. Retain
+uncertain state in other checkouts rather than sweeping shared directories. Raw
+task artifacts are removed after outcomes are preserved in source docs and upgrade
+receipts; compact checkpoints remain for the next migration phase.

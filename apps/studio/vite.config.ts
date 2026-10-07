@@ -3,6 +3,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import adapter from "@sveltejs/adapter-node";
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
 export default defineConfig({
+  resolve:{dedupe:["svelte"]},
   plugins: [
     paraglideVitePlugin({
       project: "./project.inlang",

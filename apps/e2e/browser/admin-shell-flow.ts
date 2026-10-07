@@ -43,7 +43,7 @@ try {
     });
   });
   await page.goto(origin + "/icloud/admin");
-  await page.getByTestId("accounts-card").locator(".account").waitFor();
+  await page.getByTestId("accounts-card").locator("[data-account-id]").waitFor();
   await page.evaluate(() => {
     (window as any).rail = document.querySelector(".shell-nav");
     (window as any).doc = document;
@@ -51,7 +51,7 @@ try {
   assert(
     JSON.stringify(
       await page.locator(".module-summary h3").allTextContents(),
-    ) === JSON.stringify(["Mail", "Calendar", "Photos"]),
+    ) === JSON.stringify(["Mail", "Calendar", "Photos", "Apple Home"]),
     "Module order",
   );
   const s = await page.getByTestId("service-card").boundingBox(),

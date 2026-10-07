@@ -2,8 +2,11 @@
 
 Server-only owner identity, Passkey/OAuth handlers, account selection and client
 authorization management, local-owner proof/pairing and encrypted credential/session
-storage. There are no Svelte components, browser code or application/UI imports.
-The public interface is `src/index.ts`; built consumers use `dist/index.js`.
+storage. The backend entry has no Svelte components, browser code or application/UI imports.
+Feature components and browser protocol/dialog state live in the separate `ui/`
+package; they never import the backend entry.
+The backend public interface is `src/index.ts`; built consumers use `dist/index.js`.
+The UI entry is `ui/index.ts`; universal schemas live in `packages/contracts`.
 
 The caller supplies SQLite, owner lookup, configured origins/scopes, proof checks
 and credential-validation callbacks. It owns provisioning, listener selection,

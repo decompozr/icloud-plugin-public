@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { toastDrag, toastDismissed, toastDragCommitted } from "./toast-gesture.js";
+import { toastDrag, toastDismissed, toastDragCommitted } from "../../../../packages/ui/src/toast-gesture.js";
 test("right swipe dismisses while left swipe and vertical history scrolling do not", () => {
   expect(toastDismissed(toastDrag(80, 5).offset)).toBe(true);
   expect(toastDismissed(toastDrag(-100, 0).offset)).toBe(false);

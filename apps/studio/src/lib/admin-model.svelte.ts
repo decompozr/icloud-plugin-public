@@ -10,8 +10,8 @@ import {
   type RecoveryClient,
   type AuthorizedConnection,
   type ClientImpact,
-} from "../../../icloud/src/admin/readiness.js";
-import { registerOwner } from "./auth-protocol.js";
+} from "../../../../packages/contracts/dist/index.js";
+import { registerOwner } from "../../../../modules/account/ui/auth-protocol.js";
 import type { ToastCenter } from "./ui-state.svelte.js";
 import { connectionNeedsReview } from "./connection-warnings.js";
 import { createConnectionsService } from "./connections-service.js";
@@ -40,22 +40,7 @@ const errors: Record<string, string> = {
   CREDENTIAL_STATE_CHANGED: "credentialChanged",
   SETUP_AUTHORIZATION_REQUIRED: "sessionExpired",
 };
-export const scopeCopy: Record<string, string> = {
-  "mail.read": "capabilityRead",
-  "mail.write": "capabilityWrite",
-  "mail.send": "capabilitySend",
-  "mail.unsubscribe": "capabilityUnsubscribe",
-  "calendar.read": "calendarRead",
-  "calendar.write": "calendarWrite",
-  "calendar.schedule": "calendarSchedule",
-  "calendar.share": "calendarShare",
-  "photos.read": "photosRead",
-  "photos.write": "photosWrite",
-  "photos.delete": "photosDelete",
-  "homekit.read": "homekitRead",
-  "homekit.control": "homekitControl",
-  "homekit.automations": "homekitAutomations",
-};
+export {scopeCopy} from './bundled-modules.js';
 export class AdminModel {
   busy = $state(false);
   systemLoading = $state(true);
