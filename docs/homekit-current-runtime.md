@@ -1,26 +1,35 @@
 # HomeKit integration into the current runtime
 
-Status (2026-10-07): deployed locally in 0.1.87 from main commit
-`34f13f0f0e7178ec2887781b791128ef10923998`. **The complete HomeKit roadmap is not
+Status (2026-10-07): deployed locally in 0.1.94 from main commit
+`30d06e4770c60f00fa4cf6bc6083837089e8069b`. **The complete HomeKit roadmap is not
 accepted.** The retained `plan-homekit-end-to-end` branch preserves the original
-roadmap and experimental evidence. This document tracks the current production
-module, which intentionally exposes a narrower subset.
+roadmap and experimental evidence. Later dated sections below record delivery and
+acceptance; earlier implementation checkpoints are historical.
 
 ## Acceptance boundary
 
 | Capability | Current production state | Remaining acceptance |
 | --- | --- | --- |
-| Native physical control | Original native experiments verified selected light/garage writes; helper supports controls | Registered with distinct default-disabled control policy/consent, reviewed exact targets/revisions and durable once-only outcomes; actual control requires explicit helper-pin/enrollment reconciliation, fresh client consent and a concrete owner-approved target/effect |
-| Home reads and binding | Optional module installed; owner linked a Home/account and enabled read policy | Actual existing connected-client Home discovery, health and exact-ID fresh read passed; grants were unchanged. New/control consent remains a separate explicit gate |
-| Scene/automation definitions | Review/apply tools for app-owned scenes and supported disabled calendar/characteristic triggers; local native evidence retained | Broader subtypes, physical scene execution and automation enable/disable are incomplete; do not edit existing household automations under this acceptance |
-| Events | Scoped resource/session transport and fixture reliability checks; actual native reads/subscriptions verified locally | Actual connected-client event reads, read-only reconnect and old-session denial after production restart passed; natural push, disconnect/revocation delivery acceptance remain open |
-| Packaging | Signed Release helper installed with provenance, retained rollback and live service health | Sleep/logout/login lifecycle, optional removal and journal retention acceptance |
+| Native physical control | Distinct control policy/consent, exact reviewed targets/revisions and durable once-only outcomes deployed; owner-approved Office Light ON/OFF and SDK readback accepted | Other physical targets and app-owned scene/automation effects require concrete owner-approved acceptance |
+| Home reads and binding | Owner/account/Home binding, connected-client discovery/health and exact-ID fresh reads accepted; formal native identity authorized | Broader definition/client acceptance remains separate; no implicit new client grants |
+| Scene/automation definitions | App-owned scenes and supported disabled triggers have bounded local acceptance | Physical app-owned scene execution and automation enable/trigger acceptance remain open; existing household definitions are excluded |
+| Events | Genuine owner-consented official v2 client received four natural Office Light callbacks over modern HTTPS MCP subscriptions and read exact session/cursor pages | Other agent-host subscription behavior and conversation wake are unverified; Nerve is outside this milestone |
+| Packaging | Signed formal helper installed; old Probe registration/permission cleanup and owner visual confirmation accepted | Sleep/logout/login testing excluded by owner; journal retention policy acceptance remains separate |
 
-The original roadmap's M1 rich reads and bounded M2 definition slices are accepted
-locally. M3/M4 have source and deployed infrastructure evidence, but not complete
-real-client acceptance. M5 packaging/install is accepted for this local installation;
-its broader lifecycle checks remain open. Neither experimental control nor a signed
-artifact establishes the entire module's completion.
+M1 rich reads and bounded M2 definition slices have local acceptance. Production
+control and the exact natural-event-to-MCP-client path now have real acceptance.
+This does not establish broader scene/automation effects or agent-host wake behavior.
+
+## Owner-selected always-on deployment scope
+
+The owner explicitly removed sleep/wake and logout/login restoration testing from
+this task: the Mac runs continuously and the owner uses power-up with automatic
+login. Treat this as the selected operating assumption, not a passed lifecycle test.
+No sleep, logout, reboot, power cycle or automatic-login setting change is authorized
+by that statement or performed for this acceptance. These checks are excluded,
+not remaining blockers. Preserve durable operation outcomes, explicit event gaps,
+revocation/disconnect cleanup and no blind retry. Prior lifecycle checklist entries
+below are historical and superseded by this scope decision.
 
 ## Next implementation slice: production controls
 
