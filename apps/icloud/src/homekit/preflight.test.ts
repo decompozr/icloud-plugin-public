@@ -14,3 +14,5 @@ test('legacy signed read/definition helper stays supported without claiming cont
 test('production helper protocol keeps legacy payload recognition without conflating generations',async()=>{expect(HOMEKIT_PROTOCOL_VERSION).toBe('1.0.0');const result=await inspectHomeKitHelper(settings,fixture().command);expect(result.status).toBe('pass');expect(result.protocolVersion).toBe('1.0.0');});
 
 test('previous signed production identity remains inspectable for explicit rollback',async()=>{expect((await inspectHomeKitHelper(settings,fixture({metadata:{...bundle,CFBundleIdentifier:'com.decompozr.homekit-probe'}}).command)).status).toBe('pass');});
+
+test('formal identity cannot claim a legacy prototype protocol',async()=>{expect((await inspectHomeKitHelper(settings,fixture({metadata:{...bundle,HomeKitProtocolVersion:'0.14.0'}}).command)).status).toBe('fail');});

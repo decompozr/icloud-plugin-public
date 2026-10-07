@@ -323,3 +323,11 @@ After new identity readiness, targeted LaunchServices unregistration and support
 `tccutil reset All com.decompozr.homekit-probe` retire only the old app identity.
 Old source and operation evidence remain retained. Identity migration and visible
 settings cleanup must be verified separately before being reported complete.
+
+Identity retirement is currently blocked at the signed-build prerequisite: Xcode
+reports “No Accounts” and no Mac Catalyst App Development provisioning profile for
+`com.decompozr.homekit-helper` (Release build exit 65). Team 74NBML8KJB must be
+available through genuine Xcode account login/provisioning before migration. The
+working 0.1.90 installation and its native permission have not been removed. A
+bounded LaunchServices inventory found 47 old identity registrations, 22 with
+existing bundles; cleanup remains pending successful new-identity readiness.
