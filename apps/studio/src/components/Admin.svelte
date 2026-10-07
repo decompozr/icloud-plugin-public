@@ -1,6 +1,8 @@
 <script lang="ts">
   import AccountCard from "./AccountCard.svelte";
   import ActionButton from "./ActionButton.svelte";
+  import { spacing } from "../lib/design-system/spacing.js";
+  import { controlMetrics } from "../lib/design-system/controlMetrics.js";
   import { getContext, onMount, tick, untrack } from "svelte";
   import type { AdminState, UiCopy } from "../contracts.js";
   import { AdminModel } from "../lib/admin-model.svelte.js";
@@ -120,6 +122,7 @@
       if (push && location.pathname !== href)
         router ? router.push(href) : history.pushState(null, "", href);
       await tick();
+      document.getElementById("page-content")?.scrollTo({ top: 0 });
       updateMarker();
       void model.refreshAll();
     } catch {
@@ -201,6 +204,9 @@
   data-view={view}
   data-sveltekit-reload
   aria-busy={model.busy}
+  style:--shell-gap={spacing[4]}
+  style:--shell-inset={spacing[4]}
+  style:--shell-rail={controlMetrics.coarseTarget}
 >
   <a class="skip-link" href="#page-content">{t("skipContent")}</a>
   <div class="admin-layout">
@@ -447,9 +453,14 @@
 
 <style>
   main {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
     max-width: none;
-    margin-top: 1rem;
-    padding-left: env(safe-area-inset-left, 0px);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
   }
   .nav-brand {
     height: 44px;
@@ -466,27 +477,37 @@
   #page-content {
     grid-column: 2;
     width: 100%;
-    max-width: 60rem;
-    margin-inline: auto;
+    height: 100%;
+    max-width: none;
+    margin: 0;
     min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+    padding: var(--shell-inset);
+    padding-left: 0;
+    padding-right: max(var(--shell-inset), env(safe-area-inset-right, 0px));
+    padding-bottom: max(var(--shell-inset), env(safe-area-inset-bottom, 0px));
   }
 
   .admin-layout {
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 1.25rem;
-    align-items: start;
+    grid-template-columns: var(--shell-rail) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: var(--shell-gap);
+    height: 100%;
+    min-height: 0;
+    padding-left: env(safe-area-inset-left, 0px);
   }
   .nav-bar {
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - 2rem);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    height: 100%;
+    padding-top: var(--shell-inset);
+    padding-bottom: max(var(--shell-inset), env(safe-area-inset-bottom, 0px));
     overflow: visible;
-    position: fixed;
-    top: 1rem;
-    left: max(0px, env(safe-area-inset-left, 0px));
-    width: 44px;
+    width: var(--shell-rail);
     margin: 0;
   }
   .nav-bar .shell-nav {

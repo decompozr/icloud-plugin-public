@@ -241,3 +241,23 @@ Earlier native discard-confirmation/cancellation checks and physical-device chec
 remain unverified. Task-owned preview processes are stopped after self-checking;
 raw logs are reconciled here and removed. The fixture script and task metadata remain
 for resuming those broader checks. No merge, publication or installation occurred.
+
+## Fixed admin shell and content scrolling (2026-10-07)
+
+The owner clarified that document/body scrolling and the large centered-content
+gap are defects. Normalize admin layout ownership: fixed viewport-sized main,
+a non-scrolling rail within that shell, and one scrollable content pane. Remove
+the 60rem centered width and consume available space beside the rail using pinned
+spacing/control metrics. Root/body overflow rules apply only to the admin/setup
+shell; auth pages retain normal document scrolling. Acceptance: document scroll
+stays zero while the content pane scrolls; rail bounds remain stable; the content
+starts one catalog gap after the rail; desktop/mobile have no horizontal overflow.
+
+Shell source self-checking: Studio build/typecheck pass with zero Svelte warnings;
+25 tests pass. Explicit `minmax(0,1fr)` row sizing bounds the scrolling pane, safe-area
+insets preserve the rail controls, and shallow navigation resets the pane to its top.
+Current live visual acceptance is unavailable: CUA lists no connected browsers and
+Safari reports `cgWindowNotFound`. The screenshot's 0.1.87 legacy controls
+are not evidence of this task branch being installed. Do not claim the fixed shell
+has been deployed or visually accepted. Local changes remain reviewable on the task
+branch, pending browser acceptance and separate merge/install authorization.
