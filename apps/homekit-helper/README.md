@@ -5,9 +5,9 @@ MCP. The host owns OAuth consent, owner/account/Home binding and capability poli
 the helper owns public HomeKit SDK access and native operation receipts. It has no
 public listener and runs only in the broker's private, owned IPC session.
 
-The production product is `HomeKitHelper.app`, protocol v1.0.0. Its bundle identifier
-remains `com.decompozr.homekit-probe` solely to preserve existing Apple Home permission
-and signing identity. The product and server no longer expose experiment modes.
+The production product is `HomeKitHelper.app`, protocol v1.0.0. Its bundle identifier is
+`com.decompozr.homekit-helper`, displayed as **iCloud HomeKit Helper**. Migration from
+the retired Probe identity requires genuine macOS Home permission for the new app. The product and server no longer expose experiment modes.
 
 ## Structure
 
