@@ -5,7 +5,7 @@ export interface RegisteredTool {
  run:(input:unknown,scopes?:ReadonlySet<string>)=>Promise<CallToolResult>;
  validateIntent?:(input:unknown)=>CallToolResult|undefined;
 }
-export interface RegisteredResources {scheme:string;requiredScopes:readonly string[];enabled:()=>boolean;templates:(scopes:ReadonlySet<string>)=>Promise<ResourceTemplate[]>;read:(uri:string,scopes:ReadonlySet<string>)=>Promise<ReadResourceResult>;subscribe?:(uri:string,scopes:ReadonlySet<string>,updated:()=>void,failed:()=>void)=>Promise<()=>Promise<void>>}
+export interface RegisteredResources {scheme:string;requiredScopes:readonly string[];enabled:()=>boolean;templates:(scopes:ReadonlySet<string>)=>Promise<ResourceTemplate[]>;read:(uri:string,scopes:ReadonlySet<string>)=>Promise<ReadResourceResult>;authorizeSubscription?:(uri:string,scopes:ReadonlySet<string>)=>Promise<void>;subscribe?:(uri:string,scopes:ReadonlySet<string>,updated:()=>void,failed:()=>void)=>Promise<()=>Promise<void>>}
 export interface RuntimeModule {id:string;scopes:readonly ScopeDescriptor[];tools:readonly RegisteredTool[];resources?:RegisteredResources;start?:()=>Promise<void>;dispose?:()=>Promise<void>}
 /** Static application composition. Registration is complete before startup. */
 export class ModuleRuntime {
@@ -31,6 +31,7 @@ export class ModuleRuntime {
  }
  get hasResourceSubscriptions():boolean{return this.modules.some(m=>m.resources?.subscribe&&m.resources.enabled());}
  async subscribeResource(uri:string,scopes:ReadonlySet<string>,updated:()=>void,failed:()=>void):Promise<()=>Promise<void>>{return this.resourceOperation(async()=>{const scheme=new URL(uri).protocol.slice(0,-1),entry=this.modules.find(m=>m.resources?.scheme===scheme)?.resources;if(!entry?.subscribe||!this.resourceAvailable(entry,scopes))throw Error('Resource unavailable');return entry.subscribe(uri,scopes,updated,failed);});}
+ async authorizeResourceSubscription(uri:string,scopes:ReadonlySet<string>):Promise<void>{await this.resourceOperation(async()=>{const scheme=new URL(uri).protocol.slice(0,-1),entry=this.modules.find(m=>m.resources?.scheme===scheme)?.resources;if(!entry?.subscribe||!this.resourceAvailable(entry,scopes))throw Error('Resource unavailable');await entry.authorizeSubscription?.(uri,scopes);});}
  get hasResources():boolean{return this.modules.some(m=>!!m.resources);}
  private resourceAvailable(entry:RegisteredResources,scopes:ReadonlySet<string>){return entry.enabled()&&entry.requiredScopes.every(s=>scopes.has(s)&&this.scopes.get(s)?.enabled());}
  async resourceTemplates(scopes:ReadonlySet<string>):Promise<ResourceTemplate[]>{return this.resourceOperation(async()=>{const result:ResourceTemplate[]=[];for(const module of this.modules)if(module.resources&&this.resourceAvailable(module.resources,scopes))result.push(...await module.resources.templates(scopes));return result;});}

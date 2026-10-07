@@ -13,6 +13,7 @@ import type { Config } from "../config.js";
 import type { Principal } from "../../../../modules/account/dist/index.js";
 import { createVerifier } from "../../../../modules/account/dist/index.js";
 import {ResourceSessions} from './resource-sessions.js';
+import {ModernMcp} from './modern-mcp.js';
 import { createServer } from "../mcp/server.js";
 const reply = (body: unknown, status = 200, headers?: HeadersInit) =>
   Response.json(body, { status, headers });
@@ -33,6 +34,7 @@ export function createHttpApp(
     metadataPath = "/.well-known/oauth-protected-resource/icloud/mcp",
     metadataUrl = new URL(resource).origin + metadataPath;
   const resourceSessions=new ResourceSessions(runtime,resource,verify,lifecycle,{},evidence);
+  const modern=new ModernMcp(runtime,resource,verify,lifecycle,{},evidence);
   const principals = new WeakMap<IngressContext, Principal>();
   return new FetchListener({
     origin: new URL(resource).origin,
@@ -106,6 +108,7 @@ export function createHttpApp(
         );
         if (!parsed.success)
           return reply({ error: "Invalid MCP request" }, 400);
+        const modernResponse=await modern.handle(request,context,principal,parsed.data);if(modernResponse)return modernResponse;
         const response=await resourceSessions.handle(request,context,principal,parsed.data);if(response)return response;
         const server = createServer(
           runtime,
