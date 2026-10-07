@@ -200,12 +200,12 @@
   data-sveltekit-reload
   aria-busy={model.busy}
 >
-  <a class="skip-link" href="#page-content"
-    >{t("skipContent")}</a
-  >
+  <a class="skip-link" href="#page-content">{t("skipContent")}</a>
   <div class="admin-layout">
     <div class="nav-bar">
-      <div class="nav-brand" title={t("brand")}><Icon name="brand"/><span class="sr-only">{t("brand")}</span></div>
+      <div class="nav-brand" title={t("brand")}>
+        <Icon name="brand" /><span class="sr-only">{t("brand")}</span>
+      </div>
       {#if pageState.enrolled}<nav
           class="shell-nav"
           aria-label="iCloud"
@@ -221,7 +221,11 @@
           {#each links as [href, key, destination]}<a
               {href}
               title={t(key)}
-              aria-label={t(key)}
+              aria-label={t(key) +
+                (destination === "connections" &&
+                model.outdatedConnections.length
+                  ? ` · ${model.outdatedConnections.length} ${t("connectionUpdatesCountLabel")}`
+                  : "")}
               onclick={(event) => tabNavigation(destination, href, event)}
               aria-current={view === destination ? "page" : undefined}
               ><DesignIcon
@@ -233,7 +237,12 @@
                       ? "connection"
                       : "settings"}
                 size="1.25rem"
-              /></a
+              />{#if destination === "connections" && model.outdatedConnections.length}<span
+                  class="connection-warning-badge"
+                  aria-hidden="true"
+                  data-testid="connection-warning-count"
+                  >{model.outdatedConnections.length}</span
+                >{/if}</a
             >{/each}
         </nav>{/if}
       <div class="nav-language"><LanguageMenu rail /></div>
@@ -259,8 +268,7 @@
             <RefreshButton
               label={t("refreshAccounts")}
               busy={model.busy}
-              onclick={() =>
-                model.run(() => model.refreshCard("accounts"))}
+              onclick={() => model.run(() => model.refreshCard("accounts"))}
             />
           </header>
           <div id="accounts" role="list">
@@ -319,8 +327,7 @@
             <RefreshButton
               label={t("refreshAccounts")}
               busy={model.busy}
-              onclick={() =>
-                model.run(() => model.refreshCard("accounts"))}
+              onclick={() => model.run(() => model.refreshCard("accounts"))}
             />
           </header>
           <p>{t("connectionsHelp")}</p>
@@ -451,10 +458,29 @@
 >
 
 <style>
-  main { max-width: none; margin-top: 1rem; padding-left: env(safe-area-inset-left, 0px); }
-  .nav-brand { height:44px; flex:none; display:flex; align-items:center; justify-content:center; margin-bottom:.5rem; }
-  .nav-language { margin-top:auto; padding-top:.5rem; }
-  #page-content { width: 100%; max-width: 60rem; margin-inline: auto; min-width: 0; }
+  main {
+    max-width: none;
+    margin-top: 1rem;
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .nav-brand {
+    height: 44px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+  }
+  .nav-language {
+    margin-top: auto;
+    padding-top: 0.5rem;
+  }
+  #page-content {
+    width: 100%;
+    max-width: 60rem;
+    margin-inline: auto;
+    min-width: 0;
+  }
 
   .admin-layout {
     display: grid;
@@ -463,11 +489,11 @@
     align-items: start;
   }
   .nav-bar {
-    display:flex;
-    flex-direction:column;
-    height:calc(100svh - 2rem);
-    padding-bottom:env(safe-area-inset-bottom, 0px);
-    overflow-y:auto;
+    display: flex;
+    flex-direction: column;
+    height: calc(100svh - 2rem);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    overflow-y: auto;
     position: sticky;
     top: 1rem;
     margin: 0;

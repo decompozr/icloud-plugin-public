@@ -112,3 +112,33 @@ single-account acceptance on the selected candidate/new client. No multi-account
 invitations/sharing, recurrence/time zones, provider conflict rejection, uncertain
 write recovery or indefinite refresh claim is made. Raw logs, automatic supervision
 installation and continuous monitoring remain outside this UI preparation.
+
+## Connection capability warnings
+
+Connections navigation shows a yellow count badge for active account connections
+with enabled permissions missing from registration or current grants. Each affected
+connection shows a yellow warning icon and identifies the next step: review the
+registration update, or reconnect the same account in ChatGPT to consent. Overview
+also retains a visible link to Connections; saving capabilities refreshes the same
+status and shows a one-time notice when new permissions are available.
+
+Counts are per client/account connection, exclude disabled capabilities and OAuth
+utility scopes, and clear when the current grants cover the enabled capabilities.
+A deliberately limited grant may continue to show permissions available; it is
+not reported as an expired or broken connection. Existing access stays usable.
+No permission or grant changes automatically. Failed status reads retain the last
+snapshot with its freshness warning. Connections status loads on every admin
+destination, including direct Accounts and System entry.
+
+A dedicated connections service validates its typed request and the incoming
+response against shared contracts before updating reactive state. The server also
+constructs the list response using that response type. HTTP serialization stays
+at the service boundary; UI components consume typed connections and warning states.
+
+Source verification: Studio build and typecheck passed; its 17 tests passed,
+including incoming request/response rejection and capability transition checks.
+Application typecheck and the 15 targeted recovery/readiness tests passed.
+A compiled Svelte self-check rendered registration and consent warnings with
+count 1, then removed both with count 0 after the fixture grant was updated.
+Browser visual inspection was unavailable because no browser surface was enabled.
+These checks use fixtures and do not establish installed or ChatGPT acceptance.
