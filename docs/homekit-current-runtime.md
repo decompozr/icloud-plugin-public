@@ -472,3 +472,13 @@ and definition readback, keeping incoming control commands strictly typed. Scene
 execution performs bounded fresh characteristic reads after SDK acknowledgment;
 mismatch or unavailable readback retains its outcome without replay. Foundation
 policy and host denial/retention tests precede signed clean-main build/deployment.
+
+The first 0.1.95 app-owned scene creation was rejected by HomeKit with HMErrorDomain
+60 (name does not end with valid characters): the added trailing square bracket
+was invalid. No created scene ID or ownership record was returned. Keep the original
+operation/plan unknown with its provider rejection receipt; do not replay it.
+Correct generated names to end in the operation UUID's valid alphanumeric character.
+The host now preserves a bounded exact-operation native rejection receipt, stripping
+unrecognized fields; control and unrelated native error behavior stay unchanged.
+Any corrected creation is a distinct reviewed operation after confirming absence,
+not an automatic retry of the failed command.

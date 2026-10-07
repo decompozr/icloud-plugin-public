@@ -97,7 +97,7 @@ final class LifecycleStore {
     static func resourceName(_ name: String, operationId: String) throws -> String {
         guard UUID(uuidString: operationId) != nil, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               name.utf8.count <= 120 else { throw ControlFailure.invalid("RESOURCE_NAME_INVALID") }
-        return "DecompozR \(name) [\(operationId)]"
+        return "DecompozR \(name) \(operationId)"
     }
     static func actionMatches(_ action: [String: Any], target: [String: Any], value: Any) throws -> Bool {
         guard action["kind"] as? String == "characteristicWrite", action["opaque"] as? Bool == false,

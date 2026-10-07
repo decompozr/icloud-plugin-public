@@ -6,7 +6,7 @@ import {z} from 'zod';
 import {nativeEventResourceUri,type EventAddress} from './resources.js';
 import {HOMEKIT_PROTOCOL_VERSION,HOMEKIT_SUPPORTED_PROTOCOLS,inspectHomeKitHelper} from './preflight.js';
 import {EventSubscriptions} from './subscriptions.js';
-export class HomeKitError extends Error {constructor(readonly code:string){super(code);}}
+export class HomeKitError extends Error {constructor(readonly code:string,readonly nativeOutcome?:unknown){super(code);}}
 export interface NativeHomeKitProvider {call(tool:string,input:unknown,signal?:AbortSignal,beforeDispatch?:()=>Promise<void>):Promise<unknown>;subscribeEvents?(address:EventAddress,listener:{updated:()=>void;failed:(error:HomeKitError)=>void}):Promise<()=>Promise<void>>;readEvents?(address:EventAddress,signal?:AbortSignal):Promise<unknown>;dispose():Promise<void>}
 export interface NativeSettings {python:string;app:string;sourceSHA256:string;signingTeam:string;localUserId:number;stateDirectory:string;lifecycle:boolean;control?:boolean;homeId?:string;timeoutMs?:number;adapter?:string}
 const envelope=z.object({jsonrpc:z.literal('2.0'),id:z.number().int(),result:z.unknown().optional(),error:z.unknown().optional()}).passthrough();
@@ -61,7 +61,7 @@ export class StdioHomeKitProvider implements NativeHomeKitProvider {
    try{child.stdin.write(encoded);child.stdin.flush();}catch{finish(new HomeKitError('helper_disconnected'));}
   });
  }
- private async raw(tool:string,input:unknown,signal?:AbortSignal){const result=toolResult.parse(await this.request('tools/call',{name:tool,arguments:input},signal));let value:unknown;try{value=JSON.parse(result.content[0]!.text);}catch{throw new HomeKitError('invalid_native_result');}if(tool==='homekit_control_apply')return{isError:result.isError??false,payload:value};if(result.isError)throw new HomeKitError('native_operation_rejected');return value;}
+ private async raw(tool:string,input:unknown,signal?:AbortSignal){return decodeNativeToolResult(tool,await this.request('tools/call',{name:tool,arguments:input},signal));}
  async call(tool:string,input:unknown,signal?:AbortSignal,beforeDispatch?:()=>Promise<void>){if(!allowed.has(tool)||tool==='homekit_lifecycle_mutate'&&!this.settings.lifecycle||tool.startsWith('homekit_control_')&&(!this.settings.lifecycle||!this.settings.control))throw new HomeKitError('native_tool_denied');this.starting??=this.start();await this.starting;await beforeDispatch?.();if(this.closed||this.failure)throw this.failure??new HomeKitError('provider_disposed');return this.raw(tool,input,signal);}
  async subscribeEvents(address:EventAddress,listener:{updated:()=>void;failed:(error:HomeKitError)=>void}){this.starting??=this.start();await this.starting;return this.subscriptions.subscribe(address,listener);}
  async readEvents(address:EventAddress,signal?:AbortSignal){
@@ -71,4 +71,13 @@ export class StdioHomeKitProvider implements NativeHomeKitProvider {
  }
  private async stop(){const child=this.process;if(!child)return;this.process=undefined;child.stdin.end();const done=await Promise.race([child.exited.then(()=>true),new Promise<false>(r=>setTimeout(()=>r(false),8000))]);if(!done){child.kill('SIGTERM');}const exit=await child.exited;this.fail('provider_disposed');if(exit!==0)throw new HomeKitError('helper_cleanup_unverified');}
  async dispose(){this.closed=true;await this.starting?.catch(()=>{});await this.stop();}
+}
+
+/** Preserve bounded definition rejection evidence; do not expose unrelated native failures. */
+export function decodeNativeToolResult(tool:string,raw:unknown):unknown {
+ const result=toolResult.parse(raw);let value:unknown;
+ try{value=JSON.parse(result.content[0]!.text);}catch{throw new HomeKitError('invalid_native_result');}
+ if(tool==='homekit_control_apply')return{isError:result.isError??false,payload:value};
+ if(result.isError){if(tool==='homekit_lifecycle_mutate'&&Buffer.byteLength(JSON.stringify(value))>65536)throw new HomeKitError('native_result_limit');throw new HomeKitError('native_operation_rejected',tool==='homekit_lifecycle_mutate'?value:undefined);}
+ return value;
 }
