@@ -2,6 +2,22 @@
 
 ## Current Surface design adoption (2026-10-06)
 
+Logo refresh: replace the irregular cloud mascot with the modular-link mark
+specified below. Scope is the shared Studio glyph and generated plugin assets.
+Acceptance is matching geometry across admin/auth and SVG/PNG exports, legibility
+at the existing 32px rail size, and passing Studio build/type checks. Preview
+renders are task-owned temporary artifacts; this source task does not authorize
+release, installation or restarting the running service.
+
+Self-checking completed: Studio build and Svelte checks pass (zero diagnostics),
+and the existing Studio suite passes 12 tests / 1,158 assertions. Admin and auth
+SSR contain the exact shared mark; the generated SVG matches its source. The
+256px PNG is 4,172 bytes and a 32px raster preview was visually inspected. The
+initial build required installing the already-declared iCloud dependencies in
+this task checkout. Temporary build log and small raster preview were removed
+after reconciliation here. No running-service or remote-client acceptance is
+claimed. The task worktree retains the committed design for local review.
+
 Studio follows the owner-selected Surface design reference at
 `https://mac-mini.duckbill-ionian.ts.net:8463/workspace/surface/main/design/`.
 Observed controls use DecompozR Inter, 14px/20px body and field typography,

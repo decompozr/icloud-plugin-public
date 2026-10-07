@@ -1,6 +1,6 @@
 <script lang="ts">
  import DesignIcon from './DesignIcon.svelte';
-  import { brandCloud, brandEyes, brandSpark, brandColor } from "../branding.js";
+  import { brandMark } from "../branding.js";
   let { name }: { name: "brand" | "passkey" | "settings" } = $props();
 </script>
 
@@ -13,8 +13,7 @@
     width="32"
     height="32"
   >
-    <path d={brandCloud} fill="none" stroke={brandColor} stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
-    <g fill={brandColor}>{#each brandEyes as eye}<rect x={eye.x} y={eye.y} width="9" height="22" rx="4.5" />{/each}<path d={brandSpark} /></g>
+    {@html brandMark}
   </svg>
 {:else if name === "settings"}<DesignIcon name="settings"/>
 {:else}
