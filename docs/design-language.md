@@ -213,3 +213,31 @@ Local-only delivery: no push, PR, merge, release or installation is part of this
 request. The task checkout is retained. Recovery fixture, state and raw test/build
 logs remain in ignored `.flow-runtime/admin-redesign/` while browser verification
 awaits dismissal of the Chrome native confirmation. Flow reflection is deselected.
+
+## Toast mouse drag completion (2026-10-07)
+
+Observed defect: SwipeToast waited for pointerup, so a mouse released outside the
+browser could leave a toast stranded mid-drag. Acceptance is dismissal completing
+without an in-window release once a mouse right-drag reaches the existing 64px
+threshold. Short/left/vertical drags stay reversible; touch/pen retain release-based
+completion. The adapter commits mouse dismissal during pointermove, fences other
+pointer IDs, settles lost capture and resets uncommitted drags on window blur.
+Catalog Toast remains unchanged, with existing exit/focus and reduced-motion handling.
+
+Toast self-checking: Studio build, typecheck (zero errors/warnings) and 25 tests
+pass. In the final compiled Chrome fixture, a 40px right-drag/release restores
+0px with the toast retained. An 80px drag removes the toast after its exit transition
+while the mouse button remains held and no pointerup has been sent; moving/releasing
+outside the 1238px viewport afterward does not strand a card. A subsequent blur/cancel
+cannot reset an already-committed exit. This is Chrome input/DOM evidence, not a
+physical Safari window-edge or iPhone acceptance claim. The production installation
+is unchanged. A screenshot of the empty notification area is retained under the
+chat's visualization artifacts as `toast-dismissed-before-release.png`.
+
+The restored browser fixture also verifies 390px width without horizontal overflow,
+fixed rail, 16px statistic glyphs/numbers and critical action color. Account identity
+now occupies a full mobile row above its actions to avoid narrow email wrapping.
+Earlier native discard-confirmation/cancellation checks and physical-device checks
+remain unverified. Task-owned preview processes are stopped after self-checking;
+raw logs are reconciled here and removed. The fixture script and task metadata remain
+for resuming those broader checks. No merge, publication or installation occurred.

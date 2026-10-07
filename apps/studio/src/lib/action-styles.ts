@@ -22,5 +22,6 @@ export const actionStyles = `
 .account-status{display:flex;align-items:center;gap:${spacing[2]};flex-wrap:wrap}
 .account-selection{display:flex;align-items:center;justify-content:space-between;gap:${spacing[3]};min-width:0}
 .account-selection .account-identity{overflow-wrap:anywhere}
+@media(max-width:540px){.account-card-header>.account-identity{flex-basis:100%}}
 @media(pointer:coarse){.dz-icon-action[data-dz-action] svg{width:${controlMetrics.coarseIcon};height:${controlMetrics.coarseIcon}}}
 `;
