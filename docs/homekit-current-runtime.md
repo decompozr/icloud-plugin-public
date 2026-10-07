@@ -233,3 +233,23 @@ The 0.1.86 connection-visual update (PR #106) leaves the accepted 0.1.85 HomeKit
 runtime behavior, approved v0.14 enrollment pin, policies and grants unchanged.
 Actual connected-client Home health still passes with physicalControlEnabled=false.
 The whole-module external acceptance gates above remain open.
+
+
+## Owner-requested production control activation
+
+The owner requested working local production control and approved the exact Office
+Light on/off acceptance sequence. The supported module enrollment and capability
+handlers now use the installed signed v0.15 helper, preserve the same approved
+owner/account/Home/UID, create a new binding generation and enable control policy
+and configuration ceiling. Existing access/refresh/consent grant rows were unchanged;
+physical writes remain zero while fresh real-client control consent is pending.
+MCP discovery now advertises `homekit.control`. Private activation/rollback records:
+`.flow-runtime/homekit-background/control-activation`.
+
+Health now distinguishes read-only transport state from enabled control capability
+and the invoking client's control consent. A read-only helper's
+physicalControlEnabled=false must not be mistaken for disabled service control.
+The Office Light test will use reviewed once-only commands through the actual
+consented MCP connection; no fabricated scopes/tokens or direct native writes
+substitute for that client acceptance. Broader scene/trigger, push and session-lifecycle
+acceptance remain separate gates.

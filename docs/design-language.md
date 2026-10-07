@@ -200,3 +200,9 @@ Chrome connections retained 7/12/3 badges and now show their applicable module
 labels in canonical order. Grants, binding and policies remained unchanged.
 Private screenshots and rollout receipts: `.flow-runtime/homekit-background/grouped-permissions`.
 The exact fixture server was stopped; the production page remains available.
+
+
+Home module settings use a short readiness status and one connection-consent footer.
+The embedded dialog omits the helper/Dock implementation note and duplicate linking
+explanation. Standalone linking retains its brief no-device/no-permission-change
+notice. Explicit unchecked Home-link approval and all handlers remain unchanged.
