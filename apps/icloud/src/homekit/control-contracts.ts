@@ -12,7 +12,7 @@ export const controlCommandSchema=z.discriminatedUnion('action',[
  z.object({...common,action:z.literal('setAutomationEnabled'),automationId:z.string().uuid(),enabled:z.boolean()}).strict(),
 ]);
 export type ControlCommand=z.infer<typeof controlCommandSchema>;
-export type ControlIntent=ControlCommand & {expectedRevision:string};
+export type ControlIntent=ControlCommand & {expectedRevision:string;allowExistingSceneExecution?:boolean};
 export const controlReferenceSchema=z.object({homeId:z.string().uuid(),planId:z.string().uuid()}).strict();
 export const controlApplySchema=controlReferenceSchema.extend({confirm:z.literal(true)}).strict();
 export const controlPreviewSchema=z.object({homeId:z.string().uuid(),operationId:z.string().uuid(),revision:z.string().regex(/^[a-f0-9]{64}$/),definition:z.record(z.unknown()),physicalCompletionVerified:z.literal(false)}).strict();
