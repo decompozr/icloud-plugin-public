@@ -203,7 +203,7 @@ final class HomeDefinitions: HomeComponent, HMHomeDelegate {
             if extra.contains("name") {
                 guard let name = args["name"] as? String, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                     name.utf8.count <= 120 else { throw ControlFailure.invalid("RESOURCE_NAME_INVALID") }
-                desiredName = action.hasPrefix("create") ? "DecompozR Test \(operationId) \(name)" : name
+                desiredName = action.hasPrefix("create") ? try LifecycleStore.resourceName(name, operationId: operationId) : name
             }
             if action == "createAutomation" {
                 newEvents = try lifecycleEvents(args["events"], home: home)
@@ -213,7 +213,7 @@ final class HomeDefinitions: HomeComponent, HMHomeDelegate {
             } else if action != "createScene" {
                 guard let currentId = resourceId, ["scene", "automation"].contains(kind) else { throw ControlFailure.invalid("RESOURCE_ID_KIND_REQUIRED") }
                 creationOperation = try store.requireOwned(homeId: homeId, id: currentId, kind: kind)
-                if action == "rename", let name = args["name"] as? String { desiredName = "DecompozR Test \(creationOperation) \(name)" }
+                if action == "rename", let name = args["name"] as? String { desiredName = try LifecycleStore.resourceName(name, operationId: creationOperation) }
                 let snapshot = try lifecycleDefinition(home: home, kind: kind, resourceId: currentId)
                 try LifecycleStore.requireRevision(args["expectedRevision"] as? String, snapshot: snapshot)
                 if kind == "scene" {
