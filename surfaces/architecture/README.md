@@ -27,19 +27,16 @@ Some older overview prose still describes Calendar as unimplemented. The guide u
 
 Apple references in the guide explain owner-controlled Photos privacy settings and development authorization reset. They do not establish automatic production revocation support.
 
-## Verification and disposition (2026-10-06)
+## Verification
 
 - Shared Surface status/doctor: running and ready.
-- Source registered and mounted successfully with the pinned Svelte 5.57.1 dependency and generated Bun lockfile.
-- Direct Svelte client compilation: passed with zero warnings.
-- Browser rendering, mobile layout, and browser interaction checks: **not completed** before the user requested worktree cleanup.
-- No live Apple permissions were requested or revoked; no production iCloud service was changed.
-- User requested cleanup. Preserve this source in a local commit and retain its task branch, unmount/retire the task Surface workspace, then remove only the task checkout and its generated dependencies. No remote publication or merge was requested.
+- Pinned Svelte 5.57.1 client compilation: passed with zero warnings.
+- Chrome browser smoke against the shared HTTPS service: HTTP 200, rendered module details, Photos enable/disable and pending cleanup state, and module tab switching passed with no page errors.
+- At a 390-pixel viewport, the guide container matched the viewport width. This is a responsive layout smoke check, not a complete visual/accessibility audit or second-device acceptance.
+- No Apple permissions were requested or revoked; no production iCloud service was changed.
 
-## Restore
+## Canonical hosting
 
-Create a new linked worktree from the retained `explain-modular-architecture` branch. From that checkout, register the project and mount the surface ID recorded in `surface.project.json` using the shared Surface CLI. Use the returned new preview URL; do not assume the retired workspace URL is reusable. Complete browser verification before claiming rendering or interaction acceptance.
+The accepted hosting target is the primary repository checkout on `main`. Register that checkout and mount the surface ID recorded in `surface.project.json` using the existing shared Surface CLI. Use the returned main workspace URL. Keep the main mount available after task-worktree cleanup; mounted source must remain on disk.
 
-## Preview restored after clarification
-
-The user clarified that the Surface page must remain available. The previous cleanup interpretation was incorrect. The original disposable worktree remains removed; this dedicated `architecture-preview` checkout is intentionally retained as the live page source. Registration and mount returned ready at `/workspace/icloud-plugin/architecture-preview/architecture/`. The existing shared service was not restarted. Browser automation was attempted but unavailable because the local Playwright browser executable was missing; no browser was installed. Keep the mounted checkout while the user uses the preview.
+To edit, use an isolated task checkout, verify the page, merge to main, and refresh the main mount. A task preview can be retired only after the main mount is ready and verified. The page is documentation and a browser-only simulator; it does not require an iCloud application release or restart.
