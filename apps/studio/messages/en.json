@@ -522,7 +522,7 @@
   "homekitReady": "Native Home access is ready.",
   "homekitAccount": "Connected account",
   "homekitHome": "Apple Home",
-  "homekitConfirm": "I approve linking this Home to the selected account.",
+  "homekitConfirm": "Approve Home link",
   "homekitBind": "Link Home",
   "homekitBindings": "Linked Homes",
   "homekitUnbind": "Unlink",
