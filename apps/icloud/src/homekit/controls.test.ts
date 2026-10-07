@@ -14,6 +14,7 @@ const read=new Set(['homekit.read']),definitions=new Set(['homekit.read','homeki
 const value=(r:any)=>JSON.parse(r.content[0].text);
 function fixture(options:{ceiling?:boolean;db?:Database}={}){
  const db=options.db??new Database(':memory:');let dispatches=0,previews=0,closed=0;let hook:((tool:string,input:any)=>Promise<void>)|undefined;
+ let freshValue:unknown=true;
  let response:(input:any)=>any=input=>({isError:false,payload:{operationId:input.operationId,intent:input,writeAcknowledged:true,valueVerified:true,physicalCompletionVerified:false}});
  const module=createHomeKitModule({python:'/usr/bin/python3',native_app:'/tmp/invented.app',source_sha256:source,signing_team:'ABCDEFGHIJ',allow_automations:true,allow_control:options.ceiling??true},{authDatabase:db,stateDirectory:'/tmp/invented-control',store:{ownerId:()=> 'owner',account:(o,a)=>{if(o!=='owner'||!( [account,target] as string[]).includes(a))throw Error();return{credentialStored:true} as never;}},provider:settings=>({dispose:async()=>{closed++;},call:async(tool,input,signal,beforeDispatch)=>{
   if(tool==='homekit_control_apply'){await hook?.('starting',input);await beforeDispatch?.();}
@@ -23,7 +24,7 @@ function fixture(options:{ceiling?:boolean;db?:Database}={}){
   if(tool==='homekit_status')return{ready:true,authorized:true,localUserId:userInfo().uid,physicalControlEnabled:!!settings.control};
   if(tool==='homekit_list')return{homes:[{id:home,name:'Invented fixture Home'}]};
   if(tool==='homekit_control_outcome')return{homeId:home,operationId:(input as any).operationId,found:false,result:null,providerWriteAttempted:false};
-  if(tool==='homekit_read')return{...(input as any),value:true,valueSource:'fresh-read',error:null};
+  if(tool==='homekit_read')return{...(input as any),value:freshValue,valueSource:'fresh-read',error:null};
   if(tool==='homekit_control_preview')return{homeId:home,operationId:(input as any).operationId,revision,definition:{id:target,homeId:home,accessoryId:target,serviceId:target,characteristicId:target},physicalCompletionVerified:false};
   if(tool==='homekit_control_apply')return response(input);
   throw Error('Unexpected fixture tool '+tool);
@@ -33,7 +34,7 @@ function fixture(options:{ceiling?:boolean;db?:Database}={}){
  const enroll=()=>module.adminActions.enroll({accountId:account,homeId:home,confirm:true,expectedSourceSHA256:source,expectedLocalUserId:userInfo().uid});
  const enable=()=>module.admin.updateCapabilities({read:true,automations:false,control:true},true);
  const prepare=async()=>value(await invoke('homekit_control_prepare',command()));
- return{db,module,invoke,command,enroll,enable,prepare,dispatches:()=>dispatches,previews:()=>previews,closed:()=>closed,hook:(h:typeof hook)=>{hook=h;},response:(r:typeof response)=>{response=r;}};
+ return{db,module,invoke,command,enroll,enable,prepare,fresh:(value:unknown)=>{freshValue=value;},dispatches:()=>dispatches,previews:()=>previews,closed:()=>closed,hook:(h:typeof hook)=>{hook=h;},response:(r:typeof response)=>{response=r;}};
 }
 test('migration preserves prior policies and defaults control to false; separate configuration ceiling',async()=>{
  const db=new Database(':memory:');db.exec('CREATE TABLE homekit_policy(owner TEXT PRIMARY KEY,read INTEGER NOT NULL,automations INTEGER NOT NULL); INSERT INTO homekit_policy VALUES("owner",1,1)');const f=fixture({ceiling:false,db});
@@ -52,3 +53,5 @@ test('MCP control step-up requests fresh control scope for a definitions-only cl
 test('valid boundary values stay supported while opaque dictionary/array values remain explicit restrictions',()=>{for(const value of [true,0,'',{base64:'AA=='},{decimal:'18446744073709551615'}])expect(controlCommandSchema.safeParse({action:'write',homeId:home,operationId:target,accessoryId:target,serviceId:target,characteristicId:target,value}).success).toBe(true);});
 
 test('revocation during helper startup is rechecked immediately before dispatch',async()=>{const f=fixture();try{await f.enroll();await f.enable();let authorized=true;const plan=await f.prepare();f.hook(async tool=>{if(tool==='starting')authorized=false;});const context={ownerId:'owner',accountId:account,authorize:async()=>{if(!authorized)throw Error('Revoked during startup');}};const apply={homeId:home,planId:plan.planId,confirm:true};expect(value(await f.invoke('homekit_control_apply',apply,controls,context)).status).toBe('unknown');expect(f.dispatches()).toBe(0);expect(value(await f.invoke('homekit_control_apply',apply)).status).toBe('unknown');expect(f.dispatches()).toBe(0);}finally{await f.module.registration.dispose?.();f.db.close();}});
+
+test('oversized current readback cannot inflate durable control observations or change the outcome',async()=>{const f=fixture();try{await f.enroll();await f.enable();const plan=await f.prepare();f.fresh('x'.repeat(128*1024));const input={homeId:home,planId:plan.planId};const result=value(await f.invoke('homekit_control_reconcile',input));expect(result.observation.target.unavailable).toBe(true);const stored=f.db.query<{observation:string},[]>('SELECT observation FROM homekit_control_observations').get()!.observation;expect(Buffer.byteLength(stored)).toBeLessThan(65536);expect(result.status).toBe('prepared');expect(f.dispatches()).toBe(0);}finally{await f.module.registration.dispose?.();f.db.close();}});

@@ -85,6 +85,7 @@ export function registerHomeKitControls(d:Dependencies){
    targetObservation=parseControlPreview(await provider.call('homekit_control_preview',controlCommandSchema.parse(command),signal),controlCommandSchema.parse(command));
    if(command.action==='write'){
     const fresh=z.object({homeId:z.literal(b.home),accessoryId:z.literal(command.accessoryId),serviceId:z.literal(command.serviceId),characteristicId:z.literal(command.characteristicId),value:z.unknown(),valueSource:z.literal('fresh-read'),error:z.null()}).strict().parse(await provider.call('homekit_read',{homeId:b.home,accessoryId:command.accessoryId,serviceId:command.serviceId,characteristicId:command.characteristicId},signal));
+    if(Buffer.byteLength(JSON.stringify(fresh))>65536)throw new HomeKitError('readback_size_limit');
     targetObservation={preview:targetObservation,freshRead:fresh};
    }
   }catch(error){targetObservation={unavailable:true,error:error instanceof HomeKitError?error.code:'readback_unavailable'};}

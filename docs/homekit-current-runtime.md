@@ -1,7 +1,7 @@
 # HomeKit integration into the current runtime
 
-Status (2026-10-07): deployed locally in 0.1.83 from main commit
-`b0794a2d0eef238c6b13c234a752eeb03baf0035`. **The complete HomeKit roadmap is not
+Status (2026-10-07): deployed locally in 0.1.84 from main commit
+`4a747d90548bd7f35d9826172321a4ee793f26ff`. **The complete HomeKit roadmap is not
 accepted.** The retained `plan-homekit-end-to-end` branch preserves the original
 roadmap and experimental evidence. This document tracks the current production
 module, which intentionally exposes a narrower subset.
@@ -167,3 +167,29 @@ can be enabled, followed by fresh client consent and a concrete target/effect ap
 This upgrade does not perform those actions. Retained v0.14 payloads remain valid
 for signed read/definition rollback. No sleep/logout/login or disk-deletion policy
 acceptance is claimed; histories and uncertain resources remain retained.
+
+## Production control deployment and final hardening
+
+PR #103 merged the control slice; signed Release 0.1.84 installed from verified
+clean remote main. All 14,698 installed artifact files/symlinks matched the staged
+payload, live process version/health/discovery and doctor passed. Existing owner,
+Home bindings, read/definition policy and OAuth grants were preserved. Schema adds
+only default-false control and empty plan/observation tables; expected resource
+registration/rate-limit rows changed. Custody bytes/modes remained unchanged.
+The only configuration change pins the same enrolled signed v0.14 helper to its
+retained 0.1.83 release path; the installed v0.15 helper remains inactive for controls.
+Actual installed-module/owner-store/native read readiness passed, with one owned
+verification helper stopped. This is local owner/read evidence, not client consent.
+
+Private recovery: `control-deployment/summary.json`, `control-deployment/pre-0.1.84`,
+`control-release-builds/build-1k8t9ndb/result.json`, and
+`installed-control-read-3UXYtG/summary.json` under the ignored HomeKit evidence root.
+Production launcher and existing rollback releases remain retained; physical writes
+and existing household automation mutations were zero.
+
+Post-deployment self-review reproduced an oversized current-readback observation
+with a 128 KiB fixture. The 0.1.85 hardening caps that readback at 64 KiB before
+persistence, records an unavailable observation and preserves the original outcome.
+The failed reproduction and passing regression are retained privately. New local
+production rollout proceeds from clean merged main; no added consent or Home action
+is included. Full-module external acceptance gates remain unchanged.
