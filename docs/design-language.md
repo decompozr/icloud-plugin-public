@@ -180,3 +180,15 @@ Chrome Connections page also confirmed the four badge colors, bordered Review an
 no connection-list outline. No actual Review confirmation or grant update occurred.
 Private receipts/screenshots remain in `.flow-runtime/homekit-background/connection-visuals`.
 Physical iPhone checks remain unverified. HomeKit physical control stays disabled.
+
+
+Granted actions now reuse the existing permission-category mapping in fixed module
+order: Mail, Calendar, Photos, HomeKit, then unknown Connection scopes. Each module
+has a compact catalog-typography label and its own wrapping badge row. The owner
+explicitly chose to retain the existing semantic colors; colors represent permission
+meaning, not whether a capability is new. Existing grants and Review semantics do
+not change. Grid spacing uses pinned tokens; vendor controls remain unchanged.
+Chrome fixture checks confirm Mail/Calendar/Photos/HomeKit label order, all 12
+fixture badges retained, and no horizontal overflow at desktop or 390px width.
+The 547 existing application/Studio/tooling tests and full build/typechecks pass
+with zero Svelte errors/warnings. These are self-checks, not physical iPhone proof.
