@@ -1,6 +1,6 @@
 <script lang="ts">
   import Button from "../lib/design-system/Button.svelte";
-  import Tag from "../lib/design-system/Tag.svelte";
+  import PermissionTag from "./PermissionTag.svelte";
   import { spacing } from "../lib/design-system/spacing.js";
   import DesignIcon from "./DesignIcon.svelte";
   import CopyButton from "./CopyButton.svelte";
@@ -50,7 +50,7 @@
   kind: "upgrade" | "revoke" | "remove",
 )}<Button
     variant="secondary"
-    appearance="quiet"
+    appearance={kind === "upgrade" ? "default" : "quiet"}
     disabled={model.busy}
     onclick={() => void model.run(() => model.preview(clientId, kind))}
     >{t(
@@ -186,7 +186,7 @@
         <ul class="granted-tags" style:--tag-gap={spacing[2]}>
           {#each connection.grantedScopes.filter( (s) => s.includes(".") ) as granted}<li
             >
-              <Tag label={scope(granted)} />
+              <PermissionTag label={scope(granted)} scope={granted} />
             </li>{/each}
         </ul>
       </div>
