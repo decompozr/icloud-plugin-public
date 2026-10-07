@@ -1,7 +1,7 @@
 # HomeKit integration into the current runtime
 
-Status (2026-10-07): deployed locally in 0.1.84 from main commit
-`4a747d90548bd7f35d9826172321a4ee793f26ff`. **The complete HomeKit roadmap is not
+Status (2026-10-07): deployed locally in 0.1.85 from main commit
+`32ff16909d69a8f841e0863090cbe9c4b5d63e63`. **The complete HomeKit roadmap is not
 accepted.** The retained `plan-homekit-end-to-end` branch preserves the original
 roadmap and experimental evidence. This document tracks the current production
 module, which intentionally exposes a narrower subset.
@@ -10,10 +10,10 @@ module, which intentionally exposes a narrower subset.
 
 | Capability | Current production state | Remaining acceptance |
 | --- | --- | --- |
-| Native physical control | Original native experiments verified selected light/garage writes; helper supports controls | Not registered in the production MCP; needs distinct control consent, reviewed exact-target operations, durable no-retry outcomes, and real authorized client/provider acceptance |
-| Home reads and binding | Optional module installed; owner linked a Home/account and enabled read policy | Fresh same-client consent, tool loading and actual enrolled-Home read through that client remain unverified |
+| Native physical control | Original native experiments verified selected light/garage writes; helper supports controls | Registered with distinct default-disabled control policy/consent, reviewed exact targets/revisions and durable once-only outcomes; actual control requires explicit helper-pin/enrollment reconciliation, fresh client consent and a concrete owner-approved target/effect |
+| Home reads and binding | Optional module installed; owner linked a Home/account and enabled read policy | Actual existing connected-client Home discovery, health and exact-ID fresh read passed; grants were unchanged. New/control consent remains a separate explicit gate |
 | Scene/automation definitions | Review/apply tools for app-owned scenes and supported disabled calendar/characteristic triggers; local native evidence retained | Broader subtypes, physical scene execution and automation enable/disable are incomplete; do not edit existing household automations under this acceptance |
-| Events | Scoped resource/session transport and fixture reliability checks; actual native reads/subscriptions verified locally | Real client natural push, disconnect/restart/revocation delivery acceptance |
+| Events | Scoped resource/session transport and fixture reliability checks; actual native reads/subscriptions verified locally | Actual connected-client event reads, read-only reconnect and old-session denial after production restart passed; natural push, disconnect/revocation delivery acceptance remain open |
 | Packaging | Signed Release helper installed with provenance, retained rollback and live service health | Sleep/logout/login lifecycle, optional removal and journal retention acceptance |
 
 The original roadmap's M1 rich reads and bounded M2 definition slices are accepted
@@ -24,16 +24,15 @@ artifact establishes the entire module's completion.
 
 ## Next implementation slice: production controls
 
-Register a separate `homekit.control` capability, disabled by default and requiring
-fresh client consent. Bind every command to the verified owner/account/enrolled
+The separate `homekit.control` capability is implemented, disabled by default and
+requires fresh client consent before activation. Bind every command to the verified owner/account/enrolled
 Home and exact accessory/service/characteristic or scene/trigger ID. Add bounded
 write, scene execution and automation enable-state contracts, preview/revision
 checks where applicable, and persist intent before dispatch. Preserve unknown and
 readback-mismatch outcomes without automatic replay or retry. Controls must not
 inherit definition-management permission.
 
-First implement and test source/fixture authorization and reconciliation without
-operating a device. Live physical acceptance requires a concrete owner-approved
+Source/fixture authorization and reconciliation passed without operating a device. Live physical acceptance requires a concrete owner-approved
 target/effect; prior experiment authority is not blanket household control authority.
 Keep Shortcuts, relationship graph service and outbound notification delivery deferred.
 
@@ -54,7 +53,7 @@ Policy starts disabled; the Apple Home module settings panel checks helper readi
 links a Home to a connected account. Linking changes no Home objects or OAuth scopes.
 Enable read capability and review client consent separately. Automation capability
 has a configuration ceiling and only permits reviewed app-owned definitions and
-disabled triggers; physical control/scene execution is not included in this module.
+disabled triggers; physical control/scene execution requires the separate disabled-by-default control capability and is not included in definition permission.
 
 The current HTTP ingress now streams SSE rather than buffering it to completion.
 Owner/account/scope-bound resource sessions use the Web-standard SDK transport and
@@ -193,3 +192,38 @@ persistence, records an unavailable observation and preserves the original outco
 The failed reproduction and passing regression are retained privately. New local
 production rollout proceeds from clean merged main; no added consent or Home action
 is included. Full-module external acceptance gates remain unchanged.
+
+## 0.1.85 rollout and actual connected-client acceptance
+
+PR #104 bounded retained current readbacks after a reproduced 128 KiB observation
+fixture. The final 547 application/Studio/tooling tests and full build/typechecks
+passed (zero Svelte errors/warnings). Signed Release built from clean verified
+remote main `32ff16909d69a8f841e0863090cbe9c4b5d63e63` and installed 0.1.85 using
+the existing prefix and launcher. Artifact file/symlink hashes matched installation;
+health, running release path and doctor passed. Configuration, custody, Home bindings,
+owner policy and client grants remained unchanged; only expected resource-registration
+and rate-limit records changed. Retained 0.1.83/0.1.84 releases and private backups
+provide recovery. The active enrolled helper still uses its approved v0.14 source
+pin; installed v0.15 physical controls remain disabled.
+
+The actual connected iCloud plugin tools (not fixture principals) passed enrolled
+Home discovery, native health, exact-ID fresh characteristic read and raw event-page
+read before and after rollout. The production restart changed the native session
+and denied the prior session. Actual same-client read-only reconnect also changed
+session and denied its predecessor, with automaticRetry=false and no mutation plan
+replay. No grants changed and no new/control consent is claimed. No natural event
+push was observed; raw event read does not establish client notification delivery.
+Physical writes, scene execution and existing household automation changes: zero.
+
+Private final receipts: `control-hardening-deployment/summary.json`,
+`actual-client-acceptance.json` within that directory, `pre-0.1.85`, and
+`control-hardening-release-builds/build-x775qzle/result.json` under the ignored
+HomeKit evidence root. The main and task checkouts/histories remain retained.
+
+External acceptance still required: explicit owner helper-pin/enrollment
+reconciliation and control policy activation; fresh same-client control consent;
+concrete owner-approved physical target/effect; a real client resource subscription
+capable of natural push; supervised sleep/logout/login; and an explicit durable
+journal retention policy that preserves unknown outcomes. No histories are deleted
+or automatically archived. Shortcuts and graph service remain deferred. Whole-module
+acceptance remains incomplete until those gates have concrete evidence.
