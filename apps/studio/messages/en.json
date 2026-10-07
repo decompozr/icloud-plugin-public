@@ -511,5 +511,10 @@
   "requirementState_waiting": "Complete the previous step first",
   "requirementState_checking": "Checking",
   "requirementState_error": "Needs attention",
-  "copyRuntimeFolder": "Copy runtime folder"
+  "copyRuntimeFolder": "Copy runtime folder",
+  "connectionUpdatesAvailable": "Some connections have new permissions available.",
+  "connectionUpdatesCountLabel": "connections with new permissions",
+  "connectionRegistrationOutdated": "Connection permissions need updating",
+  "connectionConsentOutdated": "New permissions need authorization",
+  "connectionReauthorizeHelp": "Reconnect this account in ChatGPT and approve the permissions you want to use."
 }

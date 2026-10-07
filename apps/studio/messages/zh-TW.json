@@ -511,5 +511,10 @@
   "requirementState_waiting": "請先完成前一步",
   "requirementState_checking": "檢查中",
   "requirementState_error": "需要處理",
-  "copyRuntimeFolder": "複製執行資料夾"
+  "copyRuntimeFolder": "複製執行資料夾",
+  "connectionUpdatesAvailable": "部分連線有新增權限可用。",
+  "connectionUpdatesCountLabel": "個連線有新增權限",
+  "connectionRegistrationOutdated": "連線權限需要更新",
+  "connectionConsentOutdated": "新增權限尚未授權",
+  "connectionReauthorizeHelp": "請在 ChatGPT 重新連線此帳號，並同意你要使用的權限。"
 }
