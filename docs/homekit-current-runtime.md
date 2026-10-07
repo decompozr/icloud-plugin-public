@@ -403,3 +403,44 @@ owner OAuth consent for `homekit.read` only, stores tokens only in memory, and w
 for owner-generated Office Light ON/OFF observations through the deployed endpoint.
 No device write command exists in that script. Natural/provider push, existing
 production authorization and client delivery must pass before closing this milestone.
+
+## Natural HomeKit event to modern MCP acceptance (2026-10-07)
+
+PR #122 merged as 30d06e4 and release 0.1.94 is installed at the existing prefix.
+The complete native manifest is unchanged; the clean-main signed formal helper
+receipt remains valid. Source verification passed 45 affected subscription,
+lifecycle, resource, control and authorization checks, two built legacy HTTP checks,
+and full build/typechecks with zero Svelte errors/warnings. No PR CI checks were
+configured; review was same-agent self-checking.
+
+The owner supplied genuine OAuth consent for the official v2 acceptance client,
+restricted to `homekit.read`. After acknowledgment of the exact bound Office Light
+resource, owner-generated changes produced four real HTTPS subscription update
+signals. The client read four exact-ID native callback events in the same session
+with monotonically increasing sequences 1–4 and raw values [1,0,1,0]. Metadata
+declares `format=bool`; bounded interpretation is ON/OFF/ON/OFF. Independent fresh
+MCP read confirms final OFF. The agent/client issued zero physical writes.
+This accepts **natural HomeKit change → modern MCP stream → authorized event read**
+for this enrolled target and official SDK client. Claude/Codex conversation wake,
+other host subscription behavior and unattended session lifecycle remain unverified.
+
+The original client retained correct events but its completion assertion required
+literal true/false, so it was stopped after receipt capture. Retained evidence was
+independently reconciled using corrected strict bool/0/1 interpretation; the failed
+automatic completion is not relabeled as passing. Two meaningful encoding/denial
+tests and strict runner typecheck pass. Production events remain raw; no general
+coercion was added to physical-control contracts. The runner now also retains OAuth
+discovery/issuer binding state in memory beside PKCE, addressing an SDK warning from
+the first callback exchange. No test token or verifier is persisted/exported.
+
+The first loopback authorization attempt expired because the owner used a different
+device. For the completed attempt, the owner authenticated on their passkey-enabled
+device and delivered the localhost callback directly to the intended Mac mini via
+screen sharing; state and PKCE checks remained intact. A loopback callback belongs
+to the client machine, not the device opening consent. Avoid sending callback codes
+through agent chat or logs. The exact acceptance client process is stopped; no
+standalone event watcher is left running. Runtime behavior is unchanged by these
+acceptance-runner/documentation corrections, so no additional app release is needed.
+
+Scene/automation execution and sleep/logout/login/retention acceptance remain open.
+Nerve, Shortcuts and relationship graph work are outside this milestone.
