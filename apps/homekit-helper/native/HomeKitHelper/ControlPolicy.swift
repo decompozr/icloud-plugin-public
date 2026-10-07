@@ -77,6 +77,12 @@ enum ControlValue {
 // A crash after reservation always replays as unknown; it never automatically retries I/O.
 
 enum ProductionControlPolicy {
+    static func existingScene(_ definition: [String: Any], homeId: String) throws {
+        try scene(definition, homeId: homeId)
+        guard let actions = definition["actions"] as? [[String: Any]], !actions.isEmpty else {
+            throw ControlFailure.invalid("EXISTING_SCENE_EFFECTS_UNPROVEN")
+        }
+    }
     static func scene(_ definition: [String: Any], homeId: String) throws {
         guard definition["homeId"] as? String == homeId,
               definition["actionSetType"] as? String == "HMActionSetTypeUserDefined",

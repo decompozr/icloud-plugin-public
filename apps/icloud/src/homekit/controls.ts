@@ -10,6 +10,7 @@ interface Dependencies {
  bound:(home:string,scopes:ReadonlySet<string>)=>ControlBinding;
  unchanged:(binding:ControlBinding,scopes:ReadonlySet<string>)=>void;
  provider:(binding:ControlBinding)=>NativeHomeKitProvider;
+ authorizeExistingScene:(binding:ControlBinding,scopes:ReadonlySet<string>)=>void;
  reconnect:(binding:ControlBinding,scopes:ReadonlySet<string>)=>Promise<unknown>;
  register:<T>(name:string,description:string,schema:z.ZodType<T>,run:(input:T,scopes:ReadonlySet<string>)=>Promise<unknown>,readOnly?:boolean)=>void;
 }
@@ -32,13 +33,15 @@ export function registerHomeKitControls(d:Dependencies){
  };
  const outcome=(p:Plan)=>p.result?JSON.parse(p.result):{planId:p.id,status:p.state==='executing'?'unknown':p.state,automaticRetry:false,physicalCompletionVerified:false};
  const save=(id:string,result:{status:string;[key:string]:unknown})=>{d.db.query('UPDATE homekit_control_plans SET state=?,result=? WHERE id=?').run(result.status,JSON.stringify(result),id);return result;};
- d.register('homekit_control_prepare','Review a bounded exact-ID physical control. No provider write. Only app-owned supported scenes/automations. Separate control consent required.',controlCommandSchema,async(input,scopes)=>{
+ d.register('homekit_control_prepare','Review a bounded exact-ID physical control. No provider write. Existing scenes require separate homekit.scenes consent; automation control stays app-owned. Separate control consent required.',controlCommandSchema,async(input,scopes)=>{
   const b=d.bound(input.homeId,scopes);await check(b,scopes);
   // Reusing an operation ID never silently creates a second reviewed command.
   if(d.db.query('SELECT id FROM homekit_control_plans WHERE owner=? AND account=? AND home=? AND operation=?').get(b.owner,b.account,b.home,input.operationId))throw new HomeKitError('operation_already_exists');
-  const preview=parseControlPreview(await d.provider(b).call('homekit_control_preview',input,invocationContext()?.signal),input);
+  let existingScene=false;if(input.action==='executeScene'){const snapshot=z.object({owned:z.boolean(),definition:z.object({id:z.literal(input.sceneId),homeId:z.literal(b.home)}).passthrough()}).passthrough().parse(await d.provider(b).call('homekit_lifecycle_preview',{homeId:b.home,kind:'scene',resourceId:input.sceneId},invocationContext()?.signal));if(!snapshot.owned){d.authorizeExistingScene(b,scopes);existingScene=true;}}
+  const command={...input,...existingScene?{allowExistingSceneExecution:true}:{}};
+  const preview=parseControlPreview(await d.provider(b).call('homekit_control_preview',command,invocationContext()?.signal),input);
   if(preview.homeId!==b.home||preview.operationId!==input.operationId)throw new HomeKitError('native_identity_mismatch');
-  await check(b,scopes);const intent:ControlIntent={...input,expectedRevision:preview.revision},id=randomUUID();
+  await check(b,scopes);const intent:ControlIntent={...command,expectedRevision:preview.revision},id=randomUUID();
   d.db.query('INSERT INTO homekit_control_plans VALUES(?,?,?,?,?,?,?,?,?,?)').run(id,b.owner,b.account,b.home,b.id,input.operationId,JSON.stringify(intent),'prepared',null,Date.now()+300000);
   return{planId:id,intent,preview,requiresConfirmation:true,providerWriteAttempted:false,physicalCompletionVerified:false};
  },true);
@@ -48,7 +51,7 @@ export function registerHomeKitControls(d:Dependencies){
   if(p.state!=='prepared')return outcome(p);
   if(p.binding!==b.id)throw new HomeKitError('binding_changed');
   if(p.expires<Date.now())throw new HomeKitError('plan_expired');
-  const stored=JSON.parse(p.intent),command=controlCommandSchema.parse((({expectedRevision:_,...rest})=>rest)(stored));
+  const stored=JSON.parse(p.intent),command=controlCommandSchema.parse((({expectedRevision:_,allowExistingSceneExecution:__,...rest})=>rest)(stored));if(stored.allowExistingSceneExecution!==undefined){if(stored.allowExistingSceneExecution!==true||command.action!=='executeScene')throw new HomeKitError('invalid_saved_intent');d.authorizeExistingScene(b,scopes);}
   if(command.homeId!==b.home||!/^[a-f0-9]{64}$/.test(stored.expectedRevision))throw new HomeKitError('invalid_saved_intent');
   await check(b,scopes);if(p.expires<Date.now())throw new HomeKitError('plan_expired');
   const reserved=d.db.query("UPDATE homekit_control_plans SET state='executing' WHERE id=? AND state='prepared'").run(p.id);
@@ -57,11 +60,11 @@ export function registerHomeKitControls(d:Dependencies){
   let native:unknown;
   try{
    await check(b,scopes);
-   const response=controlResponseSchema.parse(await d.provider(b).call('homekit_control_apply',stored,invocationContext()?.signal,async()=>{await check(b,scopes);if(p.expires<Date.now())throw new HomeKitError('plan_expired');}));
+   const response=controlResponseSchema.parse(await d.provider(b).call('homekit_control_apply',stored,invocationContext()?.signal,async()=>{await check(b,scopes);if(p.expires<Date.now())throw new HomeKitError('plan_expired');if(stored.allowExistingSceneExecution===true)d.authorizeExistingScene(b,scopes);}));
    if(Buffer.byteLength(JSON.stringify(response))>65536)throw new HomeKitError('native_result_limit');native=response;
    const result=response.payload;
    if(result.operationId!==command.operationId||canonicalControl(result.intent)!==canonicalControl(stored)||result.physicalCompletionVerified!==false)throw new HomeKitError('native_identity_mismatch');
-   await check(b,scopes);
+   await check(b,scopes);if(stored.allowExistingSceneExecution===true)d.authorizeExistingScene(b,scopes);
    const mismatch=result.error==='READBACK_MISMATCH'||result.error==='AUTOMATION_STATE_MISMATCH';
    const status=mismatch?'mismatch':response.isError?(result.providerWriteAttempted===false?'rejected':'unknown'):result.writeAcknowledged===true?'acknowledged':'unknown';
    return save(p.id,{status,planId:p.id,native,automaticRetry:false,physicalCompletionVerified:false});
@@ -84,7 +87,7 @@ export function registerHomeKitControls(d:Dependencies){
   if(Buffer.byteLength(JSON.stringify(journal))>65536)throw new HomeKitError('native_result_limit');
   let targetObservation:unknown;
   try{
-   targetObservation=parseControlPreview(await provider.call('homekit_control_preview',controlCommandSchema.parse(command),signal),controlCommandSchema.parse(command));
+   const publicCommand=controlCommandSchema.parse((({allowExistingSceneExecution:_,...rest})=>rest)(command));targetObservation=parseControlPreview(await provider.call('homekit_control_preview',command,signal),publicCommand);
    if(command.action==='write'){
     const fresh=z.object({homeId:z.literal(b.home),accessoryId:z.literal(command.accessoryId),serviceId:z.literal(command.serviceId),characteristicId:z.literal(command.characteristicId),value:z.unknown(),valueSource:z.literal('fresh-read'),error:z.null()}).strict().parse(await provider.call('homekit_read',{homeId:b.home,accessoryId:command.accessoryId,serviceId:command.serviceId,characteristicId:command.characteristicId},signal));
     if(Buffer.byteLength(JSON.stringify(fresh))>65536)throw new HomeKitError('readback_size_limit');

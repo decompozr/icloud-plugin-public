@@ -531,6 +531,7 @@
   "homekitAutomationDisabled": "此安裝尚未允許自動化管理。",
   "auth_permissionHomeKit": "HomeKit",
   "homekitControlDisabled": "實體控制已由執行設定停用。啟用須另行取得擁有者核准及新的用戶端同意。",
+  "homekitScenes": "執行已檢視的既有 Home 場景",
   "homekitControl": "控制裝置及本 app 擁有的場景／自動化",
   "homekitRead": "讀取 Home",
   "homekitAutomations": "管理場景與停用自動化",

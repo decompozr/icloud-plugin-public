@@ -27,8 +27,8 @@ final class HomeControls: HomeComponent {
               let home = homes.first(where: { $0.uniqueIdentifier.uuidString == homeId }),
               let action = args["action"] as? String else { throw ControlFailure.invalid("PRODUCTION_CONTROL_UNAVAILABLE_OR_HOME") }
         var definition: [String: Any]
-        func checkedScene(_ scene: HMActionSet, allowedReference: String? = nil) throws -> [String: Any] {
-            _ = try store.requireOwned(homeId: homeId, id: scene.uniqueIdentifier.uuidString, kind: "scene")
+        func checkedScene(_ scene: HMActionSet, allowedReference: String? = nil, allowExisting: Bool = false) throws -> [String: Any] {
+            if !allowExisting { _ = try store.requireOwned(homeId: homeId, id: scene.uniqueIdentifier.uuidString, kind: "scene") }
             var snapshot = runtime.catalog.sceneDetail(scene, home: home)
             guard scene.actionSetType == HMActionSetTypeUserDefined else { throw ControlFailure.invalid("SCENE_TYPE_UNSUPPORTED") }
             snapshot["actionSetType"] = "HMActionSetTypeUserDefined"
@@ -37,7 +37,8 @@ final class HomeControls: HomeComponent {
                 guard references.allSatisfy({ $0 == reference }) else { throw ControlFailure.invalid("SCENE_FOREIGN_REFERENCE") }
                 snapshot["referencedByTriggerIds"] = [String]()
             }
-            try ProductionControlPolicy.scene(snapshot, homeId: homeId)
+            if allowExisting { try ProductionControlPolicy.existingScene(snapshot, homeId: homeId) }
+            else { try ProductionControlPolicy.scene(snapshot, homeId: homeId) }
             for entry in scene.actions {
                 guard let write = entry as? HMCharacteristicWriteAction<NSCopying>,
                       write.characteristic.properties.contains(HMCharacteristicPropertyWritable),
@@ -61,9 +62,11 @@ final class HomeControls: HomeComponent {
                 "minimum": scalar(c.metadata?.minimumValue), "maximum": scalar(c.metadata?.maximumValue),
                 "step": scalar(c.metadata?.stepValue), "maxLength": scalar(c.metadata?.maxLength), "validValues": c.metadata?.validValues ?? []]
         } else if action == "executeScene" {
-            guard Set(args.keys) == ["action", "homeId", "operationId", "sceneId"], let id = args["sceneId"] as? String,
+            let allowExisting = args["allowExistingSceneExecution"] as? NSNumber
+            guard allowExisting == nil || (CFGetTypeID(allowExisting!) == CFBooleanGetTypeID() && allowExisting!.boolValue),
+                  Set(args.keys) == Set(["action", "homeId", "operationId", "sceneId"] + (allowExisting == nil ? [] : ["allowExistingSceneExecution"])), let id = args["sceneId"] as? String,
                   let scene = home.actionSets.first(where: { $0.uniqueIdentifier.uuidString == id }) else { throw ControlFailure.invalid("CONTROL_SCENE_UNRESOLVED") }
-            definition = try checkedScene(scene)
+            definition = try checkedScene(scene, allowExisting: allowExisting?.boolValue ?? false)
         } else if action == "setAutomationEnabled" {
             guard Set(args.keys) == ["action", "homeId", "operationId", "automationId", "enabled"],
                   let enabled = args["enabled"] as? NSNumber, CFGetTypeID(enabled) == CFBooleanGetTypeID(),

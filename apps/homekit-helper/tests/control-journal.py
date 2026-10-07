@@ -14,6 +14,9 @@ let action: [String: Any] = ["kind": "characteristicWrite", "opaque": false, "ta
 let scene: [String: Any] = ["homeId": home, "actionSetType": "HMActionSetTypeUserDefined", "listedInHome": true,
     "actionsTruncated": false, "referencedByTriggerIds": [String](), "actions": [action], "actionCount": 1]
 try ProductionControlPolicy.scene(scene, homeId: home)
+try ProductionControlPolicy.existingScene(scene, homeId: home)
+var empty = scene; empty["actions"] = [[String: Any]](); empty["actionCount"] = 0
+do { try ProductionControlPolicy.existingScene(empty, homeId: home); fatalError("Empty existing effects accepted") } catch {}
 func deny(_ change: [String: Any]) {
  var value = scene; value.merge(change, uniquingKeysWith: { _, new in new })
  do { try ProductionControlPolicy.scene(value, homeId: home); fatalError("Expected denial") } catch {}
@@ -42,6 +45,6 @@ let handle = try FileHandle(forWritingTo: journalURL); try handle.seekToEnd(); t
 try assertion(try journal.outcome(operationId: id, request: request)?["error"] as? String == "READBACK_MISMATCH")
 let broken = try FileHandle(forWritingTo: journalURL); try broken.seekToEnd(); try broken.write(contentsOf: Data("partial".utf8)); try broken.close()
 do { _ = try journal.begin(operationId: "new", request: request); fatalError("Partial journal accepted") } catch {}
-print("20 exact native production control/journal checks passed; physical writes 0")
+print("22 exact native production control/journal checks passed; physical writes 0")
 ''')
  subprocess.run(['xcrun','swift',str(p),root],check=True,env=dict(os.environ,DEVELOPER_DIR='/Applications/Xcode.app/Contents/Developer'))

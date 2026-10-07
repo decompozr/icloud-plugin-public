@@ -511,3 +511,23 @@ are retained for the requested next acceptance, not temporary orphan resources.
 Scene execution/readback and automation create/link/enable/trigger acceptance remain
 open; the first async target/trigger question is still pending. No automatic clock,
 sensor threshold, fallback duration or household automation target was selected.
+
+## Reviewed existing scene execution
+
+The owner explicitly requested native execution of the existing Turn Off Third
+Floor scene after turning on the two Master Washroom lights. The previous fallback
+performed 11 exact device writes with verified final OFF, but did not execute the
+scene API and is not scene acceptance. The production extension adds default-off
+owner policy `scenes` and distinct `homekit.scenes` client consent. Existing
+`homekit.control` grants do not expand automatically. Both control and read remain
+required, and policy/consent are checked before prepare, before dispatch and after
+response. A host-only intent bit can authorize existing user-defined scenes; public
+DTOs reject it. Definitions retain exact ledger ownership for editing/removal, and
+automation enable remains app-owned. Opaque, built-in, unresolved, truncated or
+referenced scenes remain denied. Scene execution uses native executeActionSet,
+revision binding, bounded fresh action readback and once-only durable outcomes.
+
+Source, denial/revocation tests, signed clean-main build and local deployment precede
+owner policy activation and fresh client consent. Only then repeat the already
+owner-selected washroom ON → native Turn Off Third Floor sequence. No direct-write
+emulation is accepted as a native scene test.
