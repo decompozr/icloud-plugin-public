@@ -32,7 +32,7 @@ def signing_context():
                 keychainUnlocked=bool(status.value & 1), keychainStatus=status.value)
 
 
-def build(run):
+def build(run, configuration="Debug"):
     context = signing_context()
     (run / 'context.json').write_text(json.dumps(context, indent=2) + '\n')
     project = Path(__file__).resolve().parent / 'native/HomeKitProbe.xcodeproj'
@@ -40,15 +40,15 @@ def build(run):
     source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
     source_head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=project.parent, capture_output=True, text=True).stdout.strip()
     command = ['xcodebuild', '-project', str(project), '-scheme', 'HomeKitProbe',
-               '-configuration', 'Debug', '-destination', 'platform=macOS,variant=Mac Catalyst',
+               '-configuration', configuration, '-destination', 'platform=macOS,variant=Mac Catalyst',
                '-derivedDataPath', str(run / 'DerivedData'), '-allowProvisioningUpdates',
                '-allowProvisioningDeviceRegistration', f'HOMEKIT_SOURCE_SHA256={source_sha}', 'build']
     env = dict(os.environ, DEVELOPER_DIR='/Applications/Xcode.app/Contents/Developer')
-    result = dict(context=context, state='building', runnerPid=os.getpid(), physicalWrites=0, sourceSHA256=source_sha, sourceHEAD=source_head)
+    result = dict(context=context, state='building', runnerPid=os.getpid(), physicalWrites=0, configuration=configuration, sourceSHA256=source_sha, sourceHEAD=source_head)
     (run / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
     with (run / 'build.log').open('w') as log:
         completed = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT)
-    app = run / 'DerivedData/Build/Products/Debug-maccatalyst/HomeKitProbe.app'
+    app = run / ('DerivedData/Build/Products/' + configuration + '-maccatalyst/HomeKitProbe.app')
     verified = False
     if completed.returncode == 0:
         with (run / 'verification.log').open('w') as log:
@@ -116,11 +116,12 @@ def main():
     parser.add_argument('--output', help='Private artifact root; each build creates a unique run directory')
     parser.add_argument('--desktop-session', action='store_true',
                         help='Run xcodebuild in a new desktop Terminal window through Launch Services')
+    parser.add_argument('--configuration', choices=['Debug','Release'], default='Debug')
     parser.add_argument('--worker-directory', help=argparse.SUPPRESS)
     args = parser.parse_args()
     os.umask(0o077)
     if args.worker_directory:
-        return build(Path(args.worker_directory))
+        return build(Path(args.worker_directory), args.configuration)
     if not args.output:
         parser.error('--output is required')
     context = signing_context()
@@ -132,11 +133,11 @@ def main():
     run = Path(tempfile.mkdtemp(prefix='build-', dir=root))
     print(f'Private build artifacts: {run}', flush=True)
     if not args.desktop_session:
-        return build(run)
+        return build(run, args.configuration)
     # Launch Services starts Terminal in the existing logged-in user session.
     # No password, key ACL, trust setting, launch agent or global preference is changed.
     launcher = run / 'build.command'
-    worker = ['/usr/bin/python3', str(Path(__file__).resolve()), '--worker-directory', str(run)]
+    worker = ['/usr/bin/python3', str(Path(__file__).resolve()), '--worker-directory', str(run), '--configuration', args.configuration]
     launcher.write_text('#!/bin/zsh\numask 077\nexec ' + shlex.join(worker) + '\n')
     launcher.chmod(0o700)
     subprocess.run(['open', '-g', '-a', 'Terminal', str(launcher)], check=True)

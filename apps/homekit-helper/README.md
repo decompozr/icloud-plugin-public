@@ -13,7 +13,7 @@ in `native/`; task-branch artifacts must not be installed as production releases
 ## Build
 
 ```sh
-python3 apps/homekit-helper/build.py --output /absolute/private/builds --desktop-session
+python3 apps/homekit-helper/build.py --output /absolute/private/builds --desktop-session --configuration Release
 ```
 
 The command uses the declared Xcode toolchain per process. On this Mac, development
@@ -101,3 +101,5 @@ Run `python3 playground/homekit/background-check.py SIGNED_BUILD_RECEIPT PRIVATE
 for a read-only presentation acceptance. Failed LSUIElement/orderOut trials are
 retained privately alongside the successful run. Build commands auto-close only
 their exact completed task Terminal windows.
+
+Production payload staging requires a successful Release configuration receipt; Debug builds remain local test artifacts. Local deployment uses the established Apple Development signing identity; no public Developer ID/notarization claim is made.
