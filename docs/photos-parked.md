@@ -37,7 +37,7 @@ The desired final outcome is automated posting from existing Photos assets witho
 
 - [Chronological Live Photo research and decisions](photos-live-upload-plan.md).
 - [Capability plan and earlier acceptance boundaries](photos-capability-plan.md).
-- [Standalone experiment source, protocol and references](../playground/photos/picker-input-experiment/README.md).
+- [Standalone experiment source, protocol and references](research/prototype-archive/photos-picker.md).
 - Archived publication implementation/tests: `apps/icloud/src/photos/shared-*`, `cloud-*`, `archived-sharing-module.ts` and native `SharedAlbumPosting.swift`; publication modules are excluded from releases. Ordinary Photos and read-only recovery utilities remain deployed.
 - Private evidence: `.flow-runtime/native-sharing/picker-input-experiment/evidence/`, API probes and requests; `.flow-runtime/native-sharing/rebirth-after-refresh/` contains deployment and handoff receipts; `parked/` holds shutdown, permission, build and deployment evidence.
 - Private `state.json` retains exact original/replacement source and destination IDs, uncertain operations and recovery locations. Never copy those identifiers into public docs.

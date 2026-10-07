@@ -1,5 +1,7 @@
 # Calendar preparation: offline findings and proposed boundary
 
+> Historical experiment commands and `playground/` paths below are retained as dated evidence. The prototypes were retired on 2026-10-07; use [current replacements and source history](research/retired-prototypes.md).
+
 Current integration goal: [production-ready registered Calendar
 module](calendar-production.md). The registered source/build gate now passes;
 registered production-path live smoke passed and cleaned its resources. The user accepted remaining recipient verification limits; final sharing
@@ -82,7 +84,7 @@ the worker copied its calendar TypeScript files and package manifest into an own
 temporary directory and reused an existing dependency directory containing the
 pinned parser versions. No packages were installed. With those dependencies
 already available, the normal commands from `playground/calendar` are `bun test`
-and `bun run demo`. See the [playground evidence](../playground/calendar/README.md)
+and `bun run demo`. See the [playground evidence](research/prototype-archive/calendar.md)
 for the execution details and latest review result.
 
 The recorded verification commands were

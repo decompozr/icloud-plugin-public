@@ -96,7 +96,8 @@ application and protocol integration. Registration tests must demonstrate a
 non-Mail contribution and disabled/unauthorized paths without a live provider.
 Synthetic results are not evidence of live Apple, physical Passkey or deployed
 client acceptance. [Current status](current-status.md) records dated evidence;
-[research](research.md), [experiments](experiments.md) and `playground/` retain
+[research](research.md), [experiments](experiments.md) and the
+[prototype archive](research/retired-prototypes.md) retain
 historical candidate evaluations. Their older recommendations do not override
 this source architecture. No release, installation or deployment is part of this
 structural change.

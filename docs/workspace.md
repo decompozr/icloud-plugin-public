@@ -5,7 +5,8 @@ SvelteKit presentation and Paraglide catalogs. Studio is built before the runtim
 application; its compiled server/client output is embedded in that artifact. There is no
 separate `apps/server` and no production MCP client. Codex and ChatGPT consume
 Streamable HTTP; stdio is not an initial interface. `docs/` stays authoritative,
-and `playground/` remains separate experiments with independent packages/locks.
+and retired experiment findings live in `docs/research/prototype-archive/`. Retained
+library checks use application dependencies and run in the formal test suite.
 
 ```text
 apps/icloud/src/
@@ -49,7 +50,7 @@ this layout inventory does not identify or verify a running release.
 | Build | `bun bin/build` | Typechecks then emits `apps/icloud/dist/index.js` for Bun. Does not start a service. |
 | Release | `bun bin/release` | Packages the existing build and installed dependencies into a versioned host-platform archive under `releases/`; refuses overwrite. No build, registry upload or publication. |
 | Runtime | `bun bin/runtime` | Runs the existing app build only; no compilation or dependency installation. |
-| Verification | `bun bin/typecheck`, `bun bin/test` | Checks app and tooling units/types; `bun bin/e2e` uses the separate built-service project. Playground remains explicit. |
+| Verification | `bun bin/typecheck`, `bun bin/test` | Checks app and tooling units/types; `bun bin/e2e` uses the separate built-service project. Native helper acceptance remains explicit. |
 
 Each application/package owns its `package.json`, committed `bun.lock`, and local
 `node_modules`. The repository root has no package manifest, lockfile, workspace
@@ -65,7 +66,7 @@ Install independently from each owner directory:
 
 Root `bin/` entrypoints only dispatch commands; they do not own dependencies.
 The E2E package reads the already-built application through relative paths and
-has its own test dependencies. Playground packages retain independent ownership.
+has its own test dependencies. Retired prototype packages and their lockfiles are removed.
 
 Build emits `apps/icloud/dist`. Artifact assembly defaults to
 `apps/icloud/build/<platform>-<arch>` and owns production dependencies at
