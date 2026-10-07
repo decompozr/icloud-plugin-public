@@ -75,7 +75,7 @@ protected stopped-state backups and concurrent work.
 
 ## Status
 
-Phase 1 implementation and candidate verification complete; merge/deployment pending.
+Phase 1 merged and deployed as 0.1.91; awaiting owner acceptance.
 Phase 2 has not started. No owner pass for phase 1 yet.
 
 ### Phase 1 verification
@@ -101,3 +101,34 @@ The review finding confirms why source build success is not installed-runtime
 acceptance. The original failed built import/E2E attempt is superseded by the
 corrected built integration and packaged lifecycle checks, not silently counted
 as a passing run.
+
+### Phase 1 deployment readback
+
+PR #115 merged the implementation. Version 0.1.91 was built from clean remote
+main `b4dde100df1ad53b2c0f60cba2b515c9b44284f6`, which was verified as the tip
+immediately before release and installation. Frozen dependencies, final builds
+and packaged lifecycle/OAuth-upgrade checks (2 / 151 assertions) passed again.
+The native bundle retains the signed 0.1.90 fingerprint; artifact staging verified
+its signature and source identity. No helper or permission migration was required.
+
+The supported updater installed the exact artifact without initialization after
+graceful shutdown and a protected stopped-state backup. Installed payload hashes
+match. Configuration/custody bytes, account and owner records, Passkeys, grants,
+capability settings and other non-transient database rows are unchanged; SQLite
+integrity checks pass. The existing OAuth resource timestamp refresh and rate-limit
+diagnostics are excluded from that comparison. Version 0.1.90, its canonical
+archive and the protected pre-0.1.91 stopped backup remain for rollback. A private
+upgrade receipt in that backup records payload/state/health checks.
+
+Local and private sign-in return 200; private CSS matches the installed output and
+retains no-store, no-referrer and CSP. All 13 read-only doctor checks pass from this
+Mac. The existing main MCP connection's profile and actual mailbox listing succeed
+(9 mailboxes). No new client registration, consent/grant or provider write was
+introduced. This read verifies the existing Mail client path, not all module tools,
+a fresh physical Passkey ceremony or off-tailnet acceptance.
+
+Owner gate remains pending: verify normal owner login, account display and existing
+client access in the delivered installation, then report pass. Phase 2 is not
+started until that report. Studio becoming the complete server and removal of the
+old app remain planned later phases; this release only extracts account backend
+ownership and its build/distribution interface.
