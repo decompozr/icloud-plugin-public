@@ -39,3 +39,7 @@ Apple references in the guide explain owner-controlled Photos privacy settings a
 ## Restore
 
 Create a new linked worktree from the retained `explain-modular-architecture` branch. From that checkout, register the project and mount the surface ID recorded in `surface.project.json` using the shared Surface CLI. Use the returned new preview URL; do not assume the retired workspace URL is reusable. Complete browser verification before claiming rendering or interaction acceptance.
+
+## Preview restored after clarification
+
+The user clarified that the Surface page must remain available. The previous cleanup interpretation was incorrect. The original disposable worktree remains removed; this dedicated `architecture-preview` checkout is intentionally retained as the live page source. Registration and mount returned ready at `/workspace/icloud-plugin/architecture-preview/architecture/`. The existing shared service was not restarted. Browser automation was attempted but unavailable because the local Playwright browser executable was missing; no browser was installed. Keep the mounted checkout while the user uses the preview.
