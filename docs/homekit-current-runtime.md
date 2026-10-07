@@ -303,3 +303,45 @@ repaired it. Failed receipts are retained, not counted as accepted builds.
 Actual signed background readiness/zero-window and compiled shared-HTTP native
 read/resource/reconnect checks passed with fixture principals; client physical
 acceptance is not inferred from these. Verification is same-agent self-review.
+
+## Production helper acceptance and identity retirement (2026-10-07)
+
+Release 0.1.90 (PR #113, commit 356bea1) is installed locally with the composed
+HomeKitHelper v1.0 runtime. The genuine connected MCP client prepared/applied the
+owner-approved Office Light ON, independently read ON, prepared/applied OFF and
+independently read OFF. Both durable operations are acknowledged with matching
+SDK readback; final state is OFF. No retry occurred. This establishes this exact
+client/device sequence, not human visual observation, scene/automation execution,
+natural push or sleep/login/retention acceptance. Private receipts remain retained.
+
+The owner subsequently requested removal of the retired Probe from all settings.
+Release 0.1.92 changes the signed bundle identity to
+`com.decompozr.homekit-helper`, displayed as **iCloud HomeKit Helper**. Existing
+OAuth grants and exact owner/account/Home binding remain preserved. The new native
+identity requires genuine macOS Home approval; old authorization is never copied.
+After new identity readiness, targeted LaunchServices unregistration and supported
+`tccutil reset All com.decompozr.homekit-probe` retire only the old app identity.
+Old source and operation evidence remain retained. Identity migration and visible
+settings cleanup must be verified separately before being reported complete.
+
+Identity retirement is currently blocked at the signed-build prerequisite: Xcode
+reports “No Accounts” and no Mac Catalyst App Development provisioning profile for
+`com.decompozr.homekit-helper` (Release build exit 65). Team 74NBML8KJB must be
+available through genuine Xcode account login/provisioning before migration. The
+working 0.1.90 installation and its native permission have not been removed. A
+bounded LaunchServices inventory found 47 old identity registrations, 22 with
+existing bundles; cleanup remains pending successful new-identity readiness.
+
+The owner completed developer-account login and enabled the capability. CLI
+validation subsequently produced a successful signed Release for the formal App ID:
+its dedicated Mac Catalyst provisioning profile and signed app both contain
+`com.apple.developer.homekit=true`, Team 74NBML8KJB, and the displayed production
+name. The project now records HomeKit capability explicitly and uses generated
+LSUIElement=true consistently. OS Home authorization and deployment remain
+separate checks; a first read attempt before approval correctly returned not ready.
+
+Owner-approved macOS Home permission was subsequently verified through CLI: new
+identity ready/authorized, background mode, no Dock presence or visible owned
+windows, and owned native process stopped after read-only acceptance. Physical
+writes were zero. Release numbering advances to 0.1.92 to preserve the independently
+delivered account-module 0.1.91 release.

@@ -133,6 +133,12 @@
 				TargetAttributes = {
 					AAA00014 = {
 						CreatedOnToolsVersion = 15.0;
+						DevelopmentTeam = 74NBML8KJB;
+						SystemCapabilities = {
+							com.apple.HomeKit = {
+								enabled = 1;
+							};
+						};
 					};
 				};
 			};
@@ -317,8 +323,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HomeKitHelper/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "iCloud HomeKit Helper";
+				INFOPLIST_KEY_CFBundleName = "iCloud HomeKit Helper";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_LSUIElement = NO;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHomeKitUsageDescription = "iCloud reads your selected Home and performs device controls you explicitly authorize.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -328,7 +336,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.decompozr.homekit-probe";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.decompozr.homekit-helper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
@@ -350,8 +358,10 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HomeKitHelper/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "iCloud HomeKit Helper";
+				INFOPLIST_KEY_CFBundleName = "iCloud HomeKit Helper";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_LSUIElement = NO;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHomeKitUsageDescription = "iCloud reads your selected Home and performs device controls you explicitly authorize.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -361,7 +371,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.decompozr.homekit-probe";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.decompozr.homekit-helper";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTS_MACCATALYST = YES;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
