@@ -4,6 +4,19 @@ enum ControlFailure: Error { case invalid(String) }
 
 enum ControlValue {
     static let formats: Set<String> = ["bool", "int", "float", "uint8", "uint16", "uint32", "uint64", "string", "data", "tlv8", "array", "dict"]
+    // Only for SDK-owned scene/readback values. External command decoding stays strict.
+    static func decodeProviderTarget(_ value: Any, format: String, minimum: NSNumber? = nil, maximum: NSNumber? = nil,
+                                     step: NSNumber? = nil, validValues: [NSNumber]? = nil, maxLength: NSNumber? = nil) throws -> Any {
+        var observed = value
+        if format == "bool" {
+            guard let number = value as? NSNumber, number.doubleValue == 0 || number.doubleValue == 1 else {
+                throw ControlFailure.invalid("PROVIDER_BOOLEAN_INVALID")
+            }
+            observed = NSNumber(value: number.boolValue)
+        }
+        return try decode(observed, format: format, minimum: minimum, maximum: maximum,
+                          step: step, validValues: validValues, maxLength: maxLength)
+    }
     static func decode(_ value: Any, format: String, minimum: NSNumber? = nil, maximum: NSNumber? = nil,
                        step: NSNumber? = nil, validValues: [NSNumber]? = nil, maxLength: NSNumber? = nil) throws -> Any {
         func reject(_ reason: String) throws -> Never { throw ControlFailure.invalid(reason) }
@@ -79,5 +92,17 @@ enum ProductionControlPolicy {
                   ["accessoryId", "serviceId", "characteristicId"].allSatisfy({ (target[$0] as? String).flatMap(UUID.init(uuidString:)) != nil })
             else { throw ControlFailure.invalid("SCENE_ACTION_UNSUPPORTED_OR_UNRESOLVED") }
         }
+    }
+}
+
+// Summarize SDK scene observations without implying causal physical completion.
+enum SceneReadbackPolicy {
+    static func summarize(_ entries: [[String: Any]]) -> [String: Any] {
+        let verified = entries.allSatisfy { $0["status"] as? String == "verified" }
+        var result: [String: Any] = ["writeAcknowledged": true, "sceneExecutionAcknowledged": true,
+            "individualActionsVerified": verified, "actionReadbacks": entries, "valueSource": "fresh-read"]
+        if entries.contains(where: { $0["status"] as? String == "mismatch" }) { result["error"] = "READBACK_MISMATCH" }
+        else if !verified { result["error"] = "SCENE_READBACK_UNAVAILABLE" }
+        return result
     }
 }

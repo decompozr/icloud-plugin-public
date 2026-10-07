@@ -43,7 +43,7 @@ final class HomeControls: HomeComponent {
                       write.characteristic.properties.contains(HMCharacteristicPropertyWritable),
                       !["array", "dict"].contains(write.characteristic.metadata?.format ?? "") else { throw ControlFailure.invalid("SCENE_NOT_WRITABLE") }
                 let c = write.characteristic
-                _ = try ControlValue.decode(scalar(write.targetValue), format: c.metadata?.format ?? "", minimum: c.metadata?.minimumValue,
+                _ = try ControlValue.decodeProviderTarget(scalar(write.targetValue), format: c.metadata?.format ?? "", minimum: c.metadata?.minimumValue,
                     maximum: c.metadata?.maximumValue, step: c.metadata?.stepValue, validValues: c.metadata?.validValues, maxLength: c.metadata?.maxLength)
             }
             return runtime.catalog.sceneDetail(scene, home: home)
@@ -78,6 +78,43 @@ final class HomeControls: HomeComponent {
         } else { throw ControlFailure.invalid("CONTROL_ACTION_UNSUPPORTED") }
         return ["homeId": homeId, "operationId": operationId, "definition": definition,
             "revision": try LifecycleStore.revision(definition), "physicalCompletionVerified": false]
+    }
+
+    private struct SceneReadbackTarget {
+        let actionId: String
+        let characteristic: HMCharacteristic
+        let format: String
+        let desired: NSObject
+    }
+    private func sceneReadbackTargets(_ scene: HMActionSet) throws -> [SceneReadbackTarget] {
+        try scene.actions.map { entry in
+            guard let action = entry as? HMCharacteristicWriteAction<NSCopying> else { throw ControlFailure.invalid("SCENE_ACTION_UNSUPPORTED") }
+            let c = action.characteristic, format = c.metadata?.format ?? ""
+            guard let desired = try ControlValue.decodeProviderTarget(scalar(action.targetValue), format: format) as? NSObject else { throw ControlFailure.invalid("SCENE_TARGET_VALUE_UNSUPPORTED") }
+            return SceneReadbackTarget(actionId: action.uniqueIdentifier.uuidString, characteristic: c, format: format, desired: desired)
+        }
+    }
+    private func readSceneActions(_ actions: [SceneReadbackTarget], completion: @escaping ([[String: Any]]) -> Void) {
+        var remaining = actions.count, results: [[String: Any]] = []
+        guard remaining > 0 else { completion([]); return }
+        func observed(_ action: SceneReadbackTarget, _ status: String) {
+            results.append(["actionId": action.actionId, "characteristicId": action.characteristic.uniqueIdentifier.uuidString, "status": status])
+            remaining -= 1
+            if remaining == 0 { completion(results.sorted { ($0["actionId"] as! String) < ($1["actionId"] as! String) }) }
+        }
+        for action in actions {
+            let c = action.characteristic
+            guard c.properties.contains(HMCharacteristicPropertyReadable) else { observed(action, "unreadable"); continue }
+            c.readValue { error in
+                DispatchQueue.main.async {
+                    guard error == nil, let value = c.value, c.metadata?.format == action.format else { observed(action, "read_failed"); return }
+                    do {
+                        let actual = try ControlValue.decodeProviderTarget(self.scalar(value), format: action.format)
+                        observed(action, action.desired.isEqual(actual) ? "verified" : "mismatch")
+                    } catch { observed(action, "mismatch") }
+                }
+            }
+        }
     }
 
     func control(id: Any, name: String, args: [String: Any], productionIntent: [String: Any]? = nil) {
@@ -143,6 +180,9 @@ final class HomeControls: HomeComponent {
             reply(id: id, payload: ["error": String(describing: error)], failed: true); return
         }
         let request: [String: Any] = ["tool": name, "arguments": args]
+        let sceneTargets: [SceneReadbackTarget]
+        do { sceneTargets = try scene.map(sceneReadbackTargets) ?? [] }
+        catch { self.controlInFlight = false; reply(id: id, payload: ["error": "SCENE_TARGET_VALUE_UNSUPPORTED", "operationId": operationId, "intent": productionIntent ?? args, "physicalCompletionVerified": false, "providerWriteAttempted": false], failed: true); return }
         do {
             if var replay = try journal.begin(operationId: operationId, request: request) {
                 replay["replayed"] = true
@@ -157,7 +197,7 @@ final class HomeControls: HomeComponent {
         var timeout: DispatchWorkItem?
         func finish(_ result: [String: Any]) {
             if replied { return }; replied = true; timeout?.cancel()
-            if !["WRITE_OUTCOME_UNKNOWN", "READBACK_TIMEOUT"].contains(result["error"] as? String ?? "") { self.controlInFlight = false }
+            if !["WRITE_OUTCOME_UNKNOWN", "READBACK_TIMEOUT", "SCENE_READBACK_TIMEOUT"].contains(result["error"] as? String ?? "") { self.controlInFlight = false }
             var payload = result
             payload["operationId"] = operationId
             payload["providerWriteAttempted"] = true
@@ -204,9 +244,16 @@ final class HomeControls: HomeComponent {
                         "enabledVerified": trigger.isEnabled == expected, "valueSource": "provider-object-after-callback"]
                     if trigger.isEnabled != expected { result["error"] = "AUTOMATION_STATE_MISMATCH" }
                     finish(result)
-                } else {
-                    finish(["writeAcknowledged": true, "sceneExecutionAcknowledged": true,
-                        "individualActionsVerified": false])
+                } else if scene != nil {
+                    timeout?.cancel()
+                    timeout = DispatchWorkItem { finish(["error": "SCENE_READBACK_TIMEOUT", "writeAcknowledged": true,
+                        "sceneExecutionAcknowledged": true, "individualActionsVerified": false]) }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: timeout!)
+                    self.readSceneActions(sceneTargets) { observations in
+                        self.controlInFlight = false
+                        if replied { return }
+                        finish(SceneReadbackPolicy.summarize(observations))
+                    }
                 }
             }
         }

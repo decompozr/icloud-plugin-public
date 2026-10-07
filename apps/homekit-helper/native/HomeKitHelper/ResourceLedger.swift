@@ -94,11 +94,23 @@ final class LifecycleStore {
         }
         return try Self.creationCandidate(records: records, homeId: homeId, operationId: operationId)
     }
+    static func resourceName(_ name: String, operationId: String) throws -> String {
+        guard UUID(uuidString: operationId) != nil, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              name.utf8.count <= 120 else { throw ControlFailure.invalid("RESOURCE_NAME_INVALID") }
+        return "DecompozR \(name) [\(operationId)]"
+    }
     static func actionMatches(_ action: [String: Any], target: [String: Any], value: Any) throws -> Bool {
         guard action["kind"] as? String == "characteristicWrite", action["opaque"] as? Bool == false,
             let actual = action["target"] as? [String: Any], actual["resolved"] as? Bool == true,
             ["homeId", "accessoryId", "serviceId", "characteristicId"].allSatisfy({ actual[$0] as? String == target[$0] as? String && target[$0] is String }),
             let observedValue = action["targetValue"] else { return false }
+        if let format = target["format"] as? String, format == "bool" {
+            guard actual["format"] as? String == format else { return false }
+            let desired = try ControlValue.decode(value, format: format)
+            let observed = try ControlValue.decodeProviderTarget(observedValue, format: format)
+            guard let desiredBool = desired as? Bool, let observedBool = observed as? Bool else { return false }
+            return desiredBool == observedBool
+        }
         return try JSONSerialization.data(withJSONObject: [observedValue], options: [.sortedKeys]) == JSONSerialization.data(withJSONObject: [value], options: [.sortedKeys])
     }
     static func addedAction(_ actions: [[String: Any]], baseline: Set<String>, target: [String: Any], value: Any) throws -> String {

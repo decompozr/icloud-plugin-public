@@ -453,3 +453,22 @@ acceptance-runner/documentation corrections, so no additional app release is nee
 
 Scene/automation execution and sleep/logout/login/retention acceptance remain open.
 Nerve, Shortcuts and relationship graph work are outside this milestone.
+
+## App-owned scene and automation production slice
+
+The owner selected scenes and Home automations next. Scope is app-owned definition
+CRUD/revisions and bounded scene execution/readback, followed by supported disabled
+calendar/characteristic automation definition/linking and explicitly approved
+enable/trigger acceptance. Existing household resources are not adopted, edited or
+executed. Exact owner/account/Home, ownership/reference, opaque-definition, durable
+intent and no-retry boundaries remain mandatory. A concrete target/effect and
+automation trigger/time are pending owner selection; no physical action has been
+performed for this slice. Sleep/logout/login testing remains excluded.
+
+The source slice removes the obsolete Test creation/rename prefix while retaining
+operation correlation and exact ledger identity. Provider-owned bool targets may
+use NSNumber 0/1; normalize only those declared SDK bool values for scene preview
+and definition readback, keeping incoming control commands strictly typed. Scene
+execution performs bounded fresh characteristic reads after SDK acknowledgment;
+mismatch or unavailable readback retains its outcome without replay. Foundation
+policy and host denial/retention tests precede signed clean-main build/deployment.
