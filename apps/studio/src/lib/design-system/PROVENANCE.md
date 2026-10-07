@@ -8,3 +8,8 @@ in application assets. Do not independently redraw catalog glyphs.
 Button, Spinner, Tag, Checkbox, FieldLabel, Select (including select.ts), Toast and ToastRegion are also unmodified
 source from that same pinned revision. Toast gesture/motion and translated message
 state live in project-owned adapters; catalog visual controls are not redrawn.
+
+Switch is copied unchanged from `src/lib/Switch.svelte` at the same pinned
+revision. Its control metrics, palette, focus and reduced-motion behavior remain
+upstream-owned. Studio ModuleSwitch only proposes the existing configuration
+dialog and restores the persisted state until confirmation succeeds.

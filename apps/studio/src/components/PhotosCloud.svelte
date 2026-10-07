@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ActionButton from "./ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
   import type { UiCopy } from "../contracts.js";
@@ -11,7 +12,7 @@
     preferredAccountId?: string;
     inModal?: boolean;
     oncomplete?: () => void;
-    onbusy?: (value:boolean) => void;
+    onbusy?: (value: boolean) => void;
   } = $props();
   const toast =
     getContext<import("../lib/ui-state.svelte.js").ToastCenter>("toast");
@@ -77,14 +78,16 @@
   }
   async function run(action: () => Promise<void>) {
     if (busy) return;
-    busy = true;onbusy?.(true);
+    busy = true;
+    onbusy?.(true);
     try {
       await action();
     } catch {
       message = "photosCloudFailed";
       toast?.push(message, "error");
     } finally {
-      busy = false;onbusy?.(false);
+      busy = false;
+      onbusy?.(false);
     }
   }
   async function action(path: string, extra: Record<string, unknown> = {}) {
@@ -148,7 +151,10 @@
   aria-labelledby="photos-cloud-title"
 >
   <h2 id="photos-cloud-title">{t("photosCloudTitle")}</h2>
-  <p>{t("photosCloudHelp")}</p>
+  <details>
+    <summary>{t("photosPermissionHelpShort")}</summary>
+    <p>{t("photosCloudHelp")}</p>
+  </details>
   <p>{t("photosCloudPrivacy")}</p>
   <label for="photos-cloud-account">{t("connectionAccount")}</label><select
     id="photos-cloud-account"
@@ -166,7 +172,7 @@
       >{/each}</select
   >
   <p id="photos-cloud-status" class="muted">{t(statusKey)}</p>
-  <button
+  <ActionButton
     type="button"
     id="photos-cloud-install"
     hidden={status?.dependencyReady || !status?.setupAvailable}
@@ -176,8 +182,10 @@
         message = "photosCloudWorking";
         await request("setup", {});
         await refresh();
-      })}>{t("photosCloudSetup")}</button
-  >
+      })}
+    label={t("photosCloudSetup")}
+    icon="download"
+  />
   <form
     id="photos-cloud-login"
     hidden={status?.phase === "awaiting_2fa" ||
@@ -201,7 +209,11 @@
         maxlength="1024"
         required
         bind:value={password}
-      /><button type="submit">{t("photosCloudSignIn")}</button>
+      /><ActionButton
+        type="submit"
+        label={t("photosCloudSignIn")}
+        icon="arrow-right"
+      />
     </fieldset>
   </form>
   <form
@@ -230,26 +242,32 @@
       required
       bind:value={code}
       disabled={busy}
-    /><button type="submit" disabled={busy}>{t("photosCloudVerify")}</button
-    ><button
+    /><ActionButton
+      type="submit"
+      disabled={busy}
+      label={t("photosCloudVerify")}
+      icon="check"
+    /><ActionButton
       type="button"
       id="photos-cloud-send-code"
       disabled={busy}
       onclick={() => void run(() => action("send-code"))}
-      >{t(
+      label={t(
         status?.verificationMethod === "sms"
           ? "photosCloudSendSms"
           : "photosCloudSendCode",
-      )}</button
-    >
+      )}
+      icon="message-square"
+    />
   </form>
-  <button
+  <ActionButton
     type="button"
     id="photos-cloud-recheck"
     disabled={busy}
     onclick={() => void run(() => action("recheck"))}
-    >{t("photosCloudRecheck")}</button
-  ><button
+    label={t("photosCloudRecheck")}
+    icon="refresh"
+  /><ActionButton
     type="button"
     id="photos-cloud-revoke"
     disabled={busy}
@@ -262,8 +280,10 @@
         await action("revoke", { confirm: true });
         confirm = false;
       });
-    }}>{t("photosCloudRevoke")}</button
-  ><label
+    }}
+    label={t("photosCloudRevoke")}
+    icon="unplug"
+  /><label
     ><input
       type="checkbox"
       id="photos-cloud-revoke-confirm"

@@ -1,4 +1,11 @@
 <script lang="ts">
+  import AccountCard from "./AccountCard.svelte";
+  import ModuleSwitch from "./ModuleSwitch.svelte";
+  import Tag from "../lib/design-system/Tag.svelte";
+  import { scopeCopy } from "../lib/admin-model.svelte.js";
+  import { controlMetrics } from "../lib/design-system/controlMetrics.js";
+  import { spacing } from "../lib/design-system/spacing.js";
+  import ActionButton from "./ActionButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
@@ -6,22 +13,28 @@
   import CopyButton from "./CopyButton.svelte";
   import RefreshButton from "./RefreshButton.svelte";
   import Skeleton from "./Skeleton.svelte";
-  import Icon from "./Icon.svelte";
- import DesignIcon from './DesignIcon.svelte';
+  import DesignIcon from "./DesignIcon.svelte";
   let {
     model,
     dialogs,
     setup = false,
   }: { model: AdminModel; dialogs: DialogCenter; setup?: boolean } = $props();
   const { t } = getContext<UiCopy>("copy");
-  const moduleOrder:Record<string,number>={mail:0,calendar:1,photos:2,homekit:3};
-  const modules = $derived([
-    { id: "mail", title: "Mail" },
-    ...(model.state.modules ?? []).map((m) => ({
-      id: m.id,
-      title: m.id === "photos" ? t("photosTitle") : m.title,
-    })),
-  ].sort((a,b)=>(moduleOrder[a.id]??99)-(moduleOrder[b.id]??99)));
+  const moduleOrder: Record<string, number> = {
+    mail: 0,
+    calendar: 1,
+    photos: 2,
+    homekit: 3,
+  };
+  const modules = $derived(
+    [
+      { id: "mail", title: "Mail" },
+      ...(model.state.modules ?? []).map((m) => ({
+        id: m.id,
+        title: m.id === "photos" ? t("photosTitle") : m.title,
+      })),
+    ].sort((a, b) => (moduleOrder[a.id] ?? 99) - (moduleOrder[b.id] ?? 99)),
+  );
   const network = $derived(
     model.system?.connectivity ?? model.status?.prerequisites,
   );
@@ -75,15 +88,27 @@
                 : "unknownValue",
           )}
         </dd>
-        <dt>{t('runtimeFolder')}</dt><dd class="runtime-path"><code title={model.system?.locations?.runtimeDirectory}>{model.system?.locations?.runtimeDirectory??t('unknownValue')}</code><CopyButton value={model.system?.locations?.runtimeDirectory} label={t('copyRuntimeFolder')}/></dd>
+        <dt>{t("runtimeFolder")}</dt>
+        <dd class="runtime-path">
+          <code title={model.system?.locations?.runtimeDirectory}
+            >{model.system?.locations?.runtimeDirectory ??
+              t("unknownValue")}</code
+          ><CopyButton
+            value={model.system?.locations?.runtimeDirectory}
+            label={t("copyRuntimeFolder")}
+          />
+        </dd>
         <dt>Tailscale</dt>
         <dd>
-          {t(tailscaleReady ? "ready" : "notReady")}{#if !tailscaleReady}<button
+          {t(
+            tailscaleReady ? "ready" : "notReady",
+          )}{#if !tailscaleReady}<ActionButton
               type="button"
               class="secondary"
               onclick={() => (model.requirementDialog = "tailscale")}
-              >{t("setupRequirement")}</button
-            >{/if}
+              label={t("setupRequirement")}
+              icon="settings"
+            />{/if}
         </dd>
       </dl>{/if}
     {#if model.systemStale}<p class="muted">{t("freshnessFailed")}</p>{/if}
@@ -91,12 +116,13 @@
   {#if !model.state.enrolled}<section class="card">
       <header><h2>{t("requirementOwner")}</h2></header>
       <p>{t("ownerSetupHelp")}</p>
-      <button
+      <ActionButton
         type="button"
         class="primary"
         onclick={() => (model.requirementDialog = "owner")}
-        >{t("ownerSetup")}</button
-      >
+        label={t("ownerSetup")}
+        icon="user"
+      />
     </section>{/if}
   <section
     class="card"
@@ -105,26 +131,59 @@
   >
     <header>
       <h2>{t("accountsCard")}</h2>
-      <div class="card-tools"><button type="button" class="secondary icon-button" aria-label={t('addAccount')} title={t('addAccount')} disabled={!model.state.enrolled} onclick={()=>dialogs.openCredential('app-password',{mode:'add'})}><DesignIcon name="plus"/></button><RefreshButton id="accounts-refresh" label={t("refreshAccounts")} busy={model.accountsLoading||model.busy} onclick={()=>model.run(()=>model.refreshCard('accounts'))}/></div>
+      <div class="card-tools">
+        <ActionButton
+          icon="plus"
+          label={t("addAccount")}
+          disabled={!model.state.enrolled || model.busy}
+          onclick={() =>
+            dialogs.openCredential("app-password", { mode: "add" })}
+        /><RefreshButton
+          id="accounts-refresh"
+          label={t("refreshAccounts")}
+          busy={model.accountsLoading || model.busy}
+          onclick={() => model.run(() => model.refreshCard("accounts"))}
+        />
+      </div>
     </header>
-    {#if model.state.admin&&model.accountsLoading&&!model.dashboard}<Skeleton rows={3}/>{:else}
-      <div class="counts"><div title={t('accountNumber')}><DesignIcon name="user"/><strong>{model.dashboard?.accounts.length??0}</strong><span class="sr-only">{t('accountNumber')}</span></div><div title={t('authorizedNumber')}><DesignIcon name="connection"/><strong>{model.connections?model.connections.length:t('unknownValue')}</strong><span class="sr-only">{t('authorizedNumber')}</span></div></div>
-      {#each model.dashboard?.accounts??[] as account(account.id)}
-        {@const savedSession=model.webSessions[account.id]?.phase==='authenticated'}
-        <article class="account">
-          <div class="account-identity"><span class="account-avatar" aria-hidden="true">{(account.label||account.user).slice(0,1).toUpperCase()}</span><div><h3>{account.label===account.user?account.user:account.label}</h3>{#if account.label!==account.user}<p class="muted">{account.user}</p>{/if}</div></div>
-          <div class="credential-controls">
-            <button type="button" class="secondary credential-control" title={t('appPasswordStatus')+': '+t(account.credentialStored?'ready':'notReady')} aria-label={t(account.credentialStored?'editAppPassword':'openAppPassword')} onclick={()=>dialogs.openCredential('app-password',{accountId:account.id,mode:'rotate'})}>
-              <DesignIcon name="pencil"/><span>{t('appPasswordShort')}</span><span class="credential-pill" class:ready={account.credentialStored}>{t(account.credentialStored?'credentialStoredShort':'credentialMissingShort')}</span>
-            </button>
-            <button type="button" class="secondary credential-control" disabled={!model.state.photosCloudConfigured} title={t('appleSessionStatus')+': '+t(savedSession?'sessionAuthenticated':model.webSessions[account.id]?.phase?'sessionMissing':'sessionUnknown')} aria-label={t(savedSession?'manageAppleSession':'openAppleSession')} onclick={()=>dialogs.openCredential('apple-account',{accountId:account.id})}>
-              <DesignIcon name="circle-dot"/><span>{t('appleSessionShort')}</span><span class="credential-pill" class:ready={savedSession}>{t(savedSession?'sessionSavedShort':model.webSessions[account.id]?.phase?'credentialMissingShort':'unknownValue')}</span>
-            </button>
-          </div>
-        </article>
-      {/each}
-      {#if !model.dashboard?.accounts.length}<p class="muted">{t('noAccountYet')}</p><button type="button" class="secondary" disabled={!model.state.enrolled} onclick={()=>dialogs.openCredential('app-password',{mode:'add'})}>{t('addAccount')}</button>{/if}
-    {/if}{#if model.dashboardFailed||model.diagnosticsFailed}<p class="muted">{t('freshnessFailed')}</p>{/if}
+    {#if model.state.admin && model.accountsLoading && !model.dashboard}<Skeleton
+        rows={3}
+      />{:else}
+      <div
+        class="counts"
+        style:--count-size={controlMetrics.compact.icon}
+        style:--count-gap={spacing[2]}
+        style:--count-group-gap={spacing[6]}
+      >
+        <div title={t("accountNumber")}>
+          <DesignIcon name="user" size={controlMetrics.compact.icon} /><strong
+            >{model.dashboard?.accounts.length ?? 0}</strong
+          ><span class="sr-only">{t("accountNumber")}</span>
+        </div>
+        <div title={t("authorizedNumber")}>
+          <DesignIcon
+            name="connection"
+            size={controlMetrics.compact.icon}
+          /><strong
+            >{model.connections
+              ? model.connections.length
+              : t("unknownValue")}</strong
+          ><span class="sr-only">{t("authorizedNumber")}</span>
+        </div>
+      </div>
+      <div class="account-list" role="list">
+        {#each model.dashboard?.accounts ?? [] as account (account.id)}<AccountCard
+            {account}
+            {model}
+            {dialogs}
+          />{/each}
+      </div>
+      {#if model.dashboard && !model.dashboard.accounts.length}<p class="muted">
+          {t("noAccountYet")}
+        </p>{/if}
+    {/if}{#if model.dashboardFailed || model.diagnosticsFailed}<p class="muted">
+        {t("freshnessFailed")}
+      </p>{/if}
   </section>
   <section
     class="card wide"
@@ -147,52 +206,70 @@
         <div class="module-summary">
           <div>
             <h3>{module.title}</h3>
-            <p>
-              {t(
-                policy && Object.values(policy).some(Boolean)
-                  ? "moduleEnabled"
-                  : "moduleDisabled",
-              )} · <span class="scope-count" title={t("moduleScopesSummary")}><DesignIcon name="check"/><span class="sr-only">{t("moduleScopesSummary")}: </span>{policy
-                ? Object.values(policy).filter(Boolean).length
-                : 0}</span>
-            </p>
+            <div class="module-statuses">
+              <Tag
+                tone={policy && Object.values(policy).some(Boolean)
+                  ? "sage"
+                  : "neutral"}
+                label={t(
+                  !policy
+                    ? "unknownValue"
+                    : Object.values(policy).some(Boolean)
+                      ? "moduleEnabled"
+                      : "moduleDisabled",
+                )}
+              />
+              {#each Object.entries(policy ?? {}).filter(([, enabled]) => enabled) as [key]}
+                <Tag label={t(scopeCopy[module.id + "." + key] ?? key)} />
+              {/each}
+            </div>
           </div>
           <div class="actions">
-            <label class="module-toggle"
-              ><span class="sr-only">{t("moduleEnable")} {module.title}</span
-              ><input
-                type="checkbox"
-                aria-label={t("moduleEnable") + " " + module.title}
-                checked={!!policy && Object.values(policy).some(Boolean)}
-                disabled={!model.state.enrolled || model.busy || !policy}
-                onchange={(e) => {
-                  const enable = e.currentTarget.checked;
-                  e.currentTarget.checked =
-                    !!policy && Object.values(policy).some(Boolean);
-                  openModule(module.id, enable);
-                }}
-              /></label
-            > <button type="button" class="secondary icon-button configure-button" aria-label={t('moduleConfigure')+' '+module.title} title={t('moduleConfigure')} disabled={!model.state.enrolled||model.busy} onclick={()=>openModule(module.id)}><Icon name="settings"/></button>
+            <ModuleSwitch
+              label={t("moduleEnable") + " " + module.title}
+              enabled={!!policy && Object.values(policy).some(Boolean)}
+              disabled={!model.state.enrolled || model.busy || !policy}
+              onchange={(enable) => openModule(module.id, enable)}
+            />
+            <ActionButton
+              icon="settings"
+              label={t("moduleConfigure") + " " + module.title}
+              disabled={!model.state.enrolled || model.busy}
+              onclick={() => openModule(module.id)}
+            />
           </div>
         </div>{/each}{/if}
 
-    {#if modules.some(module=>module.id==='photos')}<p class="muted" data-testid="photos-shared-write-unsupported">{t("photosUnsupported")}</p>{/if}
+    {#if modules.some((module) => module.id === "photos")}<p
+        class="muted"
+        data-testid="photos-shared-write-unsupported"
+      >
+        {t("photosUnsupported")}
+      </p>{/if}
     {#if model.dashboardFailed}<p class="muted">{t("freshnessFailed")}</p>{/if}
   </section>
 </div>
 
 <style>
-
- .scope-count{display:inline-flex;align-items:center;gap:.25rem;vertical-align:middle}
-
- .runtime-path{display:flex;align-items:center;gap:.375rem;min-width:0}.runtime-path code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem}
-
- .configure-button{min-width:28px;min-height:28px;padding:5px}
+  .runtime-path {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+  .runtime-path code {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+  }
 
   .overview-grid {
     display: grid;
-    align-items:start;
-    grid-template-columns: minmax(0,1fr);
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
   .card {
@@ -228,15 +305,33 @@
     margin: 0;
     overflow-wrap: anywhere;
   }
-  .card-tools{display:flex;gap:.25rem;align-items:center}.card-tools button{min-width:28px;min-height:28px;padding:5px}
-  .counts{display:flex;gap:2rem;padding:.25rem 0 1rem}.counts div{display:flex;align-items:center;gap:.5rem}.counts span{color:var(--ui-muted);font-size:.8125rem}.counts strong{font-size:1.5rem;font-weight:500}
-  .account{border-top:1px solid var(--ui-border);padding:1rem 0 0}.account+.account{margin-top:1rem}.account-identity{display:flex;gap:.75rem;align-items:center;margin-bottom:1rem;min-width:0}.account-identity>div{min-width:0}.account-avatar{width:36px;height:36px;flex:none;display:grid;place-items:center;background:var(--ui-soft);color:var(--ui-muted);border-radius:50%;font-weight:500}.account h3{border:0;padding:0;margin:0;overflow-wrap:anywhere}.account p{margin:.2rem 0 0;font-size:.8125rem;overflow-wrap:anywhere}
-  .credential-controls{display:flex;flex-wrap:wrap;gap:.5rem}.credential-control{display:flex;align-items:center;gap:.5rem;min-height:36px;padding:.5rem .625rem;border:1px solid var(--ui-border);border-radius:4px;font-size:.8125rem;font-weight:400;max-width:100%;min-width:0;flex:1 1 14rem;white-space:normal}.credential-control :global(svg){flex:none;color:var(--ui-muted)}.credential-control:hover{background:var(--ui-soft)}.credential-pill{flex-shrink:0;white-space:nowrap;margin-left:auto;color:var(--ui-muted);font-size:.75rem}.credential-pill.ready{color:var(--ui-focus)}.credential-pill.ready::before{content:'✓';margin-right:.25rem}
+  .counts {
+    display: flex;
+    gap: var(--count-group-gap);
+    padding: 0 0 1rem;
+  }
+  .counts div {
+    display: flex;
+    align-items: center;
+    gap: var(--count-gap);
+  }
+  .counts strong {
+    font-size: var(--count-size);
+    line-height: 1;
+    font-weight: 500;
+  }
+  .module-statuses {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
   .module-summary {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
+    flex-wrap: wrap;
     border-top: 1px solid var(--ui-border);
     padding: 0.75rem 0;
   }
@@ -245,15 +340,7 @@
     padding: 0;
     border: 0;
   }
-  .module-summary p {
-    margin: 0.25rem 0;
-    color: var(--ui-muted);
-    font-size: 0.8125rem;
-  }
   .module-summary .actions {
-    margin: 0;
-  }
-  .module-toggle {
     margin: 0;
   }
   @media (max-width: 700px) {
@@ -267,6 +354,4 @@
       padding: 1rem;
     }
   }
-@media(pointer:coarse){.configure-button,.card-tools button{min-width:44px;min-height:44px}.configure-button :global(svg),.card-tools :global(svg){width:24px;height:24px}}
- @media(pointer:coarse){.credential-control{min-height:44px}.module-toggle{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}}
 </style>

@@ -38,3 +38,20 @@ test('renderer requests do not share mutable presentation context',()=>{
  expect(first).toContain('first headingSignIn');expect(second).toContain('second headingSignIn');expect(second).not.toContain('first headingSignIn');
 });
 test('Home linking is not mounted in the global System page',()=>{const html=renderAdmin({enrolled:true,ready:true,admin:true,view:'system',homekitConfigured:true,modules:[{id:'homekit',title:'Apple Home',fields:[{id:'read',label:'Read'}]}]},copy,pageStyles,'en');expect(html).toContain('id="system-content"');expect(html).not.toContain('data-testid="homekit-setup"');});
+
+test('application actions expose names and icons without visible text across destinations',()=>{
+ const pages = [
+  ...(['overview','accounts','connections','system','setup'] as const).map(view => renderAdmin({enrolled:true,ready:true,admin:view!=='setup',view,resetAvailable:true},copy,pageStyles,'en')),
+  ...(['connect','consent','sign-in'] as const).map(mode => renderAuth(mode,false,{},copy,pageStyles,'en')),
+  renderCredential(true,copy),renderCredential(false,copy),renderPhotosSetup(),renderPhotosCloud(),
+ ];
+ for(const html of pages){
+  const buttons = [...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)];
+  expect(buttons.length).toBeGreaterThan(0);
+  for(const [,attributes,body] of buttons){
+   expect(attributes).toMatch(/aria-label="[^"]+"/);
+   expect(body).toContain('<svg');
+   expect(body.replace(/<[^>]*>/g,'').trim()).toBe('');
+  }
+ }
+});

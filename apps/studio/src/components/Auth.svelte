@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ActionButton from "./ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
   import type { UiCopy, AuthMode, ScopeLabels } from "../contracts.js";
@@ -12,7 +13,6 @@
   import type { DialogCenter, ToastCenter } from "../lib/ui-state.svelte.js";
   import { permissionGroups } from "../lib/permission-groups.js";
   import Brand from "./Brand.svelte";
-  import Icon from "./Icon.svelte";
   let {
     mode,
     privateAdmin = false,
@@ -225,30 +225,36 @@
     {#if mode === "connect"}
       <p class="muted">{authT("introConnect")}</p>
       <div data-connect-accounts hidden={adding}>
-        {#each accounts as account (account.id)}{@const d =
-            display(account)}<button
-            type="button"
-            class="secondary account-choice"
-            disabled={busy || !account.credentialStored}
-            onclick={() =>
-              void run(async () =>
-                go(
-                  await (
-                    await request("/icloud/connect/select", {
-                      oauth_query: signedOAuthQuery(location.search),
-                      accountId: account.id,
-                    })
-                  ).json(),
-                ),
-              )}
-            ><span>{d.primary}</span>{#if d.secondary}<span
-                class="account-address">{d.secondary}</span
-              >{/if}{#if !account.credentialStored}<span class="account-address"
-                >{authT("accountUnavailable")}</span
-              >{/if}</button
-          >{/each}
+        {#each accounts as account (account.id)}{@const d = display(account)}
+          <div class="account-selection">
+            <div class="account-identity">
+              <span>{d.primary}</span>{#if d.secondary}<span
+                  class="account-address">{d.secondary}</span
+                >{/if}{#if !account.credentialStored}<span
+                  class="account-address">{authT("accountUnavailable")}</span
+                >{/if}
+            </div>
+            <ActionButton
+              type="button"
+              class="secondary"
+              disabled={busy || !account.credentialStored}
+              onclick={() =>
+                void run(async () =>
+                  go(
+                    await (
+                      await request("/icloud/connect/select", {
+                        oauth_query: signedOAuthQuery(location.search),
+                        accountId: account.id,
+                      })
+                    ).json(),
+                  ),
+                )}
+              icon="arrow-right"
+              label={authT("selectedAccount") + ": " + d.primary}
+            />
+          </div>{/each}
       </div>
-      <button
+      <ActionButton
         class="secondary"
         type="button"
         data-connect-add
@@ -260,8 +266,10 @@
             accounts,
             submit: (input) => addCredential(input),
           });
-        }}>{authT("addAccount")}</button
-      >
+        }}
+        label={authT("addAccount")}
+        icon="plus"
+      />
     {:else if mode === "consent"}
       <p class="muted">{authT("introConsent")}</p>
       <p data-auth-account>
@@ -305,7 +313,7 @@
       </fieldset>
     {:else}<p class="muted">{authT("introSignIn")}</p>{/if}
     <div class="actions">
-      {#if mode !== "connect"}<button
+      {#if mode !== "connect"}<ActionButton
           class="primary button-icon"
           type="button"
           data-auth-primary
@@ -314,17 +322,17 @@
             void run(() =>
               mode === "sign-in" ? signIn(privateAdmin) : consent(true),
             )}
-          >{#if mode === "sign-in"}<Icon name="passkey" />{/if}{authT(
-            mode === "consent" ? "allow" : "usePasskey",
-          )}</button
-        >{/if}{#if mode !== "sign-in"}<button
+          label={authT(mode === "consent" ? "allow" : "usePasskey")}
+          icon={mode === "consent" ? "check" : "passkey"}
+        />{/if}{#if mode !== "sign-in"}<ActionButton
           class="secondary"
           type="button"
           data-auth-deny
           disabled={busy}
           onclick={() => void run(() => consent(false))}
-          >{authT(mode === "connect" ? "cancel" : "deny")}</button
-        >{/if}
+          label={authT(mode === "connect" ? "cancel" : "deny")}
+          icon="close"
+        />{/if}
     </div>
   </div>
 </main>

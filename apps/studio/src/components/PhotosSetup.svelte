@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ActionButton from "./ActionButton.svelte";
   import { getContext, onMount, untrack } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { ToastCenter } from "../lib/ui-state.svelte.js";
@@ -57,8 +58,9 @@
         },
       );
       if (!r.ok) throw Error();
-      if (action) { pollingUntil=Date.now()+120000;  }
-      else {
+      if (action) {
+        pollingUntil = Date.now() + 120000;
+      } else {
         last = schema.parse(await r.json());
         onverified?.(last.ready);
         checkedAt = new Date().toISOString();
@@ -80,8 +82,14 @@
       }
     };
     window.addEventListener("focus", focus);
-    const timer=setInterval(()=>{if(Date.now()<pollingUntil&&!last?.ready&&!document.hidden)void run();},2000);
-    return () => { window.removeEventListener("focus", focus); clearInterval(timer); };
+    const timer = setInterval(() => {
+      if (Date.now() < pollingUntil && !last?.ready && !document.hidden)
+        void run();
+    }, 2000);
+    return () => {
+      window.removeEventListener("focus", focus);
+      clearInterval(timer);
+    };
   });
   $effect(() => {
     if (active) untrack(() => void run());
@@ -89,16 +97,106 @@
 </script>
 
 <section id="photos-setup" aria-label={t("photosTitle")}>
- <RequirementStep title={t('photosRead')} state={failed?'error':!last?'checking':last.libraryReadable?'done':'todo'} hint={t('photosReadInstruction')}>
-  {#if !last?.libraryReadable}<button type="button" class="primary" data-photos-action="files" disabled={busy} onclick={()=>void run('files')}>{t('photosLibraryOpen')}</button>{/if}
- </RequirementStep>
- <RequirementStep title={t('photosOrganizeAccess')} state={failed?'error':!last?'checking':last.authorization==='authorized'?'done':'todo'} hint={t('photosAccessInstruction')}>
-  {#if last?.authorization!=='authorized'}<button type="button" class="primary" data-photos-action="authorize" disabled={busy} onclick={()=>void run('authorize')}>{t('photosAuthorizationRequest')}</button>
-   {#if last?.authorization==='denied'||last?.authorization==='restricted'}<button type="button" class="secondary" data-photos-action="photos" disabled={busy} onclick={()=>void run('photos')}>{t('photosAuthorizationOpen')}</button>{/if}
-  {/if}
- </RequirementStep>
- {#if failed}<p class="error" role="alert">{t('photosPermissionFailed')}</p>{/if}
- <div class="status-row"><span id="photos-status" role="status" aria-live="polite">{last?.ready?t('requirementsReady'):busy?t('checking'):''}</span><button type="button" class="secondary" id="photos-recheck" disabled={busy} onclick={()=>void run()}>{t('checkAgainShort')}</button></div>
- <details class="help"><summary>{t('photosPermissionHelpShort')}</summary><p>{t('photosMetadataHelp')}</p><button type="button" class="secondary" disabled={busy} onclick={()=>void run('automation')}>{t('photosAutomationOpen')}</button></details>
+  <RequirementStep
+    title={t("photosRead")}
+    state={failed
+      ? "error"
+      : !last
+        ? "checking"
+        : last.libraryReadable
+          ? "done"
+          : "todo"}
+    hint={t("photosReadInstruction")}
+  >
+    {#if !last?.libraryReadable}<ActionButton
+        type="button"
+        class="primary"
+        data-photos-action="files"
+        disabled={busy}
+        onclick={() => void run("files")}
+        label={t("photosLibraryOpen")}
+        icon="folder"
+      />{/if}
+  </RequirementStep>
+  <RequirementStep
+    title={t("photosOrganizeAccess")}
+    state={failed
+      ? "error"
+      : !last
+        ? "checking"
+        : last.authorization === "authorized"
+          ? "done"
+          : "todo"}
+    hint={t("photosAccessInstruction")}
+  >
+    {#if last?.authorization !== "authorized"}<ActionButton
+        type="button"
+        class="primary"
+        data-photos-action="authorize"
+        disabled={busy}
+        onclick={() => void run("authorize")}
+        label={t("photosAuthorizationRequest")}
+        icon="check"
+      />
+      {#if last?.authorization === "denied" || last?.authorization === "restricted"}<ActionButton
+          type="button"
+          class="secondary"
+          data-photos-action="photos"
+          disabled={busy}
+          onclick={() => void run("photos")}
+          label={t("photosAuthorizationOpen")}
+          icon="settings"
+        />{/if}
+    {/if}
+  </RequirementStep>
+  {#if failed}<p class="error" role="alert">
+      {t("photosPermissionFailed")}
+    </p>{/if}
+  <div class="status-row">
+    <span id="photos-status" role="status" aria-live="polite"
+      >{last?.ready ? t("requirementsReady") : busy ? t("checking") : ""}</span
+    ><ActionButton
+      type="button"
+      class="secondary"
+      id="photos-recheck"
+      disabled={busy}
+      onclick={() => void run()}
+      label={t("checkAgainShort")}
+      icon="refresh"
+    />
+  </div>
+  <details class="help">
+    <summary>{t("photosPermissionHelpShort")}</summary>
+    <p>{t("photosMetadataHelp")}</p>
+    <ActionButton
+      type="button"
+      class="secondary"
+      disabled={busy}
+      onclick={() => void run("automation")}
+      label={t("photosAutomationOpen")}
+      icon="settings"
+    />
+  </details>
 </section>
-<style>.status-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;font-size:12px;color:var(--ui-muted)}.help{margin-top:12px;font-size:12px}.help p{font-size:13px}.help summary{cursor:pointer}</style>
+
+<style>
+  .status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--ui-muted);
+  }
+  .help {
+    margin-top: 12px;
+    font-size: 12px;
+  }
+  .help p {
+    font-size: 13px;
+  }
+  .help summary {
+    cursor: pointer;
+  }
+</style>

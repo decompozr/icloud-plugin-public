@@ -1,7 +1,7 @@
 <script lang="ts">
+  import ActionButton from "./ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
-  import Button from "../lib/design-system/Button.svelte";
   import Checkbox from "../lib/design-system/Checkbox.svelte";
   import Select from "../lib/design-system/Select.svelte";
   import { spacing } from "../lib/design-system/spacing.js";
@@ -116,16 +116,19 @@
   <header class="connection-header">
     {#if embedded}<h3>{t("homekitConnectionTitle")}</h3>{:else}<h2>
         {t("homekitTitle")}
-      </h2>{/if}<Button
-      appearance="quiet"
-      size="compact"
+      </h2>{/if}<ActionButton
       disabled={busy}
       onclick={() => {
         void read();
-      }}>{t("homekitRefresh")}</Button
-    >
+      }}
+      label={t("homekitRefresh")}
+      icon="refresh"
+    />
   </header>
-  <p class="muted">{t("homekitBackgroundHelp")}</p>
+  <details>
+    <summary>{t("photosPermissionHelpShort")}</summary>
+    <p>{t("homekitBackgroundHelp")}</p>
+  </details>
   {#if failed}<p class="error" role="alert">{t("homekitUnavailable")}</p>{/if}
   {#if status}<p>{t("homekitReady")}</p>
     <div class="home-fields">
@@ -152,13 +155,15 @@
         disabled={busy}
       />
       <div class="link-actions">
-        <Button
+        <ActionButton
           variant="primary"
           disabled={busy || !confirm || !accountId || !homeId}
           onclick={() => {
             void enroll();
-          }}>{t("homekitBind")}</Button
-        >
+          }}
+          label={t("homekitBind")}
+          icon="connection"
+        />
       </div>
     </div>
     {#if status.bindings.length}<div class="linked-homes">
@@ -167,14 +172,14 @@
             <span
               >{status.homes.find((h) => h.id === binding.home)?.name ||
                 t("homekitHome")}</span
-            ><Button
-              appearance="quiet"
-              size="compact"
+            ><ActionButton
               disabled={busy}
               onclick={() => {
                 void revoke(binding);
-              }}>{t("homekitUnbind")}</Button
-            >
+              }}
+              label={t("homekitUnbind")}
+              icon="unplug"
+            />
           </div>{/each}
       </div>{/if}
     <p class="muted">{t("homekitConsentHelp")}</p>

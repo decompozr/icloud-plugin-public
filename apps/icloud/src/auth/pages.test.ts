@@ -53,7 +53,11 @@ test('setup and authentication share styles, branding and accessible Passkey ico
   expect(html).not.toContain('#1749c9');
  }
  expect(renderAuthPage('sign-in')).toContain('data-ui-icon="passkey" aria-hidden="true"');
- expect(renderAuthPage('consent')).toContain('class="secondary" type="button" data-auth-deny');
+ const denial=renderAuthPage('consent').match(/<button\b[^>]*data-auth-deny[^>]*>/)?.[0] ?? '';
+ expect(denial).toContain('type="button"');
+ expect(denial).toContain('data-dz-action');
+ expect(denial).toContain('aria-label="Deny"');
+ expect(denial).toContain('--bg: var(--dz-color-surface, #FFFFFF)');
 });
 
  test('shared visual tokens have concrete values without circular references',async()=>{

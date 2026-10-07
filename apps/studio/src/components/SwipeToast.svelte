@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { toastDrag, toastDismissed } from "../lib/toast-gesture.js";
+  import { toastDrag, toastDismissed, toastDragCommitted } from "../lib/toast-gesture.js";
   import Toast from "../lib/design-system/Toast.svelte";
   let {
     message,
@@ -8,11 +8,13 @@
   }: { message: string; error?: boolean; onDismiss: () => void } = $props();
   let offset = $state(0),
     dragging = $state(false),
+    pointerId: number | undefined,
     originX = 0,
     originY = 0;
   function down(event: PointerEvent) {
     if (
       event.button !== 0 ||
+      dragging ||
       (event.target as Element).closest("button,a,input,select")
     )
       return;
@@ -20,10 +22,11 @@
     originY = event.clientY;
     offset = 0;
     dragging = true;
+    pointerId = event.pointerId;
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   }
   function move(event: PointerEvent) {
-    if (!dragging) return;
+    if (!dragging || event.pointerId !== pointerId) return;
     const dx = event.clientX - originX,
       dy = event.clientY - originY;
     const next = toastDrag(dx, dy);
@@ -32,18 +35,24 @@
       return;
     }
     offset = next.offset;
+    if (toastDragCommitted(offset, event.pointerType)) end();
   }
-  function end() {
-    if (!dragging) return;
+  function end(event?: PointerEvent) {
+    if (!dragging || (event && event.pointerId !== pointerId)) return;
     dragging = false;
+    pointerId = undefined;
     if (toastDismissed(offset)) onDismiss();
     else offset = 0;
   }
   function cancel() {
+    if (!dragging) return;
     dragging = false;
+    pointerId = undefined;
     offset = 0;
   }
 </script>
+
+<svelte:window onblur={cancel} />
 
 <div
   class="swipe-toast"
@@ -54,6 +63,7 @@
   onpointermove={move}
   onpointerup={end}
   onpointercancel={cancel}
+  onlostpointercapture={end}
   role="group"
   aria-label={message}
 >

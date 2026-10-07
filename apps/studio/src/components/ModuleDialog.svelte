@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ActionButton from "./ActionButton.svelte";
   import { getContext, untrack } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
@@ -6,7 +7,7 @@
   import { scopeCopy } from "../lib/admin-model.svelte.js";
   import Modal from "./Modal.svelte";
   import RequirementStep from "./RequirementStep.svelte";
-  import HomeKitSetup from './HomeKitSetup.svelte';
+  import HomeKitSetup from "./HomeKitSetup.svelte";
   import PhotosSetup from "./PhotosSetup.svelte";
   let { model, dialogs }: { model: AdminModel; dialogs: DialogCenter } =
     $props();
@@ -42,7 +43,9 @@
   const ready = $derived(
     !enabling ||
       (!!model.state.enrolled &&
-        (["photos","homekit"].includes(id ?? "") ? permissionReady === true : credentialReady)),
+        (["photos", "homekit"].includes(id ?? "")
+          ? permissionReady === true
+          : credentialReady)),
   );
   $effect(() => {
     const value = id;
@@ -93,11 +96,31 @@
   busy={model.busy}
 >
   <section>
-    {#if id === 'homekit'}<HomeKitSetup embedded onverified={(value)=>{if(id==='homekit')permissionReady=value;}}/>
-    {:else if id === 'photos'}<PhotosSetup onverified={(value)=>{if(id==='photos')permissionReady=value;}}/>
-    {:else}<RequirementStep title={t('requirementCredential')} state={credentialReady?'done':'todo'} hint={t('accountCredentialInstruction')}>
-      {#if !credentialReady}<button type="button" class="primary" onclick={()=>dialogs.openCredential('app-password',{mode:'add'})}>{t('setupRequirement')}</button>{/if}
-    </RequirementStep>{/if}
+    {#if id === "homekit"}<HomeKitSetup
+        embedded
+        onverified={(value) => {
+          if (id === "homekit") permissionReady = value;
+        }}
+      />
+    {:else if id === "photos"}<PhotosSetup
+        onverified={(value) => {
+          if (id === "photos") permissionReady = value;
+        }}
+      />
+    {:else}<RequirementStep
+        title={t("requirementCredential")}
+        state={credentialReady ? "done" : "todo"}
+        hint={t("accountCredentialInstruction")}
+      >
+        {#if !credentialReady}<ActionButton
+            type="button"
+            class="primary"
+            onclick={() =>
+              dialogs.openCredential("app-password", { mode: "add" })}
+            label={t("setupRequirement")}
+            icon="settings"
+          />{/if}
+      </RequirementStep>{/if}
   </section>
   <section>
     <h3>{t("moduleActionsShort")}</h3>
@@ -113,13 +136,26 @@
             id={"scope-" + id + "-" + field.id}
             type="checkbox"
             checked={draft[field.id] ?? false}
-            disabled={model.busy || ("available" in field && field.available === false)}
+            disabled={model.busy ||
+              ("available" in field && field.available === false)}
             onchange={(e) => toggle(field.id, e.currentTarget.checked)}
           />
         </li>
-        {#if id === "photos" && field.id === "delete"}<li class="muted">{t("photosDeleteHelp")}</li>{/if}
-        {#if "available" in field && field.available === false}<li class="muted">{t(id==='homekit'?(field.id==='control'?'homekitControlDisabled':'homekitAutomationDisabled'):"photosCapabilityUnavailable")}</li>{/if}
-        {:else}<li class="muted">{t("emptyValue")}</li>{/each}
+        {#if id === "photos" && field.id === "delete"}<li class="muted">
+            {t("photosDeleteHelp")}
+          </li>{/if}
+        {#if "available" in field && field.available === false}<li
+            class="muted"
+          >
+            {t(
+              id === "homekit"
+                ? field.id === "control"
+                  ? "homekitControlDisabled"
+                  : "homekitAutomationDisabled"
+                : "photosCapabilityUnavailable",
+            )}
+          </li>{/if}
+      {:else}<li class="muted">{t("emptyValue")}</li>{/each}
     </ul>
   </section>
   <p class="muted">{t("moduleConsentShort")}</p>
@@ -132,7 +168,7 @@
       /><span>{t("moduleConfirm")}</span></label
     >{/if}
   <div class="actions">
-    <button
+    <ActionButton
       type="button"
       class="primary"
       disabled={model.busy ||
@@ -140,13 +176,16 @@
         (enabling && !confirm) ||
         !model.changes.length}
       onclick={() => void model.run(save, "workingPolicy")}
-      >{t("saveModule")}</button
-    ><button
+      label={t("saveModule")}
+      icon="check"
+    /><ActionButton
       type="button"
       class="secondary"
       disabled={model.busy}
-      onclick={close}>{t("cancel")}</button
-    >
+      onclick={close}
+      label={t("cancel")}
+      icon="close"
+    />
   </div>
 </Modal>
 
