@@ -242,13 +242,15 @@ Light on/off acceptance sequence. The supported module enrollment and capability
 handlers now use the installed signed v0.15 helper, preserve the same approved
 owner/account/Home/UID, create a new binding generation and enable control policy
 and configuration ceiling. Existing access/refresh/consent grant rows were unchanged;
-physical writes remain zero while fresh real-client control consent is pending.
+physical writes remain zero pending actual client tool execution. A fresh control
+consent and matching control access/refresh grants are now observed.
 MCP discovery now advertises `homekit.control`. Private activation/rollback records:
 `.flow-runtime/homekit-background/control-activation`.
 
-Health now distinguishes read-only transport state from enabled control capability
-and the invoking client's control consent. A read-only helper's
-physicalControlEnabled=false must not be mistaken for disabled service control.
+Health selects the actual control helper when both policy and the invoking client's
+explicit control consent allow it; physicalControlEnabled then reflects the real
+control transport. Read-only clients retain false and receive separate capability/
+consent fields, avoiding a misleading whole-service disabled interpretation.
 The Office Light test will use reviewed once-only commands through the actual
 consented MCP connection; no fabricated scopes/tokens or direct native writes
 substitute for that client acceptance. Broader scene/trigger, push and session-lifecycle
