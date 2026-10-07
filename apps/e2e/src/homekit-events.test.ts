@@ -1,0 +1,4 @@
+import {test,expect} from 'bun:test';
+import {booleanEventValue} from './helpers/homekit-events.js';
+test('HomeKit raw bool callback encodings represent the same observed power state',()=>{for(const value of [true,1])expect(booleanEventValue({format:'bool',valueAvailable:true,value})).toBe(true);for(const value of [false,0])expect(booleanEventValue({format:'bool',valueAvailable:true,value})).toBe(false);});
+test('missing values, other formats and arbitrary coercions do not become power observations',()=>{for(const value of [null,undefined,'1','true',2,-1,{}])expect(booleanEventValue({format:'bool',valueAvailable:true,value})).toBeUndefined();expect(booleanEventValue({format:'uint8',valueAvailable:true,value:1})).toBeUndefined();expect(booleanEventValue({format:'bool',valueAvailable:false,value:1})).toBeUndefined();});
