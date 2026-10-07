@@ -35,3 +35,6 @@ for(const name of ['reader.py','metadata-write.py'])await cp(join(source,'photos
 for(const name of ['PhotosHelper.swift','Info.plist'])await cp(join(source,'photos/native',name),join(output,'photos/native',name));
 
 for(const name of ['inter.ttf','inter-OFL.txt','lucide-LICENSE.txt'])await Bun.write(join(output,'assets',name),Bun.file(join(app,'assets',name)));
+
+await mkdir(join(output,'homekit'),{recursive:true});
+await cp(join(source,'homekit/stdio-adapter.py'),join(output,'homekit/stdio-adapter.py'));

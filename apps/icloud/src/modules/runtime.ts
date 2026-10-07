@@ -1,11 +1,12 @@
-import type {Tool,CallToolResult} from '@modelcontextprotocol/sdk/types.js';
+import type {Tool,CallToolResult,ResourceTemplate,ReadResourceResult} from '@modelcontextprotocol/sdk/types.js';
 export interface ScopeDescriptor {name:string;title:string;description:string;descriptionLocales?:Readonly<Record<string,string>>;enabled:()=>boolean}
 export interface RegisteredTool {
  tool:Tool&{securitySchemes?:Array<{type:'oauth2';scopes:string[]}>};requiredScopes:readonly string[];enabled:()=>boolean;
  run:(input:unknown,scopes?:ReadonlySet<string>)=>Promise<CallToolResult>;
  validateIntent?:(input:unknown)=>CallToolResult|undefined;
 }
-export interface RuntimeModule {id:string;scopes:readonly ScopeDescriptor[];tools:readonly RegisteredTool[];start?:()=>Promise<void>;dispose?:()=>Promise<void>}
+export interface RegisteredResources {scheme:string;requiredScopes:readonly string[];enabled:()=>boolean;templates:(scopes:ReadonlySet<string>)=>Promise<ResourceTemplate[]>;read:(uri:string,scopes:ReadonlySet<string>)=>Promise<ReadResourceResult>;subscribe?:(uri:string,scopes:ReadonlySet<string>,updated:()=>void,failed:()=>void)=>Promise<()=>Promise<void>>}
+export interface RuntimeModule {id:string;scopes:readonly ScopeDescriptor[];tools:readonly RegisteredTool[];resources?:RegisteredResources;start?:()=>Promise<void>;dispose?:()=>Promise<void>}
 /** Static application composition. Registration is complete before startup. */
 export class ModuleRuntime {
  private readonly modules:RuntimeModule[]=[];
@@ -25,8 +26,16 @@ export class ModuleRuntime {
    if(entry.requiredScopes.length===0||entry.requiredScopes.some(scope=>scope!=='offline_access'&&!names.has(scope)))throw Error('Tool scope must be owned by its module');
    toolNames.add(entry.tool.name);
   }
+  if(module.resources&&(!/^[a-z][a-z0-9]*$/.test(module.resources.scheme)||this.modules.some(m=>m.resources?.scheme===module.resources?.scheme)||!module.resources.requiredScopes.length||module.resources.requiredScopes.some(s=>!names.has(s))))throw Error('Invalid or duplicate resource registration');
   this.modules.push(module);for(const scope of module.scopes)this.scopes.set(scope.name,scope);for(const entry of module.tools)this.tools.set(entry.tool.name,entry);return this;
  }
+ get hasResourceSubscriptions():boolean{return this.modules.some(m=>m.resources?.subscribe&&m.resources.enabled());}
+ async subscribeResource(uri:string,scopes:ReadonlySet<string>,updated:()=>void,failed:()=>void):Promise<()=>Promise<void>>{return this.resourceOperation(async()=>{const scheme=new URL(uri).protocol.slice(0,-1),entry=this.modules.find(m=>m.resources?.scheme===scheme)?.resources;if(!entry?.subscribe||!this.resourceAvailable(entry,scopes))throw Error('Resource unavailable');return entry.subscribe(uri,scopes,updated,failed);});}
+ get hasResources():boolean{return this.modules.some(m=>!!m.resources);}
+ private resourceAvailable(entry:RegisteredResources,scopes:ReadonlySet<string>){return entry.enabled()&&entry.requiredScopes.every(s=>scopes.has(s)&&this.scopes.get(s)?.enabled());}
+ async resourceTemplates(scopes:ReadonlySet<string>):Promise<ResourceTemplate[]>{return this.resourceOperation(async()=>{const result:ResourceTemplate[]=[];for(const module of this.modules)if(module.resources&&this.resourceAvailable(module.resources,scopes))result.push(...await module.resources.templates(scopes));return result;});}
+ async readResource(uri:string,scopes:ReadonlySet<string>):Promise<ReadResourceResult>{return this.resourceOperation(async()=>{const scheme=new URL(uri).protocol.slice(0,-1),entry=this.modules.find(m=>m.resources?.scheme===scheme)?.resources;if(!entry||!this.resourceAvailable(entry,scopes))throw Error('Resource unavailable');return entry.read(uri,scopes);});}
+ private async resourceOperation<T>(run:()=>Promise<T>):Promise<T>{if(this.state==='disposing'||this.state==='disposed')throw Error('Runtime draining');this.active++;try{return await run();}finally{this.active--;if(!this.active){for(const resolve of this.idle)resolve();this.idle.clear();}}}
  get scopeDescriptors():readonly ScopeDescriptor[]{return [...this.scopes.values()];}
  get declaredScopes():string[]{return [...this.scopes.keys(),'offline_access'];}
  get allowedScopes():string[]{return [...this.scopes.values()].filter(s=>s.enabled()).map(s=>s.name).concat('offline_access');}

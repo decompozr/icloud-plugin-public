@@ -514,5 +514,17 @@
   "copyRuntimeFolder": "Copy runtime folder",
   "connectionUpdatesAvailable": "Some connections need a capability review.",
   "connectionUpdatesCountLabel": "connections needing review",
-  "connectionRegistrationOutdated": "Connection permissions need updating"
+  "connectionRegistrationOutdated": "Connection permissions need updating",
+  "homekitTitle": "HomeKit",
+  "homekitRefresh": "Check Home access",
+  "homekitBackgroundHelp": "The native helper runs in the background without a main window or Dock icon.",
+  "homekitUnavailable": "Home access is not ready. Check the signed helper configuration and local Home permission.",
+  "homekitReady": "Native Home access is ready.",
+  "homekitAccount": "Connected account",
+  "homekitHome": "Apple Home",
+  "homekitConfirm": "I approve linking this Home to the selected account.",
+  "homekitBind": "Link Home",
+  "homekitBindings": "Linked Homes",
+  "homekitUnbind": "Unlink",
+  "homekitConsentHelp": "Linking changes no Home devices or client permissions. Enable HomeKit on Overview, then review fresh consent for each client. Only approve remote reads if you want real device states and definitions shared with your selected agent."
 }

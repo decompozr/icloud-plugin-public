@@ -21,9 +21,9 @@ export function readinessServices(modules:Record<string,Record<string,boolean>>|
 }
 /** Health, catalog discovery and review decisions do not establish a provider read. */
 export function observedProviderRead(service:string,reads:Record<string,string>):{verifiedAt?:string;listedAt?:string}{
- const tools:Record<string,string[]>={mail:['mail_list_mailboxes','mail_search','mail_read'],calendar:['calendar_query_events','calendar_get_event'],photos:['photos_query','photos_albums','photos_detail','photos_persons']};
+ const tools:Record<string,string[]>={mail:['mail_list_mailboxes','mail_search','mail_read'],calendar:['calendar_query_events','calendar_get_event'],homekit:['homekit_read'],photos:['photos_query','photos_albums','photos_detail','photos_persons']};
  const verifiedAt=(tools[service]??[]).map(name=>reads[name]).filter((stamp):stamp is string=>!!stamp).sort().at(-1);
- const listedAt=service==='calendar'?reads.calendar_list_calendars:undefined;
+ const listedAt=service==='calendar'?reads.calendar_list_calendars:service==='homekit'?reads.homekit_automation_inventory:undefined;
  return {verifiedAt:service==='calendar'&&!listedAt?undefined:verifiedAt,listedAt};
 }
 

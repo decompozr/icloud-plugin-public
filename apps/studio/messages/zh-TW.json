@@ -514,5 +514,17 @@
   "copyRuntimeFolder": "複製執行資料夾",
   "connectionUpdatesAvailable": "部分連線需要檢視新增功能權限。",
   "connectionUpdatesCountLabel": "個連線需要檢視權限",
-  "connectionRegistrationOutdated": "連線權限需要更新"
+  "connectionRegistrationOutdated": "連線權限需要更新",
+  "homekitTitle": "HomeKit",
+  "homekitRefresh": "檢查 Home 存取",
+  "homekitBackgroundHelp": "原生 helper 在背景執行，不開主視窗，也不顯示 Dock 圖示。",
+  "homekitUnavailable": "Home 存取尚未就緒。請檢查簽章 helper 設定與本機 Home 授權。",
+  "homekitReady": "原生 Home 存取已就緒。",
+  "homekitAccount": "已連接帳號",
+  "homekitHome": "Apple Home",
+  "homekitConfirm": "我同意將這個 Home 連結到所選帳號。",
+  "homekitBind": "連結 Home",
+  "homekitBindings": "已連結 Home",
+  "homekitUnbind": "解除連結",
+  "homekitConsentHelp": "連結不會操作 Home 裝置或增加客戶端權限。請在 Overview 啟用 HomeKit，再逐一檢視客戶端的新授權。只有在你同意讓所選 agent 取得真實裝置狀態與定義時，才批准遠端讀取。"
 }

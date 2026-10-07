@@ -1,0 +1,11 @@
+import {expect,test} from 'bun:test';
+import {parseEventPage} from './events.js';
+const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+const address={bindingId:id(1),homeId:id(2),accessoryId:id(3),serviceId:id(4),characteristicId:id(5),after:0};
+const event={session:id(6),sequence:4,at:'2026-10-06T00:00:00Z',homeId:id(2),accessoryId:id(3),serviceId:id(4),characteristicId:id(5),accessoryName:'Fixture',room:'Fixture',serviceName:'Fixture',characteristicType:'bool',format:'bool',eventType:'characteristic_update' as const,valueAvailable:true,semanticTrust:'provider-value-only' as const,value:false};
+const page={session:id(6),events:[event],cursor:4,headSequence:8,hasMore:false,gap:false,durable:false,journalErrors:0,semantics:'raw-characteristic-events' as const,notificationDelivered:false as const};
+test('global sequence gaps for other targets are valid; page preserves durability/gap truth',()=>{expect(parseEventPage(page,address)).toEqual(page);expect(parseEventPage({...page,gap:true},address).gap).toBe(true);});
+test('restart and unbound nonzero cursors cannot silently continue',()=>{expect(()=>parseEventPage(page,address,id(7))).toThrow('event_session_changed');expect(()=>parseEventPage(page,{...address,after:1})).toThrow('event_session_required');});
+test('foreign target and session payloads are rejected',()=>{for(const key of ['homeId','accessoryId','serviceId','characteristicId','session'])expect(()=>parseEventPage({...page,events:[{...event,[key]:id(9)}]},address)).toThrow('foreign_event_result');});
+test('duplicates, reordered sequences and inconsistent cursors are rejected',()=>{for(const invalid of [{...page,events:[event,event]},{...page,cursor:3},{...page,headSequence:3},{...page,events:[],cursor:0,hasMore:true},{...page,durable:true,journalErrors:1}])expect(()=>parseEventPage(invalid,address)).toThrow();expect(()=>parseEventPage(page,{...address,after:4},id(6))).toThrow();});
+test('event page count and scalar bounds are enforced',()=>{expect(()=>parseEventPage({...page,events:Array(257).fill(event)},address)).toThrow();expect(()=>parseEventPage({...page,events:[{...event,value:{invented:'presence'}}]},address)).toThrow();});

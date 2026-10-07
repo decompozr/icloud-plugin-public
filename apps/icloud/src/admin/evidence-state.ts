@@ -9,6 +9,7 @@ export function evidenceState(db:Database,store:OwnerSecretStore,allowed:()=>rea
   if(!p.accountId||!p.clientId||store.ownerId()!==p.subject||!allowed().includes(service+'.read'))return;
   const generation=store.accountGeneration?.(p.subject,p.accountId);if(generation===undefined)return;
   const state:unknown[]=[generation,epoch(),[...allowed()].sort()];
+  if(service==='homekit'){const bindings=db.query('SELECT id,home,uid,source FROM homekit_bindings WHERE owner=? AND account=? ORDER BY id LIMIT 101').all(p.subject,p.accountId);if(!bindings.length||bindings.length>100)return;state.push(bindings);}
   for(const table of ['oauthClient','oauthConsent','oauthAccessToken','oauthRefreshToken','session']){
    const columns=(db.query('PRAGMA table_info('+table+')').all() as {name:string}[]).map(c=>c.name),safe=whitelist.filter(c=>columns.includes(c));
    const filter=table==='session'?'userId':'clientId';if(!columns.includes(filter)||!safe.includes('id'))return;

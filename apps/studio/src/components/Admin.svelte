@@ -16,6 +16,7 @@
   import Modal from "./Modal.svelte";
   import DesignIcon from "./DesignIcon.svelte";
   import LanguageMenu from "./LanguageMenu.svelte";
+  import HomeKitSetup from './HomeKitSetup.svelte';
   import SystemReset from "./SystemReset.svelte";
   import RefreshButton from "./RefreshButton.svelte";
   let { state: pageState }: { state: AdminState } = $props();
@@ -390,7 +391,7 @@
                 >{t("photosPermissions")}</button
               >{/if}
           </div>
-        </section>{/if}
+        </section>{#if pageState.homekitConfigured}<HomeKitSetup />{/if}{/if}
     </div>
   </div>
   <noscript><p class="error">{t("noScript")}</p></noscript>

@@ -1,9 +1,12 @@
+import {stageHomeKitPayload} from './homekit-payload.js';
 import {artifactSchema,packageVersionSchema} from './artifact.js';
 import {cp,mkdir,rm,chmod} from 'node:fs/promises';
 import {resolve,join,dirname} from 'node:path';
 const root=resolve(import.meta.dir,'../../..');
 const target=`${process.platform}-${process.arch}`;
-const output=resolve(process.argv[2]??join(root,'apps/icloud/build',target));
+const output=resolve(process.argv[2]&&!process.argv[2]!.startsWith('--')?process.argv[2]!:join(root,'apps/icloud/build',target));
+const receiptFlag=process.argv.indexOf('--homekit-build-receipt'),teamFlag=process.argv.indexOf('--homekit-signing-team');
+if((receiptFlag>=0||teamFlag>=0)&&(process.platform!=='darwin'||receiptFlag<0||teamFlag<0||!process.argv[receiptFlag+1]||!process.argv[teamFlag+1]))throw Error('HomeKit staging requires macOS, signed build receipt and explicit signing team');
 if(await Bun.file(join(output,'artifact.json')).exists())throw Error('Build target already exists; use a fresh output directory.');
 if(!await Bun.file(join(root,'apps/icloud/dist/index.js')).exists())throw Error('Run the application build first.');
 await mkdir(dirname(output),{recursive:true});
@@ -22,7 +25,8 @@ try{
  await chmod(join(output,'icloud-plugin'),0o755);
  await cp(join(root,'packages/tooling/src/runtime.sh'),join(output,'runtime.sh'));
  await chmod(join(output,'runtime.sh'),0o755);
+ let homekit;if(receiptFlag>=0)homekit=await stageHomeKitPayload(output,resolve(process.argv[receiptFlag+1]!),process.argv[teamFlag+1]!);
  const metadata=packageVersionSchema.parse(await Bun.file(join(root,'apps/icloud/package.json')).json() as unknown);
- await Bun.write(join(output,'artifact.json'),JSON.stringify(artifactSchema.parse({format:1,name:'icloud-plugin',version:metadata.version,platform:process.platform,arch:process.arch,bun:Bun.version}),null,2)+'\n');
+ await Bun.write(join(output,'artifact.json'),JSON.stringify(artifactSchema.parse({format:1,name:'icloud-plugin',version:metadata.version,platform:process.platform,arch:process.arch,bun:Bun.version,...homekit?{homekit}:{}}),null,2)+'\n');
  console.log(output);
 }catch(error){await rm(output,{recursive:true,force:true});throw error;}
