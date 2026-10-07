@@ -425,8 +425,8 @@ for this enrolled target and official SDK client. Claude/Codex conversation wake
 other host subscription behavior and unattended session lifecycle remain unverified.
 
 The original client retained correct events but its completion assertion required
-literal true/false, so it was stopped after receipt capture. Retained evidence was
-independently reconciled using corrected strict bool/0/1 interpretation; the failed
+literal true/false, so it was stopped after receipt capture. Same-agent reconciliation checked retained evidence using corrected strict
+bool/0/1 interpretation; the failed
 automatic completion is not relabeled as passing. Two meaningful encoding/denial
 tests and strict runner typecheck pass. Production events remain raw; no general
 coercion was added to physical-control contracts. The runner now also retains OAuth
