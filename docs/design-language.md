@@ -2,21 +2,28 @@
 
 ## Current Surface design adoption (2026-10-06)
 
-Logo refresh: replace the irregular cloud mascot with the modular-link mark
-specified below. Scope is the shared Studio glyph and generated plugin assets.
+Logo selection (2026-10-07): the owner selected the plain, plump cloud outline
+after rejecting modular-link, robot, tunnel and decorated-cloud concepts. Use
+one continuous olive outline with an empty interior, a larger right-hand lobe,
+smaller left shoulder and softly rounded ends. No eyes or other decoration.
+Scope is the shared Studio glyph and generated plugin assets.
 Acceptance is matching geometry across admin/auth and SVG/PNG exports, legibility
 at the existing 32px rail size, and passing Studio build/type checks. Preview
 renders are task-owned temporary artifacts; this source task does not authorize
 release, installation or restarting the running service.
 
-Self-checking completed: Studio build and Svelte checks pass (zero diagnostics),
-and the existing Studio suite passes 12 tests / 1,158 assertions. Admin and auth
-SSR contain the exact shared mark; the generated SVG matches its source. The
-256px PNG is 4,172 bytes and a 32px raster preview was visually inspected. The
-initial build required installing the already-declared iCloud dependencies in
-this task checkout. Temporary build log and small raster preview were removed
-after reconciliation here. No running-service or remote-client acceptance is
-claimed. The task worktree retains the committed design for local review.
+The selected raster preview was rebuilt as a compact SVG path so small UI
+glyphs stay sharp. The inline glyph has no background fill; the downloadable
+PNG retains its white background.
+
+Selected-version self-checking: Studio build passes, Svelte reports zero errors
+or warnings, and the existing suite passes 12 tests / 1,158 assertions. Admin
+and auth SSR contain the shared cloud geometry. SVG and PNG exports match the
+source; the 256px PNG is 4,204 bytes. The 256px and 32px renders were visually
+inspected. Task-owned temporary build log and small preview were removed after
+recording these results. The committed task checkout is retained for review.
+No release, installation, running-service or external-client verification is
+claimed for this local source change.
 
 Studio follows the owner-selected Surface design reference at
 `https://mac-mini.duckbill-ionian.ts.net:8463/workspace/surface/main/design/`.
@@ -33,8 +40,7 @@ restrictions and origin/authorization checks remain intact. Browser verification
 now captures CSP console errors and checks computed styles, not only asset HTTP
 success. The prior inline-only style policy was reproduced blocking Kit CSS.
 
-The original modular-link icon consists of three connected rounded square nodes,
-without a cloud silhouette or Apple/iCloud artwork. One source in Studio generates
+The selected cloud outline replaces the prior modular-link proposal. One source in Studio generates
 the inline glyph and 256px SVG/PNG download assets. Regenerate exports with
 `bun run --cwd apps/studio render:brand`. This is an original project mark, not a
 legal trademark-clearance opinion. Earlier cloud/teal/i18next sections below are

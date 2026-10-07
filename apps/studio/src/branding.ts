@@ -1,5 +1,5 @@
-/** Original modular-link mark, shared by inline UI and generated download assets. */
+/** Rounded cloud outline, shared by inline UI and generated download assets. */
 export const brandColor = '#71864B';
 // Static, project-owned SVG markup; never interpolate user content here.
-export const brandMark = `<g stroke="${brandColor}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"><path d="M108 76H148M180 108V148" fill="none"/><rect x="44" y="44" width="64" height="64" rx="18" fill="none"/><rect x="148" y="44" width="64" height="64" rx="18" fill="${brandColor}"/><rect x="148" y="148" width="64" height="64" rx="18" fill="none"/></g>`;
-export const brandSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><title>iCloud plugin — modular connector</title><rect width="256" height="256" fill="#FFFFFF"/>${brandMark}</svg>`;
+export const brandMark = `<path d="M60 186C40 186 24 170 24 150C24 130 38 115 56 114C57 96 70 85 86 85C92 85 98 87 103 90C114 72 128 64 143 64C171 64 190 87 191 112C214 108 232 125 232 149C232 169 216 186 195 186Z" fill="none" stroke="${brandColor}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`;
+export const brandSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><title>iCloud plugin — rounded cloud</title><rect width="256" height="256" fill="#FFFFFF"/>${brandMark}</svg>`;
