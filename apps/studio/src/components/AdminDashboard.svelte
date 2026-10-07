@@ -82,7 +82,7 @@
       String(model.dashboard?.accounts.length ?? 0),
     )}{@render line("connectionsTitle", String(model.connections?.length ?? 0))}
   </div>
-  {#if model.outdatedConnections.length}<p
+  {#if model.connectionsNeedingReview.length}<p
       class="connection-warning"
       role="status"
     >
@@ -150,35 +150,20 @@
       t(model.connections ? "noConnections" : "statusLoading"),
     )}{/if}
   {#each model.connections ?? [] as connection (connection.clientId + "-" + connection.accountId)}{@const warning =
-      model.connectionWarning(connection)}
+      model.connectionNeedsReview(connection)}
     <article>
       <h3 class="connection-heading">
         {connection.name ?? t("clientUnnamed")}{#if warning}<span
             class="connection-warning-icon"
-            title={t(
-              warning === "registration"
-                ? "connectionRegistrationOutdated"
-                : "connectionConsentOutdated",
-            )}
+            title={t("connectionRegistrationOutdated")}
             ><DesignIcon name="warning" /><span class="sr-only"
-              >{t(
-                warning === "registration"
-                  ? "connectionRegistrationOutdated"
-                  : "connectionConsentOutdated",
-              )}</span
+              >{t("connectionRegistrationOutdated")}</span
             ></span
           >{/if}
       </h3>
       {#if warning}<p class="connection-warning" role="status">
-          {t(
-            warning === "registration"
-              ? "connectionRegistrationOutdated"
-              : "connectionConsentOutdated",
-          )}
-        </p>
-        {#if warning === "consent"}<p>
-            {t("connectionReauthorizeHelp")}
-          </p>{/if}{/if}
+          {t("connectionRegistrationOutdated")}
+        </p>{/if}
       {@render line(
         "connectionAccount",
         model.dashboard?.accounts.find((a) => a.id === connection.accountId)
@@ -201,7 +186,7 @@
           : t("neverObserved"),
       )}
       <div class="actions">
-        {#if model.clients?.find((c) => c.clientId === connection.clientId)?.upgradeAvailable}{@render action(
+        {#if warning}{@render action(
             connection.clientId,
             "upgrade",
           )}{/if}{@render action(connection.clientId, "revoke")}

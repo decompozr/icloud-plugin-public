@@ -13,7 +13,7 @@ import {
 } from "../../../icloud/src/admin/readiness.js";
 import { registerOwner } from "./auth-protocol.js";
 import type { ToastCenter } from "./ui-state.svelte.js";
-import { connectionWarning } from "./connection-warnings.js";
+import { connectionNeedsReview } from "./connection-warnings.js";
 import { createConnectionsService } from "./connections-service.js";
 class UiError extends Error {
   constructor(readonly key: string) {
@@ -74,7 +74,6 @@ export class AdminModel {
   dashboard = $state<z.infer<typeof dashboardSchema>>();
   system = $state<z.infer<typeof systemSchema>>();
   private readonly connectionsService = createConnectionsService();
-  enabledScopes = $state<string[]>([]);
   clients = $state<RecoveryClient[]>();
   connections = $state<AuthorizedConnection[]>();
   checkedAt = $state<string>();
@@ -259,23 +258,20 @@ export class AdminModel {
       this.accountsLoading = false;
     }
   }
-  connectionWarning(connection: AuthorizedConnection) {
-    return connectionWarning(
-      connection,
+  connectionNeedsReview(connection: AuthorizedConnection) {
+    return connectionNeedsReview(
       this.clients?.find((client) => client.clientId === connection.clientId),
-      this.enabledScopes,
     );
   }
-  get outdatedConnections() {
+  get connectionsNeedingReview() {
     return (this.connections ?? []).filter((connection) =>
-      this.connectionWarning(connection),
+      this.connectionNeedsReview(connection),
     );
   }
   async refreshClients() {
     this.clientsLoading = true;
     try {
       const value = await this.connectionsService.list();
-      this.enabledScopes = value.enabledScopes ?? [];
       this.clients = value.clients;
       this.connections = value.connections;
       this.clientsCheckedAt = new Date().toISOString();
@@ -393,7 +389,7 @@ export class AdminModel {
         this.refreshClients(),
       ]);
       this.message("policySaved");
-      if (this.outdatedConnections.length)
+      if (this.connectionsNeedingReview.length)
         this.toast?.push("connectionUpdatesAvailable", "info");
     } catch (error) {
       await this.refreshDashboard();
