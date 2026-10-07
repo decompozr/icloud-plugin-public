@@ -44,7 +44,7 @@ restrictions and origin/authorization checks remain intact. Browser verification
 now captures CSP console errors and checks computed styles, not only asset HTTP
 success. The prior inline-only style policy was reproduced blocking Kit CSS.
 
-The selected cloud outline replaces the prior modular-link proposal. One source in Studio generates
+The selected cloud outline replaces the prior modular-link proposal. One shared UI source generates
 the inline glyph and 256px SVG/PNG download assets. Regenerate exports with
 `bun run --cwd apps/studio render:brand`. This is an original project mark, not a
 legal trademark-clearance opinion. Earlier cloud/teal/i18next sections below are

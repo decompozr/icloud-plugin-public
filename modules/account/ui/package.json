@@ -1,0 +1,16 @@
+{
+  "name": "@icloud-plugin/modules-account-ui",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "svelte": "5.57.1",
+    "zod": "3.25.76",
+    "@simplewebauthn/browser": "14.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "@types/node": "22.20.4",
+    "typescript": "5.9.3"
+  },
+  "packageManager": "bun@1.4.2"
+}

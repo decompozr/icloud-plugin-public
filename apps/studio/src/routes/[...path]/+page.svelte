@@ -1,6 +1,6 @@
 <script lang="ts">
   import Admin from "../../components/Admin.svelte";
-  import Auth from "../../components/Auth.svelte";
+  import Auth from "../../../../../modules/account/ui/Auth.svelte";
   import type { PageData } from "./$types";
   let { data }: { data: PageData } = $props();
 </script>

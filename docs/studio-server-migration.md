@@ -4,8 +4,10 @@
 
 Studio becomes the single server application: SvelteKit UI/Web routes, HTTP/MCP
 ingress, composition and process lifecycle. No separate server app is introduced.
-Pure backend functionality lives in `modules/account`, `mail`, `calendar`, `photos`
-and `homekit`. Svelte components and presentation remain in Studio. Independently
+Feature ownership lives in `modules/account`, `mail`, `calendar`, `photos`
+and `homekit`, each with separate backend and UI entry points. Feature-specific
+Svelte components belong to their module; routes, shell and composition remain in
+Studio. Shared visual controls and UI host contracts belong to `packages/ui`. Independently
 executed native helpers remain apps. There is one installed service and one MCP
 endpoint. Retire `apps/icloud` only when all consumers and packaging move.
 
@@ -27,7 +29,9 @@ separate from fixture, build, health and local asset readback.
 
 Each phase must pass relevant source tests, built listener/integration checks,
 artifact lifecycle and native upgrade/state readback; merge and deploy from clean
-verified main. The owner tests the delivered phase. Advance only after `pass`.
+verified main. The owner tests each delivered phase. Advance only after `pass`; the owner explicitly
+authorized the bundled-module UI revision after phase 1 delivery, so that bounded
+revision proceeds now. Further backend phases still wait for owner acceptance.
 The root task owner implements and self-checks; independent review is required
 when security/lifecycle contracts change. Source-only extraction does not invent
 new lifecycle behavior or a second module registry.
@@ -132,3 +136,94 @@ client access in the delivered installation, then report pass. Phase 2 is not
 started until that report. Studio becoming the complete server and removal of the
 old app remain planned later phases; this release only extracts account backend
 ownership and its build/distribution interface.
+
+## Bundled module UI revision
+
+Accepted on 2026-10-07: Studio composes **bundled** modules, not only enabled
+modules. A disabled bundled module must retain its settings/requirements UI;
+enabled policy controls backend operations/scopes, not whether a UI component
+exists in the distribution. This is a static trusted bundle, not arbitrary plugin
+loading or a new permission mechanism.
+
+Gap: feature components currently import the entire Studio AdminModel, shared
+controls and credential/toast controller classes through host paths. That makes
+module-owned UI a folder rename rather than an independent interface.
+
+This revision moves account cards/credential/login UI and HomeKit/Photos setup
+panels to module UI entry points; Mail/Calendar own credential requirement panels.
+Shared pinned controls, project adapters and explicit UI context contracts move to
+one shared UI package. Studio keeps routes, navigation/layout, generic module
+policy modal and composition registry. Modules receive narrow account view/edit
+ports instead of the global AdminModel; account dialog state belongs to account UI.
+No UI entry may import account backend, credential stores, native clients or an
+application source module. All Svelte consumers use one pinned runtime instance.
+
+Acceptance: builds/typechecks for every UI owner, source/client-bundle boundary
+checks, disabled module settings, credential clearing, shared navigation/modal/toast
+browser checks, full tests, packaged lifecycle and deployed state/asset/read checks.
+Visual controls remain byte-identical to the pinned catalog; no layout redesign or
+new native permission/provider write. Known Apple web-session availability and
+HomeKit/app-password coupling are separate requirement corrections, not silently
+changed by this extraction. Remaining backend/module/server phases stay explicit.
+
+### Bundled UI verification
+
+Account UI now receives explicit card data/actions and narrow compatibility edit
+ports. Mail/Calendar own their app-password prerequisite panels; HomeKit/Photos
+own native requirements and field descriptions. Studio's trusted registry composes
+all four bundled feature panels regardless of saved enabled policy. The generic
+settings shell no longer selects Photos/HomeKit implementation or field hints.
+Universal wire schemas are built independently; browser code does not traverse
+the account server facade. Pinned visual catalog source is byte-identical.
+
+Verification: 563 formal tests / 5,028 assertions, 11 built HTTP E2E tests / 245
+assertions, packaged lifecycle/OAuth upgrade 2 / 151, and seven UI owner typechecks
+with zero Svelte diagnostics. Browser checks pass: 58 persistent-shell checks,
+142 requirement/credential/locale/consent checks, four disabled bundled panels,
+late Photos-to-Home readiness rejection and 13 compiled client files without
+backend/SQLite/crypto code. Desktop/mobile fixture screenshots were captured;
+the desktop overview was visually inspected. Physical devices remain untested.
+
+Independent review found callback retargeting and non-portable declaration paths.
+The keyed requirements mount now captures a stable callback and ignores reports
+after destruction; the delayed-response browser regression passes. Public
+declarations embed their universal contracts and retain compiled branding types;
+all 17 public files resolve within compiled outputs. Independent recheck passed
+7 SSR tests / 360 assertions and inspected all 13 client files, with no remaining
+scoped blocker. Legacy browser fixtures were updated for current account cards,
+Apple Home, switch role/visible label interaction, compact labels and left rail;
+persistent fixture notifications are explicitly dismissed between interactions.
+
+Version 0.1.93 is merged and deployed; owner acceptance is pending.
+The requested Flow runtime migration is complete in the active checkout: ignored
+`.decompozr/flow/run/` replaces the legacy directory after writers stopped; byte
+preservation was checked before compact-record path reconciliation. Installed
+service state/key custody and other checkouts were not moved.
+
+### Bundled UI deployment readback
+
+PR #120 is merged. Release 0.1.93 was built from clean remote main
+`136a85019f2763eafaed8febffbbe21aaec82a98`, verified as the tip immediately before
+release/install. All frozen installs and final UI/account/application checks pass;
+final packaged lifecycle/OAuth upgrade passes again (2 tests / 151 assertions).
+The unchanged signed 0.1.92 helper is reused after source/signature preflight.
+
+The supported updater ran after graceful shutdown and a protected stopped-state
+backup. Installed payload hashes match; config/custody bytes, protected non-transient
+SQLite rows and integrity match the backup. Existing startup OAuth-resource and
+rate-limit timestamps are excluded. This is upgrade-time preservation; subsequent
+authorized client activity is separate. Prior release 0.1.92 and its archive remain
+for rollback. The protected pre-0.1.93 backup contains the private upgrade receipt.
+
+Local/private sign-in returns 200, two private CSS assets match, CSP/no-store/
+no-referrer remain, and all 13 installed client files exclude backend code markers.
+All 13 read-only doctor checks pass from this Mac. The existing main MCP profile
+and actual 9-mailbox listing succeed without new registration, consent or provider
+write. This establishes the existing Mail path, not all module/provider tools or
+a physical owner Passkey/device walkthrough.
+
+The owner tests delivered account/login, bundled settings and normal client access
+then reports pass. Further backend extraction and Studio's final server ownership
+remain planned phases. Known Apple web-session availability and HomeKit's credential
+coupling remain explicitly deferred requirement corrections; this UI extraction
+did not claim to enable those backend paths.

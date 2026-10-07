@@ -1,4 +1,4 @@
-import type { RecoveryClient } from "../../../icloud/src/admin/readiness.js";
+import type { RecoveryClient } from "../../../../packages/contracts/dist/index.js";
 /** Use the same actionable status as the capability-review control. */
 export function connectionNeedsReview(
   client: RecoveryClient | undefined,

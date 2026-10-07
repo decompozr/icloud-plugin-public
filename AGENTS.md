@@ -6,7 +6,7 @@ Name future branches descriptively without a `codex/` prefix. Do not rename exis
 
 ## Strict design-system adoption
 
-All UI work must follow the existing DecompozR Design System and the project's adopted design language. Read `docs/design-language.md` and `apps/studio/src/lib/design-system/PROVENANCE.md` before changing UI.
+All UI work must follow the existing DecompozR Design System and the project's adopted design language. Read `docs/design-language.md` and `packages/ui/src/design-system/PROVENANCE.md` before changing UI.
 
 - Reuse the pinned catalog components for buttons, icons, checkbox/radio controls, field labels, tags, menus and toast visuals when available. Do not independently redraw or approximate an existing control.
 - Use the pinned spacing, typography, semantic color, radius and control metrics. Do not introduce one-off visual values or competing stylesheets to fix a single screen.

@@ -3,8 +3,8 @@
   import{pushState,replaceState}from'$app/navigation';
   import type { Snippet } from "svelte";
   import {ToastCenter,DialogCenter} from '../lib/ui-state.svelte.js';
-  import Toaster from '../components/Toaster.svelte';
-  import CredentialModals from '../components/CredentialModals.svelte';
+  import Toaster from '../../../../packages/ui/src/components/Toaster.svelte';
+  import CredentialModals from '../../../../modules/account/ui/CredentialModals.svelte';
   const toast=new ToastCenter(),dialogs=new DialogCenter();
   setContext('toast',toast);setContext('dialogs',dialogs);
   import { pageStyles } from "../styles.js";

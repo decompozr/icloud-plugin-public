@@ -1,9 +1,5 @@
 /** Presentation-only contracts. No credentials, grants, stores or provider clients. */
-export interface UiCopy {
-  t(key: string): string;
-  richText(key: string): ReadonlyArray<{ text: string; strong: boolean }>;
-  authT(key: string): string;
-}
+export type {UiCopy,AuthMode,ScopeLabels} from '../../../packages/ui/src/contracts.js';
 export interface AdminPresentation {
   capabilities: readonly { id: string; label?: string; copyKey?: string }[];
   credentialStepLabel: string;
@@ -31,5 +27,3 @@ export interface AdminState {
     fields: readonly { id: string; label: string; available?: boolean }[];
   }[];
 }
-export type AuthMode = "sign-in" | "consent" | "connect";
-export type ScopeLabels = Record<string, string | Record<string, string>>;

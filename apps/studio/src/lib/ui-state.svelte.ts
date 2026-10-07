@@ -1,57 +1,5 @@
-export type ToastTone = "success" | "error" | "info";
-export class ToastCenter {
-  dialogs = $state(0);
-  items = $state<Array<{ id: number; key: string; tone: ToastTone }>>([]);
-  private sequence = 0;
-  push(key: string, tone: ToastTone = "success") {
-    if (!key) return;
-    const id = ++this.sequence;
-    this.items.push({ id, key, tone });
-    // Each event owns a persistent message; only that message is dismissed.
-  }
-  dismiss(id: number) {
-    this.items = this.items.filter((item) => item.id !== id);
-  }
-}
-export interface AppPasswordInput {
-  accountId?: string;
-  user: string;
-  label: string;
-  appPassword: string;
-}
-export interface CredentialOptions {
-  accountId?: string;
-  mode?: "add" | "rotate";
-  accounts?: Array<{
-    id: string;
-    user: string;
-    label: string;
-    credentialStored: boolean;
-  }>;
-  submit?: (input: AppPasswordInput) => Promise<void>;
-  onSuccess?: () => Promise<void> | void;
-}
-export class DialogCenter {
-  credential = $state<
-    | {
-        kind: "app-password" | "apple-account";
-        options: CredentialOptions;
-        generation: number;
-      }
-    | undefined
-  >();
-  private sequence = 0;
-  openCredential(
-    kind: "app-password" | "apple-account",
-    options: CredentialOptions = {},
-  ) {
-    this.credential = { kind, options, generation: ++this.sequence };
-  }
-  closeCredential(generation?: number) {
-    if (generation === undefined || this.credential?.generation === generation)
-      this.credential = undefined;
-  }
-}
+export {ToastCenter,type ToastTone} from '../../../../packages/ui/src/toast-state.svelte.js';
+export {DialogCenter,type CredentialOptions,type AppPasswordInput} from '../../../../modules/account/ui/dialog-state.svelte.js';
 export interface LocaleControl {
   current: "en" | "zh-TW";
   set(value: "en" | "zh-TW"): void;

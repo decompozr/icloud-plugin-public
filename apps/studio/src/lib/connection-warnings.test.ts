@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import { connectionNeedsReview } from "./connection-warnings.js";
-import type { RecoveryClient } from "../../../icloud/src/admin/readiness.js";
+import type { RecoveryClient } from "../../../../packages/contracts/dist/index.js";
 const client: RecoveryClient = {
   clientId: "client",
   name: "ChatGPT",

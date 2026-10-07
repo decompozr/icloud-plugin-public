@@ -1,11 +1,11 @@
 <script lang="ts">
-  import ActionButton from "./ActionButton.svelte";
-  import PermissionTag from "./PermissionTag.svelte";
-  import { permissionGroups } from "../lib/permission-groups.js";
-  import { typographyStyle } from "../lib/design-system/typography.js";
-  import { spacing } from "../lib/design-system/spacing.js";
-  import DesignIcon from "./DesignIcon.svelte";
-  import CopyButton from "./CopyButton.svelte";
+  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
+  import PermissionTag from "../../../../packages/ui/src/components/PermissionTag.svelte";
+  import { permissionGroups } from "../../../../packages/ui/src/permission-groups.js";
+  import { typographyStyle } from "../../../../packages/ui/src/design-system/typography.js";
+  import { spacing } from "../../../../packages/ui/src/design-system/spacing.js";
+  import DesignIcon from "../../../../packages/ui/src/components/DesignIcon.svelte";
+  import CopyButton from "../../../../packages/ui/src/components/CopyButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";

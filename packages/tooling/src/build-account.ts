@@ -1,6 +1,7 @@
 import {resolve,join} from 'node:path';
 import {mkdir,rm} from 'node:fs/promises';
 import {command,repository} from './command.js';
+await command([process.execPath,join(repository,'packages/tooling/src/build-contracts.ts')]);
 const account=join(repository,'modules/account'),source=join(account,'src'),output=join(account,'dist');
 await command([process.execPath,'run','--cwd',account,'typecheck']);
 await rm(output,{recursive:true,force:true});await mkdir(output,{recursive:true});
@@ -9,4 +10,5 @@ const entries:string[]=[];
 for await(const path of new Bun.Glob('**/*.ts').scan(source))if(!path.includes('test-fixtures/')&&!path.endsWith('.test.ts')&&!path.endsWith('.worker.ts'))entries.push(resolve(source,path));
 const result=await Bun.build({entrypoints:entries,root:source,outdir:output,target:'bun',packages:'external',splitting:true});
 if(!result.success)throw new AggregateError(result.logs,'Account backend build failed');
+await Bun.write(join(output,'contracts.d.ts'),await Bun.file(join(repository,'packages/contracts/dist/account.d.ts')).text());
 console.log('Built server-only account facade; tests/workers excluded.');
