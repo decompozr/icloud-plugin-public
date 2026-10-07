@@ -1,11 +1,11 @@
 {
   "name": "@icloud-plugin/studio",
-  "version": "0.1.92",
+  "version": "0.1.93",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "bun build/build.ts",
-    "typecheck": "svelte-check --tsconfig ./tsconfig.json",
+    "typecheck": "bun build/check-ui.ts",
     "test": "bun test src",
     "render:brand": "bun build/render-brand.ts"
   },

@@ -1,25 +1,26 @@
 <script lang="ts">
-  import ActionButton from "./ActionButton.svelte";
+  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
   import { getContext, untrack } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
   import type { DialogCenter } from "../lib/ui-state.svelte.js";
   import { scopeCopy } from "../lib/admin-model.svelte.js";
-  import Modal from "./Modal.svelte";
-  import RequirementStep from "./RequirementStep.svelte";
-  import HomeKitSetup from "./HomeKitSetup.svelte";
-  import PhotosSetup from "./PhotosSetup.svelte";
+  import Modal from "../../../../packages/ui/src/components/Modal.svelte";
+  import RequirementStep from "../../../../packages/ui/src/components/RequirementStep.svelte";
+  import RequirementsMount from "../../../../packages/ui/src/components/RequirementsMount.svelte";
+  import {bundledModules} from "../lib/bundled-modules.js";
   let { model, dialogs }: { model: AdminModel; dialogs: DialogCenter } =
     $props();
   const { t } = getContext<UiCopy>("copy");
   let confirm = $state(false),
-    permissionReady = $state<boolean | null>(null),
-    generation = 0;
+    permissionReady = $state<boolean | null>(null);
   const id = $derived(model.moduleDialog);
+  const definition=$derived(bundledModules.find(module=>module.id===id));
+  const requirementIdentity=$derived(id?Object.freeze({id}):null);
   const metadata = $derived(
-    id === "mail"
+    definition?.presentationMetadata
       ? {
-          title: "Mail",
+          title: definition.title ?? "",
           fields: (model.state.presentation?.capabilities ?? []).map((f) => ({
             id: f.id,
             label: f.label ?? f.id,
@@ -43,7 +44,7 @@
   const ready = $derived(
     !enabling ||
       (!!model.state.enrolled &&
-        (["photos", "homekit"].includes(id ?? "")
+        (definition?.requirement === "native"
           ? permissionReady === true
           : credentialReady)),
   );
@@ -53,16 +54,6 @@
       untrack(() => {
         confirm = false;
         permissionReady = null;
-        const serial = ++generation;
-        if (value === "photos")
-          void model
-            .get("/icloud/admin/photos/status")
-            .then((v) => {
-              if (serial === generation) permissionReady = v.ready === true;
-            })
-            .catch(() => {
-              if (serial === generation) permissionReady = false;
-            });
       });
   });
   function close() {
@@ -96,31 +87,12 @@
   busy={model.busy}
 >
   <section>
-    {#if id === "homekit"}<HomeKitSetup
-        embedded
-        onverified={(value) => {
-          if (id === "homekit") permissionReady = value;
-        }}
-      />
-    {:else if id === "photos"}<PhotosSetup
-        onverified={(value) => {
-          if (id === "photos") permissionReady = value;
-        }}
-      />
-    {:else}<RequirementStep
-        title={t("requirementCredential")}
-        state={credentialReady ? "done" : "todo"}
-        hint={t("accountCredentialInstruction")}
-      >
-        {#if !credentialReady}<ActionButton
-            type="button"
-            class="primary"
-            onclick={() =>
-              dialogs.openCredential("app-password", { mode: "add" })}
-            label={t("setupRequirement")}
-            icon="settings"
-          />{/if}
-      </RequirementStep>{/if}
+    {#if definition && requirementIdentity}
+      {#key requirementIdentity}
+        {@const mounted=requirementIdentity}
+        <RequirementsMount {definition} {credentialReady} onverified={(value)=>{if(requirementIdentity===mounted)permissionReady=value}} />
+      {/key}
+    {/if}
   </section>
   <section>
     <h3>{t("moduleActionsShort")}</h3>
@@ -141,18 +113,14 @@
             onchange={(e) => toggle(field.id, e.currentTarget.checked)}
           />
         </li>
-        {#if id === "photos" && field.id === "delete"}<li class="muted">
-            {t("photosDeleteHelp")}
+        {#if definition?.fieldHint?.(field.id)}<li class="muted">
+            {t(definition.fieldHint!(field.id)!)}
           </li>{/if}
         {#if "available" in field && field.available === false}<li
             class="muted"
           >
             {t(
-              id === "homekit"
-                ? field.id === "control"
-                  ? "homekitControlDisabled"
-                  : "homekitAutomationDisabled"
-                : "photosCapabilityUnavailable",
+              definition?.unavailableCopy?.(field.id) ?? 'requirementsMissing',
             )}
           </li>{/if}
       {:else}<li class="muted">{t("emptyValue")}</li>{/each}

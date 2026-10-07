@@ -1,11 +1,11 @@
-export {brandSvg} from "./branding.js";
+export {brandSvg} from "../../../packages/ui/src/branding.js";
 import { createCopy } from "./lib/copy.js";
 import { render } from "svelte/server";
 import Admin from "./components/Admin.svelte";
-import Auth from "./components/Auth.svelte";
-import Credential from "./components/Credential.svelte";
-import PhotosSetup from "./components/PhotosSetup.svelte";
-import PhotosCloud from "./components/PhotosCloud.svelte";
+import Auth from "../../../modules/account/ui/Auth.svelte";
+import Credential from "../../../modules/account/ui/Credential.svelte";
+import PhotosSetup from "../../../modules/photos/ui/PhotosSetup.svelte";
+import PhotosCloud from "../../../modules/account/ui/PhotosCloud.svelte";
 import type { AdminState, UiCopy, AuthMode, ScopeLabels } from "./contracts.js";
 export { pageStyles } from "./styles.js";
 export type { AdminState, UiCopy, AuthMode, ScopeLabels } from "./contracts.js";

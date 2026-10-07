@@ -1,17 +1,18 @@
 <script lang="ts">
-  import ActionButton from "./ActionButton.svelte";
+  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
   import type { ToastCenter } from "../lib/ui-state.svelte.js";
-  import RequirementStep from "./RequirementStep.svelte";
-  import Modal from "./Modal.svelte";
-  import PhotosSetup from "./PhotosSetup.svelte";
-  import RefreshButton from "./RefreshButton.svelte";
+  import RequirementStep from "../../../../packages/ui/src/components/RequirementStep.svelte";
+  import Modal from "../../../../packages/ui/src/components/Modal.svelte";
+  import {bundledModules} from "../lib/bundled-modules.js";
+  import RefreshButton from "../../../../packages/ui/src/components/RefreshButton.svelte";
   let { model }: { model: AdminModel } = $props();
   const { t } = getContext<UiCopy>("copy"),
     toast = getContext<ToastCenter>("toast");
   const kind = $derived(model.requirementDialog);
+  const definition=$derived(bundledModules.find(module=>module.id===kind));
   const connectivity = $derived(
     model.system?.connectivity ?? model.status?.prerequisites,
   );
@@ -32,8 +33,8 @@
       ? "tailscaleSetup"
       : kind === "owner"
         ? "ownerSetup"
-        : kind === "photos"
-          ? "photosPermissions"
+        : definition?.requirementsTitleKey
+          ? definition.requirementsTitleKey
           : "connectTitle",
   )}
   onclose={() => (model.requirementDialog = undefined)}
@@ -124,7 +125,7 @@
     {#if !model.canRegister && !model.state.admin}<p class="muted">
         {t("ownerDenied")}
       </p>{/if}
-  {:else if kind === "photos"}<PhotosSetup />
+  {:else if definition}{@const Requirements=definition.Requirements}<Requirements/>
   {:else}<p>{t("connectIntro")}</p>
     {#if model.state.publicMcpUrl}<div class="copy-row">
         <code>{model.state.publicMcpUrl}</code><ActionButton

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import AccountCard from "./AccountCard.svelte";
-  import ActionButton from "./ActionButton.svelte";
-  import { spacing } from "../lib/design-system/spacing.js";
-  import { controlMetrics } from "../lib/design-system/controlMetrics.js";
+  import AccountCard from "../../../../modules/account/ui/AccountCard.svelte";
+  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
+  import { spacing } from "../../../../packages/ui/src/design-system/spacing.js";
+  import { controlMetrics } from "../../../../packages/ui/src/design-system/controlMetrics.js";
   import { getContext, onMount, tick, untrack } from "svelte";
   import type { AdminState, UiCopy } from "../contracts.js";
   import { AdminModel } from "../lib/admin-model.svelte.js";
@@ -12,16 +12,16 @@
     type LocaleControl,
     type NavigationControl,
   } from "../lib/ui-state.svelte.js";
-  import Icon from "./Icon.svelte";
+  import Icon from "../../../../packages/ui/src/components/Icon.svelte";
   import Overview from "./Overview.svelte";
   import AdminDashboard from "./AdminDashboard.svelte";
   import ModuleDialog from "./ModuleDialog.svelte";
   import RequirementDialog from "./RequirementDialog.svelte";
-  import Modal from "./Modal.svelte";
-  import DesignIcon from "./DesignIcon.svelte";
+  import Modal from "../../../../packages/ui/src/components/Modal.svelte";
+  import DesignIcon from "../../../../packages/ui/src/components/DesignIcon.svelte";
   import LanguageMenu from "./LanguageMenu.svelte";
   import SystemReset from "./SystemReset.svelte";
-  import RefreshButton from "./RefreshButton.svelte";
+  import RefreshButton from "../../../../packages/ui/src/components/RefreshButton.svelte";
   let { state: pageState }: { state: AdminState } = $props();
   const copy = getContext<UiCopy>("copy"),
     { t } = copy,
@@ -290,7 +290,10 @@
           </header>
           <div id="accounts" class="account-list" role="list">
             {#each model.dashboard?.accounts ?? [] as account (account.id)}
-              <AccountCard {account} {model} {dialogs} />
+              <AccountCard {account} {dialogs} busy={model.busy}
+                sessionPhase={model.webSessions[account.id]?.phase}
+                sessionAvailable={!!model.state.photosCloudConfigured}
+                onrevoke={(id)=>{model.revokeAccount=id}} />
             {/each}
           </div>
           {#if model.dashboard && !model.dashboard.accounts.length}<p

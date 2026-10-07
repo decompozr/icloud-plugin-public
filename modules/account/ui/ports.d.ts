@@ -1,0 +1,2 @@
+export interface AccountView {id:string;user:string;label:string;credentialStored:boolean}
+export interface AccountEditPort {dashboard?:{accounts:AccountView[]};selectedAccount:string;password:string;invalidField:string;busy:boolean;revokeAccount:string;chooseAccount(id:string):void;run(operation:()=>Promise<void>,key:string):Promise<void>;rotate():Promise<void>;revoke():Promise<void>;step(value:number):void}

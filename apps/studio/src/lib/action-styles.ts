@@ -1,8 +1,8 @@
-import { spacing } from './design-system/spacing.js';
-import { radius } from './design-system/radius.js';
-import { semanticColors } from './design-system/semanticColors.js';
-import { controlMetrics } from './design-system/controlMetrics.js';
-import { typography } from './design-system/typography.js';
+import { spacing } from '../../../../packages/ui/src/design-system/spacing.js';
+import { radius } from '../../../../packages/ui/src/design-system/radius.js';
+import { semanticColors } from '../../../../packages/ui/src/design-system/semanticColors.js';
+import { controlMetrics } from '../../../../packages/ui/src/design-system/controlMetrics.js';
+import { typography } from '../../../../packages/ui/src/design-system/typography.js';
 
 /** Consumer layout, focus explanation and critical action extension of the pinned Button. */
 export const actionStyles = `
