@@ -10,6 +10,7 @@ import type { ReconnectCapture } from "../observability/reconnect.js";
 export interface IngressContext {
   remoteAddress?: string;
   onFinish: (callback: (status: number) => void) => void;
+  onClose?: (callback: () => void) => void;
 }
 export type FetchHandler = (
   request: Request,
@@ -110,6 +111,12 @@ async function send(res: ServerResponse, response: Response, method: string) {
     res.end();
     return;
   }
+  if (response.body && response.headers.get("content-type")?.startsWith("text/event-stream")) {
+    const reader=response.body.getReader();
+    const cancel=()=>{void reader.cancel().catch(()=>{});};res.once("close",cancel);res.flushHeaders();
+    try{while(!res.destroyed){const part=await reader.read();if(part.done)break;if(!res.write(part.value))await new Promise<void>(resolve=>{const done=()=>{res.off("drain",done);res.off("close",done);resolve();};res.once("drain",done);res.once("close",done);});}}finally{res.off("close",cancel);await reader.cancel().catch(()=>{});reader.releaseLock();}
+    if(!res.destroyed)res.end();return;
+  }
   const bytes = Buffer.from(await response.arrayBuffer());
   if (!res.destroyed) res.end(bytes);
 }
@@ -124,6 +131,7 @@ export class FetchListener {
       });
       const context: IngressContext = {
         remoteAddress: req.socket.remoteAddress,
+        onClose: callback => res.once("close",callback),
         onFinish: (callback) =>
           res.once("finish", () => callback(res.statusCode)),
       };

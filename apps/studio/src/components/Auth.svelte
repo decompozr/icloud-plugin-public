@@ -10,6 +10,7 @@
     signIn,
   } from "../lib/auth-protocol.js";
   import type { DialogCenter, ToastCenter } from "../lib/ui-state.svelte.js";
+  import { permissionGroups } from "../lib/permission-groups.js";
   import Brand from "./Brand.svelte";
   import Icon from "./Icon.svelte";
   let {
@@ -84,25 +85,7 @@
       ? value
       : (value?.[locale?.current ?? "en"] ?? value?.default ?? scope);
   };
-  const groups = $derived(
-    [
-      { title: "permissionMail", prefix: "mail." },
-      { title: "permissionCalendar", prefix: "calendar." },
-      { title: "permissionPhotos", prefix: "photos." },
-      { title: "permissionConnection", prefix: "" },
-    ]
-      .map((group) => ({
-        ...group,
-        scopes: scopes.filter((scope) =>
-          group.prefix
-            ? scope.startsWith(group.prefix)
-            : !["mail.", "calendar.", "photos."].some((prefix) =>
-                scope.startsWith(prefix),
-              ),
-        ),
-      }))
-      .filter((group) => group.scopes.length),
-  );
+  const groups = $derived(permissionGroups(scopes));
   async function run(action: () => Promise<void>) {
     if (busy) return;
     busy = true;

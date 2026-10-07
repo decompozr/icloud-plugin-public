@@ -1,3 +1,5 @@
+import {createHomeKitModule} from '../homekit/module.js';
+import type {NativeHomeKitProvider,NativeSettings} from '../homekit/provider.js';
 import {createPhotosAdmin} from '../photos/admin.js';
 import {photosSetup} from '../photos/setup-ui.js';
 import {LocalPhotosProvider} from '../photos/provider.js';
@@ -44,6 +46,7 @@ import { prerequisites } from "./prerequisites.js";
 
 export interface ApplicationDependencies {
   studioDirectory?: string;
+  homekitProvider?:(settings:NativeSettings)=>NativeHomeKitProvider;
   calendarProvider?: CalendarModuleDependencies["provider"];
   monitor?: OperationMonitor;
   lifecycle?: HttpLifecycle;
@@ -120,6 +123,8 @@ export async function createApplication(
     const service=new PhotosService(deps.authDatabase,provider,photosAdmin.policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
     runtime.register(photosRegistration(service,photosAdmin.policy));
   }
+  const homekit=settings.homekit?createHomeKitModule(settings.homekit,{authDatabase:deps.authDatabase,store:deps.store,stateDirectory:join(settings.state_directory,'homekit'),adapter:join(deps.assetsDirectory,'../homekit/stdio-adapter.py'),provider:deps.homekitProvider}):undefined;
+  if(homekit)runtime.register(homekit.registration);
   await runtime.start();
   try {
     const config = mailModule.config;
@@ -275,7 +280,9 @@ export async function createApplication(
           policyEpoch++;
         }
       },
+      homekit:homekit?.adminActions,
       modules: [
+        ...(homekit?[{...homekit.admin,updateCapabilities:async(...args:Parameters<typeof homekit.admin.updateCapabilities>)=>{try{return await homekit.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[]),
         ...(photosAdmin?[{...photosAdmin.admin,updateCapabilities:async(...args:Parameters<typeof photosAdmin.admin.updateCapabilities>)=>{try{return await photosAdmin.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[]),
         {
           ...calendarModule.admin,
@@ -640,7 +647,9 @@ export async function createApplication(
             policyEpoch++;
           }
         },
+        homekit:homekit?.adminActions,
         modules: [
+        ...(homekit?[{...homekit.admin,updateCapabilities:async(...args:Parameters<typeof homekit.admin.updateCapabilities>)=>{try{return await homekit.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[]),
         ...(photosAdmin?[{...photosAdmin.admin,updateCapabilities:async(...args:Parameters<typeof photosAdmin.admin.updateCapabilities>)=>{try{return await photosAdmin.admin.updateCapabilities(...args);}finally{policyEpoch++;}}}]:[]),
           {
             ...calendarModule.admin,

@@ -1,0 +1,8 @@
+import {expect,test} from 'bun:test';
+import {artifactSchema} from './artifact.js';
+import {homeKitPayloadSchema} from './homekit-payload.js';
+const homekit={app:'apps/homekit-helper/HomeKitProbe.app',protocolVersion:'0.14.0',sourceSHA256:'a'.repeat(64),signingTeam:'ABCDEFGHIJ'};
+const artifact={format:1,name:'icloud-plugin',version:'0.1.56',platform:'darwin',arch:'arm64',bun:Bun.version};
+test('helper artifacts are opt-in and limited to exact native macOS payload paths',()=>{expect(artifactSchema.parse(artifact).homekit).toBeUndefined();expect(artifactSchema.parse({...artifact,homekit}).homekit).toEqual(homekit as ReturnType<typeof homeKitPayloadSchema.parse>);expect(()=>artifactSchema.parse({...artifact,platform:'linux',homekit})).toThrow();for(const app of ['/other/HomeKitProbe.app','../foreign.app','apps/homekit-helper/../../foreign.app'])expect(()=>homeKitPayloadSchema.parse({...homekit,app})).toThrow();});
+
+test('production staging rejects Debug receipts before copying or launching a helper',async()=>{const {mkdtemp,writeFile,rm}=await import('node:fs/promises');const {join}=await import('node:path');const {stageHomeKitPayload}=await import('./homekit-payload.js');const root=await mkdtemp('/tmp/homekit-payload-policy-');try{const path=join(root,'receipt.json');await writeFile(path,JSON.stringify({state:'succeeded',configuration:'Debug',signatureVerified:true,sourceUnchanged:true,app:'/never-launch.app',sourceSHA256:'a'.repeat(64),embeddedSourceSHA256:'a'.repeat(64)}));await expect(stageHomeKitPayload(root,path,'ABCDEFGHIJ')).rejects.toThrow();expect(await Bun.file(join(root,'apps/homekit-helper/HomeKitProbe.app/Contents/Info.plist')).exists()).toBe(false);}finally{await rm(root,{recursive:true,force:true});}});

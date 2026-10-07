@@ -1,3 +1,4 @@
+import {verifyHomeKitPayload} from './homekit-payload.js';
 import {artifactSchema,type Artifact} from './artifact.js';
 import {cp,mkdir,readFile,readdir,rename,rm,symlink,lstat} from 'node:fs/promises';
 import {resolve,join,relative,parse,dirname} from 'node:path';
@@ -6,6 +7,7 @@ export async function inspectArtifact(path:string):Promise<Artifact>{
  if(value.bun!==Bun.version)throw Error('Artifact requires its recorded Bun version');
  if(value.platform!==process.platform||value.arch!==process.arch)throw Error('Artifact does not match this runtime platform');
  for(const file of ['runtime.sh','apps/icloud/dist/index.js'])if(!(await lstat(join(path,file))).isFile())throw Error('Incomplete artifact');
+ if(value.homekit)await verifyHomeKitPayload(path,value.homekit);
  return value;
 }
 const marker=JSON.stringify({format:1,owner:'icloud-plugin-install'});
@@ -41,6 +43,7 @@ export async function installArtifact(source:string,prefix:string,update=false){
  }catch{throw Error('Release exists; refusing overwrite');}
  try{
   await cp(source,release,{recursive:true,verbatimSymlinks:true,errorOnExist:true});
+  if(metadata.homekit)await verifyHomeKitPayload(release,metadata.homekit);
   await symlink(`releases/${id}`,pending);
   await rename(pending,join(prefix,'current'));
  }catch(error){await rm(pending,{force:true});await rm(release,{recursive:true,force:true});throw error;}

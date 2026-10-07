@@ -21,6 +21,7 @@ export interface AdminState {
   mode?: "account";
   publicMcpUrl?: string;
   pluginDownload?: boolean;
+  homekitConfigured?: boolean;
   photosConfigured?: boolean;
   photosCloudConfigured?: boolean;
   presentation?: AdminPresentation;

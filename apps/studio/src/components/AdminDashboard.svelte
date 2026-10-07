@@ -1,4 +1,8 @@
 <script lang="ts">
+  import Button from "../lib/design-system/Button.svelte";
+  import Tag from "../lib/design-system/Tag.svelte";
+  import { spacing } from "../lib/design-system/spacing.js";
+  import DesignIcon from "./DesignIcon.svelte";
   import CopyButton from "./CopyButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
@@ -44,9 +48,9 @@
 {#snippet action(
   clientId: string,
   kind: "upgrade" | "revoke" | "remove",
-)}<button
-    type="button"
-    class="secondary"
+)}<Button
+    variant="secondary"
+    appearance="quiet"
     disabled={model.busy}
     onclick={() => void model.run(() => model.preview(clientId, kind))}
     >{t(
@@ -55,7 +59,7 @@
         : kind === "revoke"
           ? "revokeConnection"
           : "removeConnection",
-    )}</button
+    )}</Button
   >{/snippet}
 {#if view === "overview"}
   {#if !model.checkedAt}<p>{t("statusLoading")}</p>{/if}
@@ -81,6 +85,16 @@
       String(model.dashboard?.accounts.length ?? 0),
     )}{@render line("connectionsTitle", String(model.connections?.length ?? 0))}
   </div>
+  {#if model.connectionsNeedingReview.length}<p
+      class="connection-warning"
+      role="status"
+    >
+      <DesignIcon name="warning" />
+      <span
+        >{t("connectionUpdatesAvailable")}
+        <a href="/icloud/admin/connections">{t("reviewCapabilities")}</a></span
+      >
+    </p>{/if}
   {#each ["mail", "calendar", "photos"] as service}{@const reads = (
       model.dashboard?.evidence ?? []
     )
@@ -138,9 +152,27 @@
       "connectionsTitle",
       t(model.connections ? "noConnections" : "statusLoading"),
     )}{/if}
-  {#each model.connections ?? [] as connection (connection.clientId + "-" + connection.accountId)}<article
-    >
-      <h3>{connection.name ?? t("clientUnnamed")}</h3>
+  {#each model.connections ?? [] as connection (connection.clientId + "-" + connection.accountId)}{@const warning =
+      model.connectionNeedsReview(connection)}
+    <article>
+      <h3 class="connection-heading">
+        {connection.name ?? t("clientUnnamed")}{#if warning}<span
+            class="connection-warning-icon"
+            title={t("connectionRegistrationOutdated")}
+            ><DesignIcon name="warning" /><span class="sr-only"
+              >{t("connectionRegistrationOutdated")}</span
+            ></span
+          >{/if}
+      </h3>
+      {#if warning}<div
+          class="connection-warning connection-review"
+          role="status"
+        >
+          <span>{t("connectionRegistrationOutdated")}</span>{@render action(
+            connection.clientId,
+            "upgrade",
+          )}
+        </div>{/if}
       {@render line(
         "connectionAccount",
         model.dashboard?.accounts.find((a) => a.id === connection.accountId)
@@ -148,13 +180,17 @@
       )}{#if connection.grantedScopes.some( (s) => s.startsWith("photos.") )}{@render line(
           "photosTitle",
           t("photosLibraryContext"),
-        )}{/if}{@render line(
-        "grantedActions",
-        connection.grantedScopes
-          .filter((s) => s.includes("."))
-          .map(scope)
-          .join(" · "),
-      )}{@render line(
+        )}{/if}
+      <div class="granted-actions">
+        <p><strong>{t("grantedActions")}:</strong></p>
+        <ul class="granted-tags" style:--tag-gap={spacing[2]}>
+          {#each connection.grantedScopes.filter( (s) => s.includes(".") ) as granted}<li
+            >
+              <Tag label={scope(granted)} />
+            </li>{/each}
+        </ul>
+      </div>
+      {@render line(
         "lastSuccess",
         latest(connection.accountId, connection.clientId)
           ? new Date(
@@ -163,10 +199,7 @@
           : t("neverObserved"),
       )}
       <div class="actions">
-        {#if model.clients?.find((c) => c.clientId === connection.clientId)?.upgradeAvailable}{@render action(
-            connection.clientId,
-            "upgrade",
-          )}{/if}{@render action(connection.clientId, "revoke")}
+        {@render action(connection.clientId, "revoke")}
       </div>
     </article>{/each}
   {@render snapshot(model.diagnosticsFailed, model.clientsCheckedAt)}
@@ -328,5 +361,27 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 0.8125rem;
+  }
+
+  .connection-review {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .connection-review span {
+    flex: 1;
+    min-width: 0;
+  }
+  .granted-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--tag-gap);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+  .granted-tags li {
+    display: flex;
+    min-width: 0;
+    max-width: 100%;
   }
 </style>

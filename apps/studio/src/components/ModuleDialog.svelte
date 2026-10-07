@@ -6,6 +6,7 @@
   import { scopeCopy } from "../lib/admin-model.svelte.js";
   import Modal from "./Modal.svelte";
   import RequirementStep from "./RequirementStep.svelte";
+  import HomeKitSetup from './HomeKitSetup.svelte';
   import PhotosSetup from "./PhotosSetup.svelte";
   let { model, dialogs }: { model: AdminModel; dialogs: DialogCenter } =
     $props();
@@ -41,7 +42,7 @@
   const ready = $derived(
     !enabling ||
       (!!model.state.enrolled &&
-        (id === "photos" ? permissionReady === true : credentialReady)),
+        (["photos","homekit"].includes(id ?? "") ? permissionReady === true : credentialReady)),
   );
   $effect(() => {
     const value = id;
@@ -92,7 +93,8 @@
   busy={model.busy}
 >
   <section>
-    {#if id === 'photos'}<PhotosSetup onverified={(value)=>(permissionReady=value)}/>
+    {#if id === 'homekit'}<HomeKitSetup embedded onverified={(value)=>{if(id==='homekit')permissionReady=value;}}/>
+    {:else if id === 'photos'}<PhotosSetup onverified={(value)=>{if(id==='photos')permissionReady=value;}}/>
     {:else}<RequirementStep title={t('requirementCredential')} state={credentialReady?'done':'todo'} hint={t('accountCredentialInstruction')}>
       {#if !credentialReady}<button type="button" class="primary" onclick={()=>dialogs.openCredential('app-password',{mode:'add'})}>{t('setupRequirement')}</button>{/if}
     </RequirementStep>{/if}
@@ -116,7 +118,7 @@
           />
         </li>
         {#if id === "photos" && field.id === "delete"}<li class="muted">{t("photosDeleteHelp")}</li>{/if}
-        {#if "available" in field && field.available === false}<li class="muted">{t("photosCapabilityUnavailable")}</li>{/if}
+        {#if "available" in field && field.available === false}<li class="muted">{t(id==='homekit'?'homekitAutomationDisabled':"photosCapabilityUnavailable")}</li>{/if}
         {:else}<li class="muted">{t("emptyValue")}</li>{/each}
     </ul>
   </section>

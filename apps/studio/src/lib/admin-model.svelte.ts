@@ -2,7 +2,6 @@ import { z } from "zod";
 import type { AdminState, UiCopy } from "../contracts.js";
 import { statusSchema, dashboardSchema, systemSchema } from "./admin-data.js";
 import {
-  recoverySchema,
   clientPreviewSchema,
   matchingEvidence,
   readiness,
@@ -14,6 +13,8 @@ import {
 } from "../../../icloud/src/admin/readiness.js";
 import { registerOwner } from "./auth-protocol.js";
 import type { ToastCenter } from "./ui-state.svelte.js";
+import { connectionNeedsReview } from "./connection-warnings.js";
+import { createConnectionsService } from "./connections-service.js";
 class UiError extends Error {
   constructor(readonly key: string) {
     super(key);
@@ -51,6 +52,8 @@ export const scopeCopy: Record<string, string> = {
   "photos.read": "photosRead",
   "photos.write": "photosWrite",
   "photos.delete": "photosDelete",
+  "homekit.read": "homekitRead",
+  "homekit.automations": "homekitAutomations",
 };
 export class AdminModel {
   busy = $state(false);
@@ -72,6 +75,7 @@ export class AdminModel {
   status = $state<z.infer<typeof statusSchema>>();
   dashboard = $state<z.infer<typeof dashboardSchema>>();
   system = $state<z.infer<typeof systemSchema>>();
+  private readonly connectionsService = createConnectionsService();
   clients = $state<RecoveryClient[]>();
   connections = $state<AuthorizedConnection[]>();
   checkedAt = $state<string>();
@@ -256,12 +260,20 @@ export class AdminModel {
       this.accountsLoading = false;
     }
   }
+  connectionNeedsReview(connection: AuthorizedConnection) {
+    return connectionNeedsReview(
+      this.clients?.find((client) => client.clientId === connection.clientId),
+    );
+  }
+  get connectionsNeedingReview() {
+    return (this.connections ?? []).filter((connection) =>
+      this.connectionNeedsReview(connection),
+    );
+  }
   async refreshClients() {
     this.clientsLoading = true;
     try {
-      const value = recoverySchema.parse(
-        await this.get("/icloud/admin/oauth-clients"),
-      );
+      const value = await this.connectionsService.list();
       this.clients = value.clients;
       this.connections = value.connections;
       this.clientsCheckedAt = new Date().toISOString();
@@ -291,12 +303,10 @@ export class AdminModel {
   async refreshAll() {
     await Promise.allSettled(
       this.view === "system"
-        ? [this.refreshSystem()]
+        ? [this.refreshSystem(), this.refreshClients()]
         : [
             this.refreshDashboard(),
-            ...(["overview", "connections"].includes(this.view)
-              ? [this.refreshClients()]
-              : []),
+            this.refreshClients(),
             ...(this.view === "overview" ? [this.refreshSystem()] : []),
           ],
     );
@@ -376,8 +386,13 @@ export class AdminModel {
         completed++;
       }
       this.discardPolicy();
-      await this.refreshDashboard();
+      await Promise.allSettled([
+        this.refreshDashboard(),
+        this.refreshClients(),
+      ]);
       this.message("policySaved");
+      if (this.connectionsNeedingReview.length)
+        this.toast?.push("connectionUpdatesAvailable", "info");
     } catch (error) {
       await this.refreshDashboard();
       if (
@@ -580,7 +595,11 @@ export class AdminModel {
         this.refreshClients(),
       ]);
       await this.refreshSessions();
-    } else if (kind === "capabilities") await this.refreshDashboard();
+    } else if (kind === "capabilities")
+      await Promise.allSettled([
+        this.refreshDashboard(),
+        this.refreshClients(),
+      ]);
     else {
       await this.refreshAll();
       await this.refreshSessions();

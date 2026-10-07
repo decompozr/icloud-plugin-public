@@ -46,6 +46,25 @@ the inline glyph and 256px SVG/PNG download assets. Regenerate exports with
 legal trademark-clearance opinion. Earlier cloud/teal/i18next sections below are
 historical and superseded by this adoption and the SvelteKit/Paraglide migration.
 
+## Home connection and notification controls (0.1.83)
+
+Project-wide adoption is required by `AGENTS.md`. Home connection fields consume
+the pinned Select, Checkbox and Button controls. Approval uses a short aligned label,
+is unchecked by default, and still confirms the specific Home/account link.
+OAuth permissions give HomeKit its own category; offline and unknown scopes remain
+under Connection. This presentation change does not alter grants or native policy.
+
+Connections place their actionable Review control inside the warning area and show
+granted actions as wrapping catalog Tags. Only the existing actionable upgrade
+predicate determines warnings and Review visibility.
+
+Each notification event retains its own catalog Toast. The bounded ToastRegion
+anchors to the visible viewport's lower end and keeps history above new messages.
+Consumer adapters add entry/stack motion, rightward swipe dismissal and focus
+recovery, with reduced-motion support. Messages remain until individually dismissed;
+new messages never steal focus. The pinned catalog's history action remains English.
+Source/type/regression checks do not establish physical iOS Safari visual acceptance.
+
 ## Requirement-based Studio setup
 
 The language selector sits on the right of the navigation bar, sharing its row
@@ -120,3 +139,11 @@ Owner status validates each shallow navigation. Back uses latest-response fencin
 open modals and pending operations block it. Overview uses one column and explicit
 Mail, Calendar, Photos module order. Path copy controls use full values and toasts.
 Clipboard acceptance uses disposable fixtures, not the live clipboard.
+
+## Static completed requirement markers (0.1.78)
+
+Loading and completed requirement markers use distinct DOM branches. The spinner
+node is removed on completion; static markers explicitly use no animation or
+transform. Disposable browser acceptance verifies both Photos checkmarks have
+zero animations before and after recheck, and the old loading node is disconnected.
+Chrome fixture evidence does not establish physical iOS Safari acceptance.

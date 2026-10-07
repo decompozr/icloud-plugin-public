@@ -1,5 +1,6 @@
 import type {Database} from 'bun:sqlite';
 import {z} from 'zod';
+import type {AuthorizedConnection,ConnectionsResponse} from '../admin/readiness.js';
 import {createHash,randomBytes} from 'node:crypto';
 // One queue per database, shared by local/remote owner components. In-flight issuance
 // finishes before revocation; later issuance observes deleted grants and codes.
@@ -59,7 +60,7 @@ export function createClientRecovery(options:{database:Database;origin:string;or
     for(const [key,value] of confirmations)if(value.expires<=Date.now())confirmations.delete(key);
     if(confirmations.size>=128)return reply({error:'TOO_MANY_PENDING_CONFIRMATIONS'},429);
     const confirmation=randomBytes(32).toString('base64url');confirmations.set(confirmation,{owner,clientId,action:action!,digest:current.digest,expires:Date.now()+120000});return reply({impact:current.summary,confirmation});}
-   const connections=[];
+   const connections:AuthorizedConnection[]=[];
    for(const client of clients()){
     if(client.disabled)continue;
     const consents=records('oauthConsent',client.clientId),tokens=[...records('oauthAccessToken',client.clientId),...records('oauthRefreshToken',client.clientId).map(row=>({...row,refresh:true}))] as unknown as Grant[];
@@ -77,10 +78,11 @@ export function createClientRecovery(options:{database:Database;origin:string;or
     }
     connections.push(...groups.values());
    }
-   return reply({enabledScopes:options.allowedScopes(),connections,clients:clients().map(client=>{
+   const response:ConnectionsResponse={existingGrantsChanged:false,enabledScopes:[...options.allowedScopes()],connections,clients:clients().map(client=>{
     const registered=scopes(client.scopes,options.declaredScopes),missing=options.allowedScopes().filter(scope=>!registered.includes(scope));
     return{clientId:client.clientId,name:client.name,registeredScopes:registered,missingEnabledScopes:missing,upgradeAvailable:!!impact(client.clientId,'upgrade')?.summary.upgradable&&missing.length>0,recovery:missing.length?(impact(client.clientId,'upgrade')?.summary.upgradable?'explicit_client_update_then_consent':'new_client_registration_then_consent'):'fresh_consent_and_tool_refresh'};
-   }),existingGrantsChanged:false});
+   })};
+   return reply(response);
   }
   if(request.method!=='POST')return reply({error:'METHOD_NOT_ALLOWED'},405);
   if(request.headers.get('origin')!==url.origin)return reply({error:'ORIGIN_DENIED'},403);
