@@ -324,7 +324,7 @@ After new identity readiness, targeted LaunchServices unregistration and support
 Old source and operation evidence remain retained. Identity migration and visible
 settings cleanup must be verified separately before being reported complete.
 
-Identity retirement is currently blocked at the signed-build prerequisite: Xcode
+Identity retirement initially encountered the signed-build prerequisite: Xcode
 reports “No Accounts” and no Mac Catalyst App Development provisioning profile for
 `com.decompozr.homekit-helper` (Release build exit 65). Team 74NBML8KJB must be
 available through genuine Xcode account login/provisioning before migration. The
@@ -345,3 +345,37 @@ identity ready/authorized, background mode, no Dock presence or visible owned
 windows, and owned native process stopped after read-only acceptance. Physical
 writes were zero. Release numbering advances to 0.1.92 to preserve the independently
 delivered account-module 0.1.91 release.
+
+## Installed production identity and legacy cleanup acceptance
+
+PR #117 merged as 3c9eb77; clean remote-main signed Release 0.1.92 is installed
+at the existing iCloud prefix. The native manifest pin is
+`d82ddb4e394664257d9a0ce31c034de5831326aa64397e507eeec4ebdabd10d4`.
+CLI inspection verifies `com.decompozr.homekit-helper`, display name
+**iCloud HomeKit Helper**, Team 74NBML8KJB, and HomeKit entitlement in both the
+signed application and dedicated Mac Catalyst profile. Owner-approved Home access
+passes actual native background/readiness/zero-window checks. Build/typechecks
+pass with zero Svelte errors/warnings; 8 bounded preflight tests pass.
+
+The supported installer preserved databases/custody at the stopped installation
+boundary. Supported helper enrollment reconciled the existing exact owner/account/
+Home/user binding and new source pin, preserving client grants. Actual existing MCP
+health reports ready/authorized and physicalControlEnabled/controlConsentGranted
+true; independent Office Light read remains OFF. No physical writes were made
+during this identity migration; previous 0.1.90 ON/OFF acceptance remains historical.
+
+Legacy cleanup archived 39 exact old-identity native app bundles as private binary
+evidence and removed their runnable `.app` copies. Source, signed receipts,
+conversations and durable operation histories remain preserved. Exact-path
+LaunchServices unregistration reduced 47 old registrations to zero. Supported
+`tccutil reset All com.decompozr.homekit-probe` succeeded for only the retired app.
+The new helper still passes actual MCP readiness after cleanup. Historical release
+files remain, but their retired native helper must not be treated as a usable
+HomeKit rollback; use the new signed identity.
+
+Settings UI disappearance is not visually verified. Direct read-only TCC database
+inspection is unavailable under existing OS access; no permission expansion or
+system database edits were attempted. CLI registration absence and targeted reset
+are the evidence boundary. App-owned scene execution/enable, natural native/client
+push and sleep/logout/login/retention acceptance remain open; this does not mark
+the whole HomeKit roadmap complete. Shortcuts and graph service remain deferred.
