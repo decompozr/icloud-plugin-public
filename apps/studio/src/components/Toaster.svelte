@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getContext } from "svelte";
+  import { getContext, onMount } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { ToastCenter } from "../lib/ui-state.svelte.js";
   const { t } = getContext<UiCopy>("copy");
@@ -7,11 +7,15 @@
     center,
     embedded = false,
   }: { center: ToastCenter; embedded?: boolean } = $props();
+  let viewportBottom=$state(0),viewportRight=$state(0);
+  onMount(()=>{const viewport=window.visualViewport;const update=()=>{viewportBottom=Math.max(0,window.innerHeight-(viewport?.height??window.innerHeight)-(viewport?.offsetTop??0));viewportRight=Math.max(0,window.innerWidth-(viewport?.width??window.innerWidth)-(viewport?.offsetLeft??0));};update();viewport?.addEventListener('resize',update);viewport?.addEventListener('scroll',update);window.addEventListener('resize',update);return()=>{viewport?.removeEventListener('resize',update);viewport?.removeEventListener('scroll',update);window.removeEventListener('resize',update);};});
 </script>
 
 <div
   class="toast-stack"
   class:embedded
+  style:bottom={`calc(${viewportBottom}px + max(.75rem, env(safe-area-inset-bottom)))`}
+  style:right={`calc(${viewportRight}px + max(.75rem, env(safe-area-inset-right)))`}
   hidden={center.items.length === 0 || (!embedded && center.dialogs > 0)}
   aria-label={t("notifications")}
 >
@@ -39,7 +43,7 @@
     z-index: 1000;
     display: grid;
     gap: 0.5rem;
-    width: min(22rem, calc(100vw - 4rem));
+    width: min(18rem, calc(100vw - 2rem));
     justify-items: end;
     pointer-events: none;
   }
@@ -64,14 +68,6 @@
   }
   .toast button {
     flex-shrink: 0;
-  }
-  .toast-stack.embedded {
-    position: sticky;
-    top: 0;
-    right: auto;
-    bottom: auto;
-    width: 100%;
-    margin-bottom: 0.75rem;
   }
   .toast.error {
     background: #f8eeed;

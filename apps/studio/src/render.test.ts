@@ -37,3 +37,4 @@ test('renderer requests do not share mutable presentation context',()=>{
  const second=renderAuth('sign-in',false,{}, {...copy,authT:key=>'second '+key},'','en');
  expect(first).toContain('first headingSignIn');expect(second).toContain('second headingSignIn');expect(second).not.toContain('first headingSignIn');
 });
+test('Home linking is not mounted in the global System page',()=>{const html=renderAdmin({enrolled:true,ready:true,admin:true,view:'system',homekitConfigured:true,modules:[{id:'homekit',title:'Apple Home',fields:[{id:'read',label:'Read'}]}]},copy,pageStyles,'en');expect(html).toContain('id="system-content"');expect(html).not.toContain('data-testid="homekit-setup"');});

@@ -526,5 +526,7 @@
   "homekitBind": "Link Home",
   "homekitBindings": "Linked Homes",
   "homekitUnbind": "Unlink",
-  "homekitConsentHelp": "Linking changes no Home devices or client permissions. Enable HomeKit on Overview, then review fresh consent for each client. Only approve remote reads if you want real device states and definitions shared with your selected agent."
+  "homekitConsentHelp": "Linking changes no Home devices or client permissions. Enable HomeKit on Overview, then review fresh consent for each client. Only approve remote reads if you want real device states and definitions shared with your selected agent.",
+  "homekitConnectionTitle": "Home connection",
+  "homekitAutomationDisabled": "Automation management is disabled in this installation."
 }
