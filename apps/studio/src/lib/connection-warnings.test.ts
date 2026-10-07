@@ -1,72 +1,48 @@
 import { test, expect } from "bun:test";
-import { connectionWarning } from "./connection-warnings.js";
-import type {
-  AuthorizedConnection,
-  RecoveryClient,
-} from "../../../icloud/src/admin/readiness.js";
-const connection: AuthorizedConnection = {
-  clientId: "client",
-  accountId: "account",
-  name: "ChatGPT",
-  grantedScopes: ["photos.read", "photos.write"],
-  authorizedAt: "2026-10-07T00:00:00Z",
-  expiresAt: "2026-10-08T00:00:00Z",
-};
+import { connectionNeedsReview } from "./connection-warnings.js";
+import type { RecoveryClient } from "../../../icloud/src/admin/readiness.js";
 const client: RecoveryClient = {
   clientId: "client",
   name: "ChatGPT",
-  registeredScopes: ["photos.read", "photos.write"],
+  registeredScopes: ["photos.read"],
+  missingEnabledScopes: ["photos.delete"],
+  upgradeAvailable: true,
   recovery: "explicit_client_update_then_consent",
 };
-test("new capability remains visible through registration update until account-bound consent", () => {
-  const enabled = [
-    "photos.read",
-    "photos.write",
-    "photos.delete",
-    "offline_access",
+test("badge includes only a connection with an actionable capability review", () => {
+  expect(connectionNeedsReview(client)).toBe(true);
+  expect(connectionNeedsReview({ ...client, upgradeAvailable: false })).toBe(
+    false,
+  );
+});
+test("registration review completion clears the badge even while consent is pending", () => {
+  const reviewed: RecoveryClient = {
+    ...client,
+    registeredScopes: ["photos.read", "photos.delete"],
+    missingEnabledScopes: [],
+    upgradeAvailable: false,
+    recovery: "fresh_consent_and_tool_refresh",
+  };
+  expect(connectionNeedsReview(reviewed)).toBe(false);
+});
+test("limited grants or an unavailable review never create a badge", () => {
+  expect(connectionNeedsReview(undefined)).toBe(false);
+  expect(
+    connectionNeedsReview({ ...client, upgradeAvailable: undefined }),
+  ).toBe(false);
+  expect(
+    connectionNeedsReview({
+      ...client,
+      upgradeAvailable: false,
+      recovery: "new_client_registration_then_consent",
+    }),
+  ).toBe(false);
+});
+test("mixed connection count matches only available review actions", () => {
+  const clients = [
+    client,
+    { ...client, clientId: "reviewed", upgradeAvailable: false },
+    { ...client, clientId: "limited", upgradeAvailable: false },
   ];
-  expect(connectionWarning(connection, client, enabled)).toBe("registration");
-  const upgraded = {
-    ...client,
-    registeredScopes: [...client.registeredScopes, "photos.delete"],
-  };
-  expect(connectionWarning(connection, upgraded, enabled)).toBe("consent");
-  expect(
-    connectionWarning(
-      {
-        ...connection,
-        grantedScopes: [...connection.grantedScopes, "photos.delete"],
-      },
-      upgraded,
-      enabled,
-    ),
-  ).toBeUndefined();
-});
-test("disabled capabilities and OAuth utility scopes do not create warnings", () => {
-  expect(
-    connectionWarning(connection, client, [
-      "photos.read",
-      "photos.write",
-      "offline_access",
-    ]),
-  ).toBeUndefined();
-  expect(
-    connectionWarning(connection, undefined, ["photos.delete"]),
-  ).toBeUndefined();
-});
-test("consent status stays specific to each account on the same client", () => {
-  const upgraded = {
-    ...client,
-    registeredScopes: [...client.registeredScopes, "photos.delete"],
-  };
-  const current = {
-    ...connection,
-    accountId: "current",
-    grantedScopes: [...connection.grantedScopes, "photos.delete"],
-  };
-  expect(
-    [connection, current].filter((c) =>
-      connectionWarning(c, upgraded, ["photos.delete"]),
-    ),
-  ).toHaveLength(1);
+  expect(clients.filter(connectionNeedsReview)).toHaveLength(1);
 });

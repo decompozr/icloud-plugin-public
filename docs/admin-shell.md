@@ -115,30 +115,29 @@ installation and continuous monitoring remain outside this UI preparation.
 
 ## Connection capability warnings
 
-Connections navigation shows a yellow count badge for active account connections
-with enabled permissions missing from registration or current grants. Each affected
-connection shows a yellow warning icon and identifies the next step: review the
-registration update, or reconnect the same account in ChatGPT to consent. Overview
-also retains a visible link to Connections; saving capabilities refreshes the same
-status and shows a one-time notice when new permissions are available.
+Connections navigation shows a yellow count badge only for active account
+connections with an available capability-review action. The same actionable
+registration-upgrade status drives each affected connection's yellow icon,
+warning and Review capabilities button. Overview retains a visible link to
+Connections; capability saves refresh the status and show a one-time notice.
 
-Counts are per client/account connection, exclude disabled capabilities and OAuth
-utility scopes, and clear when the current grants cover the enabled capabilities.
-A deliberately limited grant may continue to show permissions available; it is
-not reported as an expired or broken connection. Existing access stays usable.
-No permission or grant changes automatically. Failed status reads retain the last
-snapshot with its freshness warning. Connections status loads on every admin
-destination, including direct Accounts and System entry.
+The warning clears when the registration update is reviewed. Pending consent
+and deliberately limited grants do not contribute to the badge or warning.
+Existing access remains usable, and no permissions or grants change automatically.
+Failed status reads retain the last snapshot with its freshness warning.
+Connections status loads on every admin destination.
 
-A dedicated connections service validates its typed request and the incoming
-response against shared contracts before updating reactive state. The server also
-constructs the list response using that response type. HTTP serialization stays
-at the service boundary; UI components consume typed connections and warning states.
+A dedicated connections service validates its typed request and incoming response
+against shared contracts before updating reactive state. The server constructs
+the list response using that response type. HTTP serialization stays at the
+service boundary; UI components consume typed connections and review status.
 
-Source verification: Studio build and typecheck passed; its 17 tests passed,
-including incoming request/response rejection and capability transition checks.
-Application typecheck and the 15 targeted recovery/readiness tests passed.
-A compiled Svelte self-check rendered registration and consent warnings with
-count 1, then removed both with count 0 after the fixture grant was updated.
-Browser visual inspection was unavailable because no browser surface was enabled.
-These checks use fixtures and do not establish installed or ChatGPT acceptance.
+The regression checks cover actionable reviews, completion before consent,
+limited grants, missing review status and mixed connection counts. Browser
+visual inspection remains unavailable; fixture verification does not establish
+installed or ChatGPT acceptance.
+
+Source self-checking passed both typechecks, the Studio build and its 18 tests.
+Compiled Svelte rendering confirmed badge count, yellow icon count and actual
+Review button count all move together from 1 to 0, even with a second connection
+whose grants remain limited.

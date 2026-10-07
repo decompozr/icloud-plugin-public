@@ -223,8 +223,8 @@
               title={t(key)}
               aria-label={t(key) +
                 (destination === "connections" &&
-                model.outdatedConnections.length
-                  ? ` · ${model.outdatedConnections.length} ${t("connectionUpdatesCountLabel")}`
+                model.connectionsNeedingReview.length
+                  ? ` · ${model.connectionsNeedingReview.length} ${t("connectionUpdatesCountLabel")}`
                   : "")}
               onclick={(event) => tabNavigation(destination, href, event)}
               aria-current={view === destination ? "page" : undefined}
@@ -237,11 +237,11 @@
                       ? "connection"
                       : "settings"}
                 size="1.25rem"
-              />{#if destination === "connections" && model.outdatedConnections.length}<span
+              />{#if destination === "connections" && model.connectionsNeedingReview.length}<span
                   class="connection-warning-badge"
                   aria-hidden="true"
                   data-testid="connection-warning-count"
-                  >{model.outdatedConnections.length}</span
+                  >{model.connectionsNeedingReview.length}</span
                 >{/if}</a
             >{/each}
         </nav>{/if}
