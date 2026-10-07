@@ -11,7 +11,7 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createOwnerAuth as createBaselineAuth} from './test-fixtures/scope-upgrade-owner.js';
-import type {createOwnerAuth as ProductionFactory} from './owner.js';
+import type {createOwnerAuth as ProductionFactory} from '../../../../modules/account/dist/index.js';
 import {pathToFileURL} from 'node:url';
 const hash=(v:string|Uint8Array)=>createHash('sha256').update(v).digest();
 const b64=(v:Uint8Array)=>Buffer.from(v).toString('base64url');
@@ -122,7 +122,7 @@ test('persisted resource scope upgrade reproduces narrowing and merge preserves 
   const otherBefore=db.query('SELECT identifier,name,allowedScopes,updatedAt FROM oauthResource WHERE identifier=?').get(base+'/other-resource');
   const clientsBefore=db.query('SELECT clientId,scopes,updatedAt FROM oauthClient ORDER BY clientId').all();
   const consentBefore=db.query('SELECT clientId,scopes,updatedAt FROM oauthConsent ORDER BY clientId').all();
-  db.close();db=new Database(databasePath);const productionModule: {createOwnerAuth:typeof ProductionFactory}=process.env.CP5_ARTIFACT_DIR?await import(pathToFileURL(join(process.env.CP5_ARTIFACT_DIR,'apps/icloud/dist/auth/owner.js')).href):await import('./owner.js');component=await productionModule.createOwnerAuth({...config,database:db});handler=component.publicHandler;
+  db.close();db=new Database(databasePath);const productionModule: {createOwnerAuth:typeof ProductionFactory}=process.env.CP5_ARTIFACT_DIR?await import(pathToFileURL(join(process.env.CP5_ARTIFACT_DIR,'apps/icloud/dist/account/index.js')).href):await import('../../../../modules/account/dist/index.js');component=await productionModule.createOwnerAuth({...config,database:db});handler=component.publicHandler;
   // Force lazy seed through actual resource token verification.
   expect((await component.verifyBearer('Bearer '+sendTokens.access_token)).scopes.has('mail.send')).toBe(false);
   const resourceAfter=db.query<{name:string;allowedScopes:string;updatedAt:string},[string]>('SELECT name,allowedScopes,updatedAt,accessTokenTtl,metadata FROM oauthResource WHERE identifier=?').get(base+'/icloud/mcp')!;

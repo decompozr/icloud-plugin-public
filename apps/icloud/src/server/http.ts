@@ -10,8 +10,8 @@ import { JSONRPCMessageSchema } from "@modelcontextprotocol/sdk/types.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { ModuleRuntime } from "../modules/runtime.js";
 import type { Config } from "../config.js";
-import type { Principal } from "../auth/verify.js";
-import { createVerifier } from "../auth/verify.js";
+import type { Principal } from "../../../../modules/account/dist/index.js";
+import { createVerifier } from "../../../../modules/account/dist/index.js";
 import {ResourceSessions} from './resource-sessions.js';
 import { createServer } from "../mcp/server.js";
 const reply = (body: unknown, status = 200, headers?: HeadersInit) =>

@@ -4,7 +4,7 @@ import {mkdtempSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {once} from 'node:events';
-import {createOwnerAuth} from '../auth/owner.js';
+import {createOwnerAuth} from '../../../../modules/account/dist/index.js';
 import {createHttpApp} from '../server/http.js';
 import {HttpLifecycle} from '../server/lifecycle.js';
 import {ModuleRuntime} from '../modules/runtime.js';

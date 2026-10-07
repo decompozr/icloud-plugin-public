@@ -1,0 +1,30 @@
+{
+  "name": "@icloud-plugin/account",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "bun ../../packages/tooling/src/build-account.ts",
+    "typecheck": "tsc --noEmit",
+    "build:types": "tsc --project tsconfig.build.json",
+    "test": "bun test src"
+  },
+  "dependencies": {
+    "@better-auth/oauth-provider": "1.7.7",
+    "@better-auth/passkey": "1.7.7",
+    "better-auth": "1.7.7",
+    "jose": "6.2.12",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "@types/node": "22.20.4",
+    "typescript": "5.9.3"
+  },
+  "packageManager": "bun@1.4.2"
+}

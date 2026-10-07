@@ -1,7 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {WebStandardStreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import type {JSONRPCMessage} from '@modelcontextprotocol/sdk/types.js';
-import type {Principal} from '../auth/verify.js';
+import type {Principal} from '../../../../modules/account/dist/index.js';
 import type {ModuleRuntime} from '../modules/runtime.js';
 import {createServer} from '../mcp/server.js';
 import type {HttpLifecycle} from './lifecycle.js';

@@ -1,5 +1,9 @@
 # Application architecture
 
+Account backend ownership has moved to `modules/account`; server/process ownership
+remains in the transitional app until the next phases. See [the accepted Studio
+server migration](studio-server-migration.md).
+
 This document describes the source architecture, not the currently deployed
 release. The application is one Bun service with a shared host and registered
 feature modules. Mail and Calendar contribute feature-owned capabilities; optional

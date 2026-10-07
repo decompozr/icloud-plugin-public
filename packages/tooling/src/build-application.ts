@@ -1,4 +1,4 @@
-import{resolve,join}from'node:path';
+import{resolve,join,dirname,relative,sep}from'node:path';
 import{mkdir,rm,cp}from'node:fs/promises';
 import{command,repository}from'./command.js';
 const app=join(repository,'apps/icloud'),source=join(app,'src'),output=join(app,'dist');
@@ -7,6 +7,7 @@ const pluginMetadata=JSON.parse(await Bun.file(join(repository,'plugin.json')).t
 const studioMetadata=JSON.parse(await Bun.file(join(repository,'apps/studio/package.json')).text()) as {version:string};
 if(studioMetadata.version!==sourceMetadata.version)throw Error('Studio and application versions must match before building.');
 if(pluginMetadata.version!==sourceMetadata.version)throw Error('Application and downloadable plugin versions must match before building.');
+await command([process.execPath,join(repository,'packages/tooling/src/build-account.ts')]);
 await command([process.execPath,'run','--cwd',join(repository,'apps/studio'),'build']);
 await command([process.execPath,'run','--cwd',join(repository,'apps/studio'),'typecheck']);
 await command([process.execPath,'run','--cwd',app,'typecheck']);
@@ -16,8 +17,19 @@ const excludedPhotos = new Set(["archived-sharing-module.ts", "shared-albums.ts"
 for(const file of excludedPhotos)await rm(join(output,"photos",file.replace(/\.ts$/,".d.ts")),{force:true});
 const entries:string[]=[];
 for await(const path of new Bun.Glob('**/*.ts').scan(source))if(!(path.startsWith('photos/')&&excludedPhotos.has(path.slice(7)))&&!path.includes('test-fixtures/')&&!path.endsWith('.test.ts')&&!path.endsWith('.worker.ts'))entries.push(resolve(source,path));
-const server=await Bun.build({entrypoints:entries,root:source,outdir:output,target:'bun',packages:'external',splitting:true});
+const accountFacade=join(repository,'modules/account/dist/index.js');
+const accountImport='@icloud-plugin/account';
+const server=await Bun.build({entrypoints:entries,root:source,outdir:output,target:'bun',packages:'external',splitting:true,plugins:[{name:'installed-account-facade',setup(build){build.onResolve({filter:/modules\/account\/dist\/index\.js$/},args=>{if(resolve(dirname(args.importer),args.path)!==accountFacade)throw Error('Unexpected account facade');return{path:accountImport,external:true};});}}]});
 if(!server.success)throw new AggregateError(server.logs,'Application build failed');
+// Splitting can hoist imports into root chunks. Link against each emitted file,
+// not its source importer, so every consumer shares one installed account module.
+for(const asset of server.outputs){
+ if(!asset.path.endsWith('.js'))continue;
+ let path=relative(dirname(asset.path),join(output,'account/index.js')).split(sep).join('/');if(!path.startsWith('.'))path='./'+path;
+ const text=await Bun.file(asset.path).text();
+ await Bun.write(asset.path,text.replace(/(["'])@icloud-plugin\/account\1/g,JSON.stringify(path)));
+}
+await cp(join(repository,'modules/account/dist'),join(output,'account'),{recursive:true});
 await cp(join(repository,'apps/studio/dist/kit'),join(output,'studio'),{recursive:true});
 await mkdir(join(output,'assets'),{recursive:true});
 await cp(join(repository,'apps/studio/THIRD_PARTY_NOTICES.md'),join(output,'assets/studio-LICENSES.txt'));
