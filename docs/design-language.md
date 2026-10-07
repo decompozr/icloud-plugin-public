@@ -9,8 +9,9 @@ smaller left shoulder and softly rounded ends. No eyes or other decoration.
 Scope is the shared Studio glyph and generated plugin assets.
 Acceptance is matching geometry across admin/auth and SVG/PNG exports, legibility
 at the existing 32px rail size, and passing Studio build/type checks. Preview
-renders are task-owned temporary artifacts; this source task does not authorize
-release, installation or restarting the running service.
+renders are task-owned temporary artifacts. Deployment was subsequently requested
+to the existing native installation; release 0.1.84 preserves the 0.1.83 runtime
+features, settings and signed HomeKit helper, with 0.1.83 retained for rollback.
 
 The selected raster preview was rebuilt as a compact SVG path so small UI
 glyphs stay sharp. The inline glyph has no background fill; the downloadable
@@ -22,8 +23,11 @@ and auth SSR contain the shared cloud geometry. SVG and PNG exports match the
 source; the 256px PNG is 4,204 bytes. The 256px and 32px renders were visually
 inspected. Task-owned temporary build log and small preview were removed after
 recording these results. The committed task checkout is retained for review.
-No release, installation, running-service or external-client verification is
-claimed for this local source change.
+The updated-main deployment candidate passes the repository checkpoint: type
+checks, build, 531 Studio/application/tooling tests and 11 HTTP E2E tests.
+Installation and live acceptance remain separate until the deployer records
+installed-version, payload, health and browser readbacks in the existing private
+runtime deployment records. No external-client acceptance is implied.
 
 Studio follows the owner-selected Surface design reference at
 `https://mac-mini.duckbill-ionian.ts.net:8463/workspace/surface/main/design/`.
