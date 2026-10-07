@@ -133,6 +133,12 @@
 				TargetAttributes = {
 					AAA00014 = {
 						CreatedOnToolsVersion = 15.0;
+						DevelopmentTeam = 74NBML8KJB;
+						SystemCapabilities = {
+							com.apple.HomeKit = {
+								enabled = 1;
+							};
+						};
 					};
 				};
 			};
@@ -320,7 +326,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "iCloud HomeKit Helper";
 				INFOPLIST_KEY_CFBundleName = "iCloud HomeKit Helper";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_LSUIElement = NO;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHomeKitUsageDescription = "iCloud reads your selected Home and performs device controls you explicitly authorize.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -355,7 +361,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "iCloud HomeKit Helper";
 				INFOPLIST_KEY_CFBundleName = "iCloud HomeKit Helper";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_LSUIElement = NO;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHomeKitUsageDescription = "iCloud reads your selected Home and performs device controls you explicitly authorize.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

@@ -331,3 +331,11 @@ available through genuine Xcode account login/provisioning before migration. The
 working 0.1.90 installation and its native permission have not been removed. A
 bounded LaunchServices inventory found 47 old identity registrations, 22 with
 existing bundles; cleanup remains pending successful new-identity readiness.
+
+The owner completed developer-account login and enabled the capability. CLI
+validation subsequently produced a successful signed Release for the formal App ID:
+its dedicated Mac Catalyst provisioning profile and signed app both contain
+`com.apple.developer.homekit=true`, Team 74NBML8KJB, and the displayed production
+name. The project now records HomeKit capability explicitly and uses generated
+LSUIElement=true consistently. OS Home authorization and deployment remain
+separate checks; a first read attempt before approval correctly returned not ready.
