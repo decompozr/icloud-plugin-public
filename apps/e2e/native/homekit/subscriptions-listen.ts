@@ -32,7 +32,7 @@ try{
  subscription=await client.listen({resourceSubscriptions:[uri]});if(subscription.honoredFilter.resourceSubscriptions?.length!==1||subscription.honoredFilter.resourceSubscriptions[0]!==uri)throw Error('Requested feed not acknowledged');
  await save('subscription.json',{protocol:'2026-07-28',scope:'homekit.read',uri,honoredFilter:subscription.honoredFilter,session:baseline.session,after,physicalWrites:0,tokensPersisted:false});
  console.log(JSON.stringify({phase:'listening',target:'Office Light',ownerAction:'Use Apple Home or the physical switch: ON, pause, then OFF',physicalWritesByScript:0}));
- await Promise.race([received,deadline(4*60*1000),subscription.done.then(reason=>{throw Error('Subscription ended before natural event acceptance: '+reason);})]);await queue;
+ await Promise.race([received,deadline(4*60*1000),subscription.closed.then(reason=>{throw Error('Subscription ended before natural event acceptance: '+reason);})]);await queue;
  await subscription.close();await client.close();await save('summary.json',{status:'passed',protocol:'2026-07-28',genuineOwnerOAuth:true,scope:'homekit.read',naturalOnThenOffReceived:true,signals,eventCount:events.length,physicalWritesByScript:0,agentWakeVerified:false,claudeVerified:false,tokensPersisted:false});console.log(JSON.stringify({phase:'passed',signals,eventCount:events.length,physicalWritesByScript:0}));
 }catch(error){await save('summary.json',{status:'incomplete',error:String(error),physicalWritesByScript:0,tokensPersisted:false});throw error;}
 finally{await subscription?.close();await client.close();listener.close();tokens=undefined;clientInfo=undefined;verifier='';}

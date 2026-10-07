@@ -21,7 +21,7 @@ export class ModernMcp {
   if(parsed&&!parsed.success)return error(-32602,'Invalid subscription filter');
   if(isListen&&this.active.size+this.starting>=(this.options.limit??32))return error(-32603,'Subscription limit reached');
   const uris=parsed?.success?[...new Set(parsed.data.params.notifications.resourceSubscriptions??[])]:[];
-  const expected=identity(principal),authorization=request.headers.get('authorization')??undefined,start=Date.now(),abort=new AbortController(),removers:Array<()=>Promise<void>>=[];
+  const expected=identity(principal),authorization=request.headers.get('authorization')??undefined,start=Date.now(),abort=new AbortController(),removers:Array<()=>Promise<void>>=[],pending=new Set<string>();
   let closed=false,handler:McpHttpHandler|undefined,timer:ReturnType<typeof setInterval>|undefined,count=0,closing:Promise<void>|undefined;
   const close=():Promise<void>=>{if(closing)return closing;closed=true;abort.abort();if(timer)clearInterval(timer);this.active.delete(close);closing=Promise.allSettled([handler?.close(),...removers.map(remove=>remove())]).then(()=>{});return closing;};
   const authorize=async()=>{if(closed||this.lifecycle.isDraining||isListen&&(!this.runtime.hasResourceSubscriptions||Date.now()-start>(this.options.ttlMs??300000)))throw Error('Subscription unavailable');if(identity(await this.verify(authorization))!==expected)throw Error('Authorization changed');for(const uri of uris)await withInvocationContext(context,()=>this.runtime.authorizeResourceSubscription(uri,principal.scopes));};
@@ -33,7 +33,7 @@ export class ModernMcp {
    await authorize();
    if(parsed?.success){
     for(const uri of uris){
-     const updated=()=>{void authorize().then(()=>{if(closed)return;if(++count>(this.options.notificationLimit??256)){void close();return;}handler!.notify.resourceUpdated(uri);}).catch(()=>close());};
+     const updated=()=>{if(closed||pending.has(uri))return;pending.add(uri);void authorize().then(()=>{if(closed)return;if(++count>(this.options.notificationLimit??256)){void close();return;}handler!.notify.resourceUpdated(uri);}).catch(()=>close()).finally(()=>pending.delete(uri));};
      const remove=await withInvocationContext(context,()=>this.runtime.subscribeResource(uri,principal.scopes,updated,()=>{void close();}));
      if(closed){await remove();throw Error('Subscription closed');}removers.push(remove);
     }

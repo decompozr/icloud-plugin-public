@@ -67,3 +67,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## MCP subscription transport
+
+Modern protocol transport uses `@modelcontextprotocol/server` and its core package
+v2.3.1 from https://github.com/modelcontextprotocol/typescript-sdk, licensed under
+Apache-2.0. The license is preserved at `apps/icloud/assets/mcp-sdk-LICENSE.txt`.
+The official v2 client is a development/explicit acceptance dependency only.
