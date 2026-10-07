@@ -17,12 +17,30 @@ restrictions and origin/authorization checks remain intact. Browser verification
 now captures CSP console errors and checks computed styles, not only asset HTTP
 success. The prior inline-only style policy was reproduced blocking Kit CSS.
 
-The original modular-link icon consists of three connected rounded square nodes,
-without a cloud silhouette or Apple/iCloud artwork. One source in Studio generates
-the inline glyph and 256px SVG/PNG download assets. Regenerate exports with
-`bun run --cwd apps/studio render:brand`. This is an original project mark, not a
-legal trademark-clearance opinion. Earlier cloud/teal/i18next sections below are
-historical and superseded by this adoption and the SvelteKit/Paraglide migration.
+The current project mark is an original olive, asymmetric rounded cloud agent on
+white. It shares the interface's Milk Green palette. Studio owns the inline glyph
+and generated SVG/PNG assets; regenerate with `bun run --cwd apps/studio render:brand`.
+Earlier modular-link and cloud/teal/i18next notes are historical and superseded.
+This is a project identity, not a legal trademark-clearance opinion.
+
+## Home connection and notification controls (0.1.83)
+
+Project-wide adoption is required by `AGENTS.md`. Home connection fields consume
+the pinned Select, Checkbox and Button controls. Approval uses a short aligned label,
+is unchecked by default, and still confirms the specific Home/account link.
+OAuth permissions give HomeKit its own category; offline and unknown scopes remain
+under Connection. This presentation change does not alter grants or native policy.
+
+Connections place their actionable Review control inside the warning area and show
+granted actions as wrapping catalog Tags. Only the existing actionable upgrade
+predicate determines warnings and Review visibility.
+
+Each notification event retains its own catalog Toast. The bounded ToastRegion
+anchors to the visible viewport's lower end and keeps history above new messages.
+Consumer adapters add entry/stack motion, rightward swipe dismissal and focus
+recovery, with reduced-motion support. Messages remain until individually dismissed;
+new messages never steal focus. The pinned catalog's history action remains English.
+Source/type/regression checks do not establish physical iOS Safari visual acceptance.
 
 ## Requirement-based Studio setup
 

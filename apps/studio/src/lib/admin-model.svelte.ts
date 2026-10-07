@@ -52,6 +52,8 @@ export const scopeCopy: Record<string, string> = {
   "photos.read": "photosRead",
   "photos.write": "photosWrite",
   "photos.delete": "photosDelete",
+  "homekit.read": "homekitRead",
+  "homekit.automations": "homekitAutomations",
 };
 export class AdminModel {
   busy = $state(false);

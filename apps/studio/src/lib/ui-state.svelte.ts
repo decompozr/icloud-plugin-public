@@ -4,10 +4,10 @@ export class ToastCenter {
   items = $state<Array<{ id: number; key: string; tone: ToastTone }>>([]);
   private sequence = 0;
   push(key: string, tone: ToastTone = "success") {
-    if (!key || this.items.some(item=>item.key===key&&item.tone===tone)) return;
+    if (!key) return;
     const id = ++this.sequence;
     this.items.push({ id, key, tone });
-    if (tone !== "error") setTimeout(() => this.dismiss(id), 5000);
+    // Each event owns a persistent message; only that message is dismissed.
   }
   dismiss(id: number) {
     this.items = this.items.filter((item) => item.id !== id);
