@@ -125,10 +125,7 @@
       icon="refresh"
     />
   </header>
-  <details>
-    <summary>{t("photosPermissionHelpShort")}</summary>
-    <p>{t("homekitBackgroundHelp")}</p>
-  </details>
+
   {#if failed}<p class="error" role="alert">{t("homekitUnavailable")}</p>{/if}
   {#if status}<p>{t("homekitReady")}</p>
     <div class="home-fields">
@@ -182,7 +179,7 @@
             />
           </div>{/each}
       </div>{/if}
-    <p class="muted">{t("homekitConsentHelp")}</p>
+    {#if !embedded}<p class="muted">{t("homekitConsentHelp")}</p>{/if}
   {/if}
 </section>
 
