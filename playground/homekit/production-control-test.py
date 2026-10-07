@@ -2,8 +2,8 @@
 """Exercise the exact Foundation-only production scene policy; no HomeKit I/O."""
 from pathlib import Path
 import subprocess,tempfile,os
-source=Path('apps/homekit-helper/native/HomeKitProbe/main.swift').read_text()
-policy=source.split('// BEGIN CONTROL SUPPORT',1)[1].split('// END CONTROL SUPPORT',1)[0].split('\n',1)[1]
+root=Path('apps/homekit-helper/native/HomeKitHelper')
+policy=(root/'ControlPolicy.swift').read_text()+'\n'+(root/'OperationJournal.swift').read_text()
 with tempfile.TemporaryDirectory(prefix='homekit-production-policy-',dir='/tmp') as root:
  p=Path(root)/'test.swift'
  p.write_text('import Foundation\nimport CoreFoundation\nimport Darwin\n'+policy+r'''

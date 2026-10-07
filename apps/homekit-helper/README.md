@@ -1,130 +1,46 @@
-# iCloud HomeKit native helper
+# iCloud HomeKit helper
 
-The optional iCloud MCP module owns this Catalyst helper source. The Bun broker
-launches a signed local application through LaunchServices and validates Apple
-signing anchor, developer team, source SHA256, protocol version and local Mac UID.
-The helper has no public listener. macOS native Home authorization is separate from
-OAuth account/Home enrollment in the existing authenticated MCP.
+A signed, background Catalyst application backs the existing authenticated iCloud
+MCP. The host owns OAuth consent, owner/account/Home binding and capability policy;
+the helper owns public HomeKit SDK access and native operation receipts. It has no
+public listener and runs only in the broker's private, owned IPC session.
 
-This is a development candidate, not an installed production release. Current
-protocol is v0.15.0. Signing configuration and the upstream license are preserved
-in `native/`; task-branch artifacts must not be installed as production releases.
+The production product is `HomeKitHelper.app`, protocol v1.0.0. Its bundle identifier
+remains `com.decompozr.homekit-probe` solely to preserve existing Apple Home permission
+and signing identity. The product and server no longer expose experiment modes.
 
-## Build
+## Structure
+
+- `LaunchConfiguration` permits enrollment reads or exact enrolled-Home read,
+  definition and control modes. Default/invalid startup cannot enable controls.
+- `JSONRPCTransport` handles bounded framing and serialized responses;
+  `HelperRPC` dispatches supported commands without legacy general-write routes.
+- `HomeKitRuntime` owns the Home manager and composes catalog, event, definition
+  and control services. Each feature owns its state and SDK callbacks.
+- `ControlPolicy`, `OperationJournal` and `ResourceLedger` preserve type/revision,
+  ownership/reference and durable once-only boundaries. Unknown/mismatch results
+  are retained without automatic replay or rollback.
+
+Mutating modes require an explicit Home and private ledger. Definitions remain
+app-owned scenes and supported disabled triggers. Execution/enable controls need
+separate host policy and fresh `homekit.control` consent. Opaque shortcut/predicate,
+unsupported trigger and array/dictionary write restrictions remain explicit.
+
+## Build and deployment
+
+Use the existing runner:
 
 ```sh
 python3 apps/homekit-helper/build.py --output /absolute/private/builds --desktop-session --configuration Release
 ```
 
-The command uses the declared Xcode toolchain per process. On this Mac, development
-signing requires the logged-in desktop security session; the desktop option runs
-actual xcodebuild through a task-owned Terminal command and closes only its exact
-completed window. It does not change keychain ACLs, export credentials or change the
-global Xcode selector. `result.json` records source HEAD/hash, build result, embedded
-source hash, signature verification and exact-window cleanup. Never launch a failed
-or unsigned candidate. The old playground build entry point delegates here.
+It records the complete native code/build-input manifest, source commit, embedded
+fingerprint, signing verification and exact task-window cleanup. It does not export
+credentials, change keychain ACLs or change the global Xcode selector. Build deployable
+artifacts from clean verified remote main through the existing release tooling.
 
-## Runtime modes and evidence
-
-The production module uses `--read-only` or bounded `--lifecycle-directory` mode.
-Lifecycle mode manages app-owned definitions and disabled triggers; it hides generic
-physical controls. The experimental normal mode still exists for retained explicit
-physical acceptance tooling and must not be selected by the production broker.
-
-Private ledgers and event journals belong to owner/account/Home state directories.
-No paths in this README authorize copying a private Home inventory or credential.
-Replay is bounded to the latest 16 MiB and reports gaps rather than claiming complete
-history. Source tests and private acceptance harnesses remain in
-`playground/homekit`; the parked relationship graph patch remains inactive.
-
-The full module/roadmap remains on the retained `plan-homekit-end-to-end` branch
-while integration into the current Studio/Web-standard host is underway. This branch
-first restores the helper source and verifies background presentation. See
-[deployment lifecycle](../../docs/deployment-lifecycle.md) for the installed service
-boundary; this helper acceptance is not a production HomeKit UI/MCP deployment.
-Preserve signed rollback builds and unknown-operation ledgers until reconciliation.
-
-
-## Retained packaging and preflight (integration pending)
-
-The implementations in this section remain on `plan-homekit-end-to-end`; they are
-not yet wired into the current Studio/Web-standard host branch. The retained
-artifact builder can opt in a signed helper with
-`--homekit-build-receipt /private/result.json --homekit-signing-team TEAM_ID`
-after its positional fresh output directory. It validates the receipt, current
-signature/source/protocol/HomeKit entitlement, copies the app into
-`apps/homekit-helper/HomeKitProbe.app`, and verifies the copied signature again.
-Native macOS artifact metadata records exact app path, protocol, source hash and
-team. No helper is included unless explicitly selected; container artifacts reject
-HomeKit payloads. Staging does not enroll a Home, modify configuration or launch the
-helper. Current tested payloads are development candidates, not releases.
-
-`bun bin/doctor --config /approved/runtime/config.toml` adds offline helper checks
-when HomeKit is configured. It does not launch HomeKit or claim native Home/OAuth
-acceptance. The broker performs the same preflight before LaunchServices startup.
-Supported Info.plist must contain `HomeKitProtocolVersion` and source SHA256; older
-bundles lacking that metadata fail preflight even when their Swift source hash
-matches. HomeKit entitlement/team are required; this Catalyst target does not have
-an App Sandbox entitlement and the checker does not invent that requirement.
-
-The existing installer verifies any optional HomeKit payload before and after
-copying a release. `icloud-plugin rollback --release VERSION-PLATFORM-ARCH
---prefix /approved/install` switches to an already retained, platform/Bun-compatible,
-verified release. It preserves runtime configuration/state/operation ledgers and
-never reverses Home changes. Reconcile configuration pins and enrollment explicitly
-if helper source changed; never retry an unknown mutation during recovery.
-
-
-## Background presentation
-
-The helper is a LaunchServices agent (`LSUIElement=true`) and does not create a
-main window by default. Native HomeManager/IPC remains on the application run loop.
-Explicit `--show-window` creates the diagnostic window for setup or troubleshooting;
-it does not change read-only/lifecycle/control policy. The status reports presentation
-mode and visible UIKit window count. System permission prompts remain owned by macOS;
-background mode does not bypass Home authorization. The production broker never
-passes the diagnostic-window flag. A menu-bar UI is not required for this mode.
-
-### Catalyst background acceptance
-
-`LSUIElement` alone did not suppress the Catalyst host window/Dock on this Mac.
-A narrow bridge calls documented public `NSApplication` selectors to select accessory
-activation policy and hide the application after Home authorization. It uses neither
-private selectors nor changes to signing/entitlements. UIKit/HomeManager IPC remains
-active; diagnostic `--show-window` bypasses hiding. Initial permission UI is not
-hidden before authorization. Actual fresh signed v0.14 acceptance verified accessory
-policy, zero owned visible windows, authorized/ready read-only Home status and exact
-owned-PID teardown. Five Foundation-only launch-policy checks passed. This proves
-the tested local presentation behavior, not login/sleep/logout or main-MCP deployment.
-
-Run `python3 playground/homekit/background-check.py SIGNED_BUILD_RECEIPT PRIVATE_OUTPUT_ROOT`
-for a read-only presentation acceptance. Failed LSUIElement/orderOut trials are
-retained privately alongside the successful run. Build commands auto-close only
-their exact completed task Terminal windows.
-
-Production payload staging requires a successful Release configuration receipt; Debug builds remain local test artifacts. Local deployment uses the established Apple Development signing identity; no public Developer ID/notarization claim is made.
-
-
-Production controls use an explicit `--production-controls` flag together with the
-scoped lifecycle directory. The existing host separately requires configured
-`allow_control`, default-disabled owner `control` policy, `homekit.read` and fresh
-`homekit.control` client consent. None is inherited from `homekit.automations`.
-A prepare/apply plan binds exact IDs, current definition/metadata revision and
-persisted once-only operation identity. Scene execution is limited to owned,
-unreferenced user-defined scenes with at most 64 supported actions; enable-state
-control is limited to owned calendar/characteristic event triggers and their owned
-scenes. Opaque/predicate/timer/presence bodies and array/dictionary writes remain
-explicitly unsupported in this control slice. Definition ownership/reference
-protections remain in place.
-
-Host and native journals retain unknown/mismatch outcomes; reconnect never retries.
-Reconciliation reads the native operation receipt and current target observation
-separately without changing the original outcome or claiming causal physical
-completion. Journal replay streams 64 KiB chunks with 256 KiB record bounds, retains
-all history and fails closed on partial/corrupt records. Disk retention/deletion
-policy and sleep/logout/login acceptance remain unresolved production gates.
-
-The host continues accepting the signed, source-pinned v0.14 read/definition helper
-for upgrade/rollback. Production control requires v0.15. Existing Home enrollment
-pins and OAuth grants are preserved; moving enrollment to a new source pin requires
-explicit owner enrollment reconciliation and client consent, not automatic elevation.
+Legacy signed v0.14/v0.15 payloads remain recognized for rollback. New artifacts stage
+`apps/homekit-helper/HomeKitHelper.app`. Helper-pin/enrollment reconciliation preserves
+the approved owner/account/Home and grants; it never repeats operations or adopts
+resources by name. Retain rollback releases and uncertain receipts. Source/build
+success is not physical control, natural push or whole-module acceptance.

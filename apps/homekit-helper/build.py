@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build via xcodebuild in the current or explicitly selected desktop Terminal session."""
+from source_manifest import native_source_manifest
 import argparse
 import ctypes
 import hashlib
@@ -35,26 +36,26 @@ def signing_context():
 def build(run, configuration="Debug"):
     context = signing_context()
     (run / 'context.json').write_text(json.dumps(context, indent=2) + '\n')
-    project = Path(__file__).resolve().parent / 'native/HomeKitProbe.xcodeproj'
-    source = project.parent / 'HomeKitProbe/main.swift'
-    source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    project = Path(__file__).resolve().parent / 'native/HomeKitHelper.xcodeproj'
+    manifest = native_source_manifest()
+    source_sha = manifest['sourceSHA256']
     source_head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=project.parent, capture_output=True, text=True).stdout.strip()
-    command = ['xcodebuild', '-project', str(project), '-scheme', 'HomeKitProbe',
+    command = ['xcodebuild', '-project', str(project), '-scheme', 'HomeKitHelper',
                '-configuration', configuration, '-destination', 'platform=macOS,variant=Mac Catalyst',
                '-derivedDataPath', str(run / 'DerivedData'), '-allowProvisioningUpdates',
                '-allowProvisioningDeviceRegistration', f'HOMEKIT_SOURCE_SHA256={source_sha}', 'build']
     env = dict(os.environ, DEVELOPER_DIR='/Applications/Xcode.app/Contents/Developer')
-    result = dict(context=context, state='building', runnerPid=os.getpid(), physicalWrites=0, configuration=configuration, sourceSHA256=source_sha, sourceHEAD=source_head)
+    result = dict(context=context, state='building', runnerPid=os.getpid(), physicalWrites=0, configuration=configuration, sourceSHA256=source_sha, sourceHEAD=source_head, sourceManifest=manifest['files'])
     (run / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
     with (run / 'build.log').open('w') as log:
         completed = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT)
-    app = run / ('DerivedData/Build/Products/' + configuration + '-maccatalyst/HomeKitProbe.app')
+    app = run / ('DerivedData/Build/Products/' + configuration + '-maccatalyst/HomeKitHelper.app')
     verified = False
     if completed.returncode == 0:
         with (run / 'verification.log').open('w') as log:
             verified = subprocess.run(['codesign', '--verify', '--strict', str(app)],
                                       stdout=log, stderr=subprocess.STDOUT).returncode == 0
-    source_unchanged = hashlib.sha256(source.read_bytes()).hexdigest() == source_sha
+    source_unchanged = native_source_manifest()['sourceSHA256'] == source_sha
     embedded_sha = None
     if completed.returncode == 0:
         embedded_sha = plistlib.loads((app / 'Contents/Info.plist').read_bytes()).get('HomeKitSourceSHA256')

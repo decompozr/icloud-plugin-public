@@ -2,7 +2,7 @@
 """Exercise the exact native presentation policy without launching UIKit/HomeKit."""
 from pathlib import Path
 import subprocess,tempfile,os
-source=Path('apps/homekit-helper/native/HomeKitProbe/main.swift').read_text()
+source=Path('apps/homekit-helper/native/HomeKitHelper/Presentation.swift').read_text()
 policy=source.split('// BEGIN PRESENTATION SUPPORT',1)[1].split('// END PRESENTATION SUPPORT',1)[0].split('\n',1)[1]
 with tempfile.TemporaryDirectory(prefix='homekit-presentation-',dir='/tmp') as root:
  p=Path(root)/'test.swift'
