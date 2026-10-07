@@ -526,5 +526,7 @@
   "homekitBind": "連結 Home",
   "homekitBindings": "已連結 Home",
   "homekitUnbind": "解除連結",
-  "homekitConsentHelp": "連結不會操作 Home 裝置或增加客戶端權限。請在 Overview 啟用 HomeKit，再逐一檢視客戶端的新授權。只有在你同意讓所選 agent 取得真實裝置狀態與定義時，才批准遠端讀取。"
+  "homekitConsentHelp": "連結不會操作 Home 裝置或增加客戶端權限。請在 Overview 啟用 HomeKit，再逐一檢視客戶端的新授權。只有在你同意讓所選 agent 取得真實裝置狀態與定義時，才批准遠端讀取。",
+  "homekitConnectionTitle": "Home 連結",
+  "homekitAutomationDisabled": "此安裝尚未允許自動化管理。"
 }
