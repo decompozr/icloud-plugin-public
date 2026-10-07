@@ -3,7 +3,7 @@ import {mkdtempSync,rmSync,readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomBytes} from 'node:crypto';
-import {SqliteOwnerStore} from '../storage/owner-store.js';
+import {SqliteOwnerStore} from '../../../../modules/account/dist/index.js';
 import {PhotosCloudSetup} from './cloud-setup.js';
 import {createPrivateAdmin} from '../admin/handler.js';
 

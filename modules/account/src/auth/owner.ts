@@ -11,7 +11,7 @@ import type { Principal } from './verify.js';
 import { authRateLimit } from './rate-limit.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createAccountConnection, validConsentScopes, type AccountStore } from './connect.js';
-import {reconnectRedirectError} from '../observability/reconnect.js';
+import {reconnectRedirectError} from './oauth-errors.js';
 
 export interface OwnerAuthOptions {
  database: Database;

@@ -2,18 +2,18 @@ import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {lstatSync,readFileSync,writeFileSync,unlinkSync,existsSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {z} from 'zod';
-import type {AppSettings} from '../server/settings.js';
+export interface OwnerAccessSettings {master_key_file:string;local_origin?:string}
 const schema=z.object({proof:z.string().min(32).max(128),expires:z.number(),owner:z.string().nullable()}).strict();
-const pathFor=(settings:AppSettings)=>join(dirname(settings.master_key_file),'local-owner-proof');
+const pathFor=(settings:OwnerAccessSettings)=>join(dirname(settings.master_key_file),'local-owner-proof');
 /** Explicit OS-owner custody, never inferred from localhost or proxy headers. */
-export function prepareLocalOwner(settings:AppSettings,owner:string|null,now=Date.now()){
+export function prepareLocalOwner(settings:OwnerAccessSettings,owner:string|null,now=Date.now()){
  if(!settings.local_origin)throw Error('Configure an explicit local_origin before preparing local enrollment');
  const path=pathFor(settings),proof=randomBytes(32).toString('base64url');
  if(existsSync(path)){const info=lstatSync(path);if(!info.isFile()||info.uid!==process.getuid?.()||(info.mode&0o077)!==0)throw Error('Private OS-owner proof required');const old=schema.parse(JSON.parse(readFileSync(path,'utf8')));if(old.owner!==owner)throw Error('Local enrollment authorization owner mismatch');if(old.expires>now)throw Error('A local enrollment authorization is already pending');unlinkSync(path);}
  writeFileSync(path,JSON.stringify({proof,expires:now+600000,owner}),{flag:'wx',mode:0o600});
  return settings.local_origin+'/icloud/setup?mode=local-owner#owner-proof='+proof;
 }
-export function createLocalOwnerAccess(settings:AppSettings,owner:()=>string|null,now=Date.now){
+export function createLocalOwnerAccess(settings:OwnerAccessSettings,owner:()=>string|null,now=Date.now){
  if(!settings.local_origin)throw Error('Local owner origin required');
  const origin=settings.local_origin,grants=new Map<string,{expires:number;owner:string|null;user?:string}>();
  const nonce=randomBytes(32).toString('base64url'),cookieName='icloud_local_setup';

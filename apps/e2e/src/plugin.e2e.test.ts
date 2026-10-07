@@ -8,7 +8,7 @@ import {pathToFileURL} from 'node:url';
 test('built private HTTP download authenticates owner and packages only installed public configuration',async()=>{
  const runtime=process.env.CP5_ARTIFACT_DIR?resolve(process.env.CP5_ARTIFACT_DIR,'apps/icloud/dist'):resolve(import.meta.dir,'../../icloud/dist');
  const {createPrivateAdmin}:typeof import('../../icloud/dist/admin/handler.js')=await import(pathToFileURL(join(runtime,'admin/handler.js')).href);
- const {SqliteOwnerStore}:typeof import('../../icloud/dist/storage/owner-store.js')=await import(pathToFileURL(join(runtime,'storage/owner-store.js')).href);
+ const {SqliteOwnerStore}:typeof import('../../icloud/dist/account/index.js')=await import(pathToFileURL(join(runtime,'account/index.js')).href);
  const {configuredPluginArchive}:typeof import('../../icloud/dist/plugin/package.js')=await import(pathToFileURL(join(runtime,'plugin/package.js')).href);
  const dir=await mkdtemp(join(tmpdir(),'icloud-download-')),proof=randomBytes(32).toString('hex'),key=randomBytes(32);
  const store=SqliteOwnerStore.provision({databasePath:join(dir,'db'),markerPath:join(dir,'marker'),masterKey:key,bootstrapProof:proof});store.enroll({proof,ownerId:'owner',credential:Buffer.from('PRIVATE-CREDENTIAL-CANARY')});

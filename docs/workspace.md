@@ -1,5 +1,9 @@
 # Independent packages and application boundaries
 
+Account backend ownership has moved to `modules/account`; server/process ownership
+remains in the transitional app until the next phases. See [the accepted Studio
+server migration](studio-server-migration.md).
+
 The runtime application is `apps/icloud`; `apps/studio` owns its Svelte
 SvelteKit presentation and Paraglide catalogs. Studio is built before the runtime
 application; its compiled server/client output is embedded in that artifact. There is no

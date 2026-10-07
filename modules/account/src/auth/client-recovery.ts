@@ -1,6 +1,6 @@
 import type {Database} from 'bun:sqlite';
 import {z} from 'zod';
-import type {AuthorizedConnection,ConnectionsResponse} from '../admin/readiness.js';
+import type {AuthorizedConnection,ConnectionsResponse} from '../contracts.js';
 import {createHash,randomBytes} from 'node:crypto';
 // One queue per database, shared by local/remote owner components. In-flight issuance
 // finishes before revocation; later issuance observes deleted grants and codes.

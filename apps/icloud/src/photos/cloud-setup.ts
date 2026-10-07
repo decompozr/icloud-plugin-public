@@ -4,7 +4,7 @@ import {join,dirname,isAbsolute} from 'node:path';
 import {existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {z} from 'zod';
-import type {OwnerSecretStore,ProviderSessionCustody} from '../storage/owner-store.js';
+import type {OwnerSecretStore,ProviderSessionCustody} from '../../../../modules/account/dist/index.js';
 import {PhotosError} from './contracts.js';
 import {runProcess} from './provider.js';
 import {SHARED_INVENTORY_PROBE_TIMEOUT_MS,SHARED_READ_TIMEOUT_MS,SHARED_WRITE_TIMEOUT_MS,sharedStreamURL,type SharedStreamSession} from './shared-stream-protocol.js';

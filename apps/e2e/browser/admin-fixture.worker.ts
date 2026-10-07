@@ -6,7 +6,7 @@ import {createStudio} from '../../studio/dist/transport.js';
 const studio=await createStudio(resolve(import.meta.dir,'../../icloud/dist/studio'));
 import {createPrivateAdmin} from '../../icloud/src/admin/handler.js';
 import {mailAdminPresentation} from '../../icloud/src/mail/admin.js';
-import {SqliteOwnerStore} from '../../icloud/src/storage/owner-store.js';
+import {SqliteOwnerStore} from '../../../modules/account/dist/index.js';
 import {createSystemStatus} from '../../icloud/src/admin/system-status.js';
 import type {AppSettings} from '../../icloud/src/server/settings.js';
 const dir=mkdtempSync(join(tmpdir(),'icloud-ui-fixture-')),proof=randomBytes(32).toString('hex');

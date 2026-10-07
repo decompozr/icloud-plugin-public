@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
-import type { Config } from '../config.js';
+export interface BearerVerificationOptions {jwksUrl:string;issuer:string;audience:string;allowedSubjects:readonly string[]}
 export interface Principal { scopes: Set<string>; subject: string; accountId?: string; clientId?:string; expiresAt?:number }
-export function createVerifier(config: Config, key: JWTVerifyGetKey = createRemoteJWKSet(new URL(config.jwksUrl))) {
+export function createVerifier(config: BearerVerificationOptions, key: JWTVerifyGetKey = createRemoteJWKSet(new URL(config.jwksUrl))) {
   return async (authorization?: string): Promise<Principal> => {
     const match = /^Bearer ([^\s]+)$/i.exec(authorization ?? '');
     if (!match) throw new Error('Bearer token required');

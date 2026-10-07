@@ -3,10 +3,10 @@ import {mkdtempSync,mkdirSync,rmSync,chmodSync,readFileSync,symlinkSync} from 'n
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createLocalOwnerAccess,prepareLocalOwner,createRemoteOwnerPairing} from './local-owner.js';
-import type {AppSettings} from '../server/settings.js';
+import type {OwnerAccessSettings} from './local-owner.js';
 test('local enrollment requires explicit one-use OS custody, exact origin and session owner binding',()=>{
  const dir=mkdtempSync(join(tmpdir(),'local-owner-'));mkdirSync(join(dir,'custody'),{mode:0o700});
- const settings={local_origin:'http://localhost:49100',master_key_file:join(dir,'custody/key')} as AppSettings;
+ const settings={local_origin:'http://localhost:49100',master_key_file:join(dir,'custody/key')} as OwnerAccessSettings;
  let owner:string|null='established-owner',time=1000;
  const access=createLocalOwnerAccess(settings,()=>owner,()=>time);
  const request=(proof?:string,cookie='',origin=settings.local_origin!,host='localhost:49100')=>new Request(settings.local_origin+'/icloud/setup/begin',{method:'POST',headers:{origin,host,cookie},body:JSON.stringify({proof})});
@@ -45,7 +45,7 @@ test('remote owner pairing is explicit, owner-bound, single-use and expires with
 
 test('OS custody authorization regenerates only expired same-owner private regular files',()=>{
  const dir=mkdtempSync(join(tmpdir(),'local-owner-expiry-'));mkdirSync(join(dir,'custody'),{mode:0o700});
- const settings={local_origin:'http://localhost:49100',master_key_file:join(dir,'custody/key')} as AppSettings,path=join(dir,'custody/local-owner-proof');
+ const settings={local_origin:'http://localhost:49100',master_key_file:join(dir,'custody/key')} as OwnerAccessSettings,path=join(dir,'custody/local-owner-proof');
  try{
   const first=prepareLocalOwner(settings,'owner',1000),bytes=readFileSync(path,'utf8');
   expect(()=>prepareLocalOwner(settings,'owner',2000)).toThrow('already pending');expect(readFileSync(path,'utf8')).toBe(bytes);
