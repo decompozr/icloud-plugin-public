@@ -112,3 +112,32 @@ single-account acceptance on the selected candidate/new client. No multi-account
 invitations/sharing, recurrence/time zones, provider conflict rejection, uncertain
 write recovery or indefinite refresh claim is made. Raw logs, automatic supervision
 installation and continuous monitoring remain outside this UI preparation.
+
+## Connection capability warnings
+
+Connections navigation shows a yellow count badge only for active account
+connections with an available capability-review action. The same actionable
+registration-upgrade status drives each affected connection's yellow icon,
+warning and Review capabilities button. Overview retains a visible link to
+Connections; capability saves refresh the status and show a one-time notice.
+
+The warning clears when the registration update is reviewed. Pending consent
+and deliberately limited grants do not contribute to the badge or warning.
+Existing access remains usable, and no permissions or grants change automatically.
+Failed status reads retain the last snapshot with its freshness warning.
+Connections status loads on every admin destination.
+
+A dedicated connections service validates its typed request and incoming response
+against shared contracts before updating reactive state. The server constructs
+the list response using that response type. HTTP serialization stays at the
+service boundary; UI components consume typed connections and review status.
+
+The regression checks cover actionable reviews, completion before consent,
+limited grants, missing review status and mixed connection counts. Browser
+visual inspection remains unavailable; fixture verification does not establish
+installed or ChatGPT acceptance.
+
+Source self-checking passed both typechecks, the Studio build and its 18 tests.
+Compiled Svelte rendering confirmed badge count, yellow icon count and actual
+Review button count all move together from 1 to 0, even with a second connection
+whose grants remain limited.

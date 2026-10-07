@@ -1,4 +1,5 @@
 <script lang="ts">
+  import DesignIcon from "./DesignIcon.svelte";
   import CopyButton from "./CopyButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
@@ -81,6 +82,16 @@
       String(model.dashboard?.accounts.length ?? 0),
     )}{@render line("connectionsTitle", String(model.connections?.length ?? 0))}
   </div>
+  {#if model.connectionsNeedingReview.length}<p
+      class="connection-warning"
+      role="status"
+    >
+      <DesignIcon name="warning" />
+      <span
+        >{t("connectionUpdatesAvailable")}
+        <a href="/icloud/admin/connections">{t("reviewCapabilities")}</a></span
+      >
+    </p>{/if}
   {#each ["mail", "calendar", "photos"] as service}{@const reads = (
       model.dashboard?.evidence ?? []
     )
@@ -138,9 +149,21 @@
       "connectionsTitle",
       t(model.connections ? "noConnections" : "statusLoading"),
     )}{/if}
-  {#each model.connections ?? [] as connection (connection.clientId + "-" + connection.accountId)}<article
-    >
-      <h3>{connection.name ?? t("clientUnnamed")}</h3>
+  {#each model.connections ?? [] as connection (connection.clientId + "-" + connection.accountId)}{@const warning =
+      model.connectionNeedsReview(connection)}
+    <article>
+      <h3 class="connection-heading">
+        {connection.name ?? t("clientUnnamed")}{#if warning}<span
+            class="connection-warning-icon"
+            title={t("connectionRegistrationOutdated")}
+            ><DesignIcon name="warning" /><span class="sr-only"
+              >{t("connectionRegistrationOutdated")}</span
+            ></span
+          >{/if}
+      </h3>
+      {#if warning}<p class="connection-warning" role="status">
+          {t("connectionRegistrationOutdated")}
+        </p>{/if}
       {@render line(
         "connectionAccount",
         model.dashboard?.accounts.find((a) => a.id === connection.accountId)
@@ -163,7 +186,7 @@
           : t("neverObserved"),
       )}
       <div class="actions">
-        {#if model.clients?.find((c) => c.clientId === connection.clientId)?.upgradeAvailable}{@render action(
+        {#if warning}{@render action(
             connection.clientId,
             "upgrade",
           )}{/if}{@render action(connection.clientId, "revoke")}

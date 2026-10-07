@@ -4,7 +4,7 @@ export type AuthorizedConnection=z.infer<typeof connectionSchema>;
 export const clientImpactSchema=z.object({clientId:z.string(),name:z.string().nullable(),action:z.enum(['revoke','remove','upgrade']),accountIds:z.array(z.string()),accessTokens:z.number().int().nonnegative(),refreshTokens:z.number().int().nonnegative(),consents:z.number().int().nonnegative(),authorizationCodes:z.number().int().nonnegative(),registrationRemoved:z.boolean(),accountsPreserved:z.literal(true),removable:z.boolean(),registeredScopes:z.array(z.string()).optional(),additionalScopes:z.array(z.string()).optional(),upgradable:z.boolean().optional()});
 export const clientPreviewSchema=z.object({impact:clientImpactSchema,confirmation:z.string()});
 export type ClientImpact=z.infer<typeof clientImpactSchema>;
-export const recoverySchema=z.object({clients:z.array(z.object({clientId:z.string(),name:z.string().nullable(),registeredScopes:z.array(z.string()),missingEnabledScopes:z.array(z.string()).optional(),upgradeAvailable:z.boolean().optional(),recovery:z.enum(['explicit_client_update_then_consent','new_client_registration_then_consent','fresh_consent_and_tool_refresh'])})),connections:z.array(connectionSchema).optional()});
+export const recoverySchema=z.object({enabledScopes:z.array(z.string()).optional(),existingGrantsChanged:z.literal(false).optional(),clients:z.array(z.object({clientId:z.string(),name:z.string().nullable(),registeredScopes:z.array(z.string()),missingEnabledScopes:z.array(z.string()).optional(),upgradeAvailable:z.boolean().optional(),recovery:z.enum(['explicit_client_update_then_consent','new_client_registration_then_consent','fresh_consent_and_tool_refresh'])})),connections:z.array(connectionSchema).optional()});
 export type RecoveryClient=z.infer<typeof recoverySchema>['clients'][number];
 /** Registration is a ceiling, never evidence of account-bound consent or a read. */
 export function readiness(policy:Record<string,boolean>|null|undefined,service:string,client?:RecoveryClient){
@@ -26,3 +26,7 @@ export function observedProviderRead(service:string,reads:Record<string,string>)
  const listedAt=service==='calendar'?reads.calendar_list_calendars:service==='homekit'?reads.homekit_automation_inventory:undefined;
  return {verifiedAt:service==='calendar'&&!listedAt?undefined:verifiedAt,listedAt};
 }
+
+export const connectionsRequestSchema=z.object({method:z.literal("GET"),path:z.literal("/icloud/admin/oauth-clients")}).strict();
+export type ConnectionsRequest=z.infer<typeof connectionsRequestSchema>;
+export type ConnectionsResponse=z.infer<typeof recoverySchema>;
