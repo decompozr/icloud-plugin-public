@@ -192,3 +192,11 @@ Chrome fixture checks confirm Mail/Calendar/Photos/HomeKit label order, all 12
 fixture badges retained, and no horizontal overflow at desktop or 390px width.
 The 547 existing application/Studio/tooling tests and full build/typechecks pass
 with zero Svelte errors/warnings. These are self-checks, not physical iPhone proof.
+
+Release 0.1.87 deployed from clean verified remote main
+`34f13f0f0e7178ec2887781b791128ef10923998` after PR #108. Signed receipt,
+installed payload/protected-file readbacks and health/doctor passed. The actual
+Chrome connections retained 7/12/3 badges and now show their applicable module
+labels in canonical order. Grants, binding and policies remained unchanged.
+Private screenshots and rollout receipts: `.flow-runtime/homekit-background/grouped-permissions`.
+The exact fixture server was stopped; the production page remains available.

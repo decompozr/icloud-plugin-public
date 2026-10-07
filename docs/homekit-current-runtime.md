@@ -1,7 +1,7 @@
 # HomeKit integration into the current runtime
 
-Status (2026-10-07): deployed locally in 0.1.86 from main commit
-`6734ad43667dc08004957339817ec48b3ec8a859`. **The complete HomeKit roadmap is not
+Status (2026-10-07): deployed locally in 0.1.87 from main commit
+`34f13f0f0e7178ec2887781b791128ef10923998`. **The complete HomeKit roadmap is not
 accepted.** The retained `plan-homekit-end-to-end` branch preserves the original
 roadmap and experimental evidence. This document tracks the current production
 module, which intentionally exposes a narrower subset.
