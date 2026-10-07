@@ -45,9 +45,11 @@ boundary; this helper acceptance is not a production HomeKit UI/MCP deployment.
 Preserve signed rollback builds and unknown-operation ledgers until reconciliation.
 
 
-## Candidate packaging and preflight
+## Retained packaging and preflight (integration pending)
 
-The existing artifact builder can opt in a signed helper with
+The implementations in this section remain on `plan-homekit-end-to-end`; they are
+not yet wired into the current Studio/Web-standard host branch. The retained
+artifact builder can opt in a signed helper with
 `--homekit-build-receipt /private/result.json --homekit-signing-team TEAM_ID`
 after its positional fresh output directory. It validates the receipt, current
 signature/source/protocol/HomeKit entitlement, copies the app into
