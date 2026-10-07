@@ -315,7 +315,7 @@ client/device sequence, not human visual observation, scene/automation execution
 natural push or sleep/login/retention acceptance. Private receipts remain retained.
 
 The owner subsequently requested removal of the retired Probe from all settings.
-Release 0.1.91 changes the signed bundle identity to
+Release 0.1.92 changes the signed bundle identity to
 `com.decompozr.homekit-helper`, displayed as **iCloud HomeKit Helper**. Existing
 OAuth grants and exact owner/account/Home binding remain preserved. The new native
 identity requires genuine macOS Home approval; old authorization is never copied.
@@ -339,3 +339,9 @@ its dedicated Mac Catalyst provisioning profile and signed app both contain
 name. The project now records HomeKit capability explicitly and uses generated
 LSUIElement=true consistently. OS Home authorization and deployment remain
 separate checks; a first read attempt before approval correctly returned not ready.
+
+Owner-approved macOS Home permission was subsequently verified through CLI: new
+identity ready/authorized, background mode, no Dock presence or visible owned
+windows, and owned native process stopped after read-only acceptance. Physical
+writes were zero. Release numbering advances to 0.1.92 to preserve the independently
+delivered account-module 0.1.91 release.
