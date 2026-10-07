@@ -530,6 +530,8 @@
   "homekitConnectionTitle": "Home connection",
   "homekitAutomationDisabled": "Automation management is disabled in this installation.",
   "auth_permissionHomeKit": "HomeKit",
+  "homekitControlDisabled": "Physical control is disabled by runtime configuration. Enabling it requires separate owner approval and fresh client consent.",
+  "homekitControl": "Control devices and app-owned Home scenes/automations",
   "homekitRead": "Read Home",
   "homekitAutomations": "Manage scenes and disabled automations"
 }

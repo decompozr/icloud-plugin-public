@@ -154,23 +154,41 @@ final class ControlJournal {
     }
     private func append(_ record: [String: Any], to handle: FileHandle) throws {
         var data = try JSONSerialization.data(withJSONObject: record, options: [.sortedKeys])
+        guard data.count <= 256 * 1024 else { throw ControlFailure.invalid("JOURNAL_RECORD_LIMIT") }
         data.append(10)
         try handle.write(contentsOf: data)
         try handle.synchronize()
+    }
+    private func latest(operationId: String, handle: FileHandle) throws -> [String: Any]? {
+        try handle.seek(toOffset: 0)
+        var buffer = Data(), latest: [String: Any]?
+        while let chunk = try handle.read(upToCount: 65536), !chunk.isEmpty {
+            buffer.append(chunk)
+            while let newline = buffer.firstIndex(of: 10) {
+                let line = Data(buffer[..<newline]); buffer.removeSubrange(...newline)
+                guard !line.isEmpty, line.count <= 256 * 1024,
+                      let record = try JSONSerialization.jsonObject(with: line) as? [String: Any],
+                      record["operationId"] is String else { throw ControlFailure.invalid("JOURNAL_CORRUPT_OR_RECORD_LIMIT") }
+                if record["operationId"] as? String == operationId { latest = record }
+            }
+            guard buffer.count <= 256 * 1024 else { throw ControlFailure.invalid("JOURNAL_RECORD_LIMIT") }
+        }
+        guard buffer.isEmpty else { throw ControlFailure.invalid("JOURNAL_INCOMPLETE_RECONCILE_REQUIRED") }
+        return latest
+    }
+    func outcome(operationId: String, request: [String: Any]) throws -> [String: Any]? {
+        let fingerprint = try JSONSerialization.data(withJSONObject: request, options: [.sortedKeys]).base64EncodedString()
+        return try locked { handle in
+            guard let record = try self.latest(operationId: operationId, handle: handle) else { return nil }
+            guard record["fingerprint"] as? String == fingerprint else { throw ControlFailure.invalid("OPERATION_ID_CONFLICT") }
+            return (record["result"] as? [String: Any]) ?? ["error": "WRITE_OUTCOME_UNKNOWN", "operationId": operationId]
+        }
     }
     func begin(operationId: String, request: [String: Any]) throws -> [String: Any]? {
         guard !operationId.isEmpty, operationId.utf8.count <= 200 else { throw ControlFailure.invalid("OPERATION_ID_REQUIRED") }
         let fingerprint = try JSONSerialization.data(withJSONObject: request, options: [.sortedKeys]).base64EncodedString()
         return try locked { handle in
-            try handle.seek(toOffset: 0)
-            let data = try handle.readToEnd() ?? Data()
-            if !data.isEmpty && data.last != 10 { throw ControlFailure.invalid("JOURNAL_INCOMPLETE_RECONCILE_REQUIRED") }
-            var latest: [String: Any]?
-            for line in data.split(separator: 10) {
-                guard let record = try JSONSerialization.jsonObject(with: Data(line)) as? [String: Any],
-                      record["operationId"] is String else { throw ControlFailure.invalid("JOURNAL_CORRUPT") }
-                if record["operationId"] as? String == operationId { latest = record }
-            }
+            let latest = try self.latest(operationId: operationId, handle: handle)
             if let latest = latest {
                 guard latest["fingerprint"] as? String == fingerprint else { throw ControlFailure.invalid("OPERATION_ID_CONFLICT") }
                 return (latest["result"] as? [String: Any]) ?? ["error": "WRITE_OUTCOME_UNKNOWN", "operationId": operationId]
@@ -185,6 +203,25 @@ final class ControlJournal {
         try locked { handle in
             try append(["operationId": operationId, "fingerprint": fingerprint, "state": "completed", "result": result,
                 "timestamp": ISO8601DateFormatter().string(from: Date())], to: handle)
+        }
+    }
+}
+// Public snapshot restrictions shared by production preview and dispatch.
+enum ProductionControlPolicy {
+    static func scene(_ definition: [String: Any], homeId: String) throws {
+        guard definition["homeId"] as? String == homeId,
+              definition["actionSetType"] as? String == "HMActionSetTypeUserDefined",
+              definition["listedInHome"] as? Bool == true,
+              definition["actionsTruncated"] as? Bool == false,
+              let references = definition["referencedByTriggerIds"] as? [String], references.isEmpty,
+              let actions = definition["actions"] as? [[String: Any]], actions.count <= 64,
+              definition["actionCount"] as? Int == actions.count else { throw ControlFailure.invalid("SCENE_UNSUPPORTED_OR_REFERENCED") }
+        for action in actions {
+            guard action["opaque"] as? Bool == false, action["kind"] as? String == "characteristicWrite",
+                  let target = action["target"] as? [String: Any], target["resolved"] as? Bool == true,
+                  target["homeId"] as? String == homeId,
+                  ["accessoryId", "serviceId", "characteristicId"].allSatisfy({ (target[$0] as? String).flatMap(UUID.init(uuidString:)) != nil })
+            else { throw ControlFailure.invalid("SCENE_ACTION_UNSUPPORTED_OR_UNRESOLVED") }
         }
     }
 }
@@ -340,6 +377,8 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
     private let outputLock = NSLock()
     private var readOnly = false
     private var lifecycleRequested = false
+    private var productionControls = false
+    private var controlInFlight = false
     private var controlJournal: ControlJournal?
     private var controlJournalError: String?
     private var lifecycleStore: LifecycleStore?
@@ -377,6 +416,7 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
         }
         readOnly = arguments.contains("--read-only")
         lifecycleRequested = arguments.contains("--lifecycle-directory")
+        productionControls = arguments.contains("--production-controls") && lifecycleRequested && !readOnly
         if !readOnly && !lifecycleRequested {
             let defaultURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("com.decompozr.homekit-probe/control-operations.jsonl")
@@ -390,6 +430,7 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
                 let directory = URL(fileURLWithPath: arguments[index + 1])
                 lifecycleStore = try LifecycleStore(directory: directory)
                 lifecycleJournal = try ControlJournal(url: directory.appendingPathComponent("operations.jsonl"))
+                if productionControls { controlJournal = try ControlJournal(url: directory.appendingPathComponent("control-operations.jsonl")) }
             } catch { lifecycleError = String(describing: error) }
         }
         manager = HMHomeManager()
@@ -784,7 +825,7 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
         case "initialize":
             emit(["jsonrpc": "2.0", "id": id, "result": ["protocolVersion": "2024-11-05",
                 "capabilities": ["tools": [:], "resources": ["subscribe": true]],
-                "serverInfo": ["name": "homekit-experiment-probe", "version": "0.14.0",
+                "serverInfo": ["name": "homekit-experiment-probe", "version": "0.15.0",
                     "sourceSHA256": Bundle.main.object(forInfoDictionaryKey: "HomeKitSourceSHA256") as? String ?? "unbound"]]])
         case "ping": emit(["jsonrpc": "2.0", "id": id, "result": [:]])
         case "resources/list", "resources/read", "resources/subscribe", "resources/unsubscribe":
@@ -829,7 +870,11 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
                         "sceneId": ["type": "string"], "actionId": ["type": "string"], "target": ["type": "object"], "value": [:]],
                         "required": ["homeId", "operationId", "action"], "additionalProperties": false]])
             }
-            if controlEnabled {
+            if productionControls && controlEnabled {
+                tools.append(["name": "homekit_control_outcome", "description": "Read retained exact operation journal evidence without provider mutation or retry.", "inputSchema": ["type": "object"]])
+                tools.append(["name": "homekit_control_preview", "description": "Review an exact production target and revision; app-owned definitions only; no physical operation.", "inputSchema": ["type": "object"]])
+                tools.append(["name": "homekit_control_apply", "description": "Revision-checked production control with durable operation reservation; no automatic retry.", "inputSchema": ["type": "object"]])
+            } else if controlEnabled {
                 let identifiers: [String: Any] = ["homeId": ["type": "string"], "accessoryId": ["type": "string"],
                     "serviceId": ["type": "string"], "characteristicId": ["type": "string"], "operationId": ["type": "string"]]
                 var properties = identifiers
@@ -869,7 +914,21 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
             }
             else if name == "homekit_lifecycle_mutate" { lifecycleMutate(id: id, args: args); return }
             else if name == "homekit_search", let query = args["query"] as? String { payload = inventory(query: query) }
+            else if name == "homekit_control_preview" {
+                do { payload = try productionControlPreview(args) } catch { payload = ["error": String(describing: error)]; failed = true }
+            }
+            else if name == "homekit_control_outcome" {
+                do { payload = try productionControlOutcome(args) } catch { payload = ["error": String(describing: error)]; failed = true }
+            }
+            else if name == "homekit_control_apply" {
+                guard productionControls else { reply(id: id, payload: ["error": "PRODUCTION_CONTROL_DISABLED"], failed: true); return }
+                var target = args; target.removeValue(forKey: "action")
+                let tool = args["action"] as? String == "write" ? "homekit_write" : args["action"] as? String == "executeScene" ? "homekit_execute_scene" : args["action"] as? String == "setAutomationEnabled" ? "homekit_set_automation_enabled" : "invalid"
+                guard tool != "invalid" else { reply(id: id, payload: ["error": "INVALID_CONTROL_ACTION"], failed: true); return }
+                control(id: id, name: tool, args: target, productionIntent: args); return
+            }
             else if ["homekit_write", "homekit_execute_scene", "homekit_set_automation_enabled"].contains(name) {
+                guard !productionControls else { reply(id: id, payload: ["error": "PRODUCTION_REVIEW_REQUIRED"], failed: true); return }
                 control(id: id, name: name, args: args); return
             }
             else if name == "homekit_read" {
@@ -1046,7 +1105,7 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
     }
 
     private func lifecycleMutate(id: Any, args: [String: Any]) {
-        guard !readOnly, !lifecycleBusy, !lifecycleInFlight, lifecycleError == nil, let store = lifecycleStore, let journal = lifecycleJournal else {
+        guard !readOnly, !controlInFlight, !lifecycleBusy, !lifecycleInFlight, lifecycleError == nil, let store = lifecycleStore, let journal = lifecycleJournal else {
             reply(id: id, payload: ["error": "LIFECYCLE_DISABLED_BUSY_OR_UNAVAILABLE", "providerWriteAttempted": false], failed: true); return
         }
         guard let homeId = args["homeId"] as? String, let operationId = args["operationId"] as? String,
@@ -1281,14 +1340,97 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
         } catch { finish(["error": String(describing: error), "outcome": "validation-or-persistence-failure"]) }
     }
 
-    private func control(id: Any, name: String, args: [String: Any]) {
+    private func productionControlOutcome(_ args: [String: Any]) throws -> [String: Any] {
+        guard productionControls, let journal = controlJournal, let id = args["operationId"] as? String,
+              UUID(uuidString: id) != nil, let home = args["homeId"] as? String else { throw ControlFailure.invalid("CONTROL_OUTCOME_ARGUMENTS_OR_DISABLED") }
+        var target = args; target.removeValue(forKey: "action")
+        let tool = args["action"] as? String == "write" ? "homekit_write" : args["action"] as? String == "executeScene" ? "homekit_execute_scene" : args["action"] as? String == "setAutomationEnabled" ? "homekit_set_automation_enabled" : "invalid"
+        guard tool != "invalid" else { throw ControlFailure.invalid("CONTROL_ACTION_UNSUPPORTED") }
+        let result = try journal.outcome(operationId: id, request: ["tool": tool, "arguments": target])
+        return ["operationId": id, "homeId": home, "found": result != nil, "result": result ?? NSNull(), "providerWriteAttempted": false]
+    }
+
+    private func productionControlPreview(_ args: [String: Any]) throws -> [String: Any] {
+        guard productionControls, controlEnabled, let store = lifecycleStore,
+              let homeId = args["homeId"] as? String, UUID(uuidString: homeId) != nil,
+              let operationId = args["operationId"] as? String, UUID(uuidString: operationId) != nil,
+              let home = manager.homes.first(where: { $0.uniqueIdentifier.uuidString == homeId }),
+              let action = args["action"] as? String else { throw ControlFailure.invalid("PRODUCTION_CONTROL_UNAVAILABLE_OR_HOME") }
+        var definition: [String: Any]
+        func checkedScene(_ scene: HMActionSet, allowedReference: String? = nil) throws -> [String: Any] {
+            _ = try store.requireOwned(homeId: homeId, id: scene.uniqueIdentifier.uuidString, kind: "scene")
+            var snapshot = sceneDetail(scene, home: home)
+            guard scene.actionSetType == HMActionSetTypeUserDefined else { throw ControlFailure.invalid("SCENE_TYPE_UNSUPPORTED") }
+            snapshot["actionSetType"] = "HMActionSetTypeUserDefined"
+            if let reference = allowedReference {
+                let references = snapshot["referencedByTriggerIds"] as? [String] ?? []
+                guard references.allSatisfy({ $0 == reference }) else { throw ControlFailure.invalid("SCENE_FOREIGN_REFERENCE") }
+                snapshot["referencedByTriggerIds"] = [String]()
+            }
+            try ProductionControlPolicy.scene(snapshot, homeId: homeId)
+            for entry in scene.actions {
+                guard let write = entry as? HMCharacteristicWriteAction<NSCopying>,
+                      write.characteristic.properties.contains(HMCharacteristicPropertyWritable),
+                      !["array", "dict"].contains(write.characteristic.metadata?.format ?? "") else { throw ControlFailure.invalid("SCENE_NOT_WRITABLE") }
+                let c = write.characteristic
+                _ = try ControlValue.decode(scalar(write.targetValue), format: c.metadata?.format ?? "", minimum: c.metadata?.minimumValue,
+                    maximum: c.metadata?.maximumValue, step: c.metadata?.stepValue, validValues: c.metadata?.validValues, maxLength: c.metadata?.maxLength)
+            }
+            return sceneDetail(scene, home: home)
+        }
+        if action == "write" {
+            guard Set(args.keys) == ["action", "homeId", "operationId", "accessoryId", "serviceId", "characteristicId", "value"] else { throw ControlFailure.invalid("CONTROL_ARGUMENTS_INVALID") }
+            let target = ["accessoryId": args["accessoryId"]!, "serviceId": args["serviceId"]!, "characteristicId": args["characteristicId"]!]
+            let c = try lifecycleCharacteristic(target, home: home)
+            guard let accessory = c.service?.accessory, accessory.isReachable, c.properties.contains(HMCharacteristicPropertyWritable),
+                  let value = args["value"], !["array", "dict"].contains(c.metadata?.format ?? "") else { throw ControlFailure.invalid("CONTROL_TARGET_NOT_WRITABLE_OR_FORMAT_DEFERRED") }
+            _ = try ControlValue.decode(value, format: c.metadata?.format ?? "", minimum: c.metadata?.minimumValue,
+                maximum: c.metadata?.maximumValue, step: c.metadata?.stepValue, validValues: c.metadata?.validValues, maxLength: c.metadata?.maxLength)
+            definition = ["homeId": homeId, "accessoryId": args["accessoryId"]!, "serviceId": args["serviceId"]!, "characteristicId": args["characteristicId"]!,
+                "type": c.characteristicType, "properties": c.properties.sorted(), "format": c.metadata?.format ?? "",
+                "minimum": scalar(c.metadata?.minimumValue), "maximum": scalar(c.metadata?.maximumValue),
+                "step": scalar(c.metadata?.stepValue), "maxLength": scalar(c.metadata?.maxLength), "validValues": c.metadata?.validValues ?? []]
+        } else if action == "executeScene" {
+            guard Set(args.keys) == ["action", "homeId", "operationId", "sceneId"], let id = args["sceneId"] as? String,
+                  let scene = home.actionSets.first(where: { $0.uniqueIdentifier.uuidString == id }) else { throw ControlFailure.invalid("CONTROL_SCENE_UNRESOLVED") }
+            definition = try checkedScene(scene)
+        } else if action == "setAutomationEnabled" {
+            guard Set(args.keys) == ["action", "homeId", "operationId", "automationId", "enabled"],
+                  let enabled = args["enabled"] as? NSNumber, CFGetTypeID(enabled) == CFBooleanGetTypeID(),
+                  let id = args["automationId"] as? String,
+                  let trigger = home.triggers.first(where: { $0.uniqueIdentifier.uuidString == id }) as? HMEventTrigger,
+                  trigger.predicate == nil, trigger.endEvents.isEmpty, trigger.recurrences == nil,
+                  (1...16).contains(trigger.events.count), trigger.events.allSatisfy({ $0 is HMCalendarEvent || $0 is HMCharacteristicEvent<NSCopying> }),
+                  trigger.actionSets.count <= 16 else { throw ControlFailure.invalid("CONTROL_AUTOMATION_UNSUPPORTED") }
+            _ = try store.requireOwned(homeId: homeId, id: id, kind: "automation")
+            definition = triggerDetail(trigger, home: home)
+            definition["scenes"] = try trigger.actionSets.map { try checkedScene($0, allowedReference: id) }
+        } else { throw ControlFailure.invalid("CONTROL_ACTION_UNSUPPORTED") }
+        return ["homeId": homeId, "operationId": operationId, "definition": definition,
+            "revision": try LifecycleStore.revision(definition), "physicalCompletionVerified": false]
+    }
+
+    private func control(id: Any, name: String, args: [String: Any], productionIntent: [String: Any]? = nil) {
         guard controlEnabled, let journal = controlJournal else {
             reply(id: id, payload: ["error": "CONTROL_DISABLED_OR_JOURNAL_UNAVAILABLE"], failed: true); return
         }
-        let keys: Set<String> = name == "homekit_write"
+        if productionControls {
+            do {
+                guard !controlInFlight, !lifecycleBusy, !lifecycleInFlight, let intent = productionIntent,
+                      let expected = args["expectedRevision"] as? String else { throw ControlFailure.invalid("CONTROL_BUSY_OR_REVIEW_REQUIRED") }
+                var command = intent; command.removeValue(forKey: "expectedRevision")
+                let preview = try productionControlPreview(command)
+                guard preview["revision"] as? String == expected else { throw ControlFailure.invalid("STALE_CONTROL_REVISION") }
+            } catch {
+                reply(id: id, payload: ["error": String(describing: error), "operationId": args["operationId"] ?? NSNull(),
+                    "intent": productionIntent ?? args, "providerWriteAttempted": false, "physicalCompletionVerified": false], failed: true); return
+            }
+        }
+        var keys: Set<String> = name == "homekit_write"
             ? ["homeId", "accessoryId", "serviceId", "characteristicId", "value", "operationId"]
             : name == "homekit_execute_scene" ? ["homeId", "sceneId", "operationId"]
             : ["homeId", "automationId", "enabled", "operationId"]
+        if productionControls { keys.insert("expectedRevision") }
         guard Set(args.keys) == keys, let operationId = args["operationId"] as? String,
               let homeId = args["homeId"] as? String,
               let home = manager.homes.first(where: { $0.uniqueIdentifier.uuidString == homeId }) else {
@@ -1339,6 +1481,7 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
         } catch {
             reply(id: id, payload: ["error": String(describing: error), "providerWriteAttempted": false], failed: true); return
         }
+        if productionControls { controlInFlight = true }
         var replied = false
         var acknowledged = false
         var timeout: DispatchWorkItem?
@@ -1346,6 +1489,8 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
             if replied { return }; replied = true; timeout?.cancel()
             var payload = result
             payload["operationId"] = operationId
+            payload["providerWriteAttempted"] = true
+            if let intent = productionIntent { payload["intent"] = intent }
             payload["physicalCompletionVerified"] = false
             do { try journal.finish(operationId: operationId, request: request, result: payload) }
             catch { payload["journalError"] = String(describing: error); payload["error"] = "RESULT_PERSISTENCE_FAILED_RECONCILE_REQUIRED" }
@@ -1357,6 +1502,7 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
         DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: timeout!)
         let completion: (Error?) -> Void = { error in
             DispatchQueue.main.async {
+                if self.productionControls { self.controlInFlight = false }
                 if replied { return }
                 if let error = error {
                     finish(["error": String(describing: error), "writeAcknowledged": false,
@@ -1404,7 +1550,7 @@ final class Probe: NSObject, HMHomeManagerDelegate, HMAccessoryDelegate, HMHomeD
             "content": [["type": "text", "text": String(data: data, encoding: .utf8) ?? "{}"]]]])
     }
     var homeAuthorized: Bool { manager.authorizationStatus.contains(.authorized) }
-    var controlEnabled: Bool { !readOnly && !lifecycleRequested && controlJournal != nil }
+    var controlEnabled: Bool { !readOnly && (!lifecycleRequested || productionControls && lifecycleError == nil) && controlJournal != nil }
 }
 
 final class AppDelegate: UIResponder, UIApplicationDelegate {

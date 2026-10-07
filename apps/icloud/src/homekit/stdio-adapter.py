@@ -19,9 +19,11 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--app',required=True)
 parser.add_argument('--state-directory',required=True)
 parser.add_argument('--lifecycle-directory',help='Explicit private task-owned disabled lifecycle mode; hides physical controls')
+parser.add_argument('--production-controls',action='store_true',help='Explicit revision-checked controls with the scoped lifecycle ledger')
 parser.add_argument('--read-only',action='store_true',help='Disable all physical controls')
 args=parser.parse_args()
 if args.read_only and args.lifecycle_directory:parser.error("Read-only and lifecycle modes require separate runs")
+if args.production_controls and (args.read_only or not args.lifecycle_directory):parser.error("Production controls require scoped lifecycle mode")
 os.umask(0o077)
 app=Path(args.app).resolve()
 executable=app/'Contents/MacOS/HomeKitProbe'
@@ -35,7 +37,7 @@ output=session/'stdout.jsonl';output.write_text('')
 pid_file=session/'native.pid'
 launcher=subprocess.Popen(['open','-g','-W','-n','-a',str(app),'--stdin',str(fifo),'--stdout',str(output),
     '--stderr',str(session/'native-stderr.log'),'--args','--event-journal',str(session/'events.jsonl'),
-    '--pid-file',str(pid_file),*(['--read-only'] if args.read_only else []),*(['--lifecycle-directory',str(Path(args.lifecycle_directory).resolve())] if args.lifecycle_directory else [])],stdout=subprocess.DEVNULL,stderr=sys.stderr)
+    '--pid-file',str(pid_file),*(['--read-only'] if args.read_only else []),*(['--lifecycle-directory',str(Path(args.lifecycle_directory).resolve())] if args.lifecycle_directory else []),*(['--production-controls'] if args.production_controls else [])],stdout=subprocess.DEVNULL,stderr=sys.stderr)
 stopping=threading.Event()
 def forward_output():
     with output.open() as stream:

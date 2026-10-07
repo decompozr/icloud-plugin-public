@@ -1,9 +1,10 @@
 import {stat} from 'node:fs/promises';
 import {join,isAbsolute} from 'node:path';
 import {z} from 'zod';
-export const HOMEKIT_PROTOCOL_VERSION='0.14.0';
+export const HOMEKIT_PROTOCOL_VERSION='0.15.0';
+export const HOMEKIT_SUPPORTED_PROTOCOLS=['0.14.0',HOMEKIT_PROTOCOL_VERSION] as const;
 export type PreflightCommand=(argv:string[],input?:string)=>Promise<string>;
-const info=z.object({CFBundleIdentifier:z.literal('com.decompozr.homekit-probe'),HomeKitSourceSHA256:z.string().regex(/^[a-f0-9]{64}$/),HomeKitProtocolVersion:z.literal(HOMEKIT_PROTOCOL_VERSION)}).passthrough();
+const info=z.object({CFBundleIdentifier:z.literal('com.decompozr.homekit-probe'),HomeKitSourceSHA256:z.string().regex(/^[a-f0-9]{64}$/),HomeKitProtocolVersion:z.enum(HOMEKIT_SUPPORTED_PROTOCOLS)}).passthrough();
 const entitlements=z.object({'com.apple.developer.homekit':z.literal(true),'com.apple.developer.team-identifier':z.string().regex(/^[A-Z0-9]{10}$/)}).passthrough();
 /** Fixed local inspection commands only. Does not launch HomeKit or touch owner state. */
 export async function preflightCommand(argv:string[],input?:string):Promise<string>{
