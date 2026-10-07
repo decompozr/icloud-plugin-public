@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Local agent stdio adapter for the signed Catalyst experiment app."""
+import plistlib
 import json
 import argparse
 import os
@@ -20,14 +21,27 @@ parser.add_argument('--app',required=True)
 parser.add_argument('--state-directory',required=True)
 parser.add_argument('--lifecycle-directory',help='Explicit private task-owned disabled lifecycle mode; hides physical controls')
 parser.add_argument('--production-controls',action='store_true',help='Explicit revision-checked controls with the scoped lifecycle ledger')
+parser.add_argument('--mode',choices=['enrollment','read','definitions','control'])
+parser.add_argument('--home-id',help='Exact enrolled Home for all non-enrollment modes')
 parser.add_argument('--read-only',action='store_true',help='Disable all physical controls')
 args=parser.parse_args()
 if args.read_only and args.lifecycle_directory:parser.error("Read-only and lifecycle modes require separate runs")
 if args.production_controls and (args.read_only or not args.lifecycle_directory):parser.error("Production controls require scoped lifecycle mode")
 os.umask(0o077)
 app=Path(args.app).resolve()
-executable=app/'Contents/MacOS/HomeKitProbe'
-if not executable.is_file():raise SystemExit('Signed HomeKitProbe app required')
+info=plistlib.loads((app/'Contents/Info.plist').read_bytes())
+name=info.get('CFBundleExecutable')
+if name not in ['HomeKitProbe','HomeKitHelper']:raise SystemExit('Supported signed HomeKit executable required')
+executable=app/'Contents/MacOS'/name
+if not executable.is_file():raise SystemExit('Signed HomeKit helper app required')
+mode=args.mode
+if not mode:
+    mode=('read' if args.home_id else 'enrollment') if args.read_only else ('control' if args.production_controls else 'definitions') if args.lifecycle_directory else 'enrollment'
+if info.get('HomeKitProtocolVersion')=='1.0.0':
+ if mode!='enrollment' and not args.home_id:parser.error('Exact enrolled Home required')
+ native_mode=['--mode',mode,*(['--home-id',args.home_id] if args.home_id else []),*(['--lifecycle-directory',str(Path(args.lifecycle_directory).resolve())] if args.lifecycle_directory else [])]
+else:
+ native_mode=[*(['--read-only'] if mode in ['read','enrollment'] else []),*(['--lifecycle-directory',str(Path(args.lifecycle_directory).resolve())] if args.lifecycle_directory else []),*(['--production-controls'] if mode=='control' else [])]
 subprocess.run(['codesign','--verify','--strict',str(app)],check=True)
 root=Path(args.state_directory);root.mkdir(mode=0o700,parents=True,exist_ok=True)
 session=Path(tempfile.mkdtemp(prefix='agent-',dir=root))
@@ -37,7 +51,7 @@ output=session/'stdout.jsonl';output.write_text('')
 pid_file=session/'native.pid'
 launcher=subprocess.Popen(['open','-g','-W','-n','-a',str(app),'--stdin',str(fifo),'--stdout',str(output),
     '--stderr',str(session/'native-stderr.log'),'--args','--event-journal',str(session/'events.jsonl'),
-    '--pid-file',str(pid_file),*(['--read-only'] if args.read_only else []),*(['--lifecycle-directory',str(Path(args.lifecycle_directory).resolve())] if args.lifecycle_directory else []),*(['--production-controls'] if args.production_controls else [])],stdout=subprocess.DEVNULL,stderr=sys.stderr)
+    '--pid-file',str(pid_file),*native_mode],stdout=subprocess.DEVNULL,stderr=sys.stderr)
 stopping=threading.Event()
 def forward_output():
     with output.open() as stream:

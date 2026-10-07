@@ -10,3 +10,5 @@ test('source/version/bundle identity and HomeKit/team mismatches fail closed',as
 test('invalid configuration never invokes inspection commands',async()=>{const f=fixture();expect((await inspectHomeKitHelper({...settings,native_app:'relative.app'},f.command)).stage).toBe('configuration');expect(f.calls.length).toBe(0);});
 
 test('legacy signed read/definition helper stays supported without claiming control support',async()=>{const legacy=fixture({metadata:{...bundle,HomeKitProtocolVersion:'0.14.0'}});const result=await inspectHomeKitHelper(settings,legacy.command);expect(result.status).toBe('pass');expect(result.protocolVersion).toBe('0.14.0');});
+
+test('production helper protocol keeps legacy payload recognition without conflating generations',async()=>{expect(HOMEKIT_PROTOCOL_VERSION).toBe('1.0.0');const result=await inspectHomeKitHelper(settings,fixture().command);expect(result.status).toBe('pass');expect(result.protocolVersion).toBe('1.0.0');});

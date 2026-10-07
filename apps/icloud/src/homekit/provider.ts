@@ -8,9 +8,9 @@ import {HOMEKIT_PROTOCOL_VERSION,HOMEKIT_SUPPORTED_PROTOCOLS,inspectHomeKitHelpe
 import {EventSubscriptions} from './subscriptions.js';
 export class HomeKitError extends Error {constructor(readonly code:string){super(code);}}
 export interface NativeHomeKitProvider {call(tool:string,input:unknown,signal?:AbortSignal,beforeDispatch?:()=>Promise<void>):Promise<unknown>;subscribeEvents?(address:EventAddress,listener:{updated:()=>void;failed:(error:HomeKitError)=>void}):Promise<()=>Promise<void>>;readEvents?(address:EventAddress,signal?:AbortSignal):Promise<unknown>;dispose():Promise<void>}
-export interface NativeSettings {python:string;app:string;sourceSHA256:string;signingTeam:string;localUserId:number;stateDirectory:string;lifecycle:boolean;control?:boolean;timeoutMs?:number;adapter?:string}
+export interface NativeSettings {python:string;app:string;sourceSHA256:string;signingTeam:string;localUserId:number;stateDirectory:string;lifecycle:boolean;control?:boolean;homeId?:string;timeoutMs?:number;adapter?:string}
 const envelope=z.object({jsonrpc:z.literal('2.0'),id:z.number().int(),result:z.unknown().optional(),error:z.unknown().optional()}).passthrough();
-const initialization=z.object({serverInfo:z.object({name:z.literal('homekit-experiment-probe'),version:z.enum(HOMEKIT_SUPPORTED_PROTOCOLS),sourceSHA256:z.string().regex(/^[a-f0-9]{64}$/)}).passthrough()}).passthrough();
+const initialization=z.object({serverInfo:z.object({name:z.enum(['homekit-experiment-probe','icloud-homekit-helper']),version:z.enum(HOMEKIT_SUPPORTED_PROTOCOLS),sourceSHA256:z.string().regex(/^[a-f0-9]{64}$/)}).passthrough()}).passthrough();
 const health=z.object({ready:z.boolean(),authorized:z.boolean(),localUserId:z.number().int().nonnegative(),physicalControlEnabled:z.boolean()}).passthrough();
 const toolResult=z.object({isError:z.boolean().optional(),content:z.array(z.object({type:z.literal('text'),text:z.string().max(8*1024*1024)}).strict()).length(1)}).passthrough();
 const allowed=new Set(['homekit_status','homekit_list','homekit_automation_inventory','homekit_lifecycle_preview','homekit_read','homekit_lifecycle_mutate','homekit_control_preview','homekit_control_apply','homekit_control_outcome']);
@@ -26,18 +26,19 @@ export class StdioHomeKitProvider implements NativeHomeKitProvider {
  private async start(){
   if(this.closed)throw new HomeKitError('provider_disposed');
   const verified=await inspectHomeKitHelper({native_app:this.settings.app,python:this.settings.python,source_sha256:this.settings.sourceSHA256,signing_team:this.settings.signingTeam});if(verified.status!=='pass')throw new HomeKitError('helper_preflight_'+verified.stage);
-  if(this.settings.control&&verified.protocolVersion!==HOMEKIT_PROTOCOL_VERSION)throw new HomeKitError('helper_control_protocol_required');
+  if(this.settings.control&&!['0.15.0',HOMEKIT_PROTOCOL_VERSION].includes(verified.protocolVersion))throw new HomeKitError('helper_control_protocol_required');
   if(this.closed)throw new HomeKitError('provider_disposed');
   await mkdir(this.settings.stateDirectory,{recursive:true,mode:0o700});
   const directory=dirname(fileURLToPath(import.meta.url));const adjacent=join(directory,'stdio-adapter.py');const adapter=this.settings.adapter??(existsSync(adjacent)?adjacent:join(directory,'homekit/stdio-adapter.py'));if(!isAbsolute(adapter)||!existsSync(adapter))throw new HomeKitError('packaged_adapter_missing');
-  const mode=this.settings.lifecycle?['--lifecycle-directory',join(this.settings.stateDirectory,'ledger'),...(this.settings.control?['--production-controls']:[])]:['--read-only'];
+  const mode=['--mode',this.settings.control?'control':this.settings.lifecycle?'definitions':this.settings.homeId?'read':'enrollment',...(this.settings.homeId?['--home-id',this.settings.homeId]:[]),...(this.settings.lifecycle?['--lifecycle-directory',join(this.settings.stateDirectory,'ledger')]:[])];
   const child=Bun.spawn([this.settings.python,adapter,'--app',this.settings.app,'--state-directory',join(this.settings.stateDirectory,'sessions'),...mode],{stdin:'pipe',stdout:'pipe',stderr:'pipe'});this.process=child;
   void this.read(child.stdout).catch(e=>this.fail(e instanceof HomeKitError?e.code:'invalid_helper_output'));
   void this.stderr(child.stderr).catch(()=>{});
   void child.exited.then(()=>this.fail('helper_disconnected'));
   try{
    const initial=initialization.parse(await this.request('initialize',{}));
-   if(this.settings.control&&initial.serverInfo.version!==HOMEKIT_PROTOCOL_VERSION)throw new HomeKitError('helper_control_protocol_required');
+   if(this.settings.control&&!['0.15.0',HOMEKIT_PROTOCOL_VERSION].includes(initial.serverInfo.version))throw new HomeKitError('helper_control_protocol_required');
+   if(initial.serverInfo.name!==(initial.serverInfo.version==='1.0.0'?'icloud-homekit-helper':'homekit-experiment-probe'))throw new HomeKitError('helper_identity_mismatch');
    if(initial.serverInfo.sourceSHA256!==this.settings.sourceSHA256)throw new HomeKitError('helper_source_mismatch');
    const deadline=Date.now()+Math.min(this.settings.timeoutMs??30000,15000);
    while(true){const status=health.parse(await this.raw('homekit_status',{}));if(status.physicalControlEnabled!==!!this.settings.control)throw new HomeKitError('helper_control_mode_mismatch');if(status.localUserId!==this.settings.localUserId)throw new HomeKitError('helper_user_mismatch');if(status.authorized&&status.ready)break;if(Date.now()>deadline)throw new HomeKitError('helper_not_authorized_or_ready');await new Promise(r=>setTimeout(r,100));}

@@ -10,6 +10,7 @@ interface Dependencies {
  bound:(home:string,scopes:ReadonlySet<string>)=>ControlBinding;
  unchanged:(binding:ControlBinding,scopes:ReadonlySet<string>)=>void;
  provider:(binding:ControlBinding)=>NativeHomeKitProvider;
+ reconnect:(binding:ControlBinding,scopes:ReadonlySet<string>)=>Promise<unknown>;
  register:<T>(name:string,description:string,schema:z.ZodType<T>,run:(input:T,scopes:ReadonlySet<string>)=>Promise<unknown>,readOnly?:boolean)=>void;
 }
 interface Plan {id:string;binding:string;intent:string;state:string;result:string|null;expires:number}
@@ -66,6 +67,7 @@ export function registerHomeKitControls(d:Dependencies){
    return save(p.id,{status,planId:p.id,native,automaticRetry:false,physicalCompletionVerified:false});
   }catch(error){return save(p.id,{status:'unknown',planId:p.id,error:error instanceof HomeKitError?error.code:'provider_failed',...(native?{native}:{}),automaticRetry:false,physicalCompletionVerified:false});}
  });
+ d.register('homekit_control_reconnect','Explicitly reset the exact control transport after failure. Preserves plans/journals and never retries or undoes an operation.',z.object({homeId:z.string().uuid()}).strict(),async(input,scopes)=>{const b=d.bound(input.homeId,scopes);await check(b,scopes);const result=await d.reconnect(b,scopes);await check(b,scopes);return result;},true);
  d.register('homekit_control_cancel','Cancel only a still-prepared control. A dispatched or uncertain operation cannot be undone or retried.',controlReferenceSchema,async(input,scopes)=>{
   const b=d.bound(input.homeId,scopes);await check(b,scopes);const p=row(b,input.planId);
   if(p.state!=='prepared')return outcome(p);

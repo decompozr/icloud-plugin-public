@@ -255,3 +255,51 @@ The Office Light test will use reviewed once-only commands through the actual
 consented MCP connection; no fabricated scopes/tokens or direct native writes
 substitute for that client acceptance. Broader scene/trigger, push and session-lifecycle
 acceptance remain separate gates.
+
+
+## Production helper architecture rebuild (active)
+
+Observed gap: native source remains a single Probe coordinator with experimental
+normal-mode controls and historical product/server naming. Signed packaging and
+host authorization do not complete the requested native architecture rebuild.
+The user requested proper production architecture; Office Light on/off remains
+approved. Fresh control consent is observed, and installed 0.1.89 now reports actual
+control transport readiness true through the existing connected MCP.
+
+The sole task owner will:
+1. Replace the monolithic experiment app with composed native services: launch
+   configuration, private JSON-RPC transport, Home runtime/catalog, events,
+   app-owned definitions, physical controls and durable journals/ownership policy.
+2. Ship HomeKitHelper as the product/server identity, preserve the existing signed
+   bundle identifier/team for Home authorization continuity, and hash the full native
+   source manifest. Retain legacy signed payload support for rollback only.
+3. Remove experimental public control routes and implicit control-enabled startup.
+   Mutating modes require an explicit enrolled Home and private scoped ledger;
+   default launch is idle/denied, enrollment is owner-only read inventory.
+4. Preserve exact identities, supported/opaque restrictions, reservations before
+   dispatch, unknown/mismatch retention and no automatic retry. Reuse the existing
+   signed build and supported local install/supervisor; no new global service.
+5. Verify changed native policy/transport/journal boundaries, signed build and
+   actual read/preview; merge and deploy clean main, reconcile only the existing
+   approved Home/account binding, preserve client grants, then execute the approved
+   light sequence through freshly loaded actual control tools.
+
+Prototype history and rollback artifacts remain retained; no adoption by name,
+credential export, deletion, archive, graph service or Shortcuts work is included.
+Source/file separation alone is not acceptance. Actual client control execution,
+physical readback, natural push and broader session lifecycle remain separately
+reported. Current agent tool declarations still lack control command tools despite
+fresh consent; client tool-catalog refresh is an external execution prerequisite,
+not permission to fabricate scopes or substitute direct native writes.
+
+
+Architecture self-checking: 84 affected host/tooling checks passed, plus exact native
+launch/framing (19), control/journal (20) and presentation (5) checks. Signed Release
+HomeKitHelper v1.0 builds with complete native-source manifest. Actual native
+read/preview passed on the approved Home, unowned scene denial passed and no control
+apply/device writes occurred. Initial private FIFO input exposed a Foundation read
+buffering timeout; switching the bounded transport reader to POSIX partial reads
+repaired it. Failed receipts are retained, not counted as accepted builds.
+Actual signed background readiness/zero-window and compiled shared-HTTP native
+read/resource/reconnect checks passed with fixture principals; client physical
+acceptance is not inferred from these. Verification is same-agent self-review.

@@ -1,10 +1,14 @@
+import {readFileSync,existsSync} from 'node:fs';
+import {dirname,resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {Server} from '@modelcontextprotocol/sdk/server/index.js';
 import {CallToolRequestSchema,ListToolsRequestSchema,ListResourcesRequestSchema,ListResourceTemplatesRequestSchema,ReadResourceRequestSchema,SubscribeRequestSchema,UnsubscribeRequestSchema,McpError,ErrorCode,type CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 import {withInvocationContext,type InvocationContext} from '../modules/context.js';
 import type {ModuleRuntime} from '../modules/runtime.js';
+function implementationVersion(){const directory=dirname(fileURLToPath(import.meta.url));for(const relative of ['../package.json','../../package.json']){const path=resolve(directory,relative);if(!existsSync(path))continue;const value=JSON.parse(readFileSync(path,'utf8'));if(value.name==='@icloud-plugin/icloud'&&typeof value.version==='string')return value.version;}throw Error('MCP implementation version metadata missing');}
 /** Protocol host; authorization and availability derive exclusively from registrations. */
 export function createServer(runtime:ModuleRuntime,publicUrl:string,scopes:ReadonlySet<string>,track:<T>(operation:()=>Promise<T>)=>Promise<T>=operation=>operation(),context?:InvocationContext,observeRead?:(tool:string)=>((result:CallToolResult)=>void)|undefined,resourceSession?:{authorize:()=>Promise<void>}){
- const server=new Server({name:'icloud',version:'0.1.26'},{capabilities:{tools:{},...runtime.hasResources?{resources:{...resourceSession?{subscribe:true}:{}}}:{}}});
+ const server=new Server({name:'icloud',version:implementationVersion()},{capabilities:{tools:{},...runtime.hasResources?{resources:{...resourceSession?{subscribe:true}:{}}}:{}}});
  const disconnect=new AbortController();
  const subscriptions=new Map<string,()=>Promise<void>>();let resourceClosed=false;let resourceQueue:Promise<unknown>=Promise.resolve();
  let clearing:Promise<void>|undefined;const clearSubscriptions=()=>{if(clearing)return clearing;resourceClosed=true;const all=[...subscriptions.values()];subscriptions.clear();clearing=Promise.allSettled(all.map(remove=>remove())).then(()=>{});return clearing;};

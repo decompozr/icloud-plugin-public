@@ -8,13 +8,45 @@
 
 /* Begin PBXBuildFile section */
 		AAA00001 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA00002 /* main.swift */; };
+		BBB00000 /* Application.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF00000 /* Application.swift */; };
+		BBB00001 /* ControlPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF00001 /* ControlPolicy.swift */; };
+		BBB00002 /* EventReplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF00002 /* EventReplay.swift */; };
+		BBB00003 /* HelperRPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF00003 /* HelperRPC.swift */; };
+		BBB00004 /* HomeCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF00004 /* HomeCatalog.swift */; };
+		BBB00005 /* HomeComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF00005 /* HomeComponent.swift */; };
+		BBB00006 /* HomeControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF00006 /* HomeControls.swift */; };
+		BBB00007 /* HomeDefinitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF00007 /* HomeDefinitions.swift */; };
+		BBB00008 /* HomeEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF00008 /* HomeEvents.swift */; };
+		BBB00009 /* HomeKitRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF00009 /* HomeKitRuntime.swift */; };
+		BBB0000A /* IndependentReadback.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF0000A /* IndependentReadback.swift */; };
+		BBB0000B /* OperationJournal.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF0000B /* OperationJournal.swift */; };
+		BBB0000C /* Presentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF0000C /* Presentation.swift */; };
+		BBB0000D /* ResourceLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBF0000D /* ResourceLedger.swift */; };
+		BCB00000 /* LaunchConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCF00000 /* LaunchConfiguration.swift */; };
+		BCB00001 /* JSONRPCTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCF00001 /* JSONRPCTransport.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		AAA00002 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-		AAA00006 /* HomeKitProbe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HomeKitProbe.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AAA00007 /* HomeKitProbe.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HomeKitProbe.entitlements; sourceTree = "<group>"; };
+		AAA00006 /* HomeKitHelper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HomeKitHelper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AAA00007 /* HomeKitHelper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HomeKitHelper.entitlements; sourceTree = "<group>"; };
 		AAA00008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BBF00000 /* Application.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Application.swift; sourceTree = "<group>"; };
+		BBF00001 /* ControlPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlPolicy.swift; sourceTree = "<group>"; };
+		BBF00002 /* EventReplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventReplay.swift; sourceTree = "<group>"; };
+		BBF00003 /* HelperRPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperRPC.swift; sourceTree = "<group>"; };
+		BBF00004 /* HomeCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeCatalog.swift; sourceTree = "<group>"; };
+		BBF00005 /* HomeComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeComponent.swift; sourceTree = "<group>"; };
+		BBF00006 /* HomeControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeControls.swift; sourceTree = "<group>"; };
+		BBF00007 /* HomeDefinitions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeDefinitions.swift; sourceTree = "<group>"; };
+		BBF00008 /* HomeEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeEvents.swift; sourceTree = "<group>"; };
+		BBF00009 /* HomeKitRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeKitRuntime.swift; sourceTree = "<group>"; };
+		BBF0000A /* IndependentReadback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndependentReadback.swift; sourceTree = "<group>"; };
+		BBF0000B /* OperationJournal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationJournal.swift; sourceTree = "<group>"; };
+		BBF0000C /* Presentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation.swift; sourceTree = "<group>"; };
+		BBF0000D /* ResourceLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResourceLedger.swift; sourceTree = "<group>"; };
+		BCF00000 /* LaunchConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchConfiguration.swift; sourceTree = "<group>"; };
+		BCF00001 /* JSONRPCTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONRPCTransport.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31,25 +63,41 @@
 		AAA00010 = {
 			isa = PBXGroup;
 			children = (
-				AAA00011 /* HomeKitProbe */,
+				AAA00011 /* HomeKitHelper */,
 				AAA00012 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		AAA00011 /* HomeKitProbe */ = {
+		AAA00011 /* HomeKitHelper */ = {
 			isa = PBXGroup;
 			children = (
 				AAA00002 /* main.swift */,
-				AAA00007 /* HomeKitProbe.entitlements */,
+				BCF00001 /* JSONRPCTransport.swift */,
+				BCF00000 /* LaunchConfiguration.swift */,
+				BBF00000 /* Application.swift */,
+				BBF00001 /* ControlPolicy.swift */,
+				BBF00002 /* EventReplay.swift */,
+				BBF00003 /* HelperRPC.swift */,
+				BBF00004 /* HomeCatalog.swift */,
+				BBF00005 /* HomeComponent.swift */,
+				BBF00006 /* HomeControls.swift */,
+				BBF00007 /* HomeDefinitions.swift */,
+				BBF00008 /* HomeEvents.swift */,
+				BBF00009 /* HomeKitRuntime.swift */,
+				BBF0000A /* IndependentReadback.swift */,
+				BBF0000B /* OperationJournal.swift */,
+				BBF0000C /* Presentation.swift */,
+				BBF0000D /* ResourceLedger.swift */,
+				AAA00007 /* HomeKitHelper.entitlements */,
 				AAA00008 /* Info.plist */,
 			);
-			path = HomeKitProbe;
+			path = HomeKitHelper;
 			sourceTree = "<group>";
 		};
 		AAA00012 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AAA00006 /* HomeKitProbe.app */,
+				AAA00006 /* HomeKitHelper.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -57,9 +105,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AAA00014 /* HomeKitProbe */ = {
+		AAA00014 /* HomeKitHelper */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AAA00015 /* Build configuration list for PBXNativeTarget "HomeKitProbe" */;
+			buildConfigurationList = AAA00015 /* Build configuration list for PBXNativeTarget "HomeKitHelper" */;
 			buildPhases = (
 				AAA00016 /* Sources */,
 				AAA00009 /* Frameworks */,
@@ -68,9 +116,9 @@
 			);
 			dependencies = (
 			);
-			name = HomeKitProbe;
-			productName = HomeKitProbe;
-			productReference = AAA00006 /* HomeKitProbe.app */;
+			name = HomeKitHelper;
+			productName = HomeKitHelper;
+			productReference = AAA00006 /* HomeKitHelper.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -88,7 +136,7 @@
 					};
 				};
 			};
-			buildConfigurationList = AAA00018 /* Build configuration list for PBXProject "HomeKitProbe" */;
+			buildConfigurationList = AAA00018 /* Build configuration list for PBXProject "HomeKitHelper" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -101,7 +149,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AAA00014 /* HomeKitProbe */,
+				AAA00014 /* HomeKitHelper */,
 			);
 		};
 /* End PBXProject section */
@@ -112,6 +160,22 @@
 			buildActionMask = 2147483647;
 			files = (
 				AAA00001 /* main.swift in Sources */,
+				BCB00001 /* JSONRPCTransport.swift in Sources */,
+				BCB00000 /* LaunchConfiguration.swift in Sources */,
+				BBB00000 /* Application.swift in Sources */,
+				BBB00001 /* ControlPolicy.swift in Sources */,
+				BBB00002 /* EventReplay.swift in Sources */,
+				BBB00003 /* HelperRPC.swift in Sources */,
+				BBB00004 /* HomeCatalog.swift in Sources */,
+				BBB00005 /* HomeComponent.swift in Sources */,
+				BBB00006 /* HomeControls.swift in Sources */,
+				BBB00007 /* HomeDefinitions.swift in Sources */,
+				BBB00008 /* HomeEvents.swift in Sources */,
+				BBB00009 /* HomeKitRuntime.swift in Sources */,
+				BBB0000A /* IndependentReadback.swift in Sources */,
+				BBB0000B /* OperationJournal.swift in Sources */,
+				BBB0000C /* Presentation.swift in Sources */,
+				BBB0000D /* ResourceLedger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,7 +308,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = HomeKitProbe/HomeKitProbe.entitlements;
+				CODE_SIGN_ENTITLEMENTS = HomeKitHelper/HomeKitHelper.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -252,10 +316,10 @@
 				DEVELOPMENT_TEAM = 74NBML8KJB;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = HomeKitProbe/Info.plist;
+				INFOPLIST_FILE = HomeKitHelper/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = NO;
-				INFOPLIST_KEY_NSHomeKitUsageDescription = "Read home accessories, scenes and automation capabilities for the DecompozR HomeKit experiment.";
+				INFOPLIST_KEY_NSHomeKitUsageDescription = "iCloud reads your selected Home and performs device controls you explicitly authorize.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -277,7 +341,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = HomeKitProbe/HomeKitProbe.entitlements;
+				CODE_SIGN_ENTITLEMENTS = HomeKitHelper/HomeKitHelper.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -285,10 +349,10 @@
 				DEVELOPMENT_TEAM = 74NBML8KJB;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = HomeKitProbe/Info.plist;
+				INFOPLIST_FILE = HomeKitHelper/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = NO;
-				INFOPLIST_KEY_NSHomeKitUsageDescription = "Read home accessories, scenes and automation capabilities for the DecompozR HomeKit experiment.";
+				INFOPLIST_KEY_NSHomeKitUsageDescription = "iCloud reads your selected Home and performs device controls you explicitly authorize.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -309,7 +373,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AAA00015 /* Build configuration list for PBXNativeTarget "HomeKitProbe" */ = {
+		AAA00015 /* Build configuration list for PBXNativeTarget "HomeKitHelper" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AAA00021 /* Debug */,
@@ -318,7 +382,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AAA00018 /* Build configuration list for PBXProject "HomeKitProbe" */ = {
+		AAA00018 /* Build configuration list for PBXProject "HomeKitHelper" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AAA00019 /* Debug */,
