@@ -261,3 +261,51 @@ Safari reports `cgWindowNotFound`. The screenshot's 0.1.87 legacy controls
 are not evidence of this task branch being installed. Do not claim the fixed shell
 has been deployed or visually accepted. Local changes remain reviewable on the task
 branch, pending browser acceptance and separate merge/install authorization.
+## Connection action and permission color refinement
+
+The owner requested a distinct Review new capabilities button, no focus-ring visuals
+throughout this application, and different colors for granted actions. Review uses
+the pinned secondary Button's default bordered appearance inside its warning; other
+quiet actions retain their existing recipe. Shared application CSS suppresses focused
+outlines/shadows, including the programmatically focused connection-list container.
+Focus, keyboard navigation, dialog recovery and handlers remain operational.
+
+PermissionTag reuses the unmodified pinned Tag geometry and typography. The pinned
+Tag only exposes neutral/sage tones; additional semantic colors are an explicit
+consumer extension, not a vendor change: read uses informational blue, edit/definitions
+sage, outbound/schedule/share warm amber, and delete/control critical rose. The shared
+adapter consumes catalog semantic tokens; labels remain visible and authoritative.
+
+Chrome fixture self-checking confirms all four badge color roles, bordered Review,
+no focused outline/shadow in the review dialog, and normal Review/Cancel interaction.
+The 390px viewport wraps badges and Review without horizontal overflow. Screenshots
+use synthetic accounts/grants; this does not establish physical iPhone acceptance.
+
+Release 0.1.86 deployed from clean verified remote main
+`6734ad43667dc08004957339817ec48b3ec8a859` after PR #106. Signed provenance,
+installed payload hashes, health/doctor and protected config/custody readbacks passed;
+owner/Home policy, binding and OAuth grants were unchanged. The actual authenticated
+Chrome Connections page also confirmed the four badge colors, bordered Review and
+no connection-list outline. No actual Review confirmation or grant update occurred.
+Private receipts/screenshots remain in `.flow-runtime/homekit-background/connection-visuals`.
+Physical iPhone checks remain unverified. HomeKit physical control stays disabled.
+
+
+Granted actions now reuse the existing permission-category mapping in fixed module
+order: Mail, Calendar, Photos, HomeKit, then unknown Connection scopes. Each module
+has a compact catalog-typography label and its own wrapping badge row. The owner
+explicitly chose to retain the existing semantic colors; colors represent permission
+meaning, not whether a capability is new. Existing grants and Review semantics do
+not change. Grid spacing uses pinned tokens; vendor controls remain unchanged.
+Chrome fixture checks confirm Mail/Calendar/Photos/HomeKit label order, all 12
+fixture badges retained, and no horizontal overflow at desktop or 390px width.
+The 547 existing application/Studio/tooling tests and full build/typechecks pass
+with zero Svelte errors/warnings. These are self-checks, not physical iPhone proof.
+
+Release 0.1.87 deployed from clean verified remote main
+`34f13f0f0e7178ec2887781b791128ef10923998` after PR #108. Signed receipt,
+installed payload/protected-file readbacks and health/doctor passed. The actual
+Chrome connections retained 7/12/3 badges and now show their applicable module
+labels in canonical order. Grants, binding and policies remained unchanged.
+Private screenshots and rollout receipts: `.flow-runtime/homekit-background/grouped-permissions`.
+The exact fixture server was stopped; the production page remains available.

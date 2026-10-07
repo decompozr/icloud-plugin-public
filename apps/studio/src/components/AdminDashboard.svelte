@@ -1,6 +1,8 @@
 <script lang="ts">
   import ActionButton from "./ActionButton.svelte";
-  import Tag from "../lib/design-system/Tag.svelte";
+  import PermissionTag from "./PermissionTag.svelte";
+  import { permissionGroups } from "../lib/permission-groups.js";
+  import { typographyStyle } from "../lib/design-system/typography.js";
   import { spacing } from "../lib/design-system/spacing.js";
   import DesignIcon from "./DesignIcon.svelte";
   import CopyButton from "./CopyButton.svelte";
@@ -9,7 +11,7 @@
   import type { AdminModel } from "../lib/admin-model.svelte.js";
   import { scopeCopy } from "../lib/admin-model.svelte.js";
   let { model, view }: { model: AdminModel; view: string } = $props();
-  const { t } = getContext<UiCopy>("copy");
+  const { t, authT } = getContext<UiCopy>("copy");
   const label = (service: string) =>
     service === "mail"
       ? "Mail"
@@ -195,12 +197,14 @@
         )}{/if}
       <div class="granted-actions">
         <p><strong>{t("grantedActions")}:</strong></p>
-        <ul class="granted-tags" style:--tag-gap={spacing[2]}>
-          {#each connection.grantedScopes.filter( (s) => s.includes(".") ) as granted}<li
-            >
-              <Tag label={scope(granted)} />
-            </li>{/each}
-        </ul>
+        <dl class="granted-module-groups" style:--group-gap={spacing[2]} style:--label-inset={spacing[1]}>
+          {#each permissionGroups(connection.grantedScopes.filter(s => s.includes("."))) as group}
+            <dt class="muted" style={typographyStyle("labelCompact")}>{authT(group.title)}</dt>
+            <dd><ul class="granted-tags" style:--tag-gap={spacing[2]}>
+              {#each group.scopes as granted}<li><PermissionTag label={scope(granted)} scope={granted}/></li>{/each}
+            </ul></dd>
+          {/each}
+        </dl>
       </div>
       {@render line(
         "lastSuccess",
@@ -389,6 +393,9 @@
     flex: 1;
     min-width: 0;
   }
+  .granted-module-groups { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--group-gap); margin: 0; }
+  .granted-module-groups dt { padding-block-start: var(--label-inset); }
+  .granted-module-groups dd { margin: 0; min-width: 0; }
   .granted-tags {
     display: flex;
     flex-wrap: wrap;

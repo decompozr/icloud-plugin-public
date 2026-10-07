@@ -1,7 +1,7 @@
 # HomeKit integration into the current runtime
 
-Status (2026-10-07): deployed locally in 0.1.85 from main commit
-`32ff16909d69a8f841e0863090cbe9c4b5d63e63`. **The complete HomeKit roadmap is not
+Status (2026-10-07): deployed locally in 0.1.87 from main commit
+`34f13f0f0e7178ec2887781b791128ef10923998`. **The complete HomeKit roadmap is not
 accepted.** The retained `plan-homekit-end-to-end` branch preserves the original
 roadmap and experimental evidence. This document tracks the current production
 module, which intentionally exposes a narrower subset.
@@ -227,3 +227,9 @@ capable of natural push; supervised sleep/logout/login; and an explicit durable
 journal retention policy that preserves unknown outcomes. No histories are deleted
 or automatically archived. Shortcuts and graph service remain deferred. Whole-module
 acceptance remains incomplete until those gates have concrete evidence.
+
+
+The 0.1.86 connection-visual update (PR #106) leaves the accepted 0.1.85 HomeKit
+runtime behavior, approved v0.14 enrollment pin, policies and grants unchanged.
+Actual connected-client Home health still passes with physicalControlEnabled=false.
+The whole-module external acceptance gates above remain open.
