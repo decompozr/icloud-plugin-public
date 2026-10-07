@@ -194,8 +194,36 @@ scoped blocker. Legacy browser fixtures were updated for current account cards,
 Apple Home, switch role/visible label interaction, compact labels and left rail;
 persistent fixture notifications are explicitly dismissed between interactions.
 
-Candidate version is 0.1.93; merge, clean-main build and deployment are pending.
+Version 0.1.93 is merged and deployed; owner acceptance is pending.
 The requested Flow runtime migration is complete in the active checkout: ignored
 `.decompozr/flow/run/` replaces the legacy directory after writers stopped; byte
 preservation was checked before compact-record path reconciliation. Installed
 service state/key custody and other checkouts were not moved.
+
+### Bundled UI deployment readback
+
+PR #120 is merged. Release 0.1.93 was built from clean remote main
+`136a85019f2763eafaed8febffbbe21aaec82a98`, verified as the tip immediately before
+release/install. All frozen installs and final UI/account/application checks pass;
+final packaged lifecycle/OAuth upgrade passes again (2 tests / 151 assertions).
+The unchanged signed 0.1.92 helper is reused after source/signature preflight.
+
+The supported updater ran after graceful shutdown and a protected stopped-state
+backup. Installed payload hashes match; config/custody bytes, protected non-transient
+SQLite rows and integrity match the backup. Existing startup OAuth-resource and
+rate-limit timestamps are excluded. This is upgrade-time preservation; subsequent
+authorized client activity is separate. Prior release 0.1.92 and its archive remain
+for rollback. The protected pre-0.1.93 backup contains the private upgrade receipt.
+
+Local/private sign-in returns 200, two private CSS assets match, CSP/no-store/
+no-referrer remain, and all 13 installed client files exclude backend code markers.
+All 13 read-only doctor checks pass from this Mac. The existing main MCP profile
+and actual 9-mailbox listing succeed without new registration, consent or provider
+write. This establishes the existing Mail path, not all module/provider tools or
+a physical owner Passkey/device walkthrough.
+
+The owner tests delivered account/login, bundled settings and normal client access
+then reports pass. Further backend extraction and Studio's final server ownership
+remain planned phases. Known Apple web-session availability and HomeKit's credential
+coupling remain explicitly deferred requirement corrections; this UI extraction
+did not claim to enable those backend paths.
