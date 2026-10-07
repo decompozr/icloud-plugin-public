@@ -373,9 +373,10 @@ The new helper still passes actual MCP readiness after cleanup. Historical relea
 files remain, but their retired native helper must not be treated as a usable
 HomeKit rollback; use the new signed identity.
 
-Settings UI disappearance is not visually verified. Direct read-only TCC database
-inspection is unavailable under existing OS access; no permission expansion or
-system database edits were attempted. CLI registration absence and targeted reset
-are the evidence boundary. App-owned scene execution/enable, natural native/client
+The owner subsequently confirmed that the retired Probe disappeared from the
+settings UI. This closes the settings appearance acceptance through owner visual
+confirmation, alongside CLI registration absence and targeted permission reset.
+Direct read-only TCC database inspection remains unavailable under existing OS
+access; no permission expansion or system database edits were attempted. App-owned scene execution/enable, natural native/client
 push and sleep/logout/login/retention acceptance remain open; this does not mark
 the whole HomeKit roadmap complete. Shortcuts and graph service remain deferred.
