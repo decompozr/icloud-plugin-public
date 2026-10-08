@@ -13,7 +13,7 @@ const envelope=z.object({jsonrpc:z.literal('2.0'),id:z.number().int(),result:z.u
 const initialization=z.object({serverInfo:z.object({name:z.enum(['homekit-experiment-probe','icloud-homekit-helper']),version:z.enum(HOMEKIT_SUPPORTED_PROTOCOLS),sourceSHA256:z.string().regex(/^[a-f0-9]{64}$/)}).passthrough()}).passthrough();
 const health=z.object({ready:z.boolean(),authorized:z.boolean(),localUserId:z.number().int().nonnegative(),physicalControlEnabled:z.boolean()}).passthrough();
 const toolResult=z.object({isError:z.boolean().optional(),content:z.array(z.object({type:z.literal('text'),text:z.string().max(8*1024*1024)}).strict()).length(1)}).passthrough();
-const allowed=new Set(['homekit_status','homekit_list','homekit_automation_inventory','homekit_lifecycle_preview','homekit_read','homekit_lifecycle_mutate','homekit_control_preview','homekit_control_apply','homekit_control_outcome']);
+const allowed=new Set(['homekit_status','homekit_list','homekit_automation_inventory','homekit_lifecycle_preview','homekit_read','homekit_lifecycle_mutate','homekit_lifecycle_recover_creation','homekit_control_preview','homekit_control_apply','homekit_control_outcome']);
 /** No shell/network port; signed bundle via LaunchServices. Never retry a lost response. */
 export class StdioHomeKitProvider implements NativeHomeKitProvider {
  private process?:Bun.Subprocess<'pipe','pipe','pipe'>;
@@ -62,7 +62,7 @@ export class StdioHomeKitProvider implements NativeHomeKitProvider {
   });
  }
  private async raw(tool:string,input:unknown,signal?:AbortSignal){return decodeNativeToolResult(tool,await this.request('tools/call',{name:tool,arguments:input},signal));}
- async call(tool:string,input:unknown,signal?:AbortSignal,beforeDispatch?:()=>Promise<void>){if(!allowed.has(tool)||tool==='homekit_lifecycle_mutate'&&!this.settings.lifecycle||tool.startsWith('homekit_control_')&&(!this.settings.lifecycle||!this.settings.control))throw new HomeKitError('native_tool_denied');this.starting??=this.start();await this.starting;await beforeDispatch?.();if(this.closed||this.failure)throw this.failure??new HomeKitError('provider_disposed');return this.raw(tool,input,signal);}
+ async call(tool:string,input:unknown,signal?:AbortSignal,beforeDispatch?:()=>Promise<void>){if(!allowed.has(tool)||['homekit_lifecycle_mutate','homekit_lifecycle_recover_creation'].includes(tool)&&!this.settings.lifecycle||tool.startsWith('homekit_control_')&&(!this.settings.lifecycle||!this.settings.control))throw new HomeKitError('native_tool_denied');this.starting??=this.start();await this.starting;await beforeDispatch?.();if(this.closed||this.failure)throw this.failure??new HomeKitError('provider_disposed');return this.raw(tool,input,signal);}
  async subscribeEvents(address:EventAddress,listener:{updated:()=>void;failed:(error:HomeKitError)=>void}){this.starting??=this.start();await this.starting;return this.subscriptions.subscribe(address,listener);}
  async readEvents(address:EventAddress,signal?:AbortSignal){
   const uri=nativeEventResourceUri(address);this.starting??=this.start();await this.starting;
