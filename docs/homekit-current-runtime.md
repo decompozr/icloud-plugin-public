@@ -556,7 +556,7 @@ and independent target reads. Until then this milestone is deployed but physical
 scene acceptance remains open. Existing definitions and automation management
 permissions remain unchanged; no new physical writes occurred for this extension.
 
-## Automatic connection capability synchronization (0.1.100 candidate)
+## Automatic connection capability synchronization (0.1.100 deployed)
 
 Enabling a module now updates eligible installation-owner client registration
 ceilings automatically. A separate Connections Review action is no longer needed
@@ -576,3 +576,20 @@ The synthetic OAuth check verifies a cached complete reconnect reaches the signe
 consent page with new permissions, preserves state and PKCE, and preserves every
 grant when denied. A narrow read request remains narrow. Live client consent and
 the approved Office Light / first-floor native scene sequence remain pending.
+
+PR135 merged at `9fc8cb5cdcde06a91ba9768fc39a20310cf7af65` and signed-helper
+release 0.1.100 is installed locally. The unchanged formal helper source pin is
+`bc41a6dd69184a13c7a77ea40c770b29360d632bbc0a9e6ad02c30c196fbbb85`;
+its existing Release signature and team were verified without a new native build.
+Installed payload verification matched 17,426 files/symlinks. Configuration, custody,
+Home bindings/policy, consent/access/refresh rows and owner-store rows were retained.
+Registration ceilings and their audits may change intentionally at startup.
+
+The actual public authorization endpoint was checked via CLI with this ChatGPT
+client's old Mail/Calendar/offline scope snapshot. It returned a signed owner-login
+continuation offering all 15 enabled scopes, including `homekit.scenes`, while
+preserving state and PKCE. This check issued no token and performed no physical
+write. Read-only doctor checks passed. The old open signed consent page is immutable
+and must be restarted through the host's reconnect flow to receive the new list.
+The current conversation still reports scene consent false; genuine host consent
+and the approved first-floor native scene effect remain external prerequisites.
