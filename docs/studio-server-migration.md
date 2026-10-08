@@ -466,4 +466,38 @@ action or physical device acceptance was performed. Independent review found and
 verified early page allowlist, inherited operation lookup and module-page URL
 restoration fixes: anonymous303/foreign403/owner200/unknown404, ctx3/19 and public
 ingress/client purity pass. No remaining scoped blocker. Service candidate0.1.101
-and affected package0.2.0 versions await clean-main deployment.
+and affected package0.2.0 versions were delivered as described below.
+
+### Declarative ctx deployment (0.1.101)
+
+PR136 merged at `32f01a89fef477014ec7d6f4c6a97710d7573a35`. Release 0.1.101
+was built from a clean detached checkout of that remote main, using frozen workspace
+and standalone consumer locks and all six local package artifacts at 0.2.0. The
+existing signed HomeKit Release helper remains unchanged; staging verified its
+signature, team, protocol and source pin without launching it or requesting native
+permissions. No registry publication or dynamic module loading was added.
+
+Post-integration checks: 589 tests / 5,185 assertions, E2E13/258 and final packaged
+lifecycle/OAuth2/151 pass. Browser fixtures pass 58 shell and 142 requirements checks,
+four disabled module panels, late-response fencing and 13 clean client files.
+Independent security review additionally passed 8 synthetic tests / 239 assertions
+at the integrated source, with no remaining scoped blocker. No remote CI checks
+are configured for PR136; local and independent checks are the recorded evidence.
+
+After graceful drain and protected stopped-state backup, the supported updater
+installed the exact payload without initialization. Configuration/custody bytes,
+all non-transient SQLite rows and database integrity are preserved. Only resource
+and rate-limit diagnostic tables are excluded from that row comparison. Local
+sign-in uses the configured `localhost` host and returns200; the private Tailscale
+sign-in returns200 with security headers and byte-identical client CSS. All 13
+read-only doctor checks pass. Existing main MCP profile and nine mailboxes read
+successfully after deployment. No provider write, reset or permission request was
+performed; physical device, real Passkey and owner UI acceptance remain pending.
+
+The canonical release archive and installed0.1.100/0.1.101 remain for rollback.
+The protected receipt is in
+`runtime/backups/pre-0.1.101-20261008T155636Z/upgrade-receipt.json`. Task-owned
+build/install/browser/test scratch is removed after this record is committed;
+the active checkout, runtime checkpoint and unrelated records remain. This UI
+boundary slice is delivered; full backend/server extraction remains phased and
+awaits owner pass before the next slice.
