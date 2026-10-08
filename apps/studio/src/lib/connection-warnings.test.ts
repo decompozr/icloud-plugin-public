@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import { connectionNeedsReview } from "./connection-warnings.js";
-import type { RecoveryClient } from "@decompozr/contracts";
+import type { RecoveryClient } from "./connection-readiness.js";
 const client: RecoveryClient = {
   clientId: "client",
   name: "ChatGPT",

@@ -338,3 +338,65 @@ new work, draining accepted operations, resource disposal, atomic activation and
 rollback. Owner identity/key custody, grants and OS permissions remain independent
 of code replacement. This direction does not claim hot upgrade is implemented now,
 select an update distribution transport or authorize unattended activation.
+
+## Module declaration ownership correction
+
+Each module declares and exports its own public data/API contracts. The account
+wire schema moves to `@decompozr/account/contracts`, a browser-safe subpath separate
+from its backend entry. No feature depends on a central package containing other
+features' declarations or readiness/business decisions.
+
+Current connection/read-evidence interpretation belongs to Studio composition,
+not a generic contracts package; the transitional server consumes its compiled
+host helper. Existing module/runtime registration and lifecycle interfaces remain
+in their current host until the shell migration, without introducing another
+central framework. Remove the superseded contracts package and its dependencies.
+Validate client purity, module isolation, packed consumer install, host/server
+build, OAuth/custody/lifecycle preservation and deployed readback.
+
+UI remains a three-layer decision: the pinned design-system owns visual primitives;
+shared project UI owns composite adapters; feature modules own domain UI. The local
+design-system checkout has a library export but still declares private 0.0.0, so
+this correction does not replace pinned vendor controls with an unversioned live
+checkout. A later independently versioned design-system package can replace those
+pinned copies while retaining the thin UI adapter package. No visual redesign.
+
+### Shell provider and extension UI boundary
+
+The owner clarified two supported mechanisms: a module ships and owns its complete
+UI (component/state/interactions) and the shell mounts its contribution, or the
+module invokes shell-owned standard UI through `ctx` services. Modules never
+import shell component implementations or the global shell model. A module may
+use a versioned design-system dependency for its own UI without knowing the shell's
+component catalog. The current directly shared project UI package is transitional;
+its shell services/adapters must move behind `ctx` in the subsequent UI boundary
+slice. This contract cleanup does not claim that provider/contribution mechanism
+has been fully implemented.
+
+### Current feature UI audit
+
+No module currently declares a navbar/standalone page registration. Account owns
+full authentication page components, but Studio hardcodes their route mounting.
+Mail and Calendar each have only a wrapper around the account app-password
+requirement; these should become declarative requirements with no feature renderer.
+Photos exposes library/authorization status, open-library/privacy actions and
+recheck controls: generic requirements become declarations, while any special
+permission interaction may use an optional modal section. HomeKit exposes account/
+Home selection, explicit linking, binding list and unlink; linking is a legitimate
+custom section (or optional standalone page). Account exposes cards, app-password
+modal, Passkey/OAuth pages and the parked web-session form; other modules should
+request account operations through ctx, not import those component implementations.
+
+The next UI slice uses module-owned declarations for scopes, capabilities, generic
+requirements and settings. Shell renders those standardized controls consistently.
+Optional module renderers are limited to registered navbar pages, standalone pages
+and custom configuration sections. Shell injects ctx on mount; global actions and
+shared dialogs/notifications/account operations are provider functions. A module
+is not required to own a Svelte wrapper for every configuration item. Current
+wrappers/direct shared adapters are transitional, not the accepted final interface.
+
+Contract correction verification: 583 tests / 5,136 assertions, E2E 13 / 258 and
+packaged lifecycle/OAuth 2 / 151 pass. Independent review confirms unchanged owner
+schemas, isolated browser contracts and 13 clean client files. A host declaration
+initially referenced an unshipped Studio directory; emitted declarations are now
+embedded at the artifact-local admin path and independent recheck is clear.

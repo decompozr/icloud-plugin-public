@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { evidenceSchema } from "@decompozr/contracts";
+import { evidenceSchema } from "./connection-readiness.js";
 export const statusSchema = z.object({
   localOwner: z.boolean().optional(),
   ready: z.boolean(),
