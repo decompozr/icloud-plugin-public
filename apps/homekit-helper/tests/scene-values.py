@@ -39,6 +39,12 @@ precondition(SceneReadbackPolicy.summarize([["status":"verified"]])["individualA
 precondition(SceneReadbackPolicy.summarize([["status":"mismatch"]])["error"] as? String == "READBACK_MISMATCH")
 precondition(SceneReadbackPolicy.summarize([["status":"read_failed"]])["error"] as? String == "SCENE_READBACK_UNAVAILABLE")
 precondition(SceneReadbackPolicy.summarize([["status":"unreadable"],["status":"verified"]])["individualActionsVerified"] as? Bool == false)
-print("22 exact scene/provider/naming/readback checks passed; physical writes 0")
+let thermostatStep = NSNumber(value: Float(0.1))
+let thermostatValue = try ControlValue.decode(23, format: "float", minimum: 9, maximum: 32, step: thermostatStep)
+precondition((thermostatValue as? NSNumber)?.doubleValue == 23)
+denied{_ = try ControlValue.decode(23.05, format: "float", minimum: 9, maximum: 32, step: thermostatStep)}
+denied{_ = try ControlValue.decode(33, format: "float", minimum: 9, maximum: 32, step: thermostatStep)}
+denied{_ = try ControlValue.decode(23, format: "uint8", minimum: 9, maximum: 32, step: thermostatStep)}
+print("26 exact scene/provider/naming/readback/Float32-step checks passed; physical writes 0")
 ''')
  subprocess.run(['xcrun','swift',str(p)],check=True,env=dict(os.environ,DEVELOPER_DIR='/Applications/Xcode.app/Contents/Developer'))

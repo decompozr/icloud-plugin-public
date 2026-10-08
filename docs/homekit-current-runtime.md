@@ -594,7 +594,7 @@ and must be restarted through the host's reconnect flow to receive the new list.
 The current conversation still reports scene consent false; genuine host consent
 and the approved first-floor native scene effect remain external prerequisites.
 
-## Existing-scene dispatch contract correction (0.1.102 candidate)
+## Existing-scene dispatch contract correction (0.1.102 deployed and first-floor scene accepted)
 
 After genuine scene consent, the approved Office Light ON operation acknowledged
 and freshly read true. The following Turn Off First Floor native scene apply
@@ -612,3 +612,32 @@ include operation identity, original intent and explicit no-write evidence.
 The original unknown outcome remains immutable. After signed repair deployment,
 a new operation for the already approved first-floor effect is required; neither
 the original operation nor third-floor effects will be retried.
+
+The signed Release repair was deployed locally at 0.1.102 from PR139 merge
+`c813c0b4b9dfecd53bd4d4fb1c20192b6c04a4c8`, helper source pin
+`800ba4be0d044695072877ebbfab0e393508c7d9d335eddeb1ca214f8a84b967`.
+Custody, owner state, policies and client grants were preserved; only helper pin
+and exact existing Home/account/uid binding generation changed. 18,778 installed
+files/symlinks matched the artifact and doctor checks passed.
+
+A new approved Turn Off First Floor operation executed the actual native
+`executeActionSet` API once, acknowledged, and verified all four action readbacks.
+Four independent fresh reads confirmed OFF, including Office Light. No third-floor
+action or definition mutation occurred. The original unknown plan remains unknown
+and was not retried. This establishes SDK callback/fresh-device-state acceptance,
+not independent human physical observation.
+
+## Owner-selected daily thermostat automation
+
+The owner requested every day around 02:00, Heat mode and target 23 Celsius.
+The selected operating timezone is America/Toronto. Inventory identified one
+Living Room Thermostat service with a writable Celsius target temperature and
+heating/cooling target state. Fresh initial reads were 24 Celsius and Off.
+An immediate thermostat write is not part of this scheduling request.
+
+A read-only 23 Celsius control preview exposed Float32 metadata grid rounding:
+step 0.1 is returned as 0.10000000149011612, causing strict double-offset validation
+to reject a valid setpoint. The correction permits bounded Float-format grid
+tolerance proportional to Float32 precision, capped at 0.0001 of a step. Integer
+formats, range limits and meaningful off-grid values remain strict. Scheduling
+and actual 02:00 firing remain pending deployment/definition/enable acceptance.

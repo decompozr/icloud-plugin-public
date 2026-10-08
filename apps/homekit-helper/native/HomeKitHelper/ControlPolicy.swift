@@ -61,7 +61,10 @@ enum ControlValue {
             if let values = validValues, !values.isEmpty, !values.contains(where: { $0.compare(n) == .orderedSame }) { try reject("ENUM_VALUE_INVALID") }
             if let step = step, step.doubleValue > 0 {
                 let offset = (v - (minimum?.doubleValue ?? 0)) / step.doubleValue
-                if abs(offset - offset.rounded()) > 1e-7 { try reject("STEP_VALUE_INVALID") }
+                // HAP Float metadata may contain the binary Float32 approximation of 0.1.
+                // Bound its grid tolerance; integer formats retain the strict check.
+                let tolerance = format == "float" ? min(1e-4, max(1e-7, abs(offset) * Double(Float.ulpOfOne))) : 1e-7
+                if abs(offset - offset.rounded()) > tolerance { try reject("STEP_VALUE_INVALID") }
             }
             return n
         case "string":
