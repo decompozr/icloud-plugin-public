@@ -164,14 +164,15 @@ def main():
     if not context['graphicAccess'] and not args.desktop_session:
         print('This background session has no GUI keychain context. Run in Terminal, or add --desktop-session.', file=sys.stderr)
         return 1
-    if args.desktop_session and not quiet_terminal_available():
+    use_current_desktop = context['graphicAccess'] and context['keychainUnlocked']
+    if args.desktop_session and not use_current_desktop and not quiet_terminal_available():
         print('Hidden desktop signing needs a Terminal session with no existing windows. Existing user windows were preserved; no GUI build launched.', file=sys.stderr)
         return 1
     root = Path(args.output).resolve()
     root.mkdir(parents=True, mode=0o700, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix='build-', dir=root))
     print(f'Private build artifacts: {run}', flush=True)
-    if not args.desktop_session:
+    if not args.desktop_session or use_current_desktop:
         return build(run, args.configuration)
     # Launch Services starts Terminal in the existing logged-in user session.
     # No password, key ACL, trust setting, launch agent or global preference is changed.

@@ -7,7 +7,8 @@ constructs a host window. Explicit enrollment preserves the system Home-data
 permission ceremony; the native diagnostic --show-window path remains explicit.
 Errors return through the existing MCP/Studio feedback paths.
 
-Signed desktop builds use the existing Aqua Terminal context with hidden launch.
+Signed builds reuse an already unlocked Aqua caller directly. Background callers
+use the existing Aqua Terminal context with hidden launch.
 The builder first checks that no existing Terminal windows will be affected, hides
 only its exact single-tab task window, and closes only that finished task window.
 If the desktop context cannot be inspected or existing user windows prevent an
