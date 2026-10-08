@@ -70,6 +70,41 @@ def build(run, configuration="Debug"):
 
 
 
+def quiet_terminal_available():
+    """Inspect without opening Terminal or changing another user's windows."""
+    running = subprocess.run(['pgrep', '-x', 'Terminal'], capture_output=True, text=True)
+    if running.returncode == 1:
+        return True
+    if running.returncode != 0:
+        raise RuntimeError('Cannot inspect the desktop Terminal context')
+    count = subprocess.run(['/usr/bin/osascript', '-e', 'tell application id "com.apple.Terminal" to count windows'], capture_output=True, text=True, timeout=10)
+    if count.returncode != 0 or not count.stdout.strip().isdigit():
+        raise RuntimeError('Cannot inspect Terminal windows; no GUI build launched')
+    return int(count.stdout.strip()) == 0
+
+
+def hide_task_terminal(run):
+    """Hide only the single task window identified by its exact launcher path."""
+    launcher = str(run / 'build.command')
+    script = r"""
+on run argv
+ tell application id "com.apple.Terminal"
+  repeat with wi from (count of windows) to 1 by -1
+   if (name of window wi) contains (item 1 of argv) and (count of tabs of window wi) is 1 then
+    set visible of window wi to false
+    return id of window wi
+   end if
+  end repeat
+ end tell
+ return ""
+end run
+"""
+    result = subprocess.run(['/usr/bin/osascript', '-e', script, launcher], capture_output=True, text=True, timeout=10)
+    if result.returncode != 0:
+        raise RuntimeError('Task-only Terminal hide failed; retain the build receipt')
+    return result.stdout.strip()
+
+
 def close_completed_terminal(run):
     """Close only a finished single-tab window with this run's exact launcher path."""
     launcher = str(run / 'build.command')
@@ -116,7 +151,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', help='Private artifact root; each build creates a unique run directory')
     parser.add_argument('--desktop-session', action='store_true',
-                        help='Run xcodebuild in a new desktop Terminal window through Launch Services')
+                        help='Run xcodebuild in a hidden task-only desktop Terminal; requires no existing Terminal windows')
     parser.add_argument('--configuration', choices=['Debug','Release'], default='Debug')
     parser.add_argument('--worker-directory', help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -129,11 +164,15 @@ def main():
     if not context['graphicAccess'] and not args.desktop_session:
         print('This background session has no GUI keychain context. Run in Terminal, or add --desktop-session.', file=sys.stderr)
         return 1
+    use_current_desktop = context['graphicAccess'] and context['keychainUnlocked']
+    if args.desktop_session and not use_current_desktop and not quiet_terminal_available():
+        print('Hidden desktop signing needs a Terminal session with no existing windows. Existing user windows were preserved; no GUI build launched.', file=sys.stderr)
+        return 1
     root = Path(args.output).resolve()
     root.mkdir(parents=True, mode=0o700, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix='build-', dir=root))
     print(f'Private build artifacts: {run}', flush=True)
-    if not args.desktop_session:
+    if not args.desktop_session or use_current_desktop:
         return build(run, args.configuration)
     # Launch Services starts Terminal in the existing logged-in user session.
     # No password, key ACL, trust setting, launch agent or global preference is changed.
@@ -141,7 +180,14 @@ def main():
     worker = ['/usr/bin/python3', str(Path(__file__).resolve()), '--worker-directory', str(run), '--configuration', args.configuration]
     launcher.write_text('#!/bin/zsh\numask 077\nexec ' + shlex.join(worker) + '\n')
     launcher.chmod(0o700)
-    subprocess.run(['open', '-g', '-a', 'Terminal', str(launcher)], check=True)
+    subprocess.run(['open', '-g', '-j', '-a', 'Terminal', str(launcher)], check=True)
+    hidden_window = ''
+    hide_deadline = time.monotonic() + 2
+    while not hidden_window and time.monotonic() < hide_deadline:
+        hidden_window = hide_task_terminal(run)
+        if not hidden_window:
+            time.sleep(.05)
+    (run / 'presentation.json').write_text(json.dumps(dict(launchHidden=True, taskWindowHidden=bool(hidden_window), taskWindowId=hidden_window, otherTerminalWindowsChanged=False), indent=2) + '\n')
     deadline = time.monotonic() + 600
     last_update = 0
     while time.monotonic() < deadline:

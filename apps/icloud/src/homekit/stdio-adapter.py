@@ -49,7 +49,9 @@ fifo=session/'stdin.fifo';os.mkfifo(fifo,0o600)
 input_stream=os.fdopen(os.open(fifo,os.O_RDWR),'w',buffering=1)
 output=session/'stdout.jsonl';output.write_text('')
 pid_file=session/'native.pid'
-launcher=subprocess.Popen(['open','-g','-W','-n','-a',str(app),'--stdin',str(fifo),'--stdout',str(output),
+# Bound background calls launch hidden before Catalyst can present its host window.
+# Explicit enrollment retains the normal system Home-data permission ceremony.
+launcher=subprocess.Popen(['open','-g',*(['-j'] if mode!='enrollment' else []),'-W','-n','-a',str(app),'--stdin',str(fifo),'--stdout',str(output),
     '--stderr',str(session/'native-stderr.log'),'--args','--event-journal',str(session/'events.jsonl'),
     '--pid-file',str(pid_file),*native_mode],stdout=subprocess.DEVNULL,stderr=sys.stderr)
 stopping=threading.Event()
