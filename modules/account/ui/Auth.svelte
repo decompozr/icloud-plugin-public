@@ -1,8 +1,8 @@
 <script lang="ts">
-  import ActionButton from "../../../packages/ui/src/components/ActionButton.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
-  import type { UiCopy, AuthMode, ScopeLabels } from "../../../packages/ui/src/contracts.js";
+  import type { UiCopy, AuthMode, ScopeLabels } from "@decompozr/ui/contracts";
   import {
     AuthFailure,
     request,
@@ -11,9 +11,9 @@
     signIn,
   } from "./auth-protocol.js";
   import type {DialogCenter} from "./dialog-state.svelte.js";
-  import type {ToastCenter} from "../../../packages/ui/src/toast-state.svelte.js";
-  import { permissionGroups } from "../../../packages/ui/src/permission-groups.js";
-  import Brand from "../../../packages/ui/src/components/Brand.svelte";
+  import type {ToastCenter} from "@decompozr/ui/toast-state.svelte.js";
+  import { permissionGroups } from "@decompozr/ui/permission-groups.js";
+  import Brand from "@decompozr/ui/components/Brand.svelte";
   let {
     mode,
     privateAdmin = false,

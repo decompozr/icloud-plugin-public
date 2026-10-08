@@ -227,3 +227,51 @@ then reports pass. Further backend extraction and Studio's final server ownershi
 remain planned phases. Known Apple web-session availability and HomeKit's credential
 coupling remain explicitly deferred requirement corrections; this UI extraction
 did not claim to enable those backend paths.
+
+## Installed, independently versioned module packages
+
+Accepted after bundled UI delivery: each feature has one package and independent
+SemVer release identity, with explicit server/UI subpath exports. Studio installs
+packages through declared dependencies rather than repository-relative imports.
+Modules ship in one service; publishing a module does not upgrade the running
+installation. Studio's dependency lock, verification and service release remain
+the activation boundary.
+
+The local executable slice introduces Bun workspaces, module/package versions,
+public exports and installable tarballs. Account exports its existing backend and
+UI; Mail/Calendar/Photos/HomeKit currently export UI only until their backend
+extraction phases. Shared UI/universal contracts are versioned packages too.
+Packed metadata resolves workspace dependencies to exact versions, excludes tests/
+state/secrets and records checksums. Verify isolated consumer installation, package
+exports, Svelte composition, client/server boundaries and native artifact upgrade.
+
+No new runtime or global installer. Preserve provider/state/scope/native behavior.
+Registry publication awaits an explicitly selected private destination and access;
+no public npm publish is authorized. Local package artifacts and installed service
+are deliverable independently of that missing destination. Remaining source/server
+migration phases and owner acceptance still remain visible.
+
+### Versioned package checkpoint
+
+Seven package identities start at 0.1.0 independently of service 0.1.98. Public
+imports use package exports; account backend is installed once and the temporary
+built-test facade forwards to that same instance. Standalone consumers install
+exact local TGZs, not source-folder links. Workspace ranges become exact packed
+dependencies, with license/notices, checksums and filtered contents. Private flags
+remain until an explicitly selected private registry is configured; no registry
+publish has run. Other feature server exports remain deferred, not fabricated.
+
+Self-checking: 583 tests / 5,143 assertions, built HTTP E2E 13 / 258, package
+consumer test 1 / 16 outside the repo, 58 persistent-shell browser checks, four
+disabled-module/race checks and 13 client files without backend code. Candidate
+packaged lifecycle/OAuth upgrade passes (2 / 151). The initial successful staged
+install omitted a lockfile; independent review caught it before release. Consumer
+installation now runs in an isolated temporary directory, explicitly generates
+and validates its own lock, and performs frozen production installation. All seven
+module packages are installed, not merely copied as tarballs. A nested SDK metadata
+resolution returned no version; the generator now requires exact authored versions
+instead of silently deleting that dependency. Existing SDK versions are preserved.
+
+Fresh-checkout/root-lock verification, clean-main release/install and live readback
+remain pending. Registry selection/publication and owner acceptance remain separate
+from local package delivery.

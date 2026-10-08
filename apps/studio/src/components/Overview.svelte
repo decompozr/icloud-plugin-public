@@ -1,19 +1,19 @@
 <script lang="ts">
-  import AccountCard from "../../../../modules/account/ui/AccountCard.svelte";
-  import ModuleSwitch from "../../../../packages/ui/src/components/ModuleSwitch.svelte";
-  import Tag from "../../../../packages/ui/src/design-system/Tag.svelte";
+  import AccountCard from "@decompozr/account/ui/AccountCard.svelte";
+  import ModuleSwitch from "@decompozr/ui/components/ModuleSwitch.svelte";
+  import Tag from "@decompozr/ui/design-system/Tag.svelte";
   import { scopeCopy } from "../lib/admin-model.svelte.js";
-  import { controlMetrics } from "../../../../packages/ui/src/design-system/controlMetrics.js";
-  import { spacing } from "../../../../packages/ui/src/design-system/spacing.js";
-  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
+  import { controlMetrics } from "@decompozr/ui/design-system/controlMetrics.js";
+  import { spacing } from "@decompozr/ui/design-system/spacing.js";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
   import type { DialogCenter } from "../lib/ui-state.svelte.js";
-  import CopyButton from "../../../../packages/ui/src/components/CopyButton.svelte";
-  import RefreshButton from "../../../../packages/ui/src/components/RefreshButton.svelte";
-  import Skeleton from "../../../../packages/ui/src/components/Skeleton.svelte";
-  import DesignIcon from "../../../../packages/ui/src/components/DesignIcon.svelte";
+  import CopyButton from "@decompozr/ui/components/CopyButton.svelte";
+  import RefreshButton from "@decompozr/ui/components/RefreshButton.svelte";
+  import Skeleton from "@decompozr/ui/components/Skeleton.svelte";
+  import DesignIcon from "@decompozr/ui/components/DesignIcon.svelte";
   let {
     model,
     dialogs,

@@ -1,6 +1,6 @@
 import{createNativeReset}from'./server/native-reset.js';
 import{assertResetComplete}from'./server/system-reset.js';
-import{prepareLocalOwner}from'../../../modules/account/dist/index.js';
+import{prepareLocalOwner}from'@decompozr/account/server';
 import{Database}from'bun:sqlite';
 import{join,dirname,resolve}from'node:path';
 import{fileURLToPath}from'node:url';

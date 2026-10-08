@@ -1,8 +1,8 @@
 <script lang="ts">
-  import AccountCard from "../../../../modules/account/ui/AccountCard.svelte";
-  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
-  import { spacing } from "../../../../packages/ui/src/design-system/spacing.js";
-  import { controlMetrics } from "../../../../packages/ui/src/design-system/controlMetrics.js";
+  import AccountCard from "@decompozr/account/ui/AccountCard.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
+  import { spacing } from "@decompozr/ui/design-system/spacing.js";
+  import { controlMetrics } from "@decompozr/ui/design-system/controlMetrics.js";
   import { getContext, onMount, tick, untrack } from "svelte";
   import type { AdminState, UiCopy } from "../contracts.js";
   import { AdminModel } from "../lib/admin-model.svelte.js";
@@ -12,16 +12,16 @@
     type LocaleControl,
     type NavigationControl,
   } from "../lib/ui-state.svelte.js";
-  import Icon from "../../../../packages/ui/src/components/Icon.svelte";
+  import Icon from "@decompozr/ui/components/Icon.svelte";
   import Overview from "./Overview.svelte";
   import AdminDashboard from "./AdminDashboard.svelte";
   import ModuleDialog from "./ModuleDialog.svelte";
   import RequirementDialog from "./RequirementDialog.svelte";
-  import Modal from "../../../../packages/ui/src/components/Modal.svelte";
-  import DesignIcon from "../../../../packages/ui/src/components/DesignIcon.svelte";
+  import Modal from "@decompozr/ui/components/Modal.svelte";
+  import DesignIcon from "@decompozr/ui/components/DesignIcon.svelte";
   import LanguageMenu from "./LanguageMenu.svelte";
   import SystemReset from "./SystemReset.svelte";
-  import RefreshButton from "../../../../packages/ui/src/components/RefreshButton.svelte";
+  import RefreshButton from "@decompozr/ui/components/RefreshButton.svelte";
   let { state: pageState }: { state: AdminState } = $props();
   const copy = getContext<UiCopy>("copy"),
     { t } = copy,

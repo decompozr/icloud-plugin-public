@@ -4,7 +4,7 @@ import {join} from 'node:path';
 import {userInfo} from 'node:os';
 import type {Database} from 'bun:sqlite';
 import {zodToJsonSchema} from 'zod-to-json-schema';
-import type {OwnerSecretStore} from '../../../../modules/account/dist/index.js';
+import type {OwnerSecretStore} from '@decompozr/account/server';
 import type {RuntimeModule,RegisteredTool} from '../modules/runtime.js';
 import {invocationContext,withInvocationContext} from '../modules/context.js';
 import {parseInventoryPage,inventoryRequestSchema} from './contracts.js';

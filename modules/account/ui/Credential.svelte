@@ -1,9 +1,9 @@
 <script lang="ts">
-  import ActionButton from "../../../packages/ui/src/components/ActionButton.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext } from "svelte";
-  import type { UiCopy } from "../../../packages/ui/src/contracts.js";
+  import type { UiCopy } from "@decompozr/ui/contracts";
   const { t } = getContext<UiCopy>("copy");
-  import Copy from "../../../packages/ui/src/components/Copy.svelte";
+  import Copy from "@decompozr/ui/components/Copy.svelte";
   import type {AccountEditPort} from "./ports.js";
   let { admin, model }: { admin: boolean; model?: AccountEditPort } = $props();
   const account = $derived(

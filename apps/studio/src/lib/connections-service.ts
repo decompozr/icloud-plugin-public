@@ -3,11 +3,11 @@ import {
   recoverySchema,
   type ConnectionsRequest,
   type ConnectionsResponse,
-} from "../../../../packages/contracts/dist/index.js";
+} from "@decompozr/contracts";
 export type {
   ConnectionsRequest,
   ConnectionsResponse,
-} from "../../../../packages/contracts/dist/index.js";
+} from "@decompozr/contracts";
 export const connectionsRequest: ConnectionsRequest = {
   method: "GET",
   path: "/icloud/admin/oauth-clients",

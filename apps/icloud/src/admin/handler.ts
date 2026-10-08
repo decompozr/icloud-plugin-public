@@ -1,7 +1,7 @@
 import { z } from 'zod';
 interface PhotosCloudAdmin {status(accountId?:string):Promise<unknown>;setup():Promise<unknown>;action(input:{action:'login'|'verify'|'send_code'|'recheck'|'revoke';accountId:string;password?:string;code?:string;confirm?:true}):Promise<unknown>;}
 
-import type { OwnerSecretStore } from '../../../../modules/account/dist/index.js';
+import type { OwnerSecretStore } from '@decompozr/account/server';
 import type {SystemStatus} from './system-status.js';
 import { setupPage,type AdminPresentation } from './page.js';
 export interface TailscaleStatus { installed: boolean; authenticated: boolean; online: boolean; privateReachable: boolean }

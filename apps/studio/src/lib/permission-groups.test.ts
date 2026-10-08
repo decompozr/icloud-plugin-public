@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { permissionGroups } from "../../../../packages/ui/src/permission-groups.js";
+import { permissionGroups } from "@decompozr/ui/permission-groups.js";
 test("reconnecting separates HomeKit from offline and unknown connection permissions", () => {
   const groups = permissionGroups([
     "offline_access",

@@ -9,18 +9,20 @@
     "test:lifecycle": "bun test ./lifecycle"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "1.31.0",
     "cbor-x": "1.6.4",
     "nodemailer": "10.0.14",
-    "zod": "^3.25.0"
+    "zod": "3.25.76",
+    "@decompozr/account": "workspace:*",
+    "@decompozr/contracts": "workspace:*"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.3.1",
-    "@types/bun": "^1.4.2",
-    "@types/node": "^22.0.0",
-    "@types/nodemailer": "^7.0.0",
-    "imapflow": "^1.0.181",
-    "typescript": "^5.9.0"
+    "@types/bun": "1.4.2",
+    "@types/node": "22.20.4",
+    "@types/nodemailer": "7.0.12",
+    "imapflow": "1.7.8",
+    "typescript": "5.9.3"
   },
   "packageManager": "bun@1.4.2"
 }

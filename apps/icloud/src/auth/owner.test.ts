@@ -6,7 +6,7 @@ import {z} from 'zod';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createOwnerAuth} from '../../../../modules/account/dist/index.js';
+import {createOwnerAuth} from '@decompozr/account/server';
 const hash=(v:string|Uint8Array)=>createHash('sha256').update(v).digest();
 const b64=(v:Uint8Array)=>Buffer.from(v).toString('base64url');
 const encoder=new Encoder({useRecords:false,mapsAsObjects:false});
@@ -344,7 +344,7 @@ test('local RP associates an established owner without replacing remote credenti
 });
 
 test('application local owner custody enrollment and confirmed remote pairing preserve owner and reject spoofed ingress',async()=>{
- const {createApplication}=await import('../server/application.js'),{SqliteOwnerStore}=await import('../../../../modules/account/dist/index.js'),{prepareLocalOwner}=await import('../../../../modules/account/dist/index.js');
+ const {createApplication}=await import('../server/application.js'),{SqliteOwnerStore}=await import('@decompozr/account/server'),{prepareLocalOwner}=await import('@decompozr/account/server');
  const {mkdirSync}=await import('node:fs'),{createServer}=await import('node:net');
  const freePort=async()=>{const server=createServer();await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const address=server.address();if(!address||typeof address==='string')throw Error('No port');await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));return address.port;};
  const directory=mkdtempSync(join(tmpdir(),'icloud-local-route-')),masterKey=randomBytes(32),proof='fixture-bootstrap-proof-at-least-thirty-two-bytes';

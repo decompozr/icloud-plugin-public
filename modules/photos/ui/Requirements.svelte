@@ -1,5 +1,5 @@
 <script lang="ts">
- import type{ModuleRequirementsProps}from'../../../packages/ui/src/contracts.js';
+ import type{ModuleRequirementsProps}from'@decompozr/ui/contracts';
  import Setup from './PhotosSetup.svelte';
  let{onverified}:ModuleRequirementsProps=$props();
 </script>

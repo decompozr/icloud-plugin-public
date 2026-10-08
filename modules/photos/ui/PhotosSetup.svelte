@@ -1,10 +1,10 @@
 <script lang="ts">
-  import ActionButton from "../../../packages/ui/src/components/ActionButton.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext, onMount, untrack } from "svelte";
-  import type { UiCopy } from "../../../packages/ui/src/contracts.js";
-  import type { ToastCenter } from "../../../packages/ui/src/toast-state.svelte.js";
+  import type { UiCopy } from "@decompozr/ui/contracts";
+  import type { ToastCenter } from "@decompozr/ui/toast-state.svelte.js";
   import { z } from "zod";
-  import RequirementStep from "../../../packages/ui/src/components/RequirementStep.svelte";
+  import RequirementStep from "@decompozr/ui/components/RequirementStep.svelte";
   let {
     active = true,
     onverified,

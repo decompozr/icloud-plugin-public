@@ -3,7 +3,7 @@ import type {ModuleRuntime} from '../modules/runtime.js';
 import {withInvocationContext,type InvocationContext} from '../modules/context.js';
 import {implementationVersion} from './server.js';
 import type {ReadinessEvidence} from '../admin/evidence.js';
-import type {Principal} from '../../../../modules/account/dist/index.js';
+import type {Principal} from '@decompozr/account/server';
 /** Modern wire framing belongs to the official SDK; domain policy stays in ModuleRuntime. */
 export function createModernServer(runtime:ModuleRuntime,publicUrl:string,principal:Principal,context:InvocationContext,track:<T>(run:()=>Promise<T>)=>Promise<T>,evidence?:ReadinessEvidence){
  const scopes=principal.scopes;

@@ -1,0 +1,37 @@
+{
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "@types/node": "22.20.4",
+    "typescript": "5.9.3",
+    "svelte": "5.57.1"
+  },
+  "name": "@decompozr/calendar",
+  "version": "0.1.0",
+  "private": true,
+  "files": [
+    "ui",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "exports": {
+    "./ui": "./ui/index.ts",
+    "./ui/*": "./ui/*",
+    "./ui/*.js": "./ui/*.ts",
+    "./ui/*.svelte.js": "./ui/*.svelte.ts"
+  },
+  "dependencies": {
+    "@decompozr/ui": "workspace:*",
+    "@decompozr/account": "workspace:*",
+    "zod": "3.25.76"
+  },
+  "peerDependencies": {
+    "svelte": "5.57.1"
+  },
+  "peerDependenciesMeta": {
+    "svelte": {
+      "optional": true
+    }
+  }
+}

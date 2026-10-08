@@ -6,7 +6,7 @@ import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import {ModuleRuntime,type RuntimeModule} from './runtime.js';
 import {createServer} from '../mcp/server.js';
 import {createHttpApp} from '../server/http.js';
-import {createVerifier} from '../../../../modules/account/dist/index.js';
+import {createVerifier} from '@decompozr/account/server';
 import {mailRegistration} from '../mail/mcp/tools.js';
 import type {MailOperations} from '../mail/domain/mail.js';
 import type {Config} from '../mail/config.js';

@@ -1,4 +1,4 @@
-import type {Principal} from '../../../../modules/account/dist/index.js';
+import type {Principal} from '@decompozr/account/server';
 import type {CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 export interface EvidenceRow {accountId:string;clientId:string;service:string;authorizedAt:string;expiresAt:string;reads:Record<string,string>}
 interface Stored extends EvidenceRow {ownerId:string;stamp:string}

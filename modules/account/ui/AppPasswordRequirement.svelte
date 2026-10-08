@@ -1,9 +1,9 @@
 <script lang="ts">
  import {getContext} from 'svelte';
- import type{UiCopy,ModuleRequirementsProps}from'../../../packages/ui/src/contracts.js';
+ import type{UiCopy,ModuleRequirementsProps}from'@decompozr/ui/contracts';
  import type{DialogCenter}from'./dialog-state.svelte.js';
- import RequirementStep from '../../../packages/ui/src/components/RequirementStep.svelte';
- import ActionButton from '../../../packages/ui/src/components/ActionButton.svelte';
+ import RequirementStep from '@decompozr/ui/components/RequirementStep.svelte';
+ import ActionButton from '@decompozr/ui/components/ActionButton.svelte';
  let{credentialReady=false}:ModuleRequirementsProps=$props();
  const{t}=getContext<UiCopy>('copy');const dialogs=getContext<DialogCenter>('dialogs');
 </script>

@@ -1,0 +1,20 @@
+{
+  "name": "@decompozr/icloud-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/icloud",
+    "apps/studio",
+    "apps/e2e",
+    "packages/tooling",
+    "packages/contracts",
+    "packages/ui",
+    "modules/*"
+  ],
+  "packageManager": "bun@1.4.2",
+  "scripts": {
+    "build": "bun bin/build",
+    "test": "bun bin/test",
+    "typecheck": "bun bin/typecheck"
+  }
+}

@@ -1,12 +1,12 @@
 import { mkdir, rm, cp } from "node:fs/promises";
-import { join } from "node:path";
+import { join,dirname } from "node:path";
 import { svelteServerPlugin } from "./svelte-plugin.js";
 const root = join(import.meta.dir, ".."),
   dist = join(root, "dist");
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 const kit = Bun.spawn(
-  [process.execPath, join(root, "node_modules/vite/bin/vite.js"), "build"],
+  [process.execPath, join(dirname(Bun.resolveSync("vite/package.json",root)),"bin/vite.js"), "build"],
   { cwd: root, stdout: "inherit", stderr: "inherit" },
 );
 if ((await kit.exited) !== 0) throw Error("SvelteKit application build failed");
@@ -26,7 +26,7 @@ if (!result.success)
 const types = Bun.spawn(
   [
     process.execPath,
-    join(root, "node_modules/typescript/bin/tsc"),
+    join(dirname(Bun.resolveSync("typescript/package.json",root)),"bin/tsc"),
     "--declaration",
     "--emitDeclarationOnly",
     "--outDir",
@@ -48,16 +48,7 @@ const types = Bun.spawn(
 );
 if ((await types.exited) !== 0) throw Error("Studio declaration build failed");
 await cp(join(dist,"types/apps/studio/src"),dist,{recursive:true});
-// Keep public declarations portable; shared type-only contracts are embedded.
-const contractsPath=join(dist,'contracts.d.ts');
-const contracts=(await Bun.file(contractsPath).text()).replace(/export type \{[^}]+\} from ["'][^"']*packages\/ui\/src\/contracts\.js["'];\n/g,'');
-const sharedTypes=await Bun.file(join(root,'../../packages/ui/src/contracts.d.ts')).text();
-const publicTypes=sharedTypes.slice(sharedTypes.indexOf('export interface UiCopy'),sharedTypes.indexOf('export interface ModuleRequirementsProps'));
-await Bun.write(contractsPath,publicTypes+'\n'+contracts);
-await mkdir(join(dist,'shared'),{recursive:true});
-await cp(join(dist,'types/packages/ui/src/branding.d.ts'),join(dist,'shared/branding.d.ts'));
-const indexPath=join(dist,'index.d.ts');
-await Bun.write(indexPath,(await Bun.file(indexPath).text()).replace('../../../packages/ui/src/branding.js','./shared/branding.js'));
+// Public declarations use installed package exports instead of repo source paths.
 await rm(join(dist,"types"),{recursive:true,force:true});
 const adminKeys = Object.keys(
   await Bun.file(join(root, "messages/en.json")).json(),

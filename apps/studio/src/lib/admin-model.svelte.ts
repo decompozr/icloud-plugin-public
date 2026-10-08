@@ -10,8 +10,8 @@ import {
   type RecoveryClient,
   type AuthorizedConnection,
   type ClientImpact,
-} from "../../../../packages/contracts/dist/index.js";
-import { registerOwner } from "../../../../modules/account/ui/auth-protocol.js";
+} from "@decompozr/contracts";
+import { registerOwner } from "@decompozr/account/ui/auth-protocol.js";
 import type { ToastCenter } from "./ui-state.svelte.js";
 import { connectionNeedsReview } from "./connection-warnings.js";
 import { createConnectionsService } from "./connections-service.js";
