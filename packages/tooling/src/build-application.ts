@@ -19,6 +19,8 @@ const entries:string[]=[];
 for await(const path of new Bun.Glob('**/*.ts').scan(source))if(!(path.startsWith('photos/')&&excludedPhotos.has(path.slice(7)))&&!path.includes('test-fixtures/')&&!path.endsWith('.test.ts')&&!path.endsWith('.worker.ts'))entries.push(resolve(source,path));
 const server=await Bun.build({entrypoints:entries,root:source,outdir:output,target:'bun',packages:'external',splitting:true});
 if(!server.success)throw new AggregateError(server.logs,'Application build failed');
+await cp(join(repository,'apps/studio/dist/lib/connection-readiness.d.ts'),join(output,'admin/readiness.d.ts'));
+
 // Transitional built-test facade forwards to the same installed package instance.
 await mkdir(join(output,'account'),{recursive:true});
 await Bun.write(join(output,'account/index.js'),"export * from '@decompozr/account/server';\n");

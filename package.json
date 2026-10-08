@@ -7,7 +7,6 @@
     "apps/studio",
     "apps/e2e",
     "packages/tooling",
-    "packages/contracts",
     "packages/ui",
     "modules/*"
   ],

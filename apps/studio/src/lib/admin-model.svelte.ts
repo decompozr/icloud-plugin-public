@@ -10,7 +10,7 @@ import {
   type RecoveryClient,
   type AuthorizedConnection,
   type ClientImpact,
-} from "@decompozr/contracts";
+} from "./connection-readiness.js";
 import { registerOwner } from "@decompozr/account/ui/auth-protocol.js";
 import type { ToastCenter } from "./ui-state.svelte.js";
 import { connectionNeedsReview } from "./connection-warnings.js";

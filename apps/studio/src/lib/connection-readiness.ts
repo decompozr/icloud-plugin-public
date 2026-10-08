@@ -1,7 +1,7 @@
 import {z} from 'zod';
-import {connectionSchema,recoverySchema,type RecoveryClient} from './account.js';
-export {connectionSchema,clientImpactSchema,clientPreviewSchema,recoverySchema} from './account.js';
-export type {AuthorizedConnection,ClientImpact,RecoveryClient,ConnectionsResponse} from './account.js';
+import {connectionSchema,recoverySchema,type RecoveryClient} from '@decompozr/account/contracts';
+export {connectionSchema,clientImpactSchema,clientPreviewSchema,recoverySchema} from '@decompozr/account/contracts';
+export type {AuthorizedConnection,ClientImpact,RecoveryClient,ConnectionsResponse} from '@decompozr/account/contracts';
 /** Registration is a ceiling, never evidence of account-bound consent or a read. */
 export function readiness(policy:Record<string,boolean>|null|undefined,service:string,client?:RecoveryClient){
  return {configured:policy===null||policy===undefined?'configuredUnknown':policy.read?'configuredOn':'configuredOff',authorization:'unknownAuthorization',tested:'unknownRead',recovery:!client?'recoverySelect':client.registeredScopes.includes(service+'.read')?'recoveryConsent':client.recovery==='explicit_client_update_then_consent'?'recoveryOwner':'recoveryNew'} as const;
