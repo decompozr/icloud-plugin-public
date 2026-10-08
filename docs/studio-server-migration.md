@@ -400,3 +400,26 @@ packaged lifecycle/OAuth 2 / 151 pass. Independent review confirms unchanged own
 schemas, isolated browser contracts and 13 clean client files. A host declaration
 initially referenced an unshipped Studio directory; emitted declarations are now
 embedded at the artifact-local admin path and independent recheck is clear.
+
+### Owned contract delivery
+
+PR #133 is merged and service 0.1.99 was built from clean remote main
+`f8314f75d54c10687ba37078e9150d6282e5e21b`, verified as the tip before release/install.
+Final frozen build, all UI type checks and artifact lifecycle/OAuth checks (2 / 151)
+pass. Account/Mail/Calendar package versions are 0.1.1; account declares its own
+browser-pure contracts, and the central package is absent. Other package versions
+remain unchanged. The native helper bundle is unchanged and staging verifies it.
+
+After graceful drain and protected stopped-state backup, the supported updater
+installed the exact payload without initialization. Config/custody bytes, protected
+non-transient database rows and integrity are preserved; expected resource/rate-limit
+timestamps are excluded. Prior release 0.1.98 and the pre-0.1.99 backup remain for
+rollback. A private upgrade receipt records these checks. Sign-in returns 200,
+13 client files exclude backend markers, and 13 doctor checks pass from this Mac.
+The existing main MCP reads 9 mailboxes without new registration/consent or writes.
+These checks do not establish physical owner/device acceptance.
+
+The feature UI audit and revised ctx/registration boundary are accepted direction,
+not an implemented new renderer protocol. Mail/Calendar wrappers, self-owned page
+contributions, standard declarative popup fields and Home linking ctx integration
+remain the next UI boundary slice.
