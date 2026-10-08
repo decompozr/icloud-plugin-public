@@ -25,7 +25,7 @@
     },
     "apps/icloud": {
       "name": "@icloud-plugin/icloud",
-      "version": "0.1.99",
+      "version": "0.1.100",
       "dependencies": {
         "@better-auth/oauth-provider": "1.7.7",
         "@better-auth/passkey": "1.7.7",
@@ -58,7 +58,7 @@
     },
     "apps/studio": {
       "name": "@icloud-plugin/studio",
-      "version": "0.1.99",
+      "version": "0.1.100",
       "dependencies": {
         "@decompozr/account": "workspace:*",
         "@decompozr/calendar": "workspace:*",
@@ -87,7 +87,7 @@
     },
     "modules/account": {
       "name": "@decompozr/account",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@better-auth/oauth-provider": "1.7.7",
         "@better-auth/passkey": "1.7.7",

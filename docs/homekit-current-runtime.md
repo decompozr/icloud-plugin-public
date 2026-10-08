@@ -555,3 +555,24 @@ executeActionSet for Turn Off Third Floor, followed by its bounded action readba
 and independent target reads. Until then this milestone is deployed but physical
 scene acceptance remains open. Existing definitions and automation management
 permissions remain unchanged; no new physical writes occurred for this extension.
+
+## Automatic connection capability synchronization (0.1.100 candidate)
+
+Enabling a module now updates eligible installation-owner client registration
+ceilings automatically. A separate Connections Review action is no longer needed
+for those registrations. Existing consent, tokens and refresh grants are preserved.
+Disabled, unrelated and shared registrations remain excluded.
+
+A reconnect whose scope list exactly matches an audited former complete
+registration snapshot is updated to the currently enabled registered scopes before
+the provider signs a new authorization request. This addresses the observed
+ChatGPT reconnect requesting only Mail, Calendar and offline access despite the
+same client's enabled Photos and HomeKit registration. Explicit narrow requests,
+silent authorization and other-resource requests remain unchanged. Fresh displayed
+consent and the selected account are still required; scope synchronization grants
+no Home access by itself.
+
+The synthetic OAuth check verifies a cached complete reconnect reaches the signed
+consent page with new permissions, preserves state and PKCE, and preserves every
+grant when denied. A narrow read request remains narrow. Live client consent and
+the approved Office Light / first-floor native scene sequence remain pending.
