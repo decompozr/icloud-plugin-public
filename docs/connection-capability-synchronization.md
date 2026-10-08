@@ -21,3 +21,10 @@ state and PKCE survive; denial preserves grants; narrow reads retain their scope
 Synthetic checks establish these source and OAuth boundaries. Local deployment
 and real host consent are separate acceptance steps. No Home device is operated
 by this workflow.
+
+Delivered in PR135, local release 0.1.100. Source checks: 78 bounded tests, additional
+final boundary checks, complete application build and tooling typecheck passed.
+These are same-agent checks; no PR CI or independent review is claimed. Actual
+CLI authorization readback confirms the previously cached ChatGPT request now
+offers HomeKit scenes and Photos with unchanged state/PKCE. Real host consent and
+physical iPhone visual acceptance remain unverified. No physical operation occurred.
