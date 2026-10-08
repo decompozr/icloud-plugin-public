@@ -70,7 +70,7 @@ final class LifecycleStore {
         let before = try one("before-add-trigger"), callback = try one("add-trigger-completion"), readback = try one("independent-manager-readback")
         guard callback["callbackError"] is NSNull, let submitted = before["definition"] as? [String: Any],
             let acknowledged = callback["definition"] as? [String: Any], let expectedName = submitted["name"] as? String,
-            UUID(uuidString: operationId) != nil, expectedName.hasPrefix("DecompozR Test \(operationId) "),
+            UUID(uuidString: operationId) != nil, expectedName.hasPrefix("DecompozR "), expectedName.hasSuffix(" \(operationId)"),
             acknowledged["name"] as? String == expectedName, acknowledged["id"] as? String == submitted["id"] as? String,
             let baseline = before["baselineTriggerIds"] as? [String],
             callback["baselineTriggerIds"] as? [String] == baseline, readback["baselineTriggerIds"] as? [String] == baseline,

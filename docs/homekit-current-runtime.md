@@ -641,3 +641,25 @@ to reject a valid setpoint. The correction permits bounded Float-format grid
 tolerance proportional to Float32 precision, capped at 0.0001 of a step. Integer
 formats, range limits and meaningful off-grid values remain strict. Scheduling
 and actual 02:00 firing remain pending deployment/definition/enable acceptance.
+
+## Durable automation creation reconciliation
+
+The owner-approved Heat/23 Celsius scene was created with two exact Thermostat
+actions; it has not executed. The 02:00 America/Toronto automation add callback
+succeeded, but creation correlation retained unknown because its naming guard
+still expected the experimental `DecompozR Test` scheme. The independent manager
+readback identified exactly one new disabled event trigger with the production
+nonce suffix, but its event array was empty. No duplicate or enabled trigger was
+created and no immediate thermostat write occurred.
+
+Production reconciliation now recognizes the production nonce suffix while
+retaining successful callback, immutable submitted ID, exact Home, baseline-ID
+exclusion, unique independent addition, disabled state and empty-scene guards.
+It rejects legacy experimental names. The existing native ledger-only recovery
+path is exposed through a bounded owner/account/Home-bound MCP tool for a retained
+unknown createAutomation plan and a freshly reviewed exact resource/revision.
+The original unknown outcome remains unchanged and receives a separate recovery
+observation. Ownership proof does not claim intended events were persisted.
+After recovery, a separate once-only updateEvents operation repairs the intended
+02:00 event before scene association and enablement. The original add is never
+retried, and an existing household trigger cannot be adopted by name alone.
