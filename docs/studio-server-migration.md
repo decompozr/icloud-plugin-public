@@ -423,3 +423,47 @@ The feature UI audit and revised ctx/registration boundary are accepted directio
 not an implemented new renderer protocol. Mail/Calendar wrappers, self-owned page
 contributions, standard declarative popup fields and Home linking ctx integration
 remain the next UI boundary slice.
+
+## Declarative extension UI and injected provider implementation
+
+This slice replaces mandatory UI wrappers with module requirements declarations.
+Shell owns common app-password rendering. Optional custom configuration sections
+receive a mount-scoped ctx with translation, notifications, account operations,
+readiness reporting and explicitly declared API operations. No module imports a
+shell model/controller to perform global actions. Ordinary visual primitives stay
+pinned; native/provider policy and permissions do not change.
+
+Optional module pages register metadata/renderer through the same UI contribution
+interface, with safe unique paths under the private admin module namespace. Navbar
+participation is optional. No empty feature page is invented just to exercise the
+API. Tests use synthetic contributions to validate registration and mounting.
+
+Acceptance: Mail/Calendar have no requirement Svelte wrapper; Home/Photos custom
+sections use injected ctx rather than shell copy/toast/dialog internals; unknown
+API operations and expired mounts fail closed; late responses cannot target new
+dialogs; registrations validate identity/paths/conflicts; full build/tests, compiled
+consumer/client purity, private ingress and deployment/state preservation pass.
+
+### Declarative ctx implementation checkpoint
+
+Mail/Calendar no longer ship requirement components or depend on account UI; their
+requirement arrays are rendered by shell. Home/Photos expose optional custom
+sections receiving a lease-scoped ctx; API operations are declared and namespace
+validated, account/global notification/confirmation services are injected.
+Optional page metadata/renderer registration validates unique safe private paths;
+navbar participation is optional. Host route gating recognizes only registered
+pages and retains owner checks; default feature bundles deliberately add no empty
+product pages. Back/cancel recovery retains exact modulePath, including standalone
+non-navbar contributions. Existing auth UI remains a dedicated account provider
+route rather than a fabricated feature page. Further thin-shell/server extraction
+remains phased.
+
+587 tests / 5,162 assertions, E2E 13 / 258, packaged lifecycle/OAuth 2 / 151 pass.
+Browser fixtures pass 58 shell and 142 requirements/credential/locale/consent checks,
+four disabled bundled panels, late-response fencing and 13 clean client files.
+Mobile credential modal screenshot was visually inspected. No real provider/native
+action or physical device acceptance was performed. Independent review found and
+verified early page allowlist, inherited operation lookup and module-page URL
+restoration fixes: anonymous303/foreign403/owner200/unknown404, ctx3/19 and public
+ingress/client purity pass. No remaining scoped blocker. Service candidate0.1.100
+and affected package0.2.0 versions await clean-main deployment.

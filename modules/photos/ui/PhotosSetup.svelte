@@ -1,16 +1,14 @@
 <script lang="ts">
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
-  import { getContext, onMount, untrack } from "svelte";
-  import type { UiCopy } from "@decompozr/ui/contracts";
-  import type { ToastCenter } from "@decompozr/ui/toast-state.svelte.js";
+  import { onMount, untrack } from "svelte";
+  import type { ModuleUiContext } from "@decompozr/ui/contracts";
   import { z } from "zod";
   import RequirementStep from "@decompozr/ui/components/RequirementStep.svelte";
   let {
     active = true,
-    onverified,
-  }: { active?: boolean; onverified?: (ready: boolean) => void } = $props();
-  const { t } = getContext<UiCopy>("copy");
-  const toast = getContext<ToastCenter>("toast");
+    ctx,
+  }: { active?: boolean; ctx: ModuleUiContext } = $props();
+  const{t}=untrack(()=>ctx.copy);
   let busy = $state(false);
   let pollingUntil = 0;
   const schema = z.object({
@@ -42,33 +40,19 @@
     if (busy || !active) return;
     busy = true;
     try {
-      const r = await fetch(
-        "/icloud/admin/photos/" + (action ? "action" : "status"),
-        {
-          credentials: "same-origin",
-          cache: "no-store",
-          signal: AbortSignal.timeout(12000),
-          ...(action
-            ? {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ action }),
-              }
-            : {}),
-        },
-      );
+      const r=await ctx.request(action?'action':'status',action?{action}:undefined);
       if (!r.ok) throw Error();
       if (action) {
         pollingUntil = Date.now() + 120000;
       } else {
         last = schema.parse(await r.json());
-        onverified?.(last.ready);
+        ctx.reportReady(last.ready);
         checkedAt = new Date().toISOString();
       }
       failed = false;
     } catch {
       failed = true;
-      toast?.push("photosPermissionFailed", "error");
+      ctx.ui.notify("photosPermissionFailed","error");
     } finally {
       busy = false;
     }

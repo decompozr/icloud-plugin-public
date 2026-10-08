@@ -1,3 +1,3 @@
-import Requirements from './Requirements.svelte';
+import Section from './HomeKitSetup.svelte';
 import type{BundledModuleUi}from'@decompozr/ui/contracts';
-export const moduleUi:BundledModuleUi={id:'homekit',requirement:'native',Requirements,scopeCopy:{"homekit.read": "homekitRead", "homekit.control": "homekitControl", "homekit.scenes": "homekitScenes", "homekit.automations": "homekitAutomations"},unavailableCopy:field=>field==='control'?'homekitControlDisabled':'homekitAutomationDisabled'};
+export const moduleUi:BundledModuleUi={id:'homekit',requirement:'native',Section,operations:{"status": {"path": "/icloud/admin/homekit/status", "method": "GET"}, "link": {"path": "/icloud/admin/homekit/enroll", "method": "POST"}, "unlink": {"path": "/icloud/admin/homekit/revoke", "method": "POST"}},scopeCopy:{"homekit.read": "homekitRead", "homekit.control": "homekitControl", "homekit.scenes": "homekitScenes", "homekit.automations": "homekitAutomations"},unavailableCopy:field=>field==='control'?'homekitControlDisabled':'homekitAutomationDisabled'};

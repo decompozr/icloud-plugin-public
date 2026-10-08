@@ -166,3 +166,5 @@ test('missing app passwords block fresh Mail and Calendar activation but allow d
   expect((await(await get()).json()).capabilities).toEqual(initial.capabilities);
  }finally{await f.close();}
 });
+
+test('registered module pages retain owner gating and reject unregistered paths',async()=>{const f=await fixture(true,true);try{const path='/icloud/admin/modules/fixture/page';const anonymous=await fetch(f.url+path,{redirect:'manual'});expect(anonymous.status).toBe(303);expect(anonymous.headers.get('location')).toBe('/icloud/sign-in');expect((await fetch(f.url+path,{headers:{'x-fixture-session':'other'}})).status).toBe(403);const owner=await fetch(f.url+path,{headers:{'x-fixture-session':'owner'}});expect(owner.status).toBe(200);expect(await owner.text()).toContain('data-view="module"');expect((await fetch(f.url+'/icloud/admin/modules/fixture/missing',{headers:{'x-fixture-session':'owner'}})).status).toBe(404);}finally{await f.close()}});

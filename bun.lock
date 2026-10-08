@@ -25,7 +25,7 @@
     },
     "apps/icloud": {
       "name": "@icloud-plugin/icloud",
-      "version": "0.1.99",
+      "version": "0.1.100",
       "dependencies": {
         "@better-auth/oauth-provider": "1.7.7",
         "@better-auth/passkey": "1.7.7",
@@ -58,7 +58,7 @@
     },
     "apps/studio": {
       "name": "@icloud-plugin/studio",
-      "version": "0.1.99",
+      "version": "0.1.100",
       "dependencies": {
         "@decompozr/account": "workspace:*",
         "@decompozr/calendar": "workspace:*",
@@ -87,7 +87,7 @@
     },
     "modules/account": {
       "name": "@decompozr/account",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "dependencies": {
         "@better-auth/oauth-provider": "1.7.7",
         "@better-auth/passkey": "1.7.7",
@@ -112,9 +112,8 @@
     },
     "modules/calendar": {
       "name": "@decompozr/calendar",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "dependencies": {
-        "@decompozr/account": "workspace:*",
         "@decompozr/ui": "workspace:*",
         "zod": "3.25.76",
       },
@@ -133,7 +132,7 @@
     },
     "modules/homekit": {
       "name": "@decompozr/homekit",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@decompozr/ui": "workspace:*",
         "zod": "3.25.76",
@@ -153,9 +152,8 @@
     },
     "modules/mail": {
       "name": "@decompozr/mail",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "dependencies": {
-        "@decompozr/account": "workspace:*",
         "@decompozr/ui": "workspace:*",
         "zod": "3.25.76",
       },
@@ -174,7 +172,7 @@
     },
     "modules/photos": {
       "name": "@decompozr/photos",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@decompozr/ui": "workspace:*",
         "zod": "3.25.76",
@@ -206,7 +204,7 @@
     },
     "packages/ui": {
       "name": "@decompozr/ui",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "svelte": "5.57.1",
         "zod": "3.25.76",

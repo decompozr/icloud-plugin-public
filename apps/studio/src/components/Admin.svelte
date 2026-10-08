@@ -13,6 +13,8 @@
     type NavigationControl,
   } from "../lib/ui-state.svelte.js";
   import Icon from "@decompozr/ui/components/Icon.svelte";
+  import{modulePages}from"../lib/bundled-modules.js";
+  import ModulePageMount from "./ModulePageMount.svelte";
   import Overview from "./Overview.svelte";
   import AdminDashboard from "./AdminDashboard.svelte";
   import ModuleDialog from "./ModuleDialog.svelte";
@@ -32,12 +34,16 @@
   const model = new AdminModel(pageState, copy, toast);
   // svelte-ignore state_referenced_locally
   let view = $state(pageState.view ?? (pageState.admin ? "accounts" : "setup"));
+  // svelte-ignore state_referenced_locally
+  let modulePath=$state(pageState.modulePath);
+  const mountedPage=$derived(modulePages.find(page=>page.path===modulePath));
   const router = getContext<NavigationControl>("navigation");
   let navigationGeneration = 0;
   let navigating = $state(false),
     markerTop = $state(0),
     markerHeight = $state(0);
   const heading = $derived(
+    view === "module" && mountedPage ? mountedPage.page.titleKey :
     view === "overview"
       ? "navOverview"
       : view === "accounts"
@@ -54,6 +60,7 @@
     ["/icloud/admin/accounts", "navAccounts", "accounts"],
     ["/icloud/admin/connections", "navConnections", "connections"],
     ["/icloud/admin/system", "navSystem", "system"],
+    ...modulePages.filter(page=>page.page.navbar).map(page=>[page.path,page.page.titleKey,"module"]),
   ];
   function updateMarker() {
     const current = navigation?.querySelector<HTMLElement>(
@@ -67,7 +74,7 @@
   async function navigate(destination: string, href: string, push = true) {
     const restore = () => {
       if (!push) {
-        const current = links.find(([, , key]) => key === view);
+        const current = view==="module"&&modulePath?[modulePath]:links.find(([, , key]) => key === view);
         if (current) {
           if (router) router.replace(current[0]!);
           else history.replaceState(null, "", current[0]);
@@ -118,6 +125,7 @@
       model.revokeAccount = "";
       model.discardPolicy();
       model.activeView = destination as AdminState["view"];
+      modulePath=destination==="module"?href:undefined;
       view = destination as typeof view;
       if (push && location.pathname !== href)
         router ? router.push(href) : history.pushState(null, "", href);
@@ -128,7 +136,7 @@
     } catch {
       if (generation !== navigationGeneration) return;
       if (!push) {
-        const current = links.find(([, , key]) => key === view);
+        const current = view==="module"&&modulePath?[modulePath]:links.find(([, , key]) => key === view);
         if (current)
           router
             ? router.replace(current[0]!)
@@ -235,7 +243,7 @@
                   ? ` · ${model.connectionsNeedingReview.length} ${t("connectionUpdatesCountLabel")}`
                   : "")}
               onclick={(event) => tabNavigation(destination, href, event)}
-              aria-current={view === destination ? "page" : undefined}
+              aria-current={(destination==="module"?modulePath===href:view===destination)?"page":undefined}
               ><DesignIcon
                 name={destination === "overview"
                   ? "panels-top-left"
@@ -270,6 +278,7 @@
           {dialogs}
           setup={!pageState.admin}
         />
+      {:else if view === "module" && mountedPage}{#key modulePath}<ModulePageMount module={mountedPage.module} page={mountedPage.page}/>{/key}
       {:else if view === "accounts"}<section class="card">
           <header class="card-header">
             <h2>{t("accountsTitle")}</h2>

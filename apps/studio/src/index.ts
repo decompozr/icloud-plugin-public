@@ -1,3 +1,6 @@
+export{modulePageExists}from'./lib/bundled-modules.js';
+import{moduleUi as photosUi}from'@decompozr/photos/ui';
+import{createModuleUiContext}from'@decompozr/ui/module-host.js';
 export {brandSvg} from "@decompozr/ui/branding.js";
 import { createCopy } from "./lib/copy.js";
 import { render } from "svelte/server";
@@ -85,7 +88,8 @@ export function renderCredential(admin: boolean, copy: UiCopy): string {
   return render(Credential, { props: { admin }, context: context(copy) }).body;
 }
 export function renderPhotosSetup(): string {
-  return render(PhotosSetup, { context: context(createCopy(() => "en")) }).body;
+  const copy=createCopy(()=>"en");const lease=createModuleUiContext(photosUi,{copy,fetch:async()=>{throw Error("SSR only")},accounts:async()=>[],openCredentials:()=>{},notify:()=>{},confirm:async()=>false});
+  try{return render(PhotosSetup,{props:{ctx:lease.ctx},context:context(copy)}).body;}finally{lease.dispose();}
 }
 export function renderPhotosCloud(): string {
   return render(PhotosCloud, { context: context(createCopy(() => "en")) }).body;
