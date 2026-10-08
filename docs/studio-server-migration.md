@@ -272,8 +272,9 @@ module packages are installed, not merely copied as tarballs. A nested SDK metad
 resolution returned no version; the generator now requires exact authored versions
 instead of silently deleting that dependency. Existing SDK versions are preserved.
 
-Fresh-checkout/root-lock verification, clean-main release/install and live readback
-remain pending. Registry selection/publication and owner acceptance remain separate
+Fresh-checkout root frozen install, complete build and all 583 tests / 5,136
+assertions pass after the package-relative filtering fix. Clean-main release/install
+and live readback remain pending. Registry selection/publication and owner acceptance remain separate
 from local package delivery.
 
 Fresh-checkout verification caught an absolute-path filtering defect: a build
