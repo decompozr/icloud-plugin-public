@@ -691,3 +691,19 @@ thermostat write or scene execution occurred. Natural 02:00 firing remains pendi
 Public read-only definition snapshots can lag callbacks and do not load the mutable
 ownership ledger; their owned flag is not authoritative for mutation ownership.
 Prepare/apply use the app-scoped ledger and preserved exact owner/account/Home guards.
+
+## Natural automation names
+
+Explicit rename uses the requested display name without a product prefix or UUID.
+Creation still uses a temporary correlation nonce until ownership is proved;
+confirmed ownership remains in the app ledger by exact ID, not by display name.
+An app-owned active automation can be renamed without disabling it. The readback
+compares all configuration except the display name and independent hub activation
+state, preserving enabled state, events, recurrence and scene associations. Other
+structural edits retain their disabled/ownership/reference restrictions.
+The owner selected the natural description `Heat to 23°C at 2 AM`.
+
+The signing workflow now uses a separate hidden Terminal instance when called
+from a background security session. Worker ancestry and the pre-launch Terminal
+PID baseline prove ownership; only the exact new instance is hidden/terminated.
+This supports quiet signing while preserving existing user Terminal windows.

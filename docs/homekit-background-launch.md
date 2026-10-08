@@ -9,10 +9,9 @@ Errors return through the existing MCP/Studio feedback paths.
 
 Signed builds reuse an already unlocked Aqua caller directly. Background callers
 use the existing Aqua Terminal context with hidden launch.
-The builder first checks that no existing Terminal windows will be affected, hides
-only its exact single-tab task window, and closes only that finished task window.
-If the desktop context cannot be inspected or existing user windows prevent an
-isolated hidden launch, no GUI build is opened. No global Terminal/Xcode setting,
+The builder starts an isolated hidden Terminal instance, verifies its worker
+ancestry against the existing process baseline, and terminates only that exact
+task-owned instance after completion. Existing Terminal windows remain untouched. No global Terminal/Xcode setting,
 keychain ACL, credential or LaunchAgent changes are involved.
 
 Acceptance: sample from launch through readiness, not only steady state; no
