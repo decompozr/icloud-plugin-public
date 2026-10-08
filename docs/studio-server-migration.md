@@ -319,3 +319,22 @@ remote source/version history satisfy this package-delivery phase. Registry work
 is removed from pending requirements. Package versions remain independent; future
 module changes still require dependency verification and a service upgrade before
 activation. Owner pass continues to gate the next backend/server migration phase.
+
+### Release-first module runtime direction
+
+The owner clarified the durable delivery model: assemble local module bundles and
+ship one complete service release, including future iterations. Independent module
+versions are composition/compatibility identities; they do not require a registry
+or separate deployed services. The current install upgrades the complete release.
+
+Dynamic module upgrade is a later stage after backend extraction and Studio server
+ownership. Studio/runtime becomes the thin MCP/control-plane shell: listeners,
+authentication/authorization enforcement, route/UI composition and module lifecycle
+hosting. Module packages own feature logic, tools, requirements and UI. No feature
+implementation should be pulled back into the shell for convenience.
+
+Later dynamic upgrades must explicitly design compatibility validation, blocking
+new work, draining accepted operations, resource disposal, atomic activation and
+rollback. Owner identity/key custody, grants and OS permissions remain independent
+of code replacement. This direction does not claim hot upgrade is implemented now,
+select an update distribution transport or authorize unattended activation.
