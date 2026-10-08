@@ -62,6 +62,15 @@ denied{_ = try LifecycleStore.creationCandidate(records: creationRecords, homeId
 var legacy = creationRecords; var oldSubmitted = submitted; oldSubmitted["name"] = "DecompozR Test \(operation) Daily Heat"; legacy[0]["definition"] = oldSubmitted; legacy[1]["definition"] = oldSubmitted
 var oldCandidate = candidate; oldCandidate["name"] = oldSubmitted["name"]; legacy[2]["newDefinitions"] = [oldCandidate]
 denied{_ = try LifecycleStore.creationCandidate(records: legacy, homeId: home, operationId: operation)}
-print("32 exact scene/provider/creation-proof/Float32 checks passed; physical writes 0")
+let active: [String: Any] = ["id": operation, "homeId": home, "name": productionName, "enabled": true, "activationState": 4, "events": [["kind": "calendar", "hour": 2]], "sceneIds": [operation]]
+var natural = active; natural["name"] = "Heat to 23°C at 2 AM"
+try LifecycleStore.requireRenameReadback(before: active, after: natural)
+var stopped = natural; stopped["enabled"] = false
+denied{try LifecycleStore.requireRenameReadback(before: active, after: stopped)}
+var changed = natural; changed["events"] = [["kind": "calendar", "hour": 3]]
+denied{try LifecycleStore.requireRenameReadback(before: active, after: changed)}
+changed = natural; changed["sceneIds"] = [String]()
+denied{try LifecycleStore.requireRenameReadback(before: active, after: changed)}
+print("36 exact scene/provider/creation/rename checks passed; physical writes 0")
 ''')
  subprocess.run(['xcrun','swift',str(p)],check=True,env=dict(os.environ,DEVELOPER_DIR='/Applications/Xcode.app/Contents/Developer'))

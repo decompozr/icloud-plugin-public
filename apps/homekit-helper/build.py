@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import shlex
+import signal
 import subprocess
 import sys
 import tempfile
@@ -33,7 +34,56 @@ def signing_context():
                 keychainUnlocked=bool(status.value & 1), keychainStatus=status.value)
 
 
+def terminal_parent_pid():
+    pid = os.getpid()
+    for _ in range(16):
+        reply = subprocess.run(['ps', '-p', str(pid), '-o', 'ppid=,comm='], capture_output=True, text=True)
+        parts = reply.stdout.strip().split(maxsplit=1)
+        if len(parts) != 2:
+            break
+        if Path(parts[1]).name == 'Terminal':
+            return pid
+        pid = int(parts[0])
+        if pid <= 1:
+            break
+    return None
+
+
+def prepare_isolated_terminal(run):
+    context = run / 'desktop-launch.json'
+    if not context.exists():
+        return None
+    before = json.loads(context.read_text())['existingTerminalPids']
+    pid = terminal_parent_pid()
+    if not pid or pid in before:
+        raise RuntimeError('An isolated task-owned Terminal instance is required')
+    script = 'ObjC.import("AppKit"); var app=$.NSRunningApplication.runningApplicationWithProcessIdentifier(' + str(pid) + '); app.hide; app.isHidden;'
+    hidden = subprocess.run(['/usr/bin/osascript', '-l', 'JavaScript', '-e', script], capture_output=True, text=True, timeout=10)
+    deadline = time.monotonic() + 2
+    while hidden.returncode == 0 and hidden.stdout.strip() != 'true' and time.monotonic() < deadline:
+        time.sleep(.05)
+        hidden = subprocess.run(['/usr/bin/osascript', '-l', 'JavaScript', '-e', script], capture_output=True, text=True, timeout=10)
+    if hidden.returncode != 0 or hidden.stdout.strip() != 'true':
+        raise RuntimeError('Task-owned Terminal did not remain hidden')
+    (run / 'presentation.json').write_text(json.dumps(dict(launchHidden=True, terminalInstancePID=pid, otherTerminalWindowsChanged=False), indent=2) + '\n')
+    return pid
+
+
+def close_isolated_terminal(run, result):
+    context = json.loads((run / 'desktop-launch.json').read_text())
+    pid = result.get('terminalInstancePID')
+    if not isinstance(pid, int) or pid in context['existingTerminalPids']:
+        raise RuntimeError('Task-owned Terminal identity unavailable; preserve it')
+    command = subprocess.run(['ps', '-p', str(pid), '-o', 'comm='], capture_output=True, text=True).stdout.strip()
+    if command and Path(command).name != 'Terminal':
+        raise RuntimeError('Task-owned Terminal identity changed; preserve it')
+    if command:
+        os.kill(pid, signal.SIGTERM)
+    return dict(status='terminated-owned-instance', terminalInstancePID=pid, existingTerminalPidsPreserved=context['existingTerminalPids'])
+
+
 def build(run, configuration="Debug"):
+    terminal_pid = prepare_isolated_terminal(run)
     context = signing_context()
     (run / 'context.json').write_text(json.dumps(context, indent=2) + '\n')
     project = Path(__file__).resolve().parent / 'native/HomeKitHelper.xcodeproj'
@@ -45,7 +95,7 @@ def build(run, configuration="Debug"):
                '-derivedDataPath', str(run / 'DerivedData'), '-allowProvisioningUpdates',
                '-allowProvisioningDeviceRegistration', f'HOMEKIT_SOURCE_SHA256={source_sha}', 'build']
     env = dict(os.environ, DEVELOPER_DIR='/Applications/Xcode.app/Contents/Developer')
-    result = dict(context=context, state='building', runnerPid=os.getpid(), physicalWrites=0, configuration=configuration, sourceSHA256=source_sha, sourceHEAD=source_head, sourceManifest=manifest['files'])
+    result = dict(context=context, terminalInstancePID=terminal_pid, state='building', runnerPid=os.getpid(), physicalWrites=0, configuration=configuration, sourceSHA256=source_sha, sourceHEAD=source_head, sourceManifest=manifest['files'])
     (run / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
     with (run / 'build.log').open('w') as log:
         completed = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT)
@@ -151,7 +201,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', help='Private artifact root; each build creates a unique run directory')
     parser.add_argument('--desktop-session', action='store_true',
-                        help='Run xcodebuild in a hidden task-only desktop Terminal; requires no existing Terminal windows')
+                        help='Run xcodebuild in a hidden task-only desktop Terminal; in an isolated hidden Terminal instance')
     parser.add_argument('--configuration', choices=['Debug','Release'], default='Debug')
     parser.add_argument('--worker-directory', help=argparse.SUPPRESS)
     args = parser.parse_args()
@@ -165,9 +215,6 @@ def main():
         print('This background session has no GUI keychain context. Run in Terminal, or add --desktop-session.', file=sys.stderr)
         return 1
     use_current_desktop = context['graphicAccess'] and context['keychainUnlocked']
-    if args.desktop_session and not use_current_desktop and not quiet_terminal_available():
-        print('Hidden desktop signing needs a Terminal session with no existing windows. Existing user windows were preserved; no GUI build launched.', file=sys.stderr)
-        return 1
     root = Path(args.output).resolve()
     root.mkdir(parents=True, mode=0o700, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix='build-', dir=root))
@@ -180,14 +227,12 @@ def main():
     worker = ['/usr/bin/python3', str(Path(__file__).resolve()), '--worker-directory', str(run), '--configuration', args.configuration]
     launcher.write_text('#!/bin/zsh\numask 077\nexec ' + shlex.join(worker) + '\n')
     launcher.chmod(0o700)
-    subprocess.run(['open', '-g', '-j', '-a', 'Terminal', str(launcher)], check=True)
-    hidden_window = ''
-    hide_deadline = time.monotonic() + 2
-    while not hidden_window and time.monotonic() < hide_deadline:
-        hidden_window = hide_task_terminal(run)
-        if not hidden_window:
-            time.sleep(.05)
-    (run / 'presentation.json').write_text(json.dumps(dict(launchHidden=True, taskWindowHidden=bool(hidden_window), taskWindowId=hidden_window, otherTerminalWindowsChanged=False), indent=2) + '\n')
+    existing = subprocess.run(['pgrep', '-x', 'Terminal'], capture_output=True, text=True)
+    if existing.returncode not in [0, 1]:
+        raise RuntimeError('Cannot inspect existing Terminal instances')
+    baseline = [int(value) for value in existing.stdout.split()]
+    (run / 'desktop-launch.json').write_text(json.dumps(dict(existingTerminalPids=baseline, isolatedTaskInstance=True)) + '\n')
+    subprocess.run(['open', '-g', '-j', '-n', '-a', 'Terminal', str(launcher)], check=True)
     deadline = time.monotonic() + 600
     last_update = 0
     while time.monotonic() < deadline:
@@ -198,7 +243,7 @@ def main():
             except json.JSONDecodeError:
                 result = {}
             if result.get('state') in ['succeeded', 'failed']:
-                result['terminalCleanup'] = close_completed_terminal(run)
+                result['terminalCleanup'] = close_isolated_terminal(run, result)
                 receipt.write_text(json.dumps(result, indent=2) + '\n')
                 print(json.dumps(result), flush=True)
                 return 0 if result['state'] == 'succeeded' else 1

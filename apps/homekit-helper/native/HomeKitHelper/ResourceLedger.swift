@@ -99,6 +99,14 @@ final class LifecycleStore {
               name.utf8.count <= 120 else { throw ControlFailure.invalid("RESOURCE_NAME_INVALID") }
         return "DecompozR \(name) \(operationId)"
     }
+    static func requireRenameReadback(before: [String: Any], after: [String: Any]) throws {
+        var expected = before, observed = after
+        // Hub readiness can change independently; all behavior/configuration stays identical.
+        for key in ["name", "activationState"] { expected.removeValue(forKey: key); observed.removeValue(forKey: key) }
+        guard try JSONSerialization.data(withJSONObject: expected, options: [.sortedKeys]) == JSONSerialization.data(withJSONObject: observed, options: [.sortedKeys]) else {
+            throw ControlFailure.invalid("RENAME_CONFIGURATION_CHANGED")
+        }
+    }
     static func actionMatches(_ action: [String: Any], target: [String: Any], value: Any) throws -> Bool {
         guard action["kind"] as? String == "characteristicWrite", action["opaque"] as? Bool == false,
             let actual = action["target"] as? [String: Any], actual["resolved"] as? Bool == true,
