@@ -136,15 +136,17 @@ final class HomeControls: HomeComponent {
                     "intent": productionIntent ?? args, "providerWriteAttempted": false, "physicalCompletionVerified": false], failed: true); return
             }
         }
-        var keys: Set<String> = name == "homekit_write"
-            ? ["homeId", "accessoryId", "serviceId", "characteristicId", "value", "operationId"]
-            : name == "homekit_execute_scene" ? ["homeId", "sceneId", "operationId"]
-            : ["homeId", "automationId", "enabled", "operationId"]
-        if productionControls { keys.insert("expectedRevision") }
+        let keys: Set<String>
+        do { keys = try ProductionControlArguments.keys(tool: name, production: productionControls, intent: productionIntent) }
+        catch {
+            reply(id: id, payload: ["error": String(describing: error), "operationId": args["operationId"] ?? NSNull(),
+                "intent": productionIntent ?? args, "providerWriteAttempted": false, "physicalCompletionVerified": false], failed: true); return
+        }
         guard Set(args.keys) == keys, let operationId = args["operationId"] as? String,
               let homeId = args["homeId"] as? String,
               let home = homes.first(where: { $0.uniqueIdentifier.uuidString == homeId }) else {
-            reply(id: id, payload: ["error": "INVALID_ARGUMENTS_OR_HOME"], failed: true); return
+            reply(id: id, payload: ["error": "INVALID_ARGUMENTS_OR_HOME", "operationId": args["operationId"] ?? NSNull(),
+                "intent": productionIntent ?? args, "providerWriteAttempted": false, "physicalCompletionVerified": false], failed: true); return
         }
         var characteristic: HMCharacteristic?
         var desiredValue: Any?

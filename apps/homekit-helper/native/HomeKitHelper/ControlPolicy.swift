@@ -2,6 +2,24 @@ import Foundation
 import CoreFoundation
 enum ControlFailure: Error { case invalid(String) }
 
+enum ProductionControlArguments {
+    static func keys(tool: String, production: Bool, intent: [String: Any]?) throws -> Set<String> {
+        var keys: Set<String> = tool == "homekit_write"
+            ? ["homeId", "accessoryId", "serviceId", "characteristicId", "value", "operationId"]
+            : tool == "homekit_execute_scene" ? ["homeId", "sceneId", "operationId"]
+            : ["homeId", "automationId", "enabled", "operationId"]
+        if production { keys.insert("expectedRevision") }
+        if let flag = intent?["allowExistingSceneExecution"] {
+            guard production, tool == "homekit_execute_scene", let boolean = flag as? NSNumber,
+                  CFGetTypeID(boolean) == CFBooleanGetTypeID(), boolean.boolValue else {
+                throw ControlFailure.invalid("EXISTING_SCENE_AUTHORIZATION_INVALID")
+            }
+            keys.insert("allowExistingSceneExecution")
+        }
+        return keys
+    }
+}
+
 enum ControlValue {
     static let formats: Set<String> = ["bool", "int", "float", "uint8", "uint16", "uint32", "uint64", "string", "data", "tlv8", "array", "dict"]
     // Only for SDK-owned scene/readback values. External command decoding stays strict.

@@ -45,6 +45,16 @@ let handle = try FileHandle(forWritingTo: journalURL); try handle.seekToEnd(); t
 try assertion(try journal.outcome(operationId: id, request: request)?["error"] as? String == "READBACK_MISMATCH")
 let broken = try FileHandle(forWritingTo: journalURL); try broken.seekToEnd(); try broken.write(contentsOf: Data("partial".utf8)); try broken.close()
 do { _ = try journal.begin(operationId: "new", request: request); fatalError("Partial journal accepted") } catch {}
-print("22 exact native production control/journal checks passed; physical writes 0")
+let sceneArgs: [String: Any] = ["homeId": home, "sceneId": id, "operationId": id, "expectedRevision": "revision", "allowExistingSceneExecution": true]
+try assertion(try ProductionControlArguments.keys(tool: "homekit_execute_scene", production: true, intent: sceneArgs) == Set(sceneArgs.keys))
+try assertion(!(try ProductionControlArguments.keys(tool: "homekit_execute_scene", production: true, intent: [:])).contains("allowExistingSceneExecution"))
+for tool in ["homekit_write", "homekit_set_automation_enabled"] {
+    do { _ = try ProductionControlArguments.keys(tool: tool, production: true, intent: sceneArgs); fatalError("Non-scene authorization accepted") } catch {}
+}
+for flag: Any in [false, NSNumber(value: 1), "true"] {
+    do { _ = try ProductionControlArguments.keys(tool: "homekit_execute_scene", production: true, intent: ["allowExistingSceneExecution": flag]); fatalError("Invalid authorization accepted") } catch {}
+}
+do { _ = try ProductionControlArguments.keys(tool: "homekit_execute_scene", production: false, intent: sceneArgs); fatalError("Legacy authorization accepted") } catch {}
+print("30 exact native production control/journal/dispatch checks passed; physical writes 0")
 ''')
  subprocess.run(['xcrun','swift',str(p),root],check=True,env=dict(os.environ,DEVELOPER_DIR='/Applications/Xcode.app/Contents/Developer'))
