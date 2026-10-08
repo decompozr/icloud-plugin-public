@@ -114,3 +114,9 @@ checks remain broader work. No push, PR, merge or native deployment was requeste
 remote CI is not run for this local milestone. Accepted images and the new reusable
 `apps/e2e/browser/task-entry-flow.ts` preserve the evidence; owned raw files may be
 removed after reconciliation without removing the live review preview.
+
+The review fixture is retained as a detached task process rather than a foreground
+command session. After its launcher exited, readback confirmed parent PID 1, its
+own process group, and HTTPS session/admin 200. No launch agent, installation or
+global startup configuration was added. Its PID, listener and owned log are recorded
+in ignored task state; it remains a review preview and is not restart-on-boot hosting.
