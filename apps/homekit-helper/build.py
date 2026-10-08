@@ -57,8 +57,12 @@ def prepare_isolated_terminal(run):
     pid = terminal_parent_pid()
     if not pid or pid in before:
         raise RuntimeError('An isolated task-owned Terminal instance is required')
-    script = 'ObjC.import("AppKit"); var app=$.NSRunningApplication.runningApplicationWithProcessIdentifier(' + str(pid) + '); app.hide(); app.isHidden;'
+    script = 'ObjC.import("AppKit"); var app=$.NSRunningApplication.runningApplicationWithProcessIdentifier(' + str(pid) + '); app.hide; app.isHidden;'
     hidden = subprocess.run(['/usr/bin/osascript', '-l', 'JavaScript', '-e', script], capture_output=True, text=True, timeout=10)
+    deadline = time.monotonic() + 2
+    while hidden.returncode == 0 and hidden.stdout.strip() != 'true' and time.monotonic() < deadline:
+        time.sleep(.05)
+        hidden = subprocess.run(['/usr/bin/osascript', '-l', 'JavaScript', '-e', script], capture_output=True, text=True, timeout=10)
     if hidden.returncode != 0 or hidden.stdout.strip() != 'true':
         raise RuntimeError('Task-owned Terminal did not remain hidden')
     (run / 'presentation.json').write_text(json.dumps(dict(launchHidden=True, terminalInstancePID=pid, otherTerminalWindowsChanged=False), indent=2) + '\n')
