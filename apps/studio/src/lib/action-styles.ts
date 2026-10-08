@@ -1,6 +1,7 @@
 import { spacing } from '@decompozr/ui/design-system/spacing.js';
 import { radius } from '@decompozr/ui/design-system/radius.js';
 import { semanticColors } from '@decompozr/ui/design-system/semanticColors.js';
+import { controlMetrics } from '@decompozr/ui/design-system/controlMetrics.js';
 import { typography } from '@decompozr/ui/design-system/typography.js';
 
 /** Consumer layout, focus explanation and critical action extension of the pinned Button. */
@@ -11,6 +12,17 @@ export const actionStyles = `
 [data-dz-action][data-danger]:not(:disabled):not([aria-disabled=true]){--face-bg:${semanticColors.criticalSurface};--face-ink:${semanticColors.critical};--face-edge:${semanticColors.critical}}
 .action-hint{display:none;position:absolute;z-index:10;inset-block-start:calc(100% + ${spacing[1]});inset-inline-end:0;width:max-content;max-width:min(18rem,calc(100vw - ${spacing[8]}));padding:${spacing[2]};border:1px solid ${semanticColors.borderStrong};border-radius:${radius.control};background:${semanticColors.surface};color:${semanticColors.text};font-size:${typography.bodyCompact.fontSize};line-height:${typography.bodyCompact.lineHeight};overflow-wrap:anywhere;pointer-events:none}
 .action-explanation:focus-within .action-hint{display:block}
+.next-step{display:flex;align-items:center;justify-content:space-between;gap:${spacing[4]};flex-wrap:wrap;padding:${spacing[4]};border-bottom:1px solid ${semanticColors.border};background:${semanticColors.surfaceSubtle}}
+.next-step h2,.next-step p{margin:0}.next-step p{margin-top:${spacing[2]}}
+.page-heading{position:sticky;top:0;z-index:2;background:${semanticColors.surface};padding-block:${spacing[1]}}
+.capabilities-target{scroll-margin-block-start:calc(${controlMetrics.coarseTarget} + ${spacing[6]})}
+.page-title{display:flex;align-items:center;gap:${spacing[3]};flex-wrap:wrap;min-width:0}
+.readable-navigation{display:none}
+@media(max-width:700px),(hover:none){.readable-navigation{display:inline-flex}}
+.form-error{color:${semanticColors.critical}}
+.account-list:has(>.account-card:nth-child(2)){grid-template-columns:repeat(2,minmax(0,1fr))}
+.account-panel{--panel-border:0;--panel-inline-inset:0}
+@media(max-width:700px){.account-list:has(>.account-card:nth-child(2)){grid-template-columns:minmax(0,1fr)}}
 .card-heading{display:flex;align-items:center;gap:${spacing[2]};flex-wrap:wrap}
 .card-tools,.account-actions{display:flex;align-items:center;gap:${spacing[2]};flex-wrap:wrap}
 .account-list{display:grid;gap:${spacing[3]};margin-block:${spacing[4]}}

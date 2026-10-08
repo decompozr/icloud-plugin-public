@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Menu from "@decompozr/ui/design-system/Menu.svelte";
   import AccountCard from "@decompozr/account/ui/AccountCard.svelte";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { spacing } from "@decompozr/ui/design-system/spacing.js";
@@ -257,7 +258,9 @@
     </div>
     <div id="page-content" tabindex="-1">
       <div class="page-heading">
-        <h1>{t(heading)}</h1>
+        <div class="page-title"><h1>{t(heading)}</h1>
+          {#if pageState.enrolled}<div class="readable-navigation"><Menu label={t("navigatePages")} compact disabled={model.busy || navigating || toast.dialogs > 0} items={links.map(([href,key,destination]) => ({id:destination!,label:t(key!),disabled:view===destination,onSelect:()=>void navigate(destination!,href!)}))} /></div>{/if}
+        </div>
         {#if view === "overview"}<RefreshButton
             id="overview-refresh"
             label={t("refreshPage")}
@@ -269,6 +272,7 @@
           {model}
           {dialogs}
           setup={!pageState.admin}
+          onconnections={() => void navigate("connections", "/icloud/admin/connections")}
         />
       {:else if view === "accounts"}<section class="card">
           <header class="card-header">

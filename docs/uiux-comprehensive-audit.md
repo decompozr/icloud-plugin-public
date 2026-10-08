@@ -1,5 +1,7 @@
 # Studio workflow audit: follow-up to the proportional pass
 
+Latest follow-up: [round 3](uiux-round3.md) addresses F12–F15. The table below records the preceding checkpoint.
+
 Date: 2026-10-08. Baseline: `2d24f48`. Owner: Studio.
 
 The first [audit](uiux-audit.md) addressed proportions, not the whole experience.
@@ -62,9 +64,9 @@ physical Safari/iPhone, onscreen keyboard behavior, screen-reader acceptance or
 full accessibility compliance. Unchanged backend policy, explicit unchecked
 consent and foreign-origin rejection remain required invariants.
 
-## Remaining design work
+## Remaining at the end of round 2
 
-F12–F15 are unresolved work, not passing acceptance. A complete experience also
+F12–F15 were unresolved at this checkpoint. [Round 3](uiux-round3.md) subsequently implements and verifies them within local acceptance. A complete experience also
 needs multi-account comparison, full legacy Select/FieldLabel adoption, a task-first
 onboarding/connection journey, and physical-device error/keyboard checks. The
 correct conclusion is a broader audited and repaired slice with named remaining

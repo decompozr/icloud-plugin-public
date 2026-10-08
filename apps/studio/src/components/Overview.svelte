@@ -1,4 +1,5 @@
 <script lang="ts">
+  import NextStep from "./NextStep.svelte";
   import AccountCard from "@decompozr/account/ui/AccountCard.svelte";
   import ModuleSwitch from "@decompozr/ui/components/ModuleSwitch.svelte";
   import Tag from "@decompozr/ui/design-system/Tag.svelte";
@@ -18,8 +19,10 @@
     model,
     dialogs,
     setup = false,
-  }: { model: AdminModel; dialogs: DialogCenter; setup?: boolean } = $props();
+    onconnections = () => {},
+  }: { model: AdminModel; dialogs: DialogCenter; setup?: boolean; onconnections?: () => void } = $props();
   const { t } = getContext<UiCopy>("copy");
+  let capabilityRegion: HTMLElement | undefined = $state();
   const moduleOrder: Record<string, number> = {
     mail: 0,
     calendar: 1,
@@ -54,6 +57,7 @@
 </script>
 
 <div class="overview-grid">
+  {#if model.state.admin}<NextStep {model} {dialogs} {onconnections} oncapabilities={() => { capabilityRegion?.scrollIntoView({ block: "start" }); capabilityRegion?.focus({ preventScroll: true }); }} />{/if}
   <section
     class="card"
     data-testid="service-card"
@@ -127,6 +131,7 @@
   <section
     class="card"
     data-testid="accounts-card"
+    class:account-panel={true}
     aria-busy={model.accountsLoading && model.state.admin}
   >
     <header>
@@ -188,7 +193,10 @@
       </p>{/if}
   </section>
   <section
-    class="card wide"
+    class="card wide capabilities-target"
+    bind:this={capabilityRegion}
+    tabindex="-1"
+    aria-label={t("capabilitiesCard")}
     data-testid="capabilities-card"
     aria-busy={model.accountsLoading}
   >
@@ -276,7 +284,8 @@
   }
   .card {
     padding: 1.25rem;
-    border: 1px solid var(--ui-border);
+    border: var(--panel-border, 1px solid var(--ui-border));
+    padding-inline: var(--panel-inline-inset, 1.25rem);
     border-radius: 6px;
     margin: 0;
   }

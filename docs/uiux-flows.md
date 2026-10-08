@@ -56,7 +56,8 @@ These are current-source findings, not screenshot findings or installed acceptan
 **Story:** As the installation owner, I want to know whether the service and its
 modules are ready so I can decide what needs attention before connecting a client.
 
-**Flow:** Open Overview → read service status → scan accounts → scan Mail,
+**Flow:** Open Overview → read the observed-data next step → open its existing
+requirement/dialog or refresh unknown data → read service status → scan accounts → scan Mail,
 Calendar, Photos and Home → open the relevant requirement or settings dialog.
 
 **Design:** Section headings lead the eye; status and explanations are readable
@@ -251,7 +252,8 @@ User-device reachability still requires their device to be connected to Tailscal
 The owner rejected the first proportional pass as an insufficient whole-product
 audit. The [follow-up audit](uiux-comprehensive-audit.md) now records actor, intent,
 observed problem, design response and disposition for 15 findings. The repaired
-slice covers F01–F11; F12–F15 remain open.
+slice at that checkpoint covered F01–F11. [Round 3](uiux-round3.md) subsequently
+addresses F12–F15 with current-run captures and regression checks.
 
 Keyboard users can see existing catalog focus styling. Short-screen users scroll
 dialog content while its header/close control stays available. Account owners
@@ -268,3 +270,20 @@ account/system entry treatment. The shell remains full-width with a fixed rail;
 no vendor code, grants or provider behavior changed. Fixture refresh failure,
 empty status, rejected credentials and locale checks are explicitly synthetic.
 The latest screenshot inventory, limits and acceptance live in the follow-up.
+
+## Round 3 interaction acceptance
+
+F12–F15 now have [current-run stories, screenshots and acceptance](uiux-round3.md).
+Credential errors remain in the form after toast dismissal and are linked to the
+form/email/password without unsupported field blame. Narrow/coarse-pointer users
+can choose named Pages destinations from the persistent header while the fixed
+rail and navigation guards remain. Capability guidance focuses the full service
+list so the owner chooses a module; it does not assume Mail. Overview chooses a next task from observed prerequisites and refreshes
+unknown/stale evidence instead of claiming readiness. Multiple account identities
+use two desktop columns, one narrow column, and individually named action groups.
+
+The new `next-setup-task` classifier test and `task-entry-flow.ts` exercise ordering,
+unknown states, no automatic elevation, async intended-account readback, long names,
+form feedback, and locale. Physical-device, onscreen-keyboard, screen-reader and
+real-client/provider acceptance remain separate. This round is a local milestone;
+8464 continues to serve only fictional preview data.

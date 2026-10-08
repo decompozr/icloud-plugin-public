@@ -15,6 +15,7 @@
     password = $state(""),
     accountId = $state(""),
     busy = $state(false),
+    submitError = $state(""),
     generation = 0;
   let accounts = $state<
     Array<{
@@ -25,6 +26,8 @@
     }>
   >([]);
   const current = $derived(center.credential);
+  const instanceId = $props.id();
+  const errorId = instanceId + "-credential-error";
   const selected = $derived(
     accounts.find((account) => account.id === accountId),
   );
@@ -52,6 +55,7 @@
   $effect(() => {
     const value = current;
     if (!value) {
+      submitError = "";
       password = "";
       user = "";
       label = "";
@@ -59,6 +63,7 @@
     }
     if (value && value.generation !== generation) {
       generation = value.generation;
+      submitError = "";
       password = "";
       user = "";
       label = "";
@@ -100,6 +105,7 @@
     }
   }
   function close() {
+    submitError = "";
     password = "";
     user = "";
     label = "";
@@ -109,6 +115,7 @@
     const entry = current;
     if (!entry || busy) return;
     busy = true;
+    submitError = "";
     const input = {
       ...(accountId ? { accountId } : {}),
       user: selected?.user ?? user,
@@ -129,20 +136,11 @@
       window.dispatchEvent(new Event("studio:credentials-updated"));
       center.closeCredential(entry.generation);
     } catch (e) {
-      toast.push(
-        e instanceof Error &&
-          [
-            "providerError",
-            "accountExists",
-            "ownerError",
-            "auth_savedReconnect",
-            "auth_duplicateAccount",
-            "auth_providerError",
-          ].includes(e.message)
-          ? e.message
-          : "actionError",
-        "error",
-      );
+      submitError = e instanceof Error && [
+        "providerError", "accountExists", "ownerError", "auth_savedReconnect",
+        "auth_duplicateAccount", "auth_providerError",
+      ].includes(e.message) ? e.message : "actionError";
+      toast.push(submitError, "error");
     } finally {
       password = "";
       busy = false;
@@ -188,7 +186,9 @@
           window.dispatchEvent(new Event("studio:credentials-updated"))}
       />{/if}
   {:else}<p class="muted">{t("credentialModalHelp")}</p>
+    {#if submitError}<p id={errorId} class="form-error">{t(submitError)}</p>{/if}
     <form
+      aria-describedby={submitError ? errorId : undefined}
       onsubmit={(e) => {
         e.preventDefault();
         void submit();
@@ -200,7 +200,7 @@
           id="credential-account"
           bind:value={accountId}
           disabled={busy}
-          onchange={() => (password = "")}
+          onchange={() => { password = ""; submitError = ""; }}
           ><option value="">{t("newAccountOption")}</option
           >{#each accounts as account}<option value={account.id}
               >{account.label === account.user
@@ -210,6 +210,7 @@
         >{/if}
       {#if !accountId}<label for="credential-user">{t("email")}</label><input
           id="credential-user"
+          aria-describedby={submitError ? errorId : undefined}
           type="email"
           required
           maxlength="254"
@@ -225,6 +226,7 @@
         />{/if}
       <label for="credential-password">{t("password")}</label><input
         id="credential-password"
+        aria-describedby={submitError ? errorId : undefined}
         type="password"
         required
         maxlength="256"

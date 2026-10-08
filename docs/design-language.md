@@ -1,5 +1,32 @@
 # Shared interface design
 
+## Task entry and comparison (round 3, 2026-10-08)
+
+[Round 3](uiux-round3.md) addresses the four remaining workflow findings and maps
+all changes to user intent and acceptance. Narrow/coarse headers expose a named
+catalog Pages menu without replacing or resizing the fixed rail. The guarded
+navigation controller remains authoritative for Back, drafts and pending dialogs.
+The header stays visible as its content pane scrolls; the capability entry point
+focuses the complete service list instead of choosing Mail for the user.
+
+Overview leads with an observed-data NextStep composition using pinned semantic
+surface/spacing and catalog actions. Unknown or stale observations choose refresh;
+known prerequisites choose existing network, account, module or client entry
+points. Local configuration and registration do not imply external acceptance,
+and client copy asks for a read rather than declaring setup complete.
+
+Credential recovery keeps a persistent form-level explanation linked by
+`aria-describedby`, without unsupported individual field blame. Secret clearing,
+existing toasts and generation/reset behavior remain. Multiple account surfaces
+use two desktop columns and one column at the existing 700px narrow breakpoint;
+the Overview account section drops only its redundant outer enclosure. User action
+groups identify their account. No vendor tokens/components or backend grants change.
+
+Source build/typechecks and 584 unit tests pass; 252 browser checks cover existing
+requirements/shell/recovery plus new task entry, error linking, account comparison
+and wrapping. This is compiled fixture acceptance, not physical-device or native
+installation proof. The baseline and inspected screenshots remain in tracked docs.
+
 ## Workflow clarity and recovery follow-up (2026-10-08)
 
 The owner requested a broader audit after rejecting the proportional-only pass.
@@ -20,7 +47,7 @@ Its consumer adapter measures the existing notification region and reserves
 matching content space; if notifications intersect decisions, content scrolls
 just enough to reveal them without changing focus. Catalog appearance, dismiss
 controls and notification semantics remain unchanged. Physical-device/onscreen
-keyboard acceptance and F12–F15 remain open; no award/compliance claim is made.
+keyboard acceptance remain unverified; round 3 addresses F12–F15; no award/compliance claim is made.
 
 ## Readable Studio and proportionate actions (2026-10-07)
 

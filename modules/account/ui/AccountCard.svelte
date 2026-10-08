@@ -30,7 +30,7 @@
           {account.user}
         </p>{/if}
     </div>
-    <div class="account-actions">
+    <div class="account-actions" role="group" aria-label={account.user}>
       <Menu label={t("accountActions")} compact disabled={busy} items={[
         {id:"credential",label:t(account.credentialStored ? "editAppPassword" : "openAppPassword"),onSelect:()=>dialogs.openCredential("app-password",{accountId:account.id,mode:"rotate"})},
         {id:"session",label:t(savedSession ? "manageAppleSession" : "openAppleSession"),disabled:!sessionAvailable,onSelect:()=>dialogs.openCredential("apple-account",{accountId:account.id})},
