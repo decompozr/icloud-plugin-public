@@ -547,5 +547,37 @@ declaration types ship as an exact dependency. Source/workers/tests are excluded
 from package backend output. Independent review passed46/157 on account isolation,
 revocation, scopes, unknown/replay outcomes, wire behavior and drain/disposal;20
 Mail declaration files resolve inside the package and13 client files have no
-backend markers. No remaining scoped blocker. Candidate service0.1.107 awaits
-clean-main packaging/lifecycle verification and state-preserving deployment.
+backend markers. No remaining scoped blocker. Service0.1.107 was delivered below.
+
+### Mail backend deployment (0.1.107)
+
+PR145 merged at `f6a53432f934546e5ace07ef0557a87c829df252`. Release0.1.107
+was built from a clean detached checkout of that remote main with frozen workspace
+and standalone consumer locks. Six exact local bundles ship together; Mail0.3.0
+contains the backend and UI entries. Installed host output contains no old Mail
+service implementation. No registry or dynamic module loading was introduced.
+
+Final packaged checks passed18 tests, including runtime restart/OAuth persistence
+and module-owned draft/attachment/replay fixtures (151 Bun expect calls; Node assert
+checks also run in the Mail fixtures). Native staging verified the existing0.1.106
+Release signature/team/protocol/source pin without building or launching a helper.
+HomeKit payload bytes are identical and its ledger files are preserved; no Home
+scene, thermostat, automation, policy or permission was mutated by this slice.
+
+The supported updater ran after graceful drain and a protected stopped-state
+backup. All installed payload file/symlink hashes/modes match the artifact;
+configuration/custody bytes, non-transient SQLite rows and integrity are preserved.
+Resource/rate-limit diagnostic tables alone are excluded from row comparison.
+Local/private sign-in return200; private CSS matches installed bytes, security
+headers remain,13 client files contain no backend markers, and all13 doctor checks
+pass. Existing main MCP profile and nine mailboxes read successfully through the
+installed Mail package. No real mail send/edit/delete or new consent was performed.
+
+The immutable canonical archive and installed0.1.106/0.1.107 remain for rollback.
+The protected upgrade receipt is
+`runtime/backups/pre-0.1.107-20261008T211824Z/upgrade-receipt.json`. Task-owned
+scratch/build checkout will be removed after committed preservation; active
+checkout, checkpoint and unrelated records remain. Independent source checks are
+recorded above; PR145 has no configured remote CI. Physical-device/real Passkey
+acceptance is not claimed. Mail is deployed awaiting owner pass; Calendar is next,
+then Photos/HomeKit backend ownership and final Studio server composition.
