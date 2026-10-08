@@ -593,3 +593,22 @@ write. Read-only doctor checks passed. The old open signed consent page is immut
 and must be restarted through the host's reconnect flow to receive the new list.
 The current conversation still reports scene consent false; genuine host consent
 and the approved first-floor native scene effect remain external prerequisites.
+
+## Existing-scene dispatch contract correction (0.1.102 candidate)
+
+After genuine scene consent, the approved Office Light ON operation acknowledged
+and freshly read true. The following Turn Off First Floor native scene apply
+returned `INVALID_ARGUMENTS_OR_HOME` without its operation identity; the host
+correctly retained an unknown outcome and did not retry. Read-only reconciliation
+found no native operation reservation and no scene execution date. The Office
+Light remained on.
+
+Source inspection established a pre-dispatch allowlist omission: production
+preview validated the host-only existing-scene authorization flag, but native
+dispatch did not include that field in its exact argument set. A shared Foundation
+argument policy now accepts the strict Boolean true flag only for production scene
+execution, preserving the same intent in its journal request. Argument rejections
+include operation identity, original intent and explicit no-write evidence.
+The original unknown outcome remains immutable. After signed repair deployment,
+a new operation for the already approved first-floor effect is required; neither
+the original operation nor third-floor effects will be retried.
