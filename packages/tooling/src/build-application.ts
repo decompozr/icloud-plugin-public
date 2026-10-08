@@ -17,19 +17,12 @@ const excludedPhotos = new Set(["archived-sharing-module.ts", "shared-albums.ts"
 for(const file of excludedPhotos)await rm(join(output,"photos",file.replace(/\.ts$/,".d.ts")),{force:true});
 const entries:string[]=[];
 for await(const path of new Bun.Glob('**/*.ts').scan(source))if(!(path.startsWith('photos/')&&excludedPhotos.has(path.slice(7)))&&!path.includes('test-fixtures/')&&!path.endsWith('.test.ts')&&!path.endsWith('.worker.ts'))entries.push(resolve(source,path));
-const accountFacade=join(repository,'modules/account/dist/index.js');
-const accountImport='@icloud-plugin/account';
-const server=await Bun.build({entrypoints:entries,root:source,outdir:output,target:'bun',packages:'external',splitting:true,plugins:[{name:'installed-account-facade',setup(build){build.onResolve({filter:/modules\/account\/dist\/index\.js$/},args=>{if(resolve(dirname(args.importer),args.path)!==accountFacade)throw Error('Unexpected account facade');return{path:accountImport,external:true};});}}]});
+const server=await Bun.build({entrypoints:entries,root:source,outdir:output,target:'bun',packages:'external',splitting:true});
 if(!server.success)throw new AggregateError(server.logs,'Application build failed');
-// Splitting can hoist imports into root chunks. Link against each emitted file,
-// not its source importer, so every consumer shares one installed account module.
-for(const asset of server.outputs){
- if(!asset.path.endsWith('.js'))continue;
- let path=relative(dirname(asset.path),join(output,'account/index.js')).split(sep).join('/');if(!path.startsWith('.'))path='./'+path;
- const text=await Bun.file(asset.path).text();
- await Bun.write(asset.path,text.replace(/(["'])@icloud-plugin\/account\1/g,JSON.stringify(path)));
-}
-await cp(join(repository,'modules/account/dist'),join(output,'account'),{recursive:true});
+// Transitional built-test facade forwards to the same installed package instance.
+await mkdir(join(output,'account'),{recursive:true});
+await Bun.write(join(output,'account/index.js'),"export * from '@decompozr/account/server';\n");
+await Bun.write(join(output,'account/index.d.ts'),"export * from '@decompozr/account/server';\n");
 await cp(join(repository,'apps/studio/dist/kit'),join(output,'studio'),{recursive:true});
 await mkdir(join(output,'assets'),{recursive:true});
 await cp(join(repository,'apps/studio/THIRD_PARTY_NOTICES.md'),join(output,'assets/studio-LICENSES.txt'));

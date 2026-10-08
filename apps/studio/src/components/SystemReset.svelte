@@ -1,9 +1,9 @@
 <script lang="ts">
-  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { ToastCenter } from "../lib/ui-state.svelte.js";
-  import Modal from "../../../../packages/ui/src/components/Modal.svelte";
+  import Modal from "@decompozr/ui/components/Modal.svelte";
   let { available = false }: { available?: boolean } = $props();
   const { t } = getContext<UiCopy>("copy"),
     toast = getContext<ToastCenter>("toast");

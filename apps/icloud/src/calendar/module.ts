@@ -2,7 +2,7 @@ import {invocationContext} from '../modules/context.js';
 import {z} from 'zod';
 import {createHash} from 'node:crypto';
 import type {Database} from 'bun:sqlite';
-import type {OwnerSecretStore} from '../../../../modules/account/dist/index.js';
+import type {OwnerSecretStore} from '@decompozr/account/server';
 import type {AppSettings} from '../server/settings.js';
 import type {OperationMonitor} from '../observability/operations.js';
 import {CalendarError,type CalendarGateway,type CalendarPolicy} from './domain/calendar.js';

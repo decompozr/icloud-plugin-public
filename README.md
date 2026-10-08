@@ -79,4 +79,4 @@ HTTP, and distinct dev/build/release/runtime phases for Mac and Apple Container.
 [Studio](apps/studio/README.md) owns the Svelte admin/auth presentation.
 [Migration phases](docs/svelte-migration.md) describe the acceptance gates.
 
-Each app/package owns its manifest, lockfile and dependencies; the repository root is not a Bun workspace. See the linked layout for per-package installation and `bun bin/checkpoint` verification.
+Install the declared module packages with `bun install --frozen-lockfile` at the repository root. Bun workspaces share one committed lock; each module owns its version and public server/UI exports. See the linked layout and `bun bin/checkpoint` verification.

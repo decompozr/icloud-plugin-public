@@ -1,7 +1,7 @@
 import {mkdirSync,readFileSync,writeFileSync,lstatSync,existsSync}from'node:fs';
 import{dirname,join,relative}from'node:path';
 import{randomBytes}from'node:crypto';
-import{SqliteOwnerStore}from'../../../../modules/account/dist/index.js';
+import{SqliteOwnerStore}from'@decompozr/account/server';
 import type{AppSettings}from'./settings.js';
 function privatePath(path:string,directory=false,optional=false){
  let info;try{info=lstatSync(path);}catch(error){if(optional&&(error as NodeJS.ErrnoException).code==='ENOENT')return;throw error;}

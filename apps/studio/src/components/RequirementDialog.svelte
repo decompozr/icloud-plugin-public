@@ -1,13 +1,13 @@
 <script lang="ts">
-  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
   import type { ToastCenter } from "../lib/ui-state.svelte.js";
-  import RequirementStep from "../../../../packages/ui/src/components/RequirementStep.svelte";
-  import Modal from "../../../../packages/ui/src/components/Modal.svelte";
+  import RequirementStep from "@decompozr/ui/components/RequirementStep.svelte";
+  import Modal from "@decompozr/ui/components/Modal.svelte";
   import {bundledModules} from "../lib/bundled-modules.js";
-  import RefreshButton from "../../../../packages/ui/src/components/RefreshButton.svelte";
+  import RefreshButton from "@decompozr/ui/components/RefreshButton.svelte";
   let { model }: { model: AdminModel } = $props();
   const { t } = getContext<UiCopy>("copy"),
     toast = getContext<ToastCenter>("toast");

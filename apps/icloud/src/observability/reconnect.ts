@@ -1,4 +1,4 @@
-import {reconnectErrorCode} from '../../../../modules/account/dist/index.js';
+import {reconnectErrorCode} from '@decompozr/account/server';
 import { AsyncLocalStorage } from "node:async_hooks";
 import {
   lstatSync,
@@ -39,7 +39,7 @@ type RecordEntry = {
 };
 export const RECONNECT_LIMIT = 256,
   RECONNECT_WINDOW_MS = 30 * 60 * 1000;
-export {reconnectErrorCode,reconnectRedirectError} from '../../../../modules/account/dist/index.js';
+export {reconnectErrorCode,reconnectRedirectError} from '@decompozr/account/server';
 /** Owner-only local files; no diagnostic endpoint and no production state mutation. */
 export class ReconnectCapture {
   private readonly context = new AsyncLocalStorage<{ errorCode?: string }>();

@@ -3,7 +3,7 @@ import {test,expect} from 'bun:test';
 import {Database} from 'bun:sqlite';
 import {createCalendarModule} from './module.js';
 import {OperationMonitor} from '../observability/operations.js';
-import type {OwnerSecretStore} from '../../../../modules/account/dist/index.js';
+import type {OwnerSecretStore} from '@decompozr/account/server';
 import type {AppSettings} from '../server/settings.js';
 import type {CalendarGateway} from './domain/calendar.js';
 import {ModuleRuntime} from '../modules/runtime.js';

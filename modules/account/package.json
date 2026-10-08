@@ -1,12 +1,16 @@
 {
-  "name": "@icloud-plugin/account",
+  "name": "@decompozr/account",
   "private": true,
   "type": "module",
   "exports": {
-    ".": {
+    "./server": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./ui": "./ui/index.ts",
+    "./ui/*": "./ui/*",
+    "./ui/*.js": "./ui/*.ts",
+    "./ui/*.svelte.js": "./ui/*.svelte.ts"
   },
   "scripts": {
     "build": "bun ../../packages/tooling/src/build-account.ts",
@@ -19,12 +23,32 @@
     "@better-auth/passkey": "1.7.7",
     "better-auth": "1.7.7",
     "jose": "6.2.12",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "@decompozr/ui": "workspace:*",
+    "@decompozr/contracts": "workspace:*",
+    "@simplewebauthn/browser": "14.0.0"
   },
   "devDependencies": {
     "@types/bun": "1.4.2",
     "@types/node": "22.20.4",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "svelte": "5.57.1"
   },
-  "packageManager": "bun@1.4.2"
+  "packageManager": "bun@1.4.2",
+  "version": "0.1.0",
+  "files": [
+    "dist",
+    "ui",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "peerDependencies": {
+    "svelte": "5.57.1"
+  },
+  "peerDependenciesMeta": {
+    "svelte": {
+      "optional": true
+    }
+  }
 }

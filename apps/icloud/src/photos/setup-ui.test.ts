@@ -2,7 +2,7 @@ import {test,expect} from 'bun:test';
 import {createPrivateAdmin} from '../admin/handler.js';
 import {setupPage} from '../admin/page.js';
 import {privacyLinks,photosSetupSection} from './setup-ui.js';
-import type {OwnerSecretStore} from '../../../../modules/account/dist/index.js';
+import type {OwnerSecretStore} from '@decompozr/account/server';
 test('Photos onboarding starts with honest checking steps and a single recovery shortcut',()=>{
  const html=photosSetupSection();
  expect(html.match(/data-step-state="checking"/g)).toHaveLength(2);

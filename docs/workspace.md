@@ -56,21 +56,22 @@ this layout inventory does not identify or verify a running release.
 | Runtime | `bun bin/runtime` | Runs the existing app build only; no compilation or dependency installation. |
 | Verification | `bun bin/typecheck`, `bun bin/test` | Checks app and tooling units/types; `bun bin/e2e` uses the separate built-service project. Native helper acceptance remains explicit. |
 
-Each application/package owns its `package.json`, committed `bun.lock`, and local
-`node_modules`. The repository root has no package manifest, lockfile, workspace
-configuration, or dependency installation. No `workspace:*` dependency is allowed.
-Install independently from each owner directory:
+Each package owns its manifest and independent version. The repository now uses
+Bun workspaces and one committed root `bun.lock`; nested module UI manifests/locks
+are consolidated into their feature package. Install from the project root:
 
 ```sh
-(cd apps/studio && bun install --frozen-lockfile)
-(cd apps/icloud && bun install --frozen-lockfile)
-(cd apps/e2e && bun install --frozen-lockfile)
-(cd packages/tooling && bun install --frozen-lockfile)
+bun install --frozen-lockfile
 ```
 
-Root `bin/` entrypoints only dispatch commands; they do not own dependencies.
-The E2E package reads the already-built application through relative paths and
-has its own test dependencies. Retired prototype packages and their lockfiles are removed.
+Studio depends on public package exports, not neighboring source paths. The
+account package exports backend and UI separately; other feature packages expose
+UI until their backend extraction phase. Packages use independent 0.1.0 versions,
+which are separate from the application's release version. Packed workspace
+references become exact versions; production installs local immutable tarballs
+with an isolated consumer lock and frozen installation. Surface route sources
+retain their independent source lock outside the server workspace.
+
 
 Build emits `apps/icloud/dist`. Artifact assembly defaults to
 `apps/icloud/build/<platform>-<arch>` and owns production dependencies at

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { evidenceSchema } from "../../../../packages/contracts/dist/index.js";
+import { evidenceSchema } from "@decompozr/contracts";
 export const statusSchema = z.object({
   localOwner: z.boolean().optional(),
   ready: z.boolean(),

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import ActionButton from "../../../packages/ui/src/components/ActionButton.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
-  import type { UiCopy } from "../../../packages/ui/src/contracts.js";
+  import type { UiCopy } from "@decompozr/ui/contracts";
   let {
     preferredAccountId,
     inModal = false,
@@ -15,7 +15,7 @@
     onbusy?: (value: boolean) => void;
   } = $props();
   const toast =
-    getContext<import("../../../packages/ui/src/toast-state.svelte.js").ToastCenter>("toast");
+    getContext<import("@decompozr/ui/toast-state.svelte.js").ToastCenter>("toast");
   const { t } = getContext<UiCopy>("copy");
   let busy = $state(false),
     account = $state(""),

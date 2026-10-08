@@ -1,6 +1,6 @@
 import type {Database} from 'bun:sqlite';
-import type {OwnerSecretStore} from '../../../../modules/account/dist/index.js';
-import type {Principal} from '../../../../modules/account/dist/index.js';
+import type {OwnerSecretStore} from '@decompozr/account/server';
+import type {Principal} from '@decompozr/account/server';
 import {createHash} from 'node:crypto';
 /** Only nonsecret metadata. Any relevant change invalidates the whole observation conservatively. */
 export function evidenceState(db:Database,store:OwnerSecretStore,allowed:()=>readonly string[],epoch:()=>number){

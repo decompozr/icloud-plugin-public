@@ -1,9 +1,9 @@
 <script lang="ts">
   import { getContext } from "svelte";
-  import type { UiCopy } from "../../../packages/ui/src/contracts.js";
+  import type { UiCopy } from "@decompozr/ui/contracts";
   import type {DialogCenter} from "./dialog-state.svelte.js";
-  import Tag from "../../../packages/ui/src/design-system/Tag.svelte";
-  import ActionButton from "../../../packages/ui/src/components/ActionButton.svelte";
+  import Tag from "@decompozr/ui/design-system/Tag.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   let {account,busy=false,sessionPhase,sessionAvailable=false,dialogs,onrevoke}:{
     account:{id:string;user:string;label:string;credentialStored:boolean};
     busy?:boolean;sessionPhase?:string;sessionAvailable?:boolean;

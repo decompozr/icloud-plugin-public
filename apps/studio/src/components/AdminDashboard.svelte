@@ -1,11 +1,11 @@
 <script lang="ts">
-  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
-  import PermissionTag from "../../../../packages/ui/src/components/PermissionTag.svelte";
-  import { permissionGroups } from "../../../../packages/ui/src/permission-groups.js";
-  import { typographyStyle } from "../../../../packages/ui/src/design-system/typography.js";
-  import { spacing } from "../../../../packages/ui/src/design-system/spacing.js";
-  import DesignIcon from "../../../../packages/ui/src/components/DesignIcon.svelte";
-  import CopyButton from "../../../../packages/ui/src/components/CopyButton.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
+  import PermissionTag from "@decompozr/ui/components/PermissionTag.svelte";
+  import { permissionGroups } from "@decompozr/ui/permission-groups.js";
+  import { typographyStyle } from "@decompozr/ui/design-system/typography.js";
+  import { spacing } from "@decompozr/ui/design-system/spacing.js";
+  import DesignIcon from "@decompozr/ui/components/DesignIcon.svelte";
+  import CopyButton from "@decompozr/ui/components/CopyButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";

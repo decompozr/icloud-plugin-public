@@ -11,7 +11,7 @@ import {UnsubscribeService} from './services/unsubscribe.js';
 import {OutboundService} from './services/outbound.js';
 import {MailOperationError,type MailGateway,type MailMessageInput,type SendResult} from './domain/mail.js';
 import type {OutboundGateway} from './domain/outbound.js';
-import type {OwnerSecretStore} from '../../../../modules/account/dist/index.js';
+import type {OwnerSecretStore} from '@decompozr/account/server';
 import type {AppSettings} from '../server/settings.js';
 import type {OperationMonitor} from '../observability/operations.js';
 import {mailRegistration} from './mcp/tools.js';

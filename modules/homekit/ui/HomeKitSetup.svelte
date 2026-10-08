@@ -1,11 +1,11 @@
 <script lang="ts">
-  import ActionButton from "../../../packages/ui/src/components/ActionButton.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
-  import Checkbox from "../../../packages/ui/src/design-system/Checkbox.svelte";
-  import Select from "../../../packages/ui/src/design-system/Select.svelte";
-  import { spacing } from "../../../packages/ui/src/design-system/spacing.js";
-  import type { UiCopy } from "../../../packages/ui/src/contracts.js";
+  import Checkbox from "@decompozr/ui/design-system/Checkbox.svelte";
+  import Select from "@decompozr/ui/design-system/Select.svelte";
+  import { spacing } from "@decompozr/ui/design-system/spacing.js";
+  import type { UiCopy } from "@decompozr/ui/contracts";
   let {
     embedded = false,
     onverified,

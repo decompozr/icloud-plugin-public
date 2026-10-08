@@ -7,8 +7,8 @@ import { passkey } from '@better-auth/passkey';
 import { oauthProvider } from '@better-auth/oauth-provider';
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import type { Principal } from '../../../../../modules/account/dist/index.js';
-import { authRateLimit } from '../../../../../modules/account/dist/index.js';
+import type { Principal } from '@decompozr/account/server';
+import { authRateLimit } from '@decompozr/account/server';
 
 export interface OwnerAuthOptions {
  database: Database;

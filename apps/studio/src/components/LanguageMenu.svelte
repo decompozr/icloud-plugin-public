@@ -2,7 +2,7 @@
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { LocaleControl } from "../lib/ui-state.svelte.js";
-  import Menu from "../../../../packages/ui/src/design-system/Menu.svelte";
+  import Menu from "@decompozr/ui/design-system/Menu.svelte";
   let { rail = false }: { rail?: boolean } = $props();
   const { t } = getContext<UiCopy>("copy"),
     locale = getContext<LocaleControl>("locale");

@@ -1,5 +1,5 @@
 /** Presentation-only contracts. No credentials, grants, stores or provider clients. */
-export type {UiCopy,AuthMode,ScopeLabels} from '../../../packages/ui/src/contracts.js';
+export type {UiCopy,AuthMode,ScopeLabels} from '@decompozr/ui/contracts';
 export interface AdminPresentation {
   capabilities: readonly { id: string; label?: string; copyKey?: string }[];
   credentialStepLabel: string;

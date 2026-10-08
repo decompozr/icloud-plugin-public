@@ -1,6 +1,6 @@
 import {createMcpHandler,isLegacyRequest,type McpHttpHandler} from '@modelcontextprotocol/server';
 import {z} from 'zod';
-import type {Principal} from '../../../../modules/account/dist/index.js';
+import type {Principal} from '@decompozr/account/server';
 import type {ModuleRuntime} from '../modules/runtime.js';
 import {withInvocationContext} from '../modules/context.js';
 import {createModernServer} from '../mcp/modern-server.js';

@@ -28,5 +28,5 @@ export default defineConfig({
       },
     }),
   ],
-  ssr: { noExternal: ["svelte", "zod", "@simplewebauthn/browser"] },
+  ssr: { noExternal: [/^@decompozr\//,"svelte", "zod", "@simplewebauthn/browser"] },
 });

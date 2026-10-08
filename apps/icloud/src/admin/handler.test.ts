@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {createPrivateAdmin,type AppleCredential} from './handler.js';
-import {SqliteOwnerStore} from '../../../../modules/account/dist/index.js';
+import {SqliteOwnerStore} from '@decompozr/account/server';
 async function fixture(ready=true,seedAccount=false){
  const dir=mkdtempSync(join(tmpdir(),'icloud-admin-'));
  const proof=randomBytes(32).toString('hex');

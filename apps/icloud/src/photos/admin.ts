@@ -1,6 +1,6 @@
 import type {Database} from 'bun:sqlite';
 import {z} from 'zod';
-import type {OwnerSecretStore} from '../../../../modules/account/dist/index.js';
+import type {OwnerSecretStore} from '@decompozr/account/server';
 import type {AdminModule} from '../admin/handler.js';
 import {PhotosError} from './contracts.js';
 import type {PhotosPolicy} from './service.js';

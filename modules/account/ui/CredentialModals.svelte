@@ -1,11 +1,11 @@
 <script lang="ts">
-  import ActionButton from "../../../packages/ui/src/components/ActionButton.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
-  import type { UiCopy } from "../../../packages/ui/src/contracts.js";
+  import type { UiCopy } from "@decompozr/ui/contracts";
   import type {DialogCenter} from "./dialog-state.svelte.js";
-  import type {ToastCenter} from "../../../packages/ui/src/toast-state.svelte.js";
-  import Modal from "../../../packages/ui/src/components/Modal.svelte";
+  import type {ToastCenter} from "@decompozr/ui/toast-state.svelte.js";
+  import Modal from "@decompozr/ui/components/Modal.svelte";
   import PhotosCloud from "./PhotosCloud.svelte";
   let { center }: { center: DialogCenter } = $props();
   const { t } = getContext<UiCopy>("copy");

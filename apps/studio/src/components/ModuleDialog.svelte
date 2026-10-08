@@ -1,13 +1,13 @@
 <script lang="ts">
-  import ActionButton from "../../../../packages/ui/src/components/ActionButton.svelte";
+  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext, untrack } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { AdminModel } from "../lib/admin-model.svelte.js";
   import type { DialogCenter } from "../lib/ui-state.svelte.js";
   import { scopeCopy } from "../lib/admin-model.svelte.js";
-  import Modal from "../../../../packages/ui/src/components/Modal.svelte";
-  import RequirementStep from "../../../../packages/ui/src/components/RequirementStep.svelte";
-  import RequirementsMount from "../../../../packages/ui/src/components/RequirementsMount.svelte";
+  import Modal from "@decompozr/ui/components/Modal.svelte";
+  import RequirementStep from "@decompozr/ui/components/RequirementStep.svelte";
+  import RequirementsMount from "@decompozr/ui/components/RequirementsMount.svelte";
   import {bundledModules} from "../lib/bundled-modules.js";
   let { model, dialogs }: { model: AdminModel; dialogs: DialogCenter } =
     $props();

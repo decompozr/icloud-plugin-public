@@ -6,8 +6,8 @@ import {ReadinessEvidence} from './evidence.js';
 import {evidenceState} from './evidence-state.js';
 import {ModuleRuntime} from '../modules/runtime.js';
 import {createServer} from '../mcp/server.js';
-import type {OwnerSecretStore} from '../../../../modules/account/dist/index.js';
-import type {Principal} from '../../../../modules/account/dist/index.js';
+import type {OwnerSecretStore} from '@decompozr/account/server';
+import type {Principal} from '@decompozr/account/server';
 const principal=(now:number):Principal=>({subject:'owner',accountId:'account',clientId:'client',expiresAt:now+60000,scopes:new Set(['calendar.read'])});
 const ok={content:[{type:'text' as const,text:'{"events":[]}'}]};
 test('observations isolate client/account, expire, invalidate, reject errors and in-flight changes; restart is unknown',()=>{
