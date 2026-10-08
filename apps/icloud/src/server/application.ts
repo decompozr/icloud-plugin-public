@@ -170,6 +170,7 @@ export async function createApplication(
       accountStore: deps.store,
       validateCredential: mailModule.admin.validateCredential,
     });
+    await auth.synchronizeCapabilities();
     const bootstrap = createBootstrapAccess({
       login: settings.bootstrap_owner_login,
       origin: settings.private_origin,

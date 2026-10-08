@@ -1,4 +1,5 @@
 import {createClientRecovery,withOAuthMutation} from './client-recovery.js';
+import {synchronizeClientCapabilities,updatedAuthorizationScopes} from './capability-sync.js';
 import { Database } from 'bun:sqlite';
 import { betterAuth } from 'better-auth';
 import { APIError,createAuthMiddleware } from 'better-auth/api';
@@ -47,6 +48,7 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
  const checkBootstrap=(headers:Headers|undefined)=>{const proof=headers?.get('x-bootstrap-proof')??'';if(options.checkRegistrationProof){options.checkRegistrationProof(proof);return;}if(options.ownerId())throw Error('Enrollment closed');options.checkBootstrapProof(proof);};
  const requestContext=new AsyncLocalStorage<{query?:string;accountId?:string;refreshToken?:string}>();
  let connection:ReturnType<typeof createAccountConnection>|undefined;
+ const synchronizeCapabilities=()=>withOAuthMutation(options.database,async()=>synchronizeClientCapabilities({database:options.database,owner:options.ownerId(),declared:options.scopes,enabled:options.allowedScopes?.()??options.scopes,validAccount:(owner,account)=>{try{return Boolean(options.accountStore?.account(owner,account).credentialStored);}catch{return false;}}}));
  const recoverClient=createClientRecovery({database:options.database,origin:options.privateOrigin,resource:options.resource,declaredScopes:options.scopes,validAccount:(owner,accountId)=>{try{return Boolean(options.accountStore?.account(owner,accountId).credentialStored);}catch{return false;}},allowedScopes:()=>options.allowedScopes?.()??options.scopes,ownerSession:headers=>session(headers),updateClient:async(headers,clientId,scopes)=>{await auth.api.updateOAuthClient({headers,body:{client_id:clientId,update:{scope:scopes.join(' ')}}});}});
  const config={
   ...(options.onOAuthError?{hooks:{after:createAuthMiddleware(async ctx=>{
@@ -166,6 +168,12 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
    // A signed continuation belongs on /continue. Raw authorization always starts a fresh selection.
    if(url.searchParams.has('sig')||url.searchParams.has('ba_pl'))return new Response('Invalid authorization continuation',{status:400});
    const prompts=new Set((url.searchParams.get('prompt')??'').split(' ').filter(Boolean));
+   // A reconnect may retain the previous whole-registration scope snapshot.
+   // Offer enabled additions in fresh consent; do not widen read-only or silent requests.
+   if(!prompts.has('none')&&url.searchParams.getAll('resource').every(value=>value===options.resource)){
+    const requested=(url.searchParams.get('scope')??'').split(' ').filter(Boolean);
+    if(requested.length)url.searchParams.set('scope',updatedAuthorizationScopes(options.database,options.ownerId(),url.searchParams.get('client_id')??'',requested,options.allowedScopes?.()??options.scopes).join(' '));
+   }
    if(!prompts.has('none'))prompts.add('consent');
    url.searchParams.set('prompt',[...prompts].join(' '));request=new Request(url,request);
   }
@@ -221,5 +229,5 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
  }
  const serializedPaths=new Set(['/icloud/auth/oauth2/token','/icloud/auth/oauth2/authorize','/icloud/auth/oauth2/continue','/icloud/auth/oauth2/consent','/icloud/admin/oauth-clients']);
  const handle=(request:Request,privateRoute:boolean)=>serializedPaths.has(new URL(request.url).pathname)?withOAuthMutation(options.database,()=>route(request,privateRoute)):route(request,privateRoute);
- return{publicHandler:(request:Request)=>handle(request,false),privateHandler:(request:Request)=>handle(request,true),verifyBearer,ownerSession:(headers:Headers)=>session(headers),enrollmentSession:(headers:Headers)=>session(headers,false)};
+ return{synchronizeCapabilities,publicHandler:(request:Request)=>handle(request,false),privateHandler:(request:Request)=>handle(request,true),verifyBearer,ownerSession:(headers:Headers)=>session(headers),enrollmentSession:(headers:Headers)=>session(headers,false)};
 }

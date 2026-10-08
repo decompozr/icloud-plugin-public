@@ -25,7 +25,7 @@ export interface AdminOptions {
  updateCapabilities?(next:Record<string,boolean>,confirmEnable:boolean):Promise<Record<string,boolean>>;
  capabilities?(): Record<string,boolean>;
  store: OwnerSecretStore;
- ownerAuth: { ownerSession(headers: Headers): Promise<{user: {id: string}}>; enrollmentSession(headers: Headers): Promise<{user: {id: string}}> };
+ ownerAuth: { synchronizeCapabilities?():Promise<void>; ownerSession(headers: Headers): Promise<{user: {id: string}}>; enrollmentSession(headers: Headers): Promise<{user: {id: string}}> };
  diagnostics(): Promise<TailscaleStatus>;
  validateCredential(credential: AppleCredential): Promise<void>;
  setupReady?:boolean;
@@ -198,7 +198,7 @@ export function createPrivateAdmin(options:AdminOptions) {
      const permission=await options.photosSetup.status();
      if(typeof permission!=='object'||permission===null||!('ready'in permission)||permission.ready!==true)return json({error:'PHOTOS_PERMISSIONS_REQUIRED'},409);
     }
-    try{return json({capabilities:await target.updateCapabilities(parsed.data.policy,parsed.data.confirmEnable)});}catch(error){if(error instanceof Error&&'code' in error&&error.code==='configured_capability_disabled')return json({error:'CONFIGURED_CAPABILITY_DISABLED'},409);throw error;}
+    try{const capabilities=await target.updateCapabilities(parsed.data.policy,parsed.data.confirmEnable);await options.ownerAuth.synchronizeCapabilities?.();return json({capabilities});}catch(error){if(error instanceof Error&&'code' in error&&error.code==='configured_capability_disabled')return json({error:'CONFIGURED_CAPABILITY_DISABLED'},409);throw error;}
    }
    if(path==='/icloud/admin/credential'||path==='/icloud/admin/revoke') {
     const session=await options.ownerAuth.ownerSession(request.headers);

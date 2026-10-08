@@ -207,6 +207,28 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const photosTokens=tokensSchema.parse(await photosExchange.json()),photosPrincipal=await component.verifyBearer('Bearer '+photosTokens.access_token);
   expect(photosPrincipal.accountId).toBe('original-mailbox');expect(photosPrincipal.scopes.has('mail.read')).toBe(true);expect(photosPrincipal.scopes.has('calendar.read')).toBe(true);expect(photosPrincipal.scopes.has('photos.read')).toBe(true);expect(photosPrincipal.scopes.has('photos.write')).toBe(false);
   expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('photos.read')).toBe(false);
+  // Module enablement synchronizes the same registration without a Review step.
+  // A cached complete request now displays new permissions, but denial preserves grants.
+  enabledScopes.push('photos.delete','mail.send');
+  const automaticBefore=snapshots();await component.synchronizeCapabilities();
+  expect(snapshots()).toBe(automaticBefore);
+  const cachedUrl=new URL(authorizationPath.replace(client.client_id,anonymous.client_id),base);
+  const cachedSnapshot=db.query<{registeredBefore:string},[string]>('SELECT registeredBefore FROM plugin_client_scope_audit WHERE clientId=? ORDER BY occurredAt LIMIT 1').get(anonymous.client_id)!;
+  cachedUrl.searchParams.set('scope',(JSON.parse(cachedSnapshot.registeredBefore) as string[]).join(' '));cachedUrl.searchParams.set('state','cached-reconnect');
+  const cachedPath=cachedUrl.pathname+cachedUrl.search;
+  const cachedStart=await request(cachedPath),cachedLocation=new URL(cachedStart.headers.get('location')!,base);
+  expect(cachedLocation.searchParams.get('scope')?.split(' ')).toContain('photos.delete');
+  expect(cachedLocation.searchParams.get('state')).toBe('cached-reconnect');
+  expect(cachedLocation.searchParams.get('code_challenge')).toBe(b64(hash(verifier)));
+  const cachedSelection=await request('/icloud/connect/select',{accountId:'original-mailbox',oauth_query:cachedLocation.search.slice(1)});
+  const cachedConsent=new URL((await cachedSelection.json() as {url:string}).url,base);
+  const cachedStatus=await(await request('/icloud/connect/status?oauth_query='+encodeURIComponent(cachedConsent.search.slice(1)))).json() as {permissions:string[]};
+  expect(cachedStatus.permissions).toContain('photos.delete');
+  expect((await request('/icloud/auth/oauth2/consent',{accept:false,oauth_query:cachedConsent.search.slice(1)})).status).toBe(200);
+  expect(snapshots()).toBe(automaticBefore);
+  cachedUrl.searchParams.set('scope','mail.read');cachedUrl.searchParams.set('state','narrow-reconnect');
+  const narrowStart=await request(cachedUrl.pathname+cachedUrl.search);
+  expect(new URL(narrowStart.headers.get('location')!,base).searchParams.get('scope')).toBe('mail.read');
   enabledScopes=previousEnabled;
   const sendClient=clientSchema.parse(await(await request('/icloud/auth/oauth2/register',{client_name:'Explicit send fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read mail.send offline_access'})).json());
   const sendPath=authorizationPath.replace(client.client_id,sendClient.client_id).replace('mail.read+offline_access','mail.read+mail.send+offline_access');
