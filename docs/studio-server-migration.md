@@ -458,7 +458,7 @@ non-navbar contributions. Existing auth UI remains a dedicated account provider
 route rather than a fabricated feature page. Further thin-shell/server extraction
 remains phased.
 
-587 tests / 5,162 assertions, E2E 13 / 258, packaged lifecycle/OAuth 2 / 151 pass.
+589 tests / 5,185 assertions, E2E 13 / 258, packaged lifecycle/OAuth 2 / 151 pass.
 Browser fixtures pass 58 shell and 142 requirements/credential/locale/consent checks,
 four disabled bundled panels, late-response fencing and 13 clean client files.
 Mobile credential modal screenshot was visually inspected. No real provider/native
