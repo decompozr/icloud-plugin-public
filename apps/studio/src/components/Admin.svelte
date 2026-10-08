@@ -401,6 +401,7 @@
     <div id="connection-impact"><AdminDashboard {model} view="impact" /></div>
     <div class="actions">
       <ActionButton
+        showLabel
         id="connection-confirm-yes"
         type="button"
         class={model.pendingConnection?.action === "upgrade"
@@ -415,6 +416,7 @@
         )}
         icon="check"
       /><ActionButton
+        showLabel
         id="connection-confirm-no"
         type="button"
         class="secondary"
@@ -439,12 +441,14 @@
   </p>
   <div class="actions">
     <ActionButton
+      showLabel
       class="danger"
       disabled={model.busy}
       onclick={() => void model.run(() => model.revoke(), "revoking")}
       label={t("revokeYes")}
       icon="trash-2"
     /><ActionButton
+      showLabel
       class="secondary"
       disabled={model.busy}
       onclick={() => (model.revokeAccount = "")}

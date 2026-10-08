@@ -175,6 +175,7 @@
     </p>
     {#if !accounts.length}<p>{t("noAccountYet")}</p>
       <ActionButton
+        showLabel
         class="primary"
         onclick={() => center.openCredential("app-password", { mode: "add" })}
         label={t("addAccount")}
@@ -240,12 +241,14 @@
       </p>
       <div class="actions">
         <ActionButton
+          showLabel
           class="primary"
           type="submit"
           disabled={busy}
           label={t("saveAccount")}
           icon="check"
         /><ActionButton
+          showLabel
           class="secondary"
           type="button"
           disabled={busy}

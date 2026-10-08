@@ -265,7 +265,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.75rem;
+    font-size: inherit;
   }
 
   .overview-grid {

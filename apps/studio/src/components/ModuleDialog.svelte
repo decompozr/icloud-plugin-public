@@ -137,6 +137,7 @@
     >{/if}
   <div class="actions">
     <ActionButton
+      showLabel
       type="button"
       class="primary"
       disabled={model.busy ||
@@ -147,6 +148,7 @@
       label={t("saveModule")}
       icon="check"
     /><ActionButton
+      showLabel
       type="button"
       class="secondary"
       disabled={model.busy}

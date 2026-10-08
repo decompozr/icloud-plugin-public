@@ -1,6 +1,7 @@
 # Studio UI and UX flows
 
-Owner: Studio. Status: source review and proposed acceptance; visual audit pending.
+Owner: Studio. Status: local implementation and Chrome fixture self-checking complete.
+See the [screenshot audit](uiux-audit.md) for evidence and remaining limits.
 
 ## Goal and design contract
 
@@ -45,7 +46,7 @@ These are current-source findings, not screenshot findings or installed acceptan
 | Priority | Observation | User impact | Design response |
 | --- | --- | --- | --- |
 | High | ActionButton uses compact controls, but its consumer CSS expands touch icons to 24px; catalog buttons retain a 44px coarse target. | Small text competes with larger actions, especially on phones. | Use the catalog compact touch appearance with compact icons; retain the 44px hit area. |
-| High | Body is 14px, supporting text can be 12px, and section headings are also 14px. | Users must work harder to distinguish identity, section and explanation. | Use the existing 16px heading role for sections and 14px body role for readable help; preserve the 18px page title and 13px catalog tag labels. |
+| High | Body is 14px, supporting text can be 12px, and section headings are also 14px. | Users must work harder to distinguish identity, section and explanation. | Compose a shared 16px reading recipe from pinned metrics; use 16px section headings and 14px diagnostic/help text, preserving the 18px page title and 13px catalog tag labels. |
 | High | Save, cancel, authorize and destructive actions use the same icon-only adapter as toolbar utilities. | Users must infer consequential intent from a glyph or tooltip, which is unavailable on touch. | Provide visible translated labels for decision actions; keep compact icons for repeated toolbar utilities. |
 | Medium | The runtime folder is ellipsized and rendered at 12px. | Users cannot readily inspect the diagnostic value. | Use the catalog body/code role and preserve full-value copy. |
 | Open | The shared stylesheet explicitly suppresses all focus outlines under a previously owner-selected policy. | Keyboard focus can be difficult to locate; hints cover only some controls. | Document the risk. Resolve visible-focus policy before claiming keyboard accessibility. |
@@ -192,15 +193,39 @@ retains stale observations; visual changes do not initiate reset or revoke data.
 4. Record actual outcomes here and retain accepted images with the report. Treat
    physical iPhone, real Passkey and external-client acceptance separately.
 
-Current capture limitation: CUA reports no connected browsers; creating the in-app
-browser returns `Browser is not available: iab`; native Chrome capture returns
-`cgWindowNotFound`. Playwright fallback was requested under Product Design's browser
-rule and remains pending. No visual-audit, award-quality or accessibility-compliance
-claim is made. No publication, merge or installation is implied by this document.
+## Completed local verification
 
-Baseline source verification: application build and all bundled UI Svelte checks
-pass with zero errors and warnings before visual edits. Existing Playwright 1.62.1
-was located in the Codex runtime cache; no Playwright dependency or browser package
-was installed. The assigned detached checkout was retained and a descriptive task
-branch, `improve-studio-uiux-proportions`, was created. Prior runtime directories
-were absent in this checkout; unrelated checkouts and installation remain intact.
+The user authorized the existing Codex runtime Playwright fallback after the
+in-app browser and native Chrome capture were unavailable. No Playwright or
+browser package was installed in this project.
+
+- Captured and inspected 1280×1000 desktop and 390×844 touch fixture screens.
+  Accepted screenshots are retained in `docs/assets/uiux-audit/`.
+- Body/section typography is 16px. Compact touch tools retain 44×44px targets,
+  with 16px icons and the catalog's 32px compact face. Decision actions have
+  visible translated labels and normal catalog metrics.
+- Source build/type checks pass; all UI checks report zero errors/warnings.
+  Existing suites pass 583 tests (39 account, 25 Studio, 505 application, 14 tooling).
+- Browser self-checking passes 143 requirement/authorization checks and 58 shell
+  checks, including explicit module consent, selected-scope submission, pending
+  navigation, stale recovery and responsive wrapping.
+- Eight additional touch checks verify compact target/icon sizes, reachable Cancel
+  at 390×568, unchecked OAuth consent, refusal plus notification for empty consent,
+  and no horizontal overflow on the consent page at a 200% root text size.
+- The initial concurrent build/full-test attempt collided on generated output;
+  serialized rebuild and full rerun passed. An early System capture selected a
+  nonexistent `dl`; it was rejected and replaced with the actual diagnostics
+  disclosure. Navigation captures now wait for the marker to settle.
+
+The shared `readableTypography` recipe is an explicit consumer extension: it uses
+catalog heading size/line-height with body font family/weight for reading content.
+No vendor token/component was changed. This supersedes the old 14px Studio body
+adoption and icon-only decision treatment for the flows in this document.
+
+Delivery is local on `improve-studio-uiux-proportions`; preview uses disposable
+fictional accounts. No push, PR, merge, release or native installation occurred.
+Remote CI is not run for this local change. Physical Safari/iPhone, real Passkey,
+provider access and external-client acceptance remain unverified. Global focus
+suppression remains a documented risk under the prior appearance policy; no full
+accessibility-compliance claim is made. The retained task checkout and preview
+metadata support review. Flow reflection was checked and is deselected.

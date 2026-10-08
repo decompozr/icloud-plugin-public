@@ -9,7 +9,8 @@
     icon,
     class: className = "",
     variant,
-    size = "compact",
+    showLabel = false,
+    size = showLabel ? "normal" : "compact",
     loading = false,
     ...rest
   }: Omit<HTMLButtonAttributes, "class" | "children"> & {
@@ -19,6 +20,7 @@
     variant?: "primary" | "secondary";
     size?: "normal" | "compact";
     loading?: boolean;
+    showLabel?: boolean;
   } = $props();
   const primary = $derived(
     variant ??
@@ -45,9 +47,10 @@
 <span class="action-explanation" title={label}>
   <Button
     {...rest}
-    class={`dz-icon-action ${layoutClass}`}
+    class={`${showLabel ? "dz-labeled-action" : "dz-icon-action"} ${layoutClass}`}
     variant={primary}
     {size}
+    touchAppearance={showLabel ? "default" : "compact"}
     {loading}
     loadingLabel={label}
     aria-label={label}
@@ -55,6 +58,7 @@
     data-danger={danger || undefined}
   >
     {#if icon === "passkey"}<ProjectIcon name="passkey" />{:else}<DesignIcon name={icon} size={size === "compact" ? "1rem" : "1.25rem"} />{/if}
+    {#if showLabel}<span>{label}</span>{/if}
   </Button>
-  <span class="action-hint" aria-hidden="true">{label}</span>
+  {#if !showLabel}<span class="action-hint" aria-hidden="true">{label}</span>{/if}
 </span>

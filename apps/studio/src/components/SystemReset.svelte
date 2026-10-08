@@ -99,12 +99,14 @@
   </details>
   {#if available}<div class="actions">
       <ActionButton
+        showLabel
         type="button"
         class="secondary"
         onclick={() => open("connections")}
         label={t("resetConnections")}
         icon="unplug"
       /><ActionButton
+        showLabel
         type="button"
         class="danger"
         onclick={() => open("factory")}
@@ -138,6 +140,7 @@
     />
     <div class="actions">
       <ActionButton
+        showLabel
         type="button"
         class="danger"
         disabled={busy || confirmation !== phrase}
@@ -145,6 +148,7 @@
         label={t("resetConfirm")}
         icon="trash-2"
       /><ActionButton
+        showLabel
         type="button"
         class="secondary"
         disabled={busy}

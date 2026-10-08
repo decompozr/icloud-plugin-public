@@ -1,5 +1,29 @@
 # Shared interface design
 
+## Readable Studio and proportionate actions (2026-10-07)
+
+The owner requested a screenshot-led UI audit, better button/text proportions,
+and documented user stories for each design. The current local implementation
+uses a shared `readableTypography` consumer recipe: pinned heading size/line-height
+with body family/weight produce 16px reading text. Section headings are 16px;
+the existing 18px page title, 13px catalog Tags and normal/compact catalog controls
+remain. This explicitly recorded composition supersedes the earlier 14px body
+adoption for Studio without modifying pinned vendor source.
+
+Utility actions use catalog compact touch appearance: a 32px face and 16px icon
+inside a 44px target. Consequential decisions use visible translated labels and
+normal catalog Button metrics, superseding the earlier all-icon decision treatment.
+Critical semantic colors apply to both labeled and icon actions. Mobile connection
+warnings place explanation above Review. OAuth consent begins unchecked and submits
+only selected scopes; native/backend authorization boundaries remain intact.
+
+The [user stories and flows](uiux-flows.md) own interaction intent, feedback and
+acceptance. The [audit](uiux-audit.md) retains inspected before/after screenshots,
+measurements, self-checking results and residual risks. Local build/typechecks,
+583 unit tests, 143 requirements/consent browser checks, 58 shell checks and eight
+additional touch checks pass. This is local Chrome fixture acceptance; physical
+iPhone, full accessibility and native installation remain unverified.
+
 ## Current Surface design adoption (2026-10-06)
 
 Logo selection (2026-10-07): the owner selected the plain, plump cloud outline

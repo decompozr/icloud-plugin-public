@@ -1,4 +1,6 @@
 import { actionStyles } from "./lib/action-styles.js";
+import { typography } from "@decompozr/ui/design-system/typography.js";
+import { readableTypography } from "@decompozr/ui/readable-typography.js";
 /** Shared setup/auth visual language. Content arguments are trusted rendered markup. */
 export const pageStyles = `
 .shell-nav a{position:relative}.connection-warning-badge{position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;min-width:1.125rem;height:1.125rem;padding:0 .2rem;border-radius:999px;background:#F4CD62;color:#47340C;font-size:.6875rem;font-weight:700;line-height:1;z-index:2;box-shadow:0 0 0 2px var(--ui-background)}.connection-heading{display:flex;align-items:center;gap:.5rem}.connection-warning-icon,.connection-warning{color:var(--dz-color-warning,#795916)}.connection-warning-icon{display:inline-flex}.connection-warning{display:flex;align-items:flex-start;gap:.5rem;padding:.625rem;background:var(--dz-color-warningSurface,#F8F2E5);border-radius:.25rem}.connection-warning svg{flex:none;margin-top:.125rem}
@@ -48,6 +50,10 @@ input:not([type=checkbox]):not([type=radio]),select{padding:.4375rem .5rem}
 .shell-nav .active-indicator{position:absolute;left:0;right:0;top:0;border-radius:4px;background:var(--ui-soft);border-left:2px solid var(--ui-focus);pointer-events:none;transition:top 180ms ease}
 @view-transition{navigation:none}@media(prefers-reduced-motion:reduce){.shell-nav .active-indicator{transition:none}}
 ${actionStyles}
+/* Shared reading hierarchy; catalog controls retain their pinned metrics. */
+body{font-size:${readableTypography.fontSize};line-height:${readableTypography.lineHeight}}
+h2,h3{font-size:${typography.heading.fontSize};line-height:${typography.heading.lineHeight}}
+small,.account-address,.copy-label,code{font-size:${typography.body.fontSize};line-height:${typography.body.lineHeight}}
 /* Preserve the existing owner-selected focus appearance policy. */
 *:focus,*:focus-visible,.permission-choice:has(input:focus-visible){outline:none!important;box-shadow:none!important}
 `;
