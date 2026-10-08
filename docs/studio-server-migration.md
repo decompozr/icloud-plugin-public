@@ -261,8 +261,8 @@ dependencies, with license/notices, checksums and filtered contents. Private fla
 remain until an explicitly selected private registry is configured; no registry
 publish has run. Other feature server exports remain deferred, not fabricated.
 
-Self-checking: 583 tests / 5,143 assertions, built HTTP E2E 13 / 258, package
-consumer test 1 / 16 outside the repo, 58 persistent-shell browser checks, four
+Self-checking: 583 tests / 5,136 assertions, built HTTP E2E 13 / 258, package
+consumer test 1 / 9 outside the repo, 58 persistent-shell browser checks, four
 disabled-module/race checks and 13 client files without backend code. Candidate
 packaged lifecycle/OAuth upgrade passes (2 / 151). The initial successful staged
 install omitted a lockfile; independent review caught it before release. Consumer
@@ -275,3 +275,8 @@ instead of silently deleting that dependency. Existing SDK versions are preserve
 Fresh-checkout/root-lock verification, clean-main release/install and live readback
 remain pending. Registry selection/publication and owner acceptance remain separate
 from local package delivery.
+
+The first fresh-checkout consumer test used the parent test process's package
+resolver and failed before asserting isolation. The isolation probe now executes
+inside a fresh consumer process and checks all seven real package paths there;
+this avoids inherited resolver state and does not relax source-fallback checks.
