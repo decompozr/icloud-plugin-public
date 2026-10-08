@@ -1,4 +1,4 @@
-import {join,resolve,basename} from 'node:path';
+import {join,resolve,basename,relative,sep} from 'node:path';
 import {mkdir,cp,readFile,writeFile,rm} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {repository} from './command.js';
@@ -18,7 +18,7 @@ export async function packModulePackages(output:string){
    delete manifest.devDependencies;delete manifest.scripts;
    for(const path of value.files as string[]){
     const source=join(repository,owner,path);if(!await Bun.file(source).exists()&&!['dist','ui','src'].includes(path))continue;
-    await cp(source,join(stage,path),{recursive:true,filter:path=>!path.split('/').some(part=>part==='node_modules'||part==='test-fixtures'||part==='.decompozr')&&!/\.(test|worker)\.ts$/.test(path)&&!path.endsWith('/tsconfig.json')});
+    await cp(source,join(stage,path),{recursive:true,filter:path=>!relative(join(repository,owner),path).split(sep).some(part=>part==='node_modules'||part==='test-fixtures'||part==='.decompozr')&&!/\.(test|worker)\.ts$/.test(path)&&!path.endsWith('/tsconfig.json')});
    }
    await cp(join(repository,'LICENSE'),join(stage,'LICENSE'));
    const notices=await readFile(join(repository,'THIRD_PARTY_NOTICES.md'),'utf8')+'\n'+await readFile(join(repository,'apps/studio/THIRD_PARTY_NOTICES.md'),'utf8');await writeFile(join(stage,'THIRD_PARTY_NOTICES.md'),notices);

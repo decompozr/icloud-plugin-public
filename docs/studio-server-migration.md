@@ -276,7 +276,8 @@ Fresh-checkout/root-lock verification, clean-main release/install and live readb
 remain pending. Registry selection/publication and owner acceptance remain separate
 from local package delivery.
 
-The first fresh-checkout consumer test used the parent test process's package
-resolver and failed before asserting isolation. The isolation probe now executes
-inside a fresh consumer process and checks all seven real package paths there;
-this avoids inherited resolver state and does not relax source-fallback checks.
+Fresh-checkout verification caught an absolute-path filtering defect: a build
+checkout beneath the canonical Flow runtime was itself classified as excluded
+state, leaving package exports missing. Filters now inspect paths relative to the
+package owner, and the isolated consumer probe loads every real export in a fresh
+process. The corrected test passes from the fresh checkout without source fallbacks.
