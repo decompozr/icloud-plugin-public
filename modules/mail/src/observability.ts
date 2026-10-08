@@ -1,6 +1,6 @@
 import {ZodError} from 'zod';
 import type {MailErrorCode} from './domain/mail.js';
-import type {OperationClassifier,OperationOutcome,OperationCounts} from '../observability/operations.js';
+import type {OperationClassifier,OperationOutcome,OperationCounts} from './ports.js';
 const tools=['mail_request_persistent_access','mail_list_mailboxes','mail_search','mail_read','mail_mark','mail_flag','mail_tag','mail_move','mail_organize','mail_batch','mail_unsubscribe_discover','mail_unsubscribe_submit','mail_send','mail_reply','mail_draft_create','mail_attachment_download','mail_draft_read','mail_draft_edit','mail_draft_send','mail_forward'] as const;
 type OperationTool=typeof tools[number]|'unknown';
 const actions=['request_persistent_access','list_mailboxes','search','read','mark','flag','tag','move','organize','trash','archive','junk','not_junk','restore','batch','unsubscribe_discover','unsubscribe_submit','send','reply','draft','attachment_download','draft_read','draft_edit','draft_send','forward'] as const;

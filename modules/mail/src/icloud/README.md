@@ -14,7 +14,7 @@ success, message acceptance and confirmed user-visible delivery are distinct.
 Credentials and private MIME stay inside the provider/service path; telemetry must
 not contain them. Unsubscribe handling constrains destinations, redirects and
 response sizes and is not an arbitrary browsing facility. Exact behavior and bounds
-are maintained in [mailbox contracts](../../../../../docs/mailbox-tools.md).
+are maintained in [mailbox contracts](../../../../docs/mailbox-tools.md).
 
 Colocated move/outbound/unsubscribe tests exercise injected transports and failure
 paths. Real iCloud capabilities, SMTP delivery and subscription cancellation require

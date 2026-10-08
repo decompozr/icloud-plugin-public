@@ -5,8 +5,8 @@ import {createMailModule} from '../module.js';
 import {withInvocationContext} from '../../modules/context.js';
 import {OperationMonitor} from '../../observability/operations.js';
 import type {AppSettings} from '../../server/settings.js';
-import type {MailSession} from '../domain/mail.js';
-import {outboundResultSchema} from '../domain/outbound.js';
+import type {MailSession} from '@decompozr/mail/server/domain/mail.js';
+import {outboundResultSchema} from '@decompozr/mail/server/domain/outbound.js';
 
 const request={operationId:'12345678-1234-4234-8234-123456789abc',to:['author@example.invalid'],subject:'Fixture',text:'Fixture'};
 const identity={ownerId:'fixture-owner',accountId:'fixture-account'};

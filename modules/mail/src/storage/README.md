@@ -13,7 +13,7 @@ and later ledger calls fail closed. Tables remain in the existing SQLite file,
 with unchanged names and cryptographic context. This source-layout refactor must
 not recreate tables, reset operator choices or discard uncertain outbound records.
 
-The [shared owner store](../../../../../modules/account/src/storage/README.md) owns exclusive enrollment and
+The [shared owner store](../../../account/src/storage/README.md) owns exclusive enrollment and
 opaque encrypted credentials. Mail state is separate in responsibility even where
 it shares the auth SQLite connection. File access is server-only; credentials,
 ledger plaintext and key material must never enter client packages or logs.

@@ -10,7 +10,7 @@ provider preflight, execution and a typed result. Identity, mailbox capability a
 batch checks happen before writes where possible; later provider failures can still
 produce partial or unknown results. Outbound work uses a durable ledger to preserve
 replay decisions across restarts. A client disconnect does not make a completed send
-safe to repeat. See [Mail contracts](../../../../../docs/mailbox-tools.md) for exact
+safe to repeat. See [Mail contracts](../../../../docs/mailbox-tools.md) for exact
 limits, required confirmations and result semantics.
 
 The module supplies providers, policy readers and ledger ports. Services do not

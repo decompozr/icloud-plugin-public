@@ -8,6 +8,7 @@ const studioMetadata=JSON.parse(await Bun.file(join(repository,'apps/studio/pack
 if(studioMetadata.version!==sourceMetadata.version)throw Error('Studio and application versions must match before building.');
 if(pluginMetadata.version!==sourceMetadata.version)throw Error('Application and downloadable plugin versions must match before building.');
 await command([process.execPath,join(repository,'packages/tooling/src/build-account.ts')]);
+await command([process.execPath,join(repository,'packages/tooling/src/build-mail.ts')]);
 await command([process.execPath,'run','--cwd',join(repository,'apps/studio'),'build']);
 await command([process.execPath,'run','--cwd',join(repository,'apps/studio'),'typecheck']);
 await command([process.execPath,'run','--cwd',app,'typecheck']);

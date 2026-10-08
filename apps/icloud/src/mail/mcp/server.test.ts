@@ -2,9 +2,9 @@ import {test,expect} from 'bun:test';
 import {z} from 'zod';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
-import type {MailOperations} from '../domain/mail.js';
+import type {MailOperations} from '@decompozr/mail/server/domain/mail.js';
 import {createServer} from './server.js';
-import {readConfig} from '../config.js';
+import {readConfig} from '@decompozr/mail/server/config.js';
 const config=readConfig({ICLOUD_USER:'fixture@example.invalid',ICLOUD_APP_PASSWORD:'dummy',MCP_PUBLIC_URL:'https://mail.example.invalid/icloud/mcp',MCP_OAUTH_ISSUER:'https://issuer.example.invalid/',MCP_OAUTH_AUDIENCE:'mail',MCP_OAUTH_JWKS_URL:'https://issuer.example.invalid/keys',MCP_OAUTH_ALLOWED_SUBJECTS:'owner'});
 const unused=async():Promise<never>=>{throw Error('Unexpected adapter call');};
 test('typed MCP adapter discovers read tools and rejects invalid target before service',async()=>{

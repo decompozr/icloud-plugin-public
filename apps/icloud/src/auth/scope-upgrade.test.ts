@@ -1,7 +1,7 @@
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import type {createServer as ProductionMcpFactory} from '../mail/mcp/server.js';
-import {readConfig} from '../mail/config.js';
+import {readConfig} from '@decompozr/mail/server/config.js';
 import {test,expect} from 'bun:test';
 import {Database} from 'bun:sqlite';
 import {Encoder} from 'cbor-x';

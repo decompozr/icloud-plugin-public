@@ -1,6 +1,6 @@
 # Independent packages and application boundaries
 
-Account backend ownership has moved to `modules/account`; server/process ownership
+Account and Mail backends have moved to `modules/account` and `modules/mail`; server/process ownership
 remains in the transitional app until the next phases. See [the accepted Studio
 server migration](studio-server-migration.md).
 
@@ -65,8 +65,8 @@ bun install --frozen-lockfile
 ```
 
 Studio depends on public package exports, not neighboring source paths. The
-account package exports backend and UI separately; other feature packages expose
-UI until their backend extraction phase. Packages use independent 0.1.0 versions,
+account and Mail packages export backend and UI separately; other feature packages
+expose UI until their backend extraction phase. Packages use independent versions,
 which are separate from the application's release version. Packed workspace
 references become exact versions; production installs local immutable tarballs
 with an isolated consumer lock and frozen installation. Surface route sources

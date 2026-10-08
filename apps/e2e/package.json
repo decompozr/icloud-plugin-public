@@ -13,7 +13,8 @@
     "cbor-x": "1.6.4",
     "nodemailer": "10.0.14",
     "zod": "3.25.76",
-    "@decompozr/account": "workspace:*"
+    "@decompozr/account": "workspace:*",
+    "@decompozr/mail": "workspace:*"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.3.1",
