@@ -246,9 +246,11 @@ state/secrets and records checksums. Verify isolated consumer installation, pack
 exports, Svelte composition, client/server boundaries and native artifact upgrade.
 
 No new runtime or global installer. Preserve provider/state/scope/native behavior.
-Registry publication awaits an explicitly selected private destination and access;
-no public npm publish is authorized. Local package artifacts and installed service
-are deliverable independently of that missing destination. Remaining source/server
+The owner selected local package artifacts and existing Git remote source/version
+management for this stage. Registry selection/publication is out of scope, not a
+delivery blocker. Keep package private flags and do not publish to public npm.
+The canonical local service archive includes all installed versioned package TGZs;
+Git preserves source and version metadata. No hosted binary upload is claimed. Remaining source/server
 migration phases and owner acceptance still remain visible.
 
 ### Versioned package checkpoint
@@ -258,8 +260,7 @@ imports use package exports; account backend is installed once and the temporary
 built-test facade forwards to that same instance. Standalone consumers install
 exact local TGZs, not source-folder links. Workspace ranges become exact packed
 dependencies, with license/notices, checksums and filtered contents. Private flags
-remain until an explicitly selected private registry is configured; no registry
-publish has run. Other feature server exports remain deferred, not fabricated.
+remain for local/Git delivery; registry publication is not required. Other feature server exports remain deferred, not fabricated.
 
 Self-checking: 583 tests / 5,136 assertions, built HTTP E2E 13 / 258, package
 consumer test 1 / 9 outside the repo, 58 persistent-shell browser checks, four
@@ -274,7 +275,7 @@ instead of silently deleting that dependency. Existing SDK versions are preserve
 
 Fresh-checkout root frozen install, complete build and all 583 tests / 5,136
 assertions pass after the package-relative filtering fix. Clean-main release/install
-and live readback remain pending. Registry selection/publication and owner acceptance remain separate
+and live readback remain pending. Registry publication is out of scope; owner acceptance remains separate
 from local package delivery.
 
 Fresh-checkout verification caught an absolute-path filtering defect: a build
@@ -305,7 +306,35 @@ from upgrade-time preservation.
 Local/private sign-in returns 200, two CSS assets match, 13 installed client files
 exclude backend markers, and 13 doctor checks pass from this Mac. Existing main
 MCP profile and actual 9-mailbox read succeed without new registration/consent or
-provider writes. Physical owner/device walkthrough remains pending. Private registry
-selection/publication remains unresolved; local package installation and service
-delivery do not claim module publication. Owner pass still gates the next backend
+provider writes. Physical owner/device walkthrough remains pending. The owner accepted local
+package installation and existing Git remote source/version delivery without a
+registry. No registry or hosted binary publication is claimed. Owner pass still gates the next backend
 extraction phase.
+
+### Accepted delivery scope
+
+The owner confirmed that a registry is not needed for now. Local workspaces and
+installed versioned TGZs, the canonical service release archive, and existing Git
+remote source/version history satisfy this package-delivery phase. Registry work
+is removed from pending requirements. Package versions remain independent; future
+module changes still require dependency verification and a service upgrade before
+activation. Owner pass continues to gate the next backend/server migration phase.
+
+### Release-first module runtime direction
+
+The owner clarified the durable delivery model: assemble local module bundles and
+ship one complete service release, including future iterations. Independent module
+versions are composition/compatibility identities; they do not require a registry
+or separate deployed services. The current install upgrades the complete release.
+
+Dynamic module upgrade is a later stage after backend extraction and Studio server
+ownership. Studio/runtime becomes the thin MCP/control-plane shell: listeners,
+authentication/authorization enforcement, route/UI composition and module lifecycle
+hosting. Module packages own feature logic, tools, requirements and UI. No feature
+implementation should be pulled back into the shell for convenience.
+
+Later dynamic upgrades must explicitly design compatibility validation, blocking
+new work, draining accepted operations, resource disposal, atomic activation and
+rollback. Owner identity/key custody, grants and OS permissions remain independent
+of code replacement. This direction does not claim hot upgrade is implemented now,
+select an update distribution transport or authorize unattended activation.
