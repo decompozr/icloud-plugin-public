@@ -229,3 +229,19 @@ provider access and external-client acceptance remain unverified. Global focus
 suppression remains a documented risk under the prior appearance policy; no full
 accessibility-compliance claim is made. The retained task checkout and preview
 metadata support review. Flow reflection was checked and is deselected.
+
+## Tailnet preview recovery (2026-10-08)
+
+The owner could not open the localhost link and requested Tailscale access.
+Restarted the disposable fixture and added a private Serve mapping at
+`https://mac-mini.duckbill-ionian.ts.net:8464/fixture/session`. All existing Serve
+mappings were read back unchanged; port 8464 has no Funnel exposure. This is the
+UI fixture, not the installed plugin. `ICLOUD_FIXTURE_ORIGIN` configures its external
+origin so redirects and write-origin checks remain correct behind Serve.
+
+HTTPS session/admin and status readbacks return 200. Touch browser verification
+confirms 16px body text, no horizontal overflow, successful explicit Mail fixture
+consent/save, rejection of a foreign origin with 403, selected-scope OAuth fixture
+continuation on the same tailnet origin, and zero browser errors. The preview remains
+running for review; task-owned state records the upstream/PID and scoped stop command.
+User-device reachability still requires their device to be connected to Tailscale.
