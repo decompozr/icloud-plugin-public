@@ -1,6 +1,6 @@
 {
   "name": "@icloud-plugin/icloud",
-  "version": "0.1.106",
+  "version": "0.1.107",
   "private": true,
   "type": "module",
   "description": "Personal iCloud Mail MCP server with authenticated remote transport",
@@ -24,15 +24,11 @@
     "fast-xml-parser": "5.11.1",
     "i18next": "25.6.0",
     "ical.js": "2.2.1",
-    "imapflow": "1.7.8",
-    "ipaddr.js": "2.5.0",
     "jose": "6.2.12",
-    "mailauth": "7.1.0",
-    "mailparser": "3.9.33",
-    "nodemailer": "10.0.14",
     "zod": "3.25.76",
     "zod-to-json-schema": "3.25.2",
-    "@decompozr/account": "workspace:*"
+    "@decompozr/account": "workspace:*",
+    "@decompozr/mail": "workspace:*"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.3.1",
@@ -41,7 +37,8 @@
     "@types/node": "22.20.4",
     "@types/nodemailer": "7.0.12",
     "cbor-x": "1.6.4",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "imapflow": "1.7.8"
   },
   "packageManager": "bun@1.4.2"
 }

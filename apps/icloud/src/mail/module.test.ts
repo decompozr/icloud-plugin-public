@@ -8,7 +8,7 @@ import {createServer} from '../mcp/server.js';
 import {OperationMonitor} from '../observability/operations.js';
 import type {OwnerSecretStore} from '@decompozr/account/server';
 import type {AppSettings} from '../server/settings.js';
-import {MailOperationError,type MailSession} from './domain/mail.js';
+import {MailOperationError,type MailSession} from '@decompozr/mail/server/domain/mail.js';
 
 async function fixture(moveUnknown=false,revokeOnMove=false,revokeOnMetadata=false,activate=true){
  const database=new Database(':memory:');const users: string[]=[];const sends:string[]=[];const moves:string[]=[];

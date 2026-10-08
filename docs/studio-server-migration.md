@@ -501,3 +501,51 @@ build/install/browser/test scratch is removed after this record is committed;
 the active checkout, runtime checkpoint and unrelated records remain. This UI
 boundary slice is delivered; full backend/server extraction remains phased and
 awaits owner pass before the next slice.
+
+## Phase 2 Mail backend extraction execution contract
+
+Owner accepted the declarative UI delivery and explicitly requested the next Mail
+slice. Existing module packages are retained; this moves the backend currently in
+`apps/icloud/src/mail` into the existing `modules/mail` package, not a new registry.
+
+1. Move Mail domain, services, provider adapters, storage, tool/scope declarations
+   and configuration into its server entry; independently build and install it.
+2. Inject verified invocation lookup and operation monitoring as narrow dependency
+   ports. Mail declares its registration; the existing host owns the shared runtime,
+   AsyncLocalStorage, ingress, UI presentation and process lifecycle. Do not copy
+   the runtime implementation or import shell source into the package.
+3. Retain only transitional host composition/presentation adapters, update their
+   consumers to public package exports and move pure tests with their backend.
+4. Verify account isolation/revocation, tool scopes, unknown outbound outcomes and
+   drain/disposal, built outside-repo consumption, full application tests/E2E and
+   unchanged client boundary. Obtain independent security review.
+5. Merge, build from clean remote main, release and deploy to the established native
+   prefix with graceful drain, protected backup and exact payload/data checks;
+   verify doctor, private UI and existing MCP profile/mailboxes reads. No provider
+   write, new permission request or automation mutation is part of this slice.
+
+Acceptance is installed Mail module ownership with unchanged names, persisted
+policies/replay history and authorization behavior. Keep the currently installed
+HomeKit signed helper and automation setup intact. Owner pass gates Calendar,
+then Photos/HomeKit extraction and final Studio server composition/removal of the
+old application. Version allocation is provisional until release reconciliation.
+
+### Mail backend source verification checkpoint
+
+Mail0.3.0 now builds its domain, services, IMAP/SMTP/unsubscribe adapters, policy,
+replay ledger, scope/tool declarations and factory independently. Its public server
+entry is separate from UI. Only declaration ports describe the injected verified
+invocation lookup and monitor; no host runtime/AsyncLocalStorage implementation
+is copied or reverse-imported. The transitional host supplies the original lookup,
+presentation and HTTP/MCP fixture composition. Existing account, tool, scope,
+provider endpoint and table/ledger semantics are unchanged.
+
+590 tests / 5,197 assertions and built E2E13/258 pass. An outside-repository install
+loads all six exact local bundles plus Mail backend/provider exports, verifies
+resolution inside the consumer and typechecks actual API usage. Public nodemailer
+declaration types ship as an exact dependency. Source/workers/tests are excluded
+from package backend output. Independent review passed46/157 on account isolation,
+revocation, scopes, unknown/replay outcomes, wire behavior and drain/disposal;20
+Mail declaration files resolve inside the package and13 client files have no
+backend markers. No remaining scoped blocker. Candidate service0.1.107 awaits
+clean-main packaging/lifecycle verification and state-preserving deployment.

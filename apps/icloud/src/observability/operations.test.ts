@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {OperationMonitor as GenericOperationMonitor,type OperationEvent} from './operations.js';
-import {MailOperationError} from '../mail/domain/mail.js';
-import {mailOperationClassifier} from '../mail/observability.js';
+import {MailOperationError} from '@decompozr/mail/server/domain/mail.js';
+import {mailOperationClassifier} from '@decompozr/mail/server/observability.js';
 class OperationMonitor extends GenericOperationMonitor {override run<T>(tool:string,input:unknown,operation:()=>Promise<T>):Promise<T>{return super.run(tool,input,operation,mailOperationClassifier);}}
 test('operation events include only approved enums and never private input/output/error fields',async()=>{
  const events:OperationEvent[]=[];const monitor=new OperationMonitor(event=>{events.push(event);});const canary='PRIVATE_TOKEN_BODY_ADDRESS_MAILBOX';

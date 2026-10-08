@@ -1,8 +1,7 @@
 import {mailScopeDescriptions} from '../consent.js';
 import {mailOperationClassifier} from '../observability.js';
 import {attachmentRequestSchema,draftReadSchema,draftEditSchema,draftSendSchema,forwardSchema} from '../domain/extensions.js';
-import type {OperationMonitor} from '../../observability/operations.js';
-import type {RuntimeModule,RegisteredTool} from '../../modules/runtime.js';
+import type {MailMonitor as OperationMonitor,MailRegistration as RuntimeModule,MailTool as RegisteredTool} from '../ports.js';
 import {type Tool,type CallToolResult} from '@modelcontextprotocol/sdk/types.js';
 import {z} from 'zod';
 import {zodToJsonSchema} from 'zod-to-json-schema';

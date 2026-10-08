@@ -17,7 +17,7 @@ implying source removal or successful movement; it does not authorize a retry.
 
 Services consume these interfaces; adapters implement them. Operation results
 preserve rejected, partial and unknown outcomes rather than presenting uncertainty
-as success. Domain changes must be reflected in [tool contracts](../../../../../docs/mailbox-tools.md),
+as success. Domain changes must be reflected in [tool contracts](../../../../docs/mailbox-tools.md),
 service tests and provider fixtures. Pure type contracts are checked by TypeScript;
 behavior is exercised by the neighboring services, adapter and MCP test suites.
 There is no Calendar domain in this folder and no shared all-feature domain model.

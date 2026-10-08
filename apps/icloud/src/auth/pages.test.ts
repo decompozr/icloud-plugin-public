@@ -83,7 +83,7 @@ test('send consent is explicit in both supported locales',async()=>{
 
 test('registered Mail consent labels retain locale and unknown-module fallback through rendered metadata',async()=>{
  const {i18n}=await import('../i18n/index.js');
- const {mailScopeDescriptions}=await import('../mail/consent.js');
+ const {mailScopeDescriptions}=await import('@decompozr/mail/server/consent.js');
  const {consentScopeLabel}=await import('./scope-labels.js');
  try{
   await i18n.changeLanguage('zh-TW');

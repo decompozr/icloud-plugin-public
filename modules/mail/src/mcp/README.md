@@ -2,7 +2,7 @@
 
 This folder translates Mail use cases into registered MCP tools. It owns `mail_*`
 names, input schemas, operation annotations, scope requirements and Mail result/error
-mapping. The shared [MCP host](../../mcp/README.md) owns protocol dispatch and obtains
+mapping. The shared [MCP host](../../../../apps/icloud/src/mcp/README.md) owns protocol dispatch and obtains
 this catalog from the module registry.
 
 A call passes through host authentication/scope checks and the enabled-policy gate,
@@ -13,8 +13,8 @@ for authentication consent; it cannot grant itself `offline_access`.
 
 The Mail test factory supports service/provider fixtures without configuring a real
 owner installation. Colocated discovery/input/authorization tests cover the public
-contract. [Mailbox tools](../../../../../docs/mailbox-tools.md) is the authoritative
-operation catalog; avoid copying schemas here. Production Calendar tools are absent.
+contract. [Mailbox tools](../../../../docs/mailbox-tools.md) is the authoritative
+operation catalog; avoid copying schemas here. Calendar contributes its own separate tools.
 
 Production account-bound registrations validate `accountId` on every message target,
 batch and search cursor before accessing a provider. IDs assert the account of an

@@ -1,6 +1,6 @@
 # Application architecture
 
-Account backend ownership has moved to `modules/account`; server/process ownership
+Account and Mail backend ownership have moved to `modules/account` and `modules/mail`; server/process ownership
 remains in the transitional app until the next phases. See [the accepted Studio
 server migration](studio-server-migration.md).
 
@@ -14,7 +14,7 @@ Installed release and live remote acceptance are separate evidence. See the
 ## Feature ownership and shared infrastructure
 
 Mail owns its domain, services, iCloud adapters, MCP tool definitions and durable
-operation state under `src/mail`. The [Mail module](../apps/icloud/src/mail/README.md)
+operation state under `modules/mail/src`. The [Mail module](../modules/mail/README.md)
 constructs them and contributes capabilities through the
 [module runtime](../apps/icloud/src/modules/README.md). The shared MCP host receives
 registered tool contributions; it does not import Mail services or implement a
