@@ -282,3 +282,30 @@ checkout beneath the canonical Flow runtime was itself classified as excluded
 state, leaving package exports missing. Filters now inspect paths relative to the
 package owner, and the isolated consumer probe loads every real export in a fresh
 process. The corrected test passes from the fresh checkout without source fallbacks.
+
+### Installed package delivery
+
+PR #130 merged the package revision. Service 0.1.98 was built from clean remote
+main `99a39afa4fd4f52316ee7a3f91b9bd473b37314f`, verified as the tip immediately
+before release/install. Final root frozen install, UI/account/app build and
+packaged lifecycle/OAuth checks (2 / 151) pass. The source and signed 0.1.97 native
+helper fingerprint match, so the same bundle is reused without native permission
+changes. Seven independently versioned 0.1.0 packages are actually installed in
+the release's application node_modules. Exact TGZ checksums, installed versions
+and standalone consumer lock are verified, and recorded in the protected upgrade
+receipt. Nothing was uploaded to a registry.
+
+The supported updater ran after graceful drain and a protected stopped-state
+backup. Installed payload matches the tested artifact. Configuration, key custody,
+protected non-transient SQLite rows and integrity are preserved; expected resource
+seed/rate-limit timestamps are excluded. Prior service 0.1.97, its archive and
+pre-0.1.98 backup remain for recovery. Later authorized client activity is separate
+from upgrade-time preservation.
+
+Local/private sign-in returns 200, two CSS assets match, 13 installed client files
+exclude backend markers, and 13 doctor checks pass from this Mac. Existing main
+MCP profile and actual 9-mailbox read succeed without new registration/consent or
+provider writes. Physical owner/device walkthrough remains pending. Private registry
+selection/publication remains unresolved; local package installation and service
+delivery do not claim module publication. Owner pass still gates the next backend
+extraction phase.
