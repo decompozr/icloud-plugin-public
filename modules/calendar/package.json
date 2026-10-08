@@ -7,7 +7,7 @@
     "svelte": "5.57.1"
   },
   "name": "@decompozr/calendar",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "files": [
     "ui",
@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@decompozr/ui": "workspace:*",
-    "@decompozr/account": "workspace:*",
     "zod": "3.25.76"
   },
   "peerDependencies": {

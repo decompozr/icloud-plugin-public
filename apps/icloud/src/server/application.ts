@@ -1,3 +1,4 @@
+import{modulePageExists}from'../../../studio/dist/index.js';
 import {createHomeKitModule} from '../homekit/module.js';
 import type {NativeHomeKitProvider,NativeSettings} from '../homekit/provider.js';
 import {createPhotosAdmin} from '../photos/admin.js';
@@ -245,6 +246,7 @@ export async function createApplication(
       resetRuntime: deps.resetRuntime,
       resetStatus: deps.resetStatus,
       renderPage: studio.admin,
+      modulePageExists,
       connectionCommands: connectionCommands(settings),
       systemStatus:
         deps.systemStatus ??
@@ -596,6 +598,7 @@ export async function createApplication(
         resetRuntime: deps.resetRuntime,
         resetStatus: deps.resetStatus,
         renderPage: studio.admin,
+      modulePageExists,
         connectionCommands: connectionCommands(settings),
         privateOrigin: localOrigin,
         setupReady: true,

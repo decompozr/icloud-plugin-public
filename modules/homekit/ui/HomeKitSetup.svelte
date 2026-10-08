@@ -1,16 +1,16 @@
 <script lang="ts">
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
-  import { getContext, onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { z } from "zod";
   import Checkbox from "@decompozr/ui/design-system/Checkbox.svelte";
   import Select from "@decompozr/ui/design-system/Select.svelte";
   import { spacing } from "@decompozr/ui/design-system/spacing.js";
-  import type { UiCopy } from "@decompozr/ui/contracts";
+  import type { ModuleUiContext } from "@decompozr/ui/contracts";
   let {
     embedded = false,
-    onverified,
-  }: { embedded?: boolean; onverified?: (ready: boolean) => void } = $props();
-  const { t } = getContext<UiCopy>("copy");
+    ctx,
+  }: { embedded?: boolean; ctx: ModuleUiContext } = $props();
+  const {t}=untrack(()=>ctx.copy);
   const schema = z.object({
     helper: z.object({
       ready: z.literal(true),
@@ -37,22 +37,22 @@
     failed = false;
     try {
       const [a, b] = await Promise.all([
-        fetch("/icloud/admin/homekit/status"),
-        fetch("/icloud/admin/status"),
+        ctx.request("status"),
+        ctx.account.list().then(accounts=>({ok:true,json:async()=>({accounts})})),
       ]);
       if (!a.ok || !b.ok) throw Error();
       status = schema.parse(await a.json());
       accounts = (await b.json()).accounts;
       accountId = accountId || accounts[0]?.id || "";
       homeId = homeId || status.homes[0]?.id || "";
-      onverified?.(
+      ctx.reportReady(
         status.bindings.some((b) =>
           accounts.some((a) => a.id === b.account && a.credentialStored),
         ),
       );
     } catch {
       failed = true;
-      onverified?.(false);
+      ctx.reportReady(false);
     } finally {
       busy = false;
     }
@@ -62,16 +62,12 @@
     busy = true;
     failed = false;
     try {
-      const response = await fetch("/icloud/admin/homekit/enroll", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
+      const response = await ctx.request("link", {
           accountId,
           homeId,
           confirm: true,
           expectedSourceSHA256: status.helper.sourceSHA256,
           expectedLocalUserId: status.helper.localUserId,
-        }),
       });
       if (!response.ok) throw Error();
       confirm = false;
@@ -85,14 +81,10 @@
     busy = true;
     failed = false;
     try {
-      const response = await fetch("/icloud/admin/homekit/revoke", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
+      const response = await ctx.request("unlink", {
           accountId: binding.account,
           homeId: binding.home,
           confirm: true,
-        }),
       });
       if (!response.ok) throw Error();
       await read();

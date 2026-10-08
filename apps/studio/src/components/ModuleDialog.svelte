@@ -8,10 +8,13 @@
   import Modal from "@decompozr/ui/components/Modal.svelte";
   import RequirementStep from "@decompozr/ui/components/RequirementStep.svelte";
   import RequirementsMount from "@decompozr/ui/components/RequirementsMount.svelte";
+  import {moduleUiProvider} from "../lib/module-ui-provider.js";
+  import type{ToastCenter} from "../lib/ui-state.svelte.js";
   import {bundledModules} from "../lib/bundled-modules.js";
   let { model, dialogs }: { model: AdminModel; dialogs: DialogCenter } =
     $props();
-  const { t } = getContext<UiCopy>("copy");
+  const copy=getContext<UiCopy>("copy"),{t}=copy;
+  const services=untrack(()=>moduleUiProvider(copy,getContext<ToastCenter>("toast"),dialogs));
   let confirm = $state(false),
     permissionReady = $state<boolean | null>(null);
   const id = $derived(model.moduleDialog);
@@ -90,7 +93,7 @@
     {#if definition && requirementIdentity}
       {#key requirementIdentity}
         {@const mounted=requirementIdentity}
-        <RequirementsMount {definition} {credentialReady} onverified={(value)=>{if(requirementIdentity===mounted)permissionReady=value}} />
+        <RequirementsMount {definition} {credentialReady} {services} onverified={(value)=>{if(requirementIdentity===mounted)permissionReady=value}} />
       {/key}
     {/if}
   </section>
