@@ -663,3 +663,31 @@ observation. Ownership proof does not claim intended events were persisted.
 After recovery, a separate once-only updateEvents operation repairs the intended
 02:00 event before scene association and enablement. The original add is never
 retried, and an existing household trigger cannot be adopted by name alone.
+
+## Daily thermostat definition and enablement accepted (0.1.104)
+
+The exact task-created automation was recovered using the retained successful
+callback, immutable submitted identity, pre-add baseline and one independent
+canonical addition. This was ledger-only installation-owner CLI recovery; it did
+not fabricate a client principal, modify OAuth grants, create another trigger or
+retry the original creation. The new production MCP recovery tool has source
+coverage but has not yet been accepted in a refreshed host tool catalog.
+
+The first explicit America/Toronto event update returned HMErrorDomain 3; it remains
+unknown without retry. After the complete Heat/23 Celsius scene was associated,
+a new revision-reviewed Home-local calendar update persisted hour 2/minute 0.
+The accepted route uses Home-local time (`timeZone: null`); explicit timezone
+overrides are not promoted to accepted. These two changed preconditions do not
+isolate the reason for the prior parameter rejection.
+
+The same automation `2AE78253-B65B-5B19-B49E-CB0E1E99A1A6` now has one calendar
+event, executeOnce false, no weekday restriction/predicate/end events, and exactly
+one associated app-owned scene `F5A16105-15BE-502B-B429-53DC25C5BF7A`. That scene
+has only the Living Room Thermostat's target temperature 23 Celsius and Heat mode 1.
+Native enable acknowledged and later readback reports enabled true/activationState 4.
+Independent fresh reads after setup remained 24 Celsius and Off; no immediate
+thermostat write or scene execution occurred. Natural 02:00 firing remains pending.
+
+Public read-only definition snapshots can lag callbacks and do not load the mutable
+ownership ledger; their owned flag is not authoritative for mutation ownership.
+Prepare/apply use the app-scoped ledger and preserved exact owner/account/Home guards.
