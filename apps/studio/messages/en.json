@@ -1,4 +1,6 @@
 {
+  "snapshotStale": "Last known state",
+  "accountActions": "Manage account",
   "emptyValue": "Empty",
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "connectionCommand": "Routing command",

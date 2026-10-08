@@ -1,5 +1,11 @@
 # Studio UI audit and proportional redesign
 
+This is the historical proportional pass, not the complete workflow audit.
+The owner requested a broader review; see the [follow-up audit](uiux-comprehensive-audit.md)
+for newly captured error/empty/keyboard/short-viewport states, subsequent fixes and
+remaining design work. Its follow-up supersedes the focus, account-toolbar and
+form observations below where explicitly recorded.
+
 Date: 2026-10-07. Source baseline: `c3c9eff` (UI unchanged from `fabd1b5`).
 Scope: local Studio administration and OAuth consent with disposable fixture data.
 Capture: existing runtime Playwright 1.62.1 and installed Chrome; desktop 1280×1000,

@@ -54,6 +54,5 @@ ${actionStyles}
 body{font-size:${readableTypography.fontSize};line-height:${readableTypography.lineHeight}}
 h2,h3{font-size:${typography.heading.fontSize};line-height:${typography.heading.lineHeight}}
 small,.account-address,.copy-label,code{font-size:${typography.body.fontSize};line-height:${typography.body.lineHeight}}
-/* Preserve the existing owner-selected focus appearance policy. */
-*:focus,*:focus-visible,.permission-choice:has(input:focus-visible){outline:none!important;box-shadow:none!important}
+/* Keyboard focus uses existing catalog recipes; mouse focus remains quiet. */
 `;

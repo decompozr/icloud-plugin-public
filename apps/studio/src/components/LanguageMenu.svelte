@@ -27,7 +27,7 @@
   aria-label={t("language")}
   title={t("language")}
 >
-  <Menu label={t("language")} icon="message-square" {items} compact />
+  <Menu label={rail ? (locale?.current === "zh-TW" ? "繁" : "EN") : t("language")} {items} compact />
 </div>
 
 <style>

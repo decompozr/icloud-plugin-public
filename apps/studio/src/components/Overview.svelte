@@ -60,7 +60,7 @@
     aria-busy={model.systemLoading}
   >
     <header>
-      <h2>{t("serviceCard")}</h2>
+      <div class="card-heading"><h2>{t("serviceCard")}</h2>{#if model.systemStale}<Tag label={t("snapshotStale")} />{/if}</div>
       <RefreshButton
         id="service-refresh"
         label={t("refreshService")}
@@ -130,7 +130,7 @@
     aria-busy={model.accountsLoading && model.state.admin}
   >
     <header>
-      <h2>{t("accountsCard")}</h2>
+      <div class="card-heading"><h2>{t("accountsCard")}</h2>{#if model.dashboardFailed}<Tag label={t("snapshotStale")} />{/if}</div>
       <div class="card-tools">
         <ActionButton
           icon="plus"
@@ -193,7 +193,7 @@
     aria-busy={model.accountsLoading}
   >
     <header>
-      <h2>{t("capabilitiesCard")}</h2>
+      <div class="card-heading"><h2>{t("capabilitiesCard")}</h2>{#if model.dashboardFailed}<Tag label={t("snapshotStale")} />{/if}</div>
       <RefreshButton
         id="capabilities-refresh"
         label={t("refreshCapabilities")}
@@ -295,7 +295,7 @@
   }
   dl {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    grid-template-columns: max-content minmax(0, 1fr);
     align-items: center;
     gap: 0.75rem;
     margin: 0;

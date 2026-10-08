@@ -52,7 +52,7 @@ test('application actions expose names and icons, with visible text for decision
    expect(attributes).toMatch(/aria-label="[^"]+"/);
    expect(body).toContain('<svg');
    const text=body.replace(/<[^>]*>/g,'').trim();
-   if(attributes.includes('dz-labeled-action')) expect(text.length).toBeGreaterThan(0);
+   if(attributes.includes('dz-labeled-action') || (attributes.includes('aria-haspopup="menu"') && !attributes.includes('icon-only'))) expect(text.length).toBeGreaterThan(0);
    else {expect(text).toBe('');if(attributes.includes('dz-icon-action')) expect(attributes).toContain('data-touch-appearance="compact"');}
   }
  }

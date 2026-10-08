@@ -77,12 +77,12 @@ without moving the rail; displayed status does not imply live provider acceptanc
 **Story:** As an owner managing multiple accounts, I want to act on the correct
 account so I can update credentials without confusing one identity with another.
 
-**Flow:** Open Accounts → identify the account → choose credential/session action,
+**Flow:** Open Accounts → identify the account → open Manage account → choose credential/session action,
 or Add → read the labeled fields → enter the required values → verify and save.
 
 **Design:** Account identity leads the card; credential and session Tags describe
-different stored states. Compact edit, session and add tools retain accessible
-names. The dialog's decision actions have visible text and catalog controls.
+different stored states. The catalog Manage account menu names credential/session
+actions and separates removal. The dialog's decision actions have visible text and catalog controls.
 On phones, identity uses its own row above the tools.
 
 **Feedback and recovery:** Pending submission disables duplicate actions and holds
@@ -245,3 +245,26 @@ consent/save, rejection of a foreign origin with 403, selected-scope OAuth fixtu
 continuation on the same tailnet origin, and zero browser errors. The preview remains
 running for review; task-owned state records the upstream/PID and scoped stop command.
 User-device reachability still requires their device to be connected to Tailscale.
+
+## Broader workflow acceptance (2026-10-08)
+
+The owner rejected the first proportional pass as an insufficient whole-product
+audit. The [follow-up audit](uiux-comprehensive-audit.md) now records actor, intent,
+observed problem, design response and disposition for 15 findings. The repaired
+slice covers F01–F11; F12–F15 remain open.
+
+Keyboard users can see existing catalog focus styling. Short-screen users scroll
+dialog content while its header/close control stays available. Account owners
+choose named actions from a contextual Menu instead of interpreting maintenance
+glyphs. Troubleshooting owners see stale section state before relying on retained
+values. Module choices consume actual catalog Checkbox controls. New owners have
+a labeled empty-state action. Language state is supplied at the persistent layout,
+and the rail shows its language. System task labels distinguish the two setup
+actions. Notifications reserve content space and reveal intersecting decisions
+without stealing focus.
+
+These changes supersede the historical blanket focus suppression and icon-only
+account/system entry treatment. The shell remains full-width with a fixed rail;
+no vendor code, grants or provider behavior changed. Fixture refresh failure,
+empty status, rejected credentials and locale checks are explicitly synthetic.
+The latest screenshot inventory, limits and acceptance live in the follow-up.

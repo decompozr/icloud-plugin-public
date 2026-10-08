@@ -1,4 +1,6 @@
 {
+  "snapshotStale": "上次已知狀態",
+  "accountActions": "管理帳號",
   "emptyValue": "空白",
   "$schema": "https://inlang.com/schema/inlang-message-format",
   "connectionCommand": "路由指令",

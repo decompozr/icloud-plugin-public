@@ -300,7 +300,7 @@
               class="muted"
             >
               {t("noAccountYet")}
-            </p>{/if}
+            </p><div class="actions"><ActionButton showLabel icon="plus" label={t("addAccount")} disabled={model.busy} onclick={() => dialogs.openCredential("app-password", { mode: "add" })} /></div>{/if}
           {#if model.dashboardFailed || model.diagnosticsFailed}<p
               class="muted"
               role="status"
@@ -372,11 +372,13 @@
           <div class="actions">
             <ActionButton
               class="secondary"
+              showLabel
               onclick={() => (model.requirementDialog = "tailscale")}
               label={t("tailscaleSetup")}
               icon="settings"
             />{#if pageState.photosConfigured}<ActionButton
                 class="secondary"
+                showLabel
                 onclick={() => (model.requirementDialog = "photos")}
                 label={t("photosPermissions")}
                 icon="settings"

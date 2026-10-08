@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Checkbox from "@decompozr/ui/design-system/Checkbox.svelte";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext, untrack } from "svelte";
   import type { UiCopy } from "../contracts.js";
@@ -98,18 +99,10 @@
     <h3>{t("moduleActionsShort")}</h3>
     <ul class="checks">
       {#each metadata?.fields ?? [] as field}<li>
-          <label for={"scope-" + id + "-" + field.id}
-            >{scopeCopy[id + "." + field.id]
-              ? t(scopeCopy[id + "." + field.id])
-              : "copyKey" in field && typeof field.copyKey === "string"
-                ? t(field.copyKey)
-                : field.label}</label
-          ><input
-            id={"scope-" + id + "-" + field.id}
-            type="checkbox"
+          <Checkbox id={"scope-" + id + "-" + field.id}
+            label={scopeCopy[id + "." + field.id] ? t(scopeCopy[id + "." + field.id]) : "copyKey" in field && typeof field.copyKey === "string" ? t(field.copyKey) : field.label}
             checked={draft[field.id] ?? false}
-            disabled={model.busy ||
-              ("available" in field && field.available === false)}
+            disabled={model.busy || ("available" in field && field.available === false)}
             onchange={(e) => toggle(field.id, e.currentTarget.checked)}
           />
         </li>
@@ -128,13 +121,7 @@
   </section>
   <p class="muted">{t("moduleConsentShort")}</p>
   {#if enabling}<p>{t(ready ? "requirementsReady" : "requirementsMissing")}</p>
-    <label class="confirmation"
-      ><input
-        type="checkbox"
-        bind:checked={confirm}
-        disabled={!ready || model.busy}
-      /><span>{t("moduleConfirm")}</span></label
-    >{/if}
+    <Checkbox label={t("moduleConfirm")} bind:checked={confirm} disabled={!ready || model.busy} />{/if}
   <div class="actions">
     <ActionButton
       showLabel
@@ -164,14 +151,5 @@
     border-top: 0;
     padding-top: 0;
     margin-top: 1rem;
-  }
-  .confirmation {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-    font-weight: 400;
-  }
-  .confirmation input {
-    margin-top: 0.15rem;
   }
 </style>

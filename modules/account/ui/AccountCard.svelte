@@ -3,7 +3,7 @@
   import type { UiCopy } from "@decompozr/ui/contracts";
   import type {DialogCenter} from "./dialog-state.svelte.js";
   import Tag from "@decompozr/ui/design-system/Tag.svelte";
-  import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
+  import Menu from "@decompozr/ui/design-system/Menu.svelte";
   let {account,busy=false,sessionPhase,sessionAvailable=false,dialogs,onrevoke}:{
     account:{id:string;user:string;label:string;credentialStored:boolean};
     busy?:boolean;sessionPhase?:string;sessionAvailable?:boolean;
@@ -31,32 +31,11 @@
         </p>{/if}
     </div>
     <div class="account-actions">
-      <ActionButton
-        icon="pencil"
-        label={t(
-          account.credentialStored ? "editAppPassword" : "openAppPassword",
-        )}
-        disabled={busy}
-        onclick={() =>
-          dialogs.openCredential("app-password", {
-            accountId: account.id,
-            mode: "rotate",
-          })}
-      />
-      <ActionButton
-        icon="circle-dot"
-        label={t(savedSession ? "manageAppleSession" : "openAppleSession")}
-        disabled={busy || !sessionAvailable}
-        onclick={() =>
-          dialogs.openCredential("apple-account", { accountId: account.id })}
-      />
-      <ActionButton
-        icon="trash-2"
-        label={t("revoke")}
-        class="danger"
-        disabled={busy}
-        onclick={() => onrevoke(account.id)}
-      />
+      <Menu label={t("accountActions")} compact disabled={busy} items={[
+        {id:"credential",label:t(account.credentialStored ? "editAppPassword" : "openAppPassword"),onSelect:()=>dialogs.openCredential("app-password",{accountId:account.id,mode:"rotate"})},
+        {id:"session",label:t(savedSession ? "manageAppleSession" : "openAppleSession"),disabled:!sessionAvailable,onSelect:()=>dialogs.openCredential("apple-account",{accountId:account.id})},
+        {id:"remove",label:t("revoke"),separatorBefore:true,onSelect:()=>onrevoke(account.id)},
+      ]} />
     </div>
   </header>
   <div class="account-statuses">

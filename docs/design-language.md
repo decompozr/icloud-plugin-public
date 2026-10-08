@@ -1,5 +1,27 @@
 # Shared interface design
 
+## Workflow clarity and recovery follow-up (2026-10-08)
+
+The owner requested a broader audit after rejecting the proportional-only pass.
+The [workflow audit](uiux-comprehensive-audit.md) and [user flows](uiux-flows.md)
+record each design's intent and acceptance. Account maintenance now uses a named
+catalog Menu; state remains separately visible. The language Menu uses a locale
+abbreviation rather than a speech-bubble glyph, with locale supplied at layout load.
+System setup actions and empty Accounts expose visible task labels.
+
+Existing catalog keyboard-focus recipes are restored, superseding the historical
+blanket suppression. Module settings consume unchanged catalog Checkbox controls.
+Intrinsic label columns and nearby account actions reduce desktop scan distance
+without changing the owner's full-width shell. Affected Overview headings show
+Last known state Tags after failed refreshes.
+
+Shared Modal keeps the header stationary with one bounded content scrollport.
+Its consumer adapter measures the existing notification region and reserves
+matching content space; if notifications intersect decisions, content scrolls
+just enough to reveal them without changing focus. Catalog appearance, dismiss
+controls and notification semantics remain unchanged. Physical-device/onscreen
+keyboard acceptance and F12–F15 remain open; no award/compliance claim is made.
+
 ## Readable Studio and proportionate actions (2026-10-07)
 
 The owner requested a screenshot-led UI audit, better button/text proportions,
