@@ -707,3 +707,16 @@ The signing workflow now uses a separate hidden Terminal instance when called
 from a background security session. Worker ancestry and the pre-launch Terminal
 PID baseline prove ownership; only the exact new instance is hidden/terminated.
 This supports quiet signing while preserving existing user Terminal windows.
+
+Local release 0.1.106 is installed from PR143 merge
+`0d690a6a712409d5a03f5eb748b77e13e0ebfc49`, with signed Release helper source pin
+`590791ea42594ec56a8d8631d1e729e17f8c9dbea8b2211232f716a6ea8d487e`.
+Actual connected-client rename and an independent newly launched helper both
+verified `Heat to 23°C at 2 AM` on the same automation ID. Enabled/active state,
+the daily Home-local 02:00 event and the Heat/23 Celsius scene association were
+preserved. No thermostat write, schedule recreation or unknown-operation retry
+was performed. 18,778 installed files/symlinks matched the artifact; client grants,
+owner data and policy were preserved. Doctor checks passed. 36 native checks and
+full build/typechecks passed; these were same-agent checks, with no configured CI.
+Natural first 02:00 firing and unlocked desktop no-flash observation remain open,
+so this delivery is not a claim that the whole HomeKit module is fully accepted.
