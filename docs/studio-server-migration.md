@@ -720,3 +720,21 @@ Paraglide dependency; the transitional built account facade is removed. Containe
 source/context paths use the root frozen workspace; actual container build was not
 run because its engine is stopped and native deployment is the requested target.
 Clean-main packaging/lifecycle and deployed LaunchAgent/live reads remain pending.
+
+### Native rollout and exited-process correction
+
+Clean-main source1eb147f packages0.1.109; final lifecycle/OAuth/Mail fixtures18/151
+pass. Exact payload, config/custody, non-transient SQLite rows/integrity and Home
+ledgers are preserved. LaunchAgent defaults selected by owner are enabled. Initial
+manual-to-managed apply retained SERVICE_DRAIN_TIMEOUT: the CLI had exited but its
+Python deployment parent had not reaped it, so kill(pid,0) still saw a zombie. No
+force termination or provider replay occurred. After parent cleanup, the supported
+explicit service start registered a managed/running job; private sign-in200.
+
+The109 protected receipt is in
+runtime/backups/pre-0.1.109-20261009T172031Z/upgrade-receipt.json. Correction110
+recognizes exited/zombie state during graceful drain while retaining owner/PID checks
+and refusal to unload a live/replaced job. Six bounded service tests/33 assertions
+pass, including the zombie-parent regression. Review and clean-main repair rollout
+remain pending; this is not final migration delivery yet. Parallel UI work at8464
+and its uncommitted checkout remain untouched, with a scoped coordination packet.
