@@ -12,7 +12,9 @@
   let { model, dialogs }: { model: AdminModel; dialogs: DialogCenter } = $props();
   const { t } = getContext<UiCopy>('copy');
   let permissionReady = $state<boolean | null>(null);
-  const id = $derived(model.moduleDialog);
+  let renderedId = $state<string>();
+  $effect(() => { if (model.moduleDialog) renderedId = model.moduleDialog; });
+  const id = $derived(model.moduleDialog ?? renderedId);
   const definition = $derived(bundledModules.find(module => module.id === id));
   const requirementIdentity = $derived(id ? Object.freeze({ id }) : null);
   const metadata = $derived(definition?.presentationMetadata
@@ -31,11 +33,11 @@
   const canSave = $derived(!enabling || requirementsReady);
   $effect(() => { if (id) untrack(() => { permissionReady = null; }); });
   function close() {
-    if (model.changes.length && !window.confirm(t('discardNavigation'))) return;
+    if (model.busy) return;
     model.discardPolicy(); model.moduleDialog = undefined;
   }
   function toggle(value: boolean, key?: string) {
-    if (!id || !policyKnown || model.busy) return;
+    if (!model.moduleDialog || !id || !policyKnown || model.busy) return;
     model.draft[id] = actionDraft(draft, editable, dependencies, value, key);
     model.message('');
   }
@@ -47,10 +49,10 @@
   }
 </script>
 
-<Modal open={!!id} title={(metadata?.title ?? '') + ' ' + t('moduleSettings')} onclose={close} busy={model.busy}>
+<Modal open={!!model.moduleDialog} onclosed={() => { if (!model.moduleDialog) renderedId = undefined; }} title={(metadata?.title ?? '') + ' ' + t('moduleSettings')} onclose={close} busy={model.busy}>
   <CapabilityRequirements {definition} {requirementIdentity} {credentialReady} {credentialKnown} {requirementsReady} {requirementUnknown} onverified={value => { permissionReady = value; }} />
   <AllowedActions {id} fields={metadata?.fields ?? []} {definition} {draft} saved={id ? model.saved[id] ?? {} : {}} {editable} {dependencies} {allOn} disabled={model.busy || !policyKnown} ontoggle={toggle} />
-  <div class="actions">
+  <div class="actions capability-config-actions">
     <ActionButton appearance="quiet" class="primary" label={t('saveModule')} icon="save" disabled={model.busy || !canSave || !model.changes.length} onclick={() => void model.run(save, 'workingPolicy')} />
     <ActionButton appearance="quiet" label={t('cancel')} icon="close" disabled={model.busy} onclick={close} />
   </div>

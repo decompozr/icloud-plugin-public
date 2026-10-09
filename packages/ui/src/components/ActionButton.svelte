@@ -12,7 +12,7 @@
     variant,
     appearance = "default",
     showLabel = false,
-    size = showLabel ? "normal" : "compact",
+    size = "normal",
     loading = false,
     ...rest
   }: Omit<HTMLButtonAttributes, "class" | "children"> & {
@@ -54,7 +54,7 @@
     variant={primary}
     appearance={showLabel ? appearance : "quiet"}
     {size}
-    touchAppearance={showLabel ? "default" : "compact"}
+    touchAppearance={size === "compact" && !showLabel ? "compact" : "default"}
     {loading}
     loadingLabel={label}
     aria-label={label}

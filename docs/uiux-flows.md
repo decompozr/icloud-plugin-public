@@ -108,8 +108,7 @@ missing requirements → inspect capability labels → select operations → sav
 proposal entry point, while the saved state remains authoritative.
 
 **Feedback and recovery:** Save stays unavailable until prerequisites are satisfied. Failed saves report an error and do not present the
-draft as persisted policy. Closing a changed draft retains the existing discard
-confirmation.
+draft as persisted policy. Closing module settings discards the draft directly without an extra confirmation; Save is the explicit persistence action.
 
 **Acceptance:** Opening/cancelling does not elevate
 permissions; touch controls remain 44px targets with quieter faces; dialog content
@@ -300,3 +299,5 @@ Latest module settings component stories and fixture acceptance: [module-setting
 Notifications now use a single app-wide top layer, slide away after five seconds (paused during hover/focus), and never reserve modal space or change scroll. The All control stays right aligned with its label before the switch; disabled modules use gray dots. See the follow-up stories in [module-settings-ux.md](module-settings-ux.md).
 
 Account cards now expose separate App Password and iCloud Session rows with direct quiet icons, replacing Manage account menus. Updated user stories, credential/session dependencies, confirmation and recovery are in [account-access-ux.md](account-access-ux.md).
+
+Module settings footer actions align right. Shared mobile dialogs slide down on dismissal, retain native modality until exit finishes and respect reduced motion; module drafts close without a second confirmation. See [module-settings-ux.md](module-settings-ux.md).

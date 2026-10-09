@@ -438,3 +438,7 @@ The vertical navigation active marker is a flat 2px line at the right edge facin
 Account cards use two module-owned access rows: App Password with key, purpose, stored status and direct update/removal icons; iCloud Session with globe, web-access purpose, independent phase and direct sign-in/manage/disconnect icons. Shared row layout lets mobile descriptions span the full width. See [account access stories](account-access-ux.md).
 
 Overview uses consistent bordered cards for System Runtime, iCloud Accounts and Service capabilities, replacing historical open-section/account-border suppression. Shared rules use semantic surface/border, radius.surface and pinned desktop/mobile insets. Scoped Overview card recipes are removed.
+
+Icon action density now defaults to normal catalog metrics: 20px desktop glyph in a 36px target; 24px coarse-pointer glyph in a 44px target. Quiet and bordered appearances share these dimensions. This supersedes the earlier blanket compact icon-action convention; explicit compact density remains available.
+
+Module settings close directly discards its draft, without a redundant confirmation. Footer Save/Cancel align right. Shared mobile Modal keeps native modality through its downward exit and restores focus after completion; reduced motion skips the exit. Other credential/destructive confirmations stay explicit.

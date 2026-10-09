@@ -78,3 +78,21 @@ Story: As a user switching sections, I want a flat line at the right edge of the
 Execution contract: reuse the existing 2px indicator metric and semantic focus color in shared navigation styling; verify all four destinations on desktop/mobile, then refresh the existing private 8464 fixture. Native installation N/A.
 
 Flat marker acceptance: full build/type checks passed. All four destinations at desktop and mobile widths use one 2px right-edge marker matching the selected tab height/top, with zero radius/border and no selected tile fill. Reduced-motion transition is disabled. Inspected [desktop](assets/module-settings/nav-line-desktop.png) and [mobile](assets/module-settings/nav-line-mobile.png); live HTTPS 8464 readback passed. Fixture-only; physical devices not checked.
+
+## Icon density parity
+
+Story: As a user recognizing an icon action, I want the same glyph and target dimensions with or without a border, so quiet appearance does not make Save, Close, settings, refresh, copy or language controls feel smaller.
+
+Observed cause: ActionButton defaulted to compact (16px glyph), including touchAppearance compact. Quiet appearance itself does not reduce the catalog glyph. Use normal catalog density by default: 20px desktop glyph / 36px desktop target and 24px coarse-pointer glyph / 44px touch target. Explicit compact consumers remain supported. The language adapter adopts the same glyph density. Keep quiet appearance, existing hints, focus and state feedback.
+
+Execution contract: update shared adapters only; verify actual SVG/target dimensions in both pointer contexts and compare identical buttons with quiet/default appearance, including Save's project-owned glyph. Build and regress relevant wrapping/interaction flows, then refresh private 8464. Native installation N/A.
+
+## Closing and footer corrections
+
+Story: As an owner leaving module settings, I close via X, Cancel, Escape or background and discard the unsaved draft directly, without a second confirmation. Save remains the only persistence action. Busy saves stay protected. Save/Cancel align to the footer right.
+
+Story: As a phone user, I see the bottom sheet slide down when dismissed, matching its upward entry. Shared native Modal retains its top-layer/dialog count until the 180ms exit completes, then restores focus; reduced motion and desktop close immediately. Reopening cancels a pending exit. CapabilityConfig retains its displayed module identity through exit so the sheet does not become blank.
+
+These stories supersede earlier dirty-draft close-confirmation requirements; other credential/reset confirmations retain their own scope. Verify no confirmation appears, unsaved policy stays unchanged, footer alignment, actual exit motion and reduced-motion behavior along with icon-density parity.
+
+Density/close acceptance: full build/type checks passed. Actual quiet/default-appearance measurements match: 20px SVG / 36px button on desktop and 24px SVG / 44px button on touch, including Close/Save/Cancel and the globe adapter. Studio tests 28 passed after updating the superseded compact-render expectation; capability browser flow 28, account access 23, recovery 18 and requirements 143 checks passed. Verified right-aligned footer, no dirty-discard prompt and no policy mutation on Cancel, retained native modal plus real downward translation during exit, and reduced-motion behavior. Inspected [desktop](assets/module-settings/icon-density-desktop.png) and [mobile](assets/module-settings/icon-density-mobile.png); HTTPS 8464 readback confirmed standard density and direct discard. Fixture-only; physical-device acceptance remains unperformed.

@@ -8,12 +8,14 @@
     open,
     title,
     onclose,
+    onclosed = () => {},
     children,
     busy = false,
   }: {
     open: boolean;
     title: string;
     onclose: () => void;
+    onclosed?: () => void;
     children: Snippet;
     busy?: boolean;
   } = $props();
@@ -28,40 +30,53 @@
     const bounds = element.getBoundingClientRect();
     return event.target === element && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom);
   }
-  $effect(() => {
-    if (open && element)
-      untrack(async () => {
-        if (!counted) {
-          if (toast) toast.dialogs++;
-          counted = true;
-        }
-        previous =
-          document.activeElement instanceof HTMLElement
-            ? document.activeElement
-            : null;
-        if (!element.open) element.showModal();
-        await tick();
-        element
-          .querySelector<HTMLElement>(
-            ".modal-content input:not([disabled]),.modal-content select:not([disabled]),.modal-content button:not([disabled])",
-          )
-          ?.focus();
-      });
-    else if (element?.open) {
-      element.close();
-      if (counted) {
-        if (toast) toast.dialogs--;
-        counted = false;
-      }
-      previous?.focus();
+  let closing = $state(false);
+  let motionRevision = 0;
+  let exitAnimation: Animation | undefined;
+  async function finishClose(revision: number) {
+    const mobile = window.matchMedia('(max-width: 700px)').matches;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (mobile && !reduced) {
+      exitAnimation = element.animate([
+        { transform: getComputedStyle(element).transform },
+        { transform: 'translateY(100%)' },
+      ], { duration: 180, easing: 'ease-in', fill: 'forwards' });
+      try { await exitAnimation.finished; } catch { return; }
     }
+    if (revision !== motionRevision || open) return;
+    element.close();
+    exitAnimation?.cancel(); exitAnimation = undefined;
+    closing = false;
+    if (counted) { if (toast) toast.dialogs--; counted = false; }
+    previous?.focus();
+    onclosed();
+  }
+  $effect(() => {
+    const visible = open;
+    if (!element) return;
+    untrack(async () => {
+      const revision = ++motionRevision;
+      exitAnimation?.cancel(); exitAnimation = undefined;
+      if (visible) {
+        closing = false;
+        if (!counted) { if (toast) toast.dialogs++; counted = true; }
+        if (!element.open) {
+          previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          element.showModal();
+        }
+        await tick();
+        if (revision !== motionRevision || !open) return;
+        element.querySelector<HTMLElement>('.modal-content input:not([disabled]),.modal-content select:not([disabled]),.modal-content button:not([disabled])')?.focus();
+      } else if (element.open) {
+        closing = true;
+        void finishClose(revision);
+      }
+    });
   });
   onMount(() => () => {
+    motionRevision++; exitAnimation?.cancel();
     element?.close();
-    if (counted) {
-      if (toast) toast.dialogs--;
-      counted = false;
-    }
+    if (counted) { if (toast) toast.dialogs--; counted = false; }
     previous?.focus();
   });
 </script>
@@ -69,17 +84,18 @@
 <dialog
   bind:this={element}
   data-dz-modal
+  data-closing={closing || undefined}
   onpointerdown={(event) => { backdropPointer = event.button === 0 && outside(event) ? event.pointerId : null; }}
   onpointercancel={() => { backdropPointer = null; }}
   onpointerup={(event) => {
     const dismiss = backdropPointer === event.pointerId && outside(event);
     backdropPointer = null;
-    if (dismiss && !busy) onclose();
+    if (dismiss && !busy && !closing) onclose();
   }}
   aria-labelledby={titleId}
   oncancel={(e) => {
     e.preventDefault();
-    if (!busy) onclose();
+    if (!busy && !closing) onclose();
   }}
 >
   <header>
@@ -87,7 +103,7 @@
     <ActionButton
       type="button"
       appearance="quiet"
-      disabled={busy}
+      disabled={busy || closing}
       onclick={onclose}
       label={t("closeModal")}
       icon="close"

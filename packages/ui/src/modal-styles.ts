@@ -17,6 +17,7 @@ export const modalStyles = `
 .draft-switch[data-pending=true] .control .track{background:${semanticColors.warningSurface}!important;border-color:${semanticColors.warning}!important}
 .draft-switch[data-pending=true] .control .track .thumb{background:${semanticColors.warning}!important}
 
+dialog[data-dz-modal][data-closing]{pointer-events:none}
 dialog[data-dz-modal]::backdrop{-webkit-backdrop-filter:blur(${spacing[1]});backdrop-filter:blur(${spacing[1]})}
 @keyframes dz-modal-rise{from{transform:translateY(100%)}to{transform:none}}
 @media(max-width:700px){
