@@ -46,6 +46,14 @@
         (key) => network[key as keyof typeof network] === true,
       ),
   );
+  function revealCapabilities() {
+    if (!capabilityRegion) return;
+    capabilityRegion.focus({ preventScroll: true });
+    capabilityRegion.scrollIntoView({
+      block: 'start',
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    });
+  }
   function openModule(id: string, enable?: boolean) {
     model.discardPolicy();
     model.moduleDialog = id;
@@ -56,7 +64,7 @@
 </script>
 
 <div class="overview-grid">
-  {#if model.state.admin}<NextStep {model} {dialogs} {onconnections} oncapabilities={() => { capabilityRegion?.scrollIntoView({ block: "start" }); capabilityRegion?.focus({ preventScroll: true }); }} />{/if}
+  {#if model.state.admin}<NextStep {model} {dialogs} {onconnections} oncapabilities={revealCapabilities} />{/if}
   <section
     class="card"
     data-testid="service-card"

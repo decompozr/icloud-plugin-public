@@ -309,3 +309,11 @@ Story: As an owner switching between Overview, Accounts, Connections and System,
 Execution: remove the redundant Menu and its shared visibility rules, adapt the existing touch navigation regression to the navbar, build and verify all destinations/back navigation/deep-scroll/modal guards, then update the existing private 8464 fixture. Native deployment N/A.
 
 Navbar-only acceptance: source build/type checks and 28 Studio tests passed. Updated task-entry flow passed 35 checks, including navbar-only destination discovery, shell-preserving navigation/back, deep-scroll visibility and modal guards; requirements flow passed 143 checks. Inspected [mobile navbar](assets/account-access/navbar-only-mobile.png) and [private preview](assets/account-access/navbar-only-live.png). HTTPS 8464 browser readback confirmed four links and no Pages dropdown. Fixture-only; no physical-device acceptance claimed.
+
+## Smooth capability task entry
+
+Story: As an owner clicking Choose capabilities, I want the page to glide to the Service capabilities card so I retain spatial context rather than experiencing a jump. Focus moves to the destination without causing a second scroll; the fixed heading/scroll margin keeps the card visible. No policies are changed by this navigation. Reduced-motion users receive immediate positioning.
+
+Execution: native scrollIntoView smooth behavior, reduced-motion auto fallback, existing destination focus and scroll margin. Build, verify actual scroll progression/focus and reduced motion, run the task-entry regression, then refresh the existing private 8464 fixture. Native installation N/A.
+
+Smooth-entry acceptance: build/type checks passed; actual multi-frame scroll progression and destination focus were verified in desktop/touch contexts, while reduced-motion scrolling positions immediately. Task-entry browser flow passed 35 checks. Inspected [desktop destination](assets/account-access/smooth-capabilities-desktop.png) and [mobile destination](assets/account-access/smooth-capabilities-mobile.png); HTTPS 8464 readback confirmed actual smooth movement. Fixture-only; physical devices not checked.
