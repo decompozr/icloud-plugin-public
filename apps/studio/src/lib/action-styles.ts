@@ -39,7 +39,8 @@ export const actionStyles = `
 .module-action-copy p{margin:${spacing[1]} 0 0}.module-action-copy .module-unavailable{color:${semanticColors.critical}}
 .form-error{color:${semanticColors.critical}}
 .account-list:has(>.account-card:nth-child(2)){grid-template-columns:repeat(2,minmax(0,1fr))}
-.account-panel{--panel-border:0;--panel-inline-inset:0}
+.overview-grid>.card{padding:${spacing[6]};border:1px solid ${semanticColors.border};border-radius:${radius.surface};background:${semanticColors.surface};margin:0}
+@media(max-width:700px){.overview-grid>.card{padding:${spacing[4]}}}
 @media(max-width:700px){.account-list:has(>.account-card:nth-child(2)){grid-template-columns:minmax(0,1fr)}}
 .card-heading{display:flex;align-items:center;gap:${spacing[2]};flex-wrap:wrap}
 .card-tools,.account-actions{display:flex;align-items:center;gap:${spacing[2]};flex-wrap:wrap}

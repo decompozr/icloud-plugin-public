@@ -130,7 +130,6 @@
   <section
     class="card"
     data-testid="accounts-card"
-    class:account-panel={true}
     aria-busy={model.accountsLoading && model.state.admin}
   >
     <header>
@@ -216,13 +215,6 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
-  .card {
-    padding: 1.25rem;
-    border: var(--panel-border, 1px solid var(--ui-border));
-    padding-inline: var(--panel-inline-inset, 1.25rem);
-    border-radius: 6px;
-    margin: 0;
-  }
   .wide {
     grid-column: 1/-1;
   }
@@ -271,9 +263,6 @@
     }
     .wide {
       grid-column: auto;
-    }
-    .card {
-      padding: 1rem;
     }
   }
 </style>
