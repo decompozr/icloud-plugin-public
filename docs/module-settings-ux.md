@@ -44,3 +44,11 @@ Stories:
 - As an owner saving changes, I recognize the standard disk Save icon; checkmarks remain completion indicators. The added glyph uses the same pinned Lucide revision and ISC attribution, as a project-owned asset without vendor edits.
 
 Follow-up acceptance: source build/type checks passed; Studio tests 28 passed; requirements flow 143, capability settings 22, recovery 17 and toast-layer 14 browser checks passed. Toast checks cover single host, interaction above a native modal, unchanged geometry/padding, hover pause, five-second dismissal, mobile bottom alignment, gray disabled dots, disk Save icon and header-right refresh placement. [Toast layer](assets/module-settings/toast-layer.png), [mobile without reserved gap](assets/module-settings/toast-mobile.png), [capability header and dots](assets/module-settings/capabilities.png), and refreshed [8464 readback](assets/module-settings/live-8464.png) were inspected. Browser top-layer bridging temporarily reparents the single host under an open native dialog to avoid inertness; it never enters modal content or participates in layout. Physical-device and real-provider checks remain unperformed.
+
+## Consistent capability row spacing
+
+Story: As an owner comparing enabled and disabled modules, I want one reserved action-summary line below every module name so rows do not shrink when disabled. Keep the gray disabled dot and an empty summary line, without restoring a visible Disabled tag. Reuse the catalog Tag minimum height (coarseTarget minus two spacing[2] insets) in shared layout rules. Long/wrapped action labels can naturally grow beyond that minimum on mobile.
+
+Execution: update the shared row minimum, build/type-check, compare enabled/disabled geometry on desktop/mobile, and refresh the existing private fixture preview. Native installation N/A.
+
+Spacing acceptance: build/type checks passed. At 1280px and 390px, saved Mail read-only and three disabled modules each measured 85px row height with a 28px summary line. Inspected [desktop](assets/module-settings/spacing-1280.png) and [mobile](assets/module-settings/spacing-390.png); HTTPS 8464 browser readback confirmed the reserved line. These checks use fictional data.

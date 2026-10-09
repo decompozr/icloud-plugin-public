@@ -23,7 +23,7 @@ export const actionStyles = `
 .capability-title{display:flex;align-items:center;gap:${spacing[2]}}
 .module-summary{display:flex;justify-content:space-between;align-items:center;gap:${spacing[4]};flex-wrap:wrap;border-top:1px solid ${semanticColors.border};padding-block:${spacing[3]}}
 .module-summary h3{margin:0;padding:0;border:0}.module-summary .actions{margin:0}
-.module-statuses{display:flex;gap:${spacing[2]};flex-wrap:wrap;margin-top:${spacing[2]}}
+.module-statuses{min-height:calc(${controlMetrics.coarseTarget} - 2 * ${spacing[2]});display:flex;gap:${spacing[2]};flex-wrap:wrap;margin-top:${spacing[2]}}
 .module-section-heading{display:flex;align-items:center;justify-content:space-between;gap:${spacing[3]};flex-wrap:wrap;margin-block:${spacing[4]} ${spacing[2]}}
 .module-section-heading h3{margin:0;padding:0;border:0;font-size:${typography.heading.fontSize};line-height:${typography.heading.lineHeight}}
 .module-action-list{list-style:none;padding:0;margin:0}
