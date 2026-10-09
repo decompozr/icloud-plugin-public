@@ -434,3 +434,5 @@ All icon-only ActionButton consumers use catalog quiet appearance through the sh
 Language navigation uses shared GlobeMenu: catalog Menu interaction with a project-owned pinned Lucide globe glyph, quiet icon trigger, translated accessible name and full selected-language labels inside the menu. Vendor source remains unchanged.
 
 The vertical navigation active marker is a flat 2px line at the right edge facing the content. It has no rounded selection surface or enclosing border; navigation targets, keyboard focus and aria-current are preserved.
+
+Account cards use two module-owned access rows: App Password with key, purpose, stored status and direct update/removal icons; iCloud Session with globe, web-access purpose, independent phase and direct sign-in/manage/disconnect icons. Shared row layout lets mobile descriptions span the full width. See [account access stories](account-access-ux.md).

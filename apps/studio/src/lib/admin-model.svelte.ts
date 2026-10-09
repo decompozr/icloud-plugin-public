@@ -420,6 +420,7 @@ export class AdminModel {
     this.revokeAccount = "";
     this.password = "";
     await this.refreshDashboard();
+    await this.refreshSessions();
     this.message("revoked");
   }
   async add() {

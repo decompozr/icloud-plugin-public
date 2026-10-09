@@ -79,8 +79,7 @@ try {
   assert(await mobile.evaluate(() => (window as any).taskShell === document.querySelector('#wizard')), 'Pages navigation preserves the shell');
   await mobile.goBack(); await mobile.waitForURL(origin + '/icloud/admin/accounts');
   const account = mobile.locator('.account-card').nth(4), accountId = await account.getAttribute('data-account-id');
-  await account.getByRole('button', { name: 'Manage account', exact: true }).click();
-  await mobile.getByRole('menuitem', { name: 'Update app password', exact: true }).click();
+  await account.getByRole('button', { name: 'Update app password', exact: true }).click();
   await mobile.getByRole('dialog').waitFor();
   await mobile.waitForFunction(id => (document.querySelector('#credential-account') as HTMLSelectElement)?.value === id, accountId);
   assert(await mobile.locator('#credential-account').inputValue() === accountId, 'Comparison actions open the intended account');

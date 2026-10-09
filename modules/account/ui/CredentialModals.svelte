@@ -6,6 +6,7 @@
   import type {DialogCenter} from "./dialog-state.svelte.js";
   import type {ToastCenter} from "@decompozr/ui/toast-state.svelte.js";
   import Modal from "@decompozr/ui/components/Modal.svelte";
+  import ICloudSessionDisconnect from "./ICloudSessionDisconnect.svelte";
   import PhotosCloud from "./PhotosCloud.svelte";
   let { center }: { center: DialogCenter } = $props();
   const { t } = getContext<UiCopy>("copy");
@@ -161,14 +162,16 @@
 <Modal
   open={!!current}
   title={t(
-    current?.kind === "apple-account"
+    current?.kind === "icloud-disconnect" ? "disconnectICloudSession" : current?.kind === "apple-account"
       ? "appleSessionModal"
       : "appPasswordModal",
   )}
   onclose={close}
   {busy}
 >
-  {#if current?.kind === "apple-account"}<p class="muted">
+  {#if current?.kind === "icloud-disconnect"}
+    {#key current.generation}<ICloudSessionDisconnect accountId={current.options.accountId ?? ''} user={current.options.accountUser ?? selected?.user ?? ''} {busy} onbusy={value=>{busy=value}} oncomplete={()=>window.dispatchEvent(new Event('studio:credentials-updated'))} onclose={()=>center.closeCredential(current?.generation)}/>{/key}
+  {:else if current?.kind === "apple-account"}<p class="muted">
       {t("webSessionHelp")}
     </p>
     {#if !accounts.length}<p>{t("noAccountYet")}</p>
@@ -185,7 +188,7 @@
         oncomplete={() =>
           window.dispatchEvent(new Event("studio:credentials-updated"))}
       />{/if}
-  {:else}<p class="muted">{t("credentialModalHelp")}</p>
+  {:else}<p class="muted">{t("credentialModalHelp")}</p>{#if current?.options.mode === "rotate"}<p>{t("credentialSessionResetHelp")}</p>{/if}
     {#if submitError}<p id={errorId} class="form-error">{t(submitError)}</p>{/if}
     <form
       aria-describedby={submitError ? errorId : undefined}

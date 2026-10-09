@@ -6,6 +6,7 @@ export interface AppPasswordInput {
 }
 export interface CredentialOptions {
   accountId?: string;
+  accountUser?: string;
   mode?: "add" | "rotate";
   accounts?: Array<{
     id: string;
@@ -19,7 +20,7 @@ export interface CredentialOptions {
 export class DialogCenter {
   credential = $state<
     | {
-        kind: "app-password" | "apple-account";
+        kind: "app-password" | "apple-account" | "icloud-disconnect";
         options: CredentialOptions;
         generation: number;
       }
@@ -27,7 +28,7 @@ export class DialogCenter {
   >();
   private sequence = 0;
   openCredential(
-    kind: "app-password" | "apple-account",
+    kind: "app-password" | "apple-account" | "icloud-disconnect",
     options: CredentialOptions = {},
   ) {
     this.credential = { kind, options, generation: ++this.sequence };
