@@ -1,7 +1,6 @@
-import type {OperationMonitor} from '../../observability/operations.js';
+import type {CalendarMonitor as OperationMonitor,CalendarRegistration as RuntimeModule,CalendarTool as RegisteredTool} from '../ports.js';
 import {z} from 'zod';
 import {zodToJsonSchema} from 'zod-to-json-schema';
-import type {RuntimeModule,RegisteredTool} from '../../modules/runtime.js';
 import {CalendarError,type CalendarPolicy,type CalendarCommand} from '../domain/calendar.js';
 import {commandSchemas,operationId} from './schemas.js';
 export interface CalendarToolService {execute(command:CalendarCommand,operationId?:string):Promise<unknown>;operationStatus(operationId:string):Promise<unknown>|unknown;reconcile(operationId:string):Promise<unknown>}

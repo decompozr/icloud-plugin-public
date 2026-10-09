@@ -1,6 +1,6 @@
 # Application architecture
 
-Account and Mail backend ownership have moved to `modules/account` and `modules/mail`; server/process ownership
+Account, Mail and Calendar backend ownership have moved to `modules/account`, `modules/mail` and `modules/calendar`; server/process ownership
 remains in the transitional app until the next phases. See [the accepted Studio
 server migration](studio-server-migration.md).
 

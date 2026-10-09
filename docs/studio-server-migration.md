@@ -581,3 +581,39 @@ checkout, checkpoint and unrelated records remain. Independent source checks are
 recorded above; PR145 has no configured remote CI. Physical-device/real Passkey
 acceptance is not claimed. Mail is deployed awaiting owner pass; Calendar is next,
 then Photos/HomeKit backend ownership and final Studio server composition.
+
+## Phase 2 Calendar backend extraction execution contract
+
+Owner passed the deployed Mail slice and requested continuation. Move the existing
+Calendar domain/codec, CalDAV gateway, services, encrypted ledger, tool/scopes and
+capability declarations into the existing Calendar package. Keep its UI entry
+separate. The host injects the original verified invocation lookup and monitor;
+retain a thin host factory adapter and host account/transport integration tests.
+No parallel registry, listener or authorization mechanism is introduced.
+
+Acceptance: independent build and outside-repository package/API type consumption;
+account isolation, credential/policy races, scope escalation, conditional provider
+operations, recurrence/availability and unknown/replay tests; full build/tests and
+built E2E; independent review; clean-main packaging/lifecycle and deployed preserved
+state. The established native prefix, current signed HomeKit helper and automation
+ledgers remain unchanged. Live verification is read-only through existing MCP; no
+real Calendar create/edit/delete/invite/share or new consent. Preserve current
+Mail/auth behavior and database names. Calendar0.3.0/service0.1.108 are provisional
+until release reconciliation. Owner pass gates the following Photos slice.
+
+### Calendar backend source verification checkpoint
+
+Calendar0.3.0 independently builds the existing codec/domain, CalDAV client/gateway,
+services, encrypted policy/operation/sync ledger, tool schemas/scopes and capability
+fields. The host's thin factory injects its existing verified invocation lookup;
+structural dependency ports expose only required context/monitor behavior. Provider
+implementations and persistence/authorization logic are unchanged; no duplicate
+runtime or shell reverse import is introduced. Browser UI remains a separate entry.
+
+Complete590 tests / 5,197 expect calls and builtE2E13/258 pass, including Calendar's
+39/157 owned suite. Outside-repo installation resolves Calendar backend/gateway/
+ledger exports inside the consumer and typechecks their API. Independent review
+passed47/228 for isolation, credential races, scopes, conditional dispatch, unknown
+outcomes and replay;12 declarations resolve within the package and13 client files
+contain no backend markers. No scoped blocker. Candidate0.1.108 awaits clean-main
+packaged/lifecycle verification and preserved-state deployment.

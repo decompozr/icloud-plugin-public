@@ -1,0 +1,12 @@
+import {resolve,join} from 'node:path';
+import {mkdir,rm} from 'node:fs/promises';
+import {command,repository} from './command.js';
+const account=join(repository,'modules/calendar'),source=join(account,'src'),output=join(account,'dist');
+await command([process.execPath,'run','--cwd',account,'typecheck']);
+await rm(output,{recursive:true,force:true});await mkdir(output,{recursive:true});
+await command([process.execPath,'run','--cwd',account,'build:types']);
+const entries:string[]=[];
+for await(const path of new Bun.Glob('**/*.ts').scan(source))if(!path.includes('test-fixtures/')&&!path.endsWith('.test.ts')&&!path.endsWith('.worker.ts'))entries.push(resolve(source,path));
+const result=await Bun.build({entrypoints:entries,root:source,outdir:output,target:'bun',packages:'external',splitting:true});
+if(!result.success)throw new AggregateError(result.logs,'Calendar backend build failed');
+console.log('Built independently installed Calendar backend; host/UI/tests excluded.');
