@@ -2,7 +2,7 @@
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
   import type { LocaleControl } from "../lib/ui-state.svelte.js";
-  import Menu from "@decompozr/ui/design-system/Menu.svelte";
+  import GlobeMenu from "@decompozr/ui/components/GlobeMenu.svelte";
   let { rail = false }: { rail?: boolean } = $props();
   const { t } = getContext<UiCopy>("copy"),
     locale = getContext<LocaleControl>("locale");
@@ -27,19 +27,13 @@
   aria-label={t("language")}
   title={t("language")}
 >
-  <Menu label={rail ? (locale?.current === "zh-TW" ? "繁" : "EN") : t("language")} {items} compact />
+  <GlobeMenu label={t("language")} {items} />
 </div>
 
 <style>
   .rail {
     margin: 0.5rem 0 0;
     width: 44px;
-  }
-  .rail :global(.trigger) {
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    border: 0;
   }
   .language-menu {
     margin-left: auto;

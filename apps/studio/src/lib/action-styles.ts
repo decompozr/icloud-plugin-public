@@ -6,6 +6,12 @@ import { typography } from '@decompozr/ui/design-system/typography.js';
 
 /** Consumer layout, focus explanation and critical action extension of the pinned Button. */
 export const actionStyles = `
+.globe-menu{position:relative;display:inline-flex;color:${semanticColors.text}}
+.globe-menu .menu-anchor .trigger{border-color:transparent;background:transparent}
+.globe-menu .trigger>.icon{visibility:hidden}
+.globe-menu-glyph{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.globe-menu-glyph svg{width:${controlMetrics.compact.icon};height:${controlMetrics.compact.icon}}
+.nav-language .globe-menu .trigger{width:${controlMetrics.coarseTarget};height:${controlMetrics.coarseTarget};padding:0}
 .action-explanation{position:relative;display:inline-flex;flex:none;vertical-align:middle;max-width:100%}
 .dz-icon-action[data-dz-action]{padding:var(--icon-padding);flex:none}
 .dz-icon-action[data-dz-action] svg{width:var(--control-icon);height:var(--control-icon)}
@@ -28,7 +34,7 @@ export const actionStyles = `
 .module-section-heading{display:flex;align-items:center;justify-content:space-between;gap:${spacing[3]};flex-wrap:wrap;margin-block:${spacing[4]} ${spacing[2]}}
 .module-section-heading h3{margin:0;padding:0;border:0;font-size:${typography.heading.fontSize};line-height:${typography.heading.lineHeight}}
 .module-action-list{list-style:none;padding:0;margin:0}
-.module-action-row{display:flex;align-items:center;justify-content:space-between;gap:${spacing[4]};padding-block:${spacing[4]};border-bottom:1px solid ${semanticColors.border}}
+.module-action-row{display:flex;align-items:flex-start;justify-content:space-between;gap:${spacing[4]};padding-block:${spacing[4]};border-bottom:1px solid ${semanticColors.border}}
 .module-action-copy{min-width:0;flex:1}.module-action-copy p,.settings-save-note{font-size:${typography.body.fontSize};line-height:${typography.body.lineHeight};color:${semanticColors.textMuted}}
 .module-action-copy p{margin:${spacing[1]} 0 0}.module-action-copy .module-unavailable{color:${semanticColors.critical}}
 .form-error{color:${semanticColors.critical}}

@@ -430,3 +430,5 @@ Shared StatusMarker and DraftSwitch extend semantic state presentation without c
 Save uses the unmodified Lucide disk glyph from revision 951813ce76a859d4d8b145366972cbb237147a4e, as a project-owned asset with ISC attribution. Disabled module dots are gray; red is reserved for observed failure. All text precedes its right-aligned switch.
 
 All icon-only ActionButton consumers use catalog quiet appearance through the shared adapter. Critical icon actions retain semantic critical color with a transparent idle surface/border. Labeled actions retain their catalog recipes.
+
+Language navigation uses shared GlobeMenu: catalog Menu interaction with a project-owned pinned Lucide globe glyph, quiet icon trigger, translated accessible name and full selected-language labels inside the menu. Vendor source remains unchanged.
