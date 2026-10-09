@@ -46,7 +46,7 @@ test('persisted resource scope upgrade reproduces narrowing and merge preserves 
  db.query('INSERT INTO plugin_auth_private VALUES (?,?)').run('resource-client','legacy-encrypted-record');
  const oldComponent=await createBaselineAuth({...config,scopes:['mail.read','mail.write','offline_access'],resourceName:'Preserved canonical name',extraResource:base+'/other-resource'});
  const legacyClient=clientSchema.parse(await(await oldComponent.publicHandler(new Request(base+'/icloud/auth/oauth2/register',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({client_name:'Legacy anonymous fixture',application_type:'native',redirect_uris:[base+'/callback'],token_endpoint_auth_method:'none',grant_types:['authorization_code','refresh_token'],response_types:['code'],scope:'mail.read offline_access'})}))).json());
- let component:Omit<Awaited<ReturnType<typeof ProductionFactory>>,'synchronizeCapabilities'>=await createBaselineAuth(config);
+ let component:Omit<Awaited<ReturnType<typeof ProductionFactory>>,'synchronizeCapabilities'|'synchronizeClientPermissions'>=await createBaselineAuth(config);
  expect(db.query<{value:string},[]>("SELECT value FROM plugin_auth_private WHERE id='resource-client'").get()?.value).toBe('legacy-encrypted-record');
  expect(db.query<{count:number},[]>("SELECT count(*) AS count FROM plugin_auth_private WHERE id LIKE 'resource-client-v2:%'").get()?.count).toBe(1);
  handler=component.publicHandler;

@@ -66,6 +66,7 @@
     /><small><Copy copyKey="passwordHelp" /></small>
     <div class="actions">
       <ActionButton
+        showLabel
         id="save"
         class="primary"
         type="submit"
@@ -73,6 +74,7 @@
         label={t(admin ? "saveAdmin" : "save")}
         icon="check"
       />{#if !admin}<ActionButton
+          showLabel
           type="button"
           class="secondary"
           data-back="1"
@@ -86,6 +88,7 @@
       <h2><Copy copyKey="revokeTitle" /></h2>
       <p class="muted"><Copy copyKey="revokeIntro" /></p>
       <ActionButton
+        showLabel
         id="revoke"
         class="danger"
         disabled={!account || model?.busy}
@@ -101,6 +104,7 @@
         </p>
         <p><Copy copyKey="revokeConfirm" /></p>
         <ActionButton
+          showLabel
           id="revoke-yes"
           class="danger"
           disabled={model?.busy}
@@ -110,6 +114,7 @@
           label={t("revokeYes")}
           icon="trash-2"
         /><ActionButton
+          showLabel
           id="revoke-cancel"
           class="secondary"
           disabled={model?.busy}

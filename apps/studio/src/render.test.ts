@@ -15,7 +15,7 @@ test('Studio renders all private destinations with isolated controls',()=>{
 test('untrusted presentation values remain text and cannot inject handlers or elements',()=>{
  const attack='"><img src=x onerror="alert(1)">';
  const html=renderAdmin({enrolled:true,ready:true,admin:true,view:'overview',modules:[{id:attack,title:attack,fields:[{id:attack,label:attack}]}]},copy,'','en');
- expect(html).not.toContain('<img');expect(html).not.toContain('onerror="alert(1)"');
+ expect(html).not.toContain('<img');expect(html).not.toMatch(/<[^>]*\bonerror\s*=/);
  const auth=renderAuth('consent',false,{'photos.read':attack},copy,'','zh-TW');
  expect(auth).toContain('<html lang="zh-TW">');expect(auth).not.toContain('<img');
  expect(auth).toContain('data-auth-return=""');
@@ -39,7 +39,7 @@ test('renderer requests do not share mutable presentation context',()=>{
 });
 test('Home linking is not mounted in the global System page',()=>{const html=renderAdmin({enrolled:true,ready:true,admin:true,view:'system',homekitConfigured:true,modules:[{id:'homekit',title:'Apple Home',fields:[{id:'read',label:'Read'}]}]},copy,pageStyles,'en');expect(html).toContain('id="system-content"');expect(html).not.toContain('data-testid="homekit-setup"');});
 
-test('application actions expose names and icons without visible text across destinations',()=>{
+test('application actions expose names and icons, with visible text for decisions',()=>{
  const pages = [
   ...(['overview','accounts','connections','system','setup'] as const).map(view => renderAdmin({enrolled:true,ready:true,admin:view!=='setup',view,resetAvailable:true},copy,pageStyles,'en')),
   ...(['connect','consent','sign-in'] as const).map(mode => renderAuth(mode,false,{},copy,pageStyles,'en')),
@@ -51,7 +51,9 @@ test('application actions expose names and icons without visible text across des
   for(const [,attributes,body] of buttons){
    expect(attributes).toMatch(/aria-label="[^"]+"/);
    expect(body).toContain('<svg');
-   expect(body.replace(/<[^>]*>/g,'').trim()).toBe('');
+   const text=body.replace(/<[^>]*>/g,'').trim();
+   if(attributes.includes('dz-labeled-action') || (attributes.includes('aria-haspopup="menu"') && !attributes.includes('icon-only'))) expect(text.length).toBeGreaterThan(0);
+   else {expect(text).toBe('');if(attributes.includes('dz-icon-action')) {expect(attributes).toContain('data-touch-appearance="default"');expect(attributes).toContain('data-size="normal"');};}
   }
  }
 });

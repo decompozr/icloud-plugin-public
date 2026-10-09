@@ -121,7 +121,8 @@
       if (!value.selectedAccount?.credentialStored)
         throw new AuthFailure("chooseAccount");
       scopes = value.permissions;
-      chosen = [...scopes];
+      // Requested scopes are choices, never implicit consent.
+      chosen = [];
       ready = scopes.length > 0;
     }
   }
@@ -236,6 +237,7 @@
                 >{/if}
             </div>
             <ActionButton
+              showLabel
               type="button"
               class="secondary"
               disabled={busy || !account.credentialStored}
@@ -256,6 +258,7 @@
           </div>{/each}
       </div>
       <ActionButton
+        showLabel
         class="secondary"
         type="button"
         data-connect-add
@@ -315,6 +318,7 @@
     {:else}<p class="muted">{authT("introSignIn")}</p>{/if}
     <div class="actions">
       {#if mode !== "connect"}<ActionButton
+          showLabel
           class="primary button-icon"
           type="button"
           data-auth-primary
@@ -326,6 +330,7 @@
           label={authT(mode === "consent" ? "allow" : "usePasskey")}
           icon={mode === "consent" ? "check" : "passkey"}
         />{/if}{#if mode !== "sign-in"}<ActionButton
+          showLabel
           class="secondary"
           type="button"
           data-auth-deny

@@ -68,6 +68,7 @@ export class AdminModel {
   clientsCheckedAt = $state<string>();
   dashboardFailed = $state(false);
   diagnosticsFailed = $state(false);
+  clientSyncIncomplete = $state(false);
   systemStale = $state(false);
   draft = $state<Record<string, Record<string, boolean>>>({});
   policyConfirm = $state(false);
@@ -260,6 +261,7 @@ export class AdminModel {
     this.clientsLoading = true;
     try {
       const value = await this.connectionsService.list();
+      this.clientSyncIncomplete = !!value.permissionSync && value.permissionSync.status !== 'synced';
       this.clients = value.clients;
       this.connections = value.connections;
       this.clientsCheckedAt = new Date().toISOString();
@@ -366,9 +368,11 @@ export class AdminModel {
     const changes = this.changes;
     this.policyConfirm = false;
     let completed = 0;
+    let syncIncomplete = false;
     try {
       for (const change of changes) {
-        await this.post(change.path, { policy: change.policy, confirmEnable });
+        const response = await this.post(change.path, { policy: change.policy, confirmEnable }) as {permissionSync?: {status?: string}};
+        if (response.permissionSync && response.permissionSync.status !== 'synced') syncIncomplete = true;
         completed++;
       }
       this.discardPolicy();
@@ -377,8 +381,7 @@ export class AdminModel {
         this.refreshClients(),
       ]);
       this.message("policySaved");
-      if (this.connectionsNeedingReview.length)
-        this.toast?.push("connectionUpdatesAvailable", "info");
+      if (syncIncomplete) { this.clientSyncIncomplete = true; this.toast?.push("clientSyncIncomplete", "error"); }
     } catch (error) {
       await this.refreshDashboard();
       if (
@@ -420,6 +423,7 @@ export class AdminModel {
     this.revokeAccount = "";
     this.password = "";
     await this.refreshDashboard();
+    await this.refreshSessions();
     this.message("revoked");
   }
   async add() {

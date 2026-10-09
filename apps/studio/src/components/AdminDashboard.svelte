@@ -51,6 +51,7 @@
   clientId: string,
   kind: "upgrade" | "revoke" | "remove",
 )}<ActionButton
+    showLabel={kind === "upgrade"}
     variant="secondary"
     disabled={model.busy}
     onclick={() => void model.run(() => model.preview(clientId, kind))}

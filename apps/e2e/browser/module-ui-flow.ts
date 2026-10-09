@@ -12,10 +12,10 @@ try{
  await page.route('**/icloud/admin/photos/status',async(route:any)=>{photoRequests++;await pendingPhotos;await route.fulfill({json:{libraryReadable:true,libraryStatus:'ready',authorization:'authorized',ready:true}})});
  let finishHome!:()=>void;const pendingHome=new Promise<void>(r=>finishHome=r);
  await page.route('**/icloud/admin/homekit/status',async(route:any)=>{await pendingHome;await route.fulfill({json:{helper:{ready:true,authorized:true,localUserId:501,sourceSHA256:'a'.repeat(64)},homes:[],bindings:[]}})});
- await page.getByRole('button',{name:'Configure Photos',exact:true}).click();const photos=page.getByRole('dialog',{name:'Photos · Module settings',exact:true});await photos.waitFor();await photos.locator('[data-step-state="checking"]').first().waitFor();
+ await page.getByRole('button',{name:'Configure Photos',exact:true}).click();const photos=page.getByRole('dialog',{name:'Photos Settings',exact:true});await photos.waitFor();await photos.locator('[data-step-state="checking"]').first().waitFor();
  await photos.getByRole('button',{name:'Cancel',exact:true}).click();
- await page.getByRole('button',{name:'Configure Apple Home',exact:true}).click();const home=page.getByRole('dialog',{name:'Apple Home · Module settings',exact:true});await home.waitFor();await home.locator('#scope-homekit-read').check();
- const confirmation=home.locator('.confirmation input');if(!await confirmation.isDisabled())throw Error('Unlinked Home requirement unexpectedly ready');
+ await page.getByRole('button',{name:'Configure Apple Home',exact:true}).click();const home=page.getByRole('dialog',{name:'Apple Home Settings',exact:true});await home.waitFor();await home.locator('#scope-homekit-read').locator('..').click();
+ const confirmation=home.getByRole('button',{name:'Save capabilities',exact:true});if(!await confirmation.isDisabled())throw Error('Unlinked Home requirement unexpectedly ready');
  finishPhotos();await page.waitForTimeout(350);if(!await confirmation.isDisabled())throw Error('Late Photos response changed Home readiness');
  if(!await home.getByRole('button',{name:'Save capabilities',exact:true}).isDisabled())throw Error('Late response enabled module save');
  finishHome();await page.waitForTimeout(150);if(errors.length)throw Error(errors.join(';'));if(!photoRequests)throw Error('Race not exercised');

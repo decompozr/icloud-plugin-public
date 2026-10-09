@@ -244,6 +244,7 @@
                   ? ` · ${model.connectionsNeedingReview.length} ${t("connectionUpdatesCountLabel")}`
                   : "")}
               onclick={(event) => tabNavigation(destination, href, event)}
+              aria-disabled={model.busy || navigating || toast.dialogs > 0 || undefined}
               aria-current={(destination==="module"?modulePath===href:view===destination)?"page":undefined}
               ><DesignIcon
                 name={destination === "overview"
@@ -266,7 +267,9 @@
     </div>
     <div id="page-content" tabindex="-1">
       <div class="page-heading">
-        <h1>{t(heading)}</h1>
+        <div class="page-title"><h1>{t(heading)}</h1>
+
+        </div>
         {#if view === "overview"}<RefreshButton
             id="overview-refresh"
             label={t("refreshPage")}
@@ -310,7 +313,7 @@
               class="muted"
             >
               {t("noAccountYet")}
-            </p>{/if}
+            </p><div class="actions"><ActionButton showLabel icon="plus" label={t("addAccount")} disabled={model.busy} onclick={() => dialogs.openCredential("app-password", { mode: "add" })} /></div>{/if}
           {#if model.dashboardFailed || model.diagnosticsFailed}<p
               class="muted"
               role="status"
@@ -331,6 +334,7 @@
             <summary>{t("photosPermissionHelpShort")}</summary>
             <p>{t("connectionsHelp")}</p>
           </details>
+          {#if model.clientSyncIncomplete}<p class="form-error" role="status">{t("clientSyncIncomplete")}</p>{/if}
           <div id="connections-list" tabindex="-1">
             <AdminDashboard {model} view="connections" />
           </div>
@@ -383,11 +387,13 @@
           <div class="actions">
             <ActionButton
               class="secondary"
+              showLabel
               onclick={() => (model.requirementDialog = "tailscale")}
               label={t("tailscaleSetup")}
               icon="settings"
             />{#if pageState.photosConfigured}<ActionButton
                 class="secondary"
+                showLabel
                 onclick={() => (model.requirementDialog = "photos")}
                 label={t("photosPermissions")}
                 icon="settings"
@@ -412,6 +418,7 @@
     <div id="connection-impact"><AdminDashboard {model} view="impact" /></div>
     <div class="actions">
       <ActionButton
+        showLabel
         id="connection-confirm-yes"
         type="button"
         class={model.pendingConnection?.action === "upgrade"
@@ -426,6 +433,7 @@
         )}
         icon="check"
       /><ActionButton
+        showLabel
         id="connection-confirm-no"
         type="button"
         class="secondary"
@@ -450,12 +458,14 @@
   </p>
   <div class="actions">
     <ActionButton
+      showLabel
       class="danger"
       disabled={model.busy}
       onclick={() => void model.run(() => model.revoke(), "revoking")}
       label={t("revokeYes")}
       icon="trash-2"
     /><ActionButton
+      showLabel
       class="secondary"
       disabled={model.busy}
       onclick={() => (model.revokeAccount = "")}
@@ -500,6 +510,7 @@
     overscroll-behavior-y: contain;
     scrollbar-gutter: stable;
     padding: var(--shell-inset);
+    padding-top: 0;
     padding-left: 0;
     padding-right: max(var(--shell-inset), env(safe-area-inset-right, 0px));
     padding-bottom: max(var(--shell-inset), env(safe-area-inset-bottom, 0px));
@@ -518,7 +529,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding-top: var(--shell-inset);
+    padding-top: 0;
     padding-bottom: max(var(--shell-inset), env(safe-area-inset-bottom, 0px));
     overflow: visible;
     width: var(--shell-rail);
@@ -535,9 +546,6 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-  }
-  .page-heading {
-    margin-bottom: 1rem;
   }
   .page-heading h1 {
     margin: 0;

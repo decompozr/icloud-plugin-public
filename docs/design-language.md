@@ -1,5 +1,76 @@
 # Shared interface design
 
+## Task entry and comparison (round 3, 2026-10-08)
+
+[Round 3](uiux-round3.md) addresses the four remaining workflow findings and maps
+all changes to user intent and acceptance. Narrow/coarse headers expose a named
+catalog Pages menu without replacing or resizing the fixed rail. The guarded
+navigation controller remains authoritative for Back, drafts and pending dialogs.
+The header stays visible as its content pane scrolls; the capability entry point
+focuses the complete service list instead of choosing Mail for the user.
+
+Overview leads with an observed-data NextStep composition using pinned semantic
+surface/spacing and catalog actions. Unknown or stale observations choose refresh;
+known prerequisites choose existing network, account, module or client entry
+points. Local configuration and registration do not imply external acceptance,
+and client copy asks for a read rather than declaring setup complete.
+
+Credential recovery keeps a persistent form-level explanation linked by
+`aria-describedby`, without unsupported individual field blame. Secret clearing,
+existing toasts and generation/reset behavior remain. Multiple account surfaces
+use two desktop columns and one column at the existing 700px narrow breakpoint;
+the Overview account section drops only its redundant outer enclosure. User action
+groups identify their account. No vendor tokens/components or backend grants change.
+
+Source build/typechecks and 584 unit tests pass; 252 browser checks cover existing
+requirements/shell/recovery plus new task entry, error linking, account comparison
+and wrapping. This is compiled fixture acceptance, not physical-device or native
+installation proof. The baseline and inspected screenshots remain in tracked docs.
+
+## Workflow clarity and recovery follow-up (2026-10-08)
+
+The owner requested a broader audit after rejecting the proportional-only pass.
+The [workflow audit](uiux-comprehensive-audit.md) and [user flows](uiux-flows.md)
+record each design's intent and acceptance. Account maintenance now uses a named
+catalog Menu; state remains separately visible. The language Menu uses a locale
+abbreviation rather than a speech-bubble glyph, with locale supplied at layout load.
+System setup actions and empty Accounts expose visible task labels.
+
+Existing catalog keyboard-focus recipes are restored, superseding the historical
+blanket suppression. Module settings consume unchanged catalog Switch controls through a shared pending-state adapter.
+Intrinsic label columns and nearby account actions reduce desktop scan distance
+without changing the owner's full-width shell. Affected Overview headings show
+Last known state Tags after failed refreshes.
+
+Shared Modal keeps the header stationary with one bounded content scrollport.
+Notifications use one app-owned native popover top layer, with five-second automatic dismissal paused by hover/focus. No notification height is reserved and no content is scrolled by toast changes. A native-modal bridge changes the host parent only to preserve interaction through browser inertness; its fixed top-layer geometry remains independent of layout. Catalog appearance, dismiss
+controls and notification semantics remain unchanged. Physical-device/onscreen
+keyboard acceptance remain unverified; round 3 addresses F12–F15; no award/compliance claim is made.
+
+## Readable Studio and proportionate actions (2026-10-07)
+
+The owner requested a screenshot-led UI audit, better button/text proportions,
+and documented user stories for each design. The current local implementation
+uses a shared `readableTypography` consumer recipe: pinned heading size/line-height
+with body family/weight produce 16px reading text. Section headings are 16px;
+the existing 18px page title, 13px catalog Tags and normal/compact catalog controls
+remain. This explicitly recorded composition supersedes the earlier 14px body
+adoption for Studio without modifying pinned vendor source.
+
+Utility actions use catalog compact touch appearance: a 32px face and 16px icon
+inside a 44px target. Consequential decisions use visible translated labels and
+normal catalog Button metrics, superseding the earlier all-icon decision treatment.
+Critical semantic colors apply to both labeled and icon actions. Mobile connection
+warnings place explanation above Review. OAuth consent begins unchecked and submits
+only selected scopes; native/backend authorization boundaries remain intact.
+
+The [user stories and flows](uiux-flows.md) own interaction intent, feedback and
+acceptance. The [audit](uiux-audit.md) retains inspected before/after screenshots,
+measurements, self-checking results and residual risks. Local build/typechecks,
+583 unit tests, 143 requirements/consent browser checks, 58 shell checks and eight
+additional touch checks pass. This is local Chrome fixture acceptance; physical
+iPhone, full accessibility and native installation remain unverified.
+
 ## Current Surface design adoption (2026-10-06)
 
 Logo selection (2026-10-07): the owner selected the plain, plump cloud outline
@@ -311,7 +382,7 @@ Private screenshots and rollout receipts: `.flow-runtime/homekit-background/grou
 The exact fixture server was stopped; the production page remains available.
 
 
-Home module settings use a short readiness status and one connection-consent footer.
+Module settings show aligned requirement markers and omit the connection-approval footer.
 The embedded dialog omits the helper/Dock implementation note and duplicate linking
 explanation. Standalone linking retains its brief no-device/no-permission-change
 notice. Explicit unchecked Home-link approval and all handlers remain unchanged.
@@ -351,3 +422,29 @@ Private deployment receipts are retained at the existing runtime's
 No browser is currently connected and Safari's native window lookup is unavailable:
 final installed scroll/spacing/toast visual acceptance, native discard cancellation,
 mobile dialogs/toast placement and physical iPhone acceptance remain unverified.
+
+## Capability settings adapters (2026-10-09)
+
+Shared StatusMarker and DraftSwitch extend semantic state presentation without changing catalog source. Status dots use spacing[2] and radius.full. Aligned requirement markers use spacing[6]. Pending switches use warning/warningSurface for both enable and disable drafts; saved enabled switches retain the catalog green. Quiet icon actions use the catalog Button quiet appearance and named accessible controls. See [module settings stories](module-settings-ux.md).
+
+Save uses the unmodified Lucide disk glyph from revision 951813ce76a859d4d8b145366972cbb237147a4e, as a project-owned asset with ISC attribution. Disabled module dots are gray; red is reserved for observed failure. All text precedes its right-aligned switch.
+
+All icon-only ActionButton consumers use catalog quiet appearance through the shared adapter. Critical icon actions retain semantic critical color with a transparent idle surface/border. Labeled actions retain their catalog recipes.
+
+Language navigation uses shared GlobeMenu: catalog Menu interaction with a project-owned pinned Lucide globe glyph, quiet icon trigger, translated accessible name and full selected-language labels inside the menu. Vendor source remains unchanged.
+
+The vertical navigation active marker is a flat 2px line at the right edge facing the content. It has no rounded selection surface or enclosing border; navigation targets, keyboard focus and aria-current are preserved.
+
+Account cards use two module-owned access rows: App Password with key, purpose, stored status and direct update/removal icons; iCloud Session with globe, web-access purpose, independent phase and direct sign-in/manage/disconnect icons. Shared row layout lets mobile descriptions span the full width. See [account access stories](account-access-ux.md).
+
+Overview uses consistent bordered cards for System Runtime, iCloud Accounts and Service capabilities, replacing historical open-section/account-border suppression. Shared rules use semantic surface/border, radius.surface and pinned desktop/mobile insets. Scoped Overview card recipes are removed.
+
+Icon action density now defaults to normal catalog metrics: 20px desktop glyph in a 36px target; 24px coarse-pointer glyph in a 44px target. Quiet and bordered appearances share these dimensions. This supersedes the earlier blanket compact icon-action convention; explicit compact density remains available.
+
+Module settings close directly discards its draft, without a redundant confirmation. Footer Save/Cancel align right. Shared mobile Modal keeps native modality through its downward exit and restores focus after completion; reduced motion skips the exit. Other credential/destructive confirmations stay explicit.
+
+Admin navigation uses the persistent navbar only. The redundant Pages dropdown is removed from page headings, superseding earlier touch-menu guidance. Named links, title hints, keyboard focus and active-state cues remain.
+
+Sticky page-heading backgrounds own the shell top inset. The scroll container has no top padding, so moving content cannot leak into a gap above the header; initial heading/control placement is preserved.
+
+Overview now uses a 44px fixed heading and 8px following gap, with no extra top inset or task banner. SectionSkeleton reproduces Runtime label/value/copy slots, Accounts identity/access rows and quiet-icon slots, and registered capability rows. It uses catalog metrics/semantic colors, static metadata labels and noninteractive placeholders; text placeholder widths are proportional estimates because unknown content/count can vary. Runtime reads Version, Folder, Status, Tailscale. See [current stories/evidence](overview-runtime-client-sync.md).

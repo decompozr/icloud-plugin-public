@@ -6,8 +6,9 @@
   import RequirementStep from "@decompozr/ui/components/RequirementStep.svelte";
   let {
     active = true,
+    embedded = false,
     ctx,
-  }: { active?: boolean; ctx: ModuleUiContext } = $props();
+  }: { active?: boolean; embedded?:boolean; ctx: ModuleUiContext } = $props();
   const{t}=untrack(()=>ctx.copy);
   let busy = $state(false);
   let pollingUntil = 0;
@@ -138,7 +139,7 @@
     </p>{/if}
   <div class="status-row">
     <span id="photos-status" role="status" aria-live="polite"
-      >{last?.ready ? t("requirementsReady") : busy ? t("checking") : ""}</span
+      >{!embedded && last?.ready ? t("requirementsReady") : busy ? t("checking") : ""}</span
     ><ActionButton
       type="button"
       class="secondary"

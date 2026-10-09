@@ -1,8 +1,7 @@
 <script lang="ts">
+  import ServiceCapabilities from './ServiceCapabilities.svelte';
   import AccountCard from "@decompozr/account/ui/AccountCard.svelte";
-  import ModuleSwitch from "@decompozr/ui/components/ModuleSwitch.svelte";
   import Tag from "@decompozr/ui/design-system/Tag.svelte";
-  import { scopeCopy } from "../lib/admin-model.svelte.js";
   import { controlMetrics } from "@decompozr/ui/design-system/controlMetrics.js";
   import { spacing } from "@decompozr/ui/design-system/spacing.js";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
@@ -12,7 +11,7 @@
   import type { DialogCenter } from "../lib/ui-state.svelte.js";
   import CopyButton from "@decompozr/ui/components/CopyButton.svelte";
   import RefreshButton from "@decompozr/ui/components/RefreshButton.svelte";
-  import Skeleton from "@decompozr/ui/components/Skeleton.svelte";
+  import SectionSkeleton from "@decompozr/ui/components/SectionSkeleton.svelte";
   import DesignIcon from "@decompozr/ui/components/DesignIcon.svelte";
   let {
     model,
@@ -60,7 +59,7 @@
     aria-busy={model.systemLoading}
   >
     <header>
-      <h2>{t("serviceCard")}</h2>
+      <div class="card-heading"><h2>{t("serviceCard")}</h2>{#if model.systemStale}<Tag label={t("snapshotStale")} />{/if}</div>
       <RefreshButton
         id="service-refresh"
         label={t("refreshService")}
@@ -73,11 +72,19 @@
           )}
       />
     </header>
-    {#if model.systemLoading && model.state.admin && !model.system}<Skeleton
-        rows={3}
-      />{:else}<dl>
+    {#if model.systemLoading && model.state.admin && !model.system}<SectionSkeleton kind="runtime" copyIndex={1} labels={[t("serviceVersion"),t("systemRuntimeFolder"),t("serviceStatus"),"Tailscale"]}/>{:else}<dl>
         <dt>{t("serviceVersion")}</dt>
         <dd>{model.system?.process.version ?? t("unknownValue")}</dd>
+        <dt>{t("systemRuntimeFolder")}</dt>
+        <dd class="runtime-path">
+          <code title={model.system?.locations?.runtimeDirectory}
+            >{model.system?.locations?.runtimeDirectory ??
+              t("unknownValue")}</code
+          ><CopyButton
+            value={model.system?.locations?.runtimeDirectory}
+            label={t("copyRuntimeFolder")}
+          />
+        </dd>
         <dt>{t("serviceStatus")}</dt>
         <dd>
           {t(
@@ -87,16 +94,6 @@
                 ? "ready"
                 : "unknownValue",
           )}
-        </dd>
-        <dt>{t("runtimeFolder")}</dt>
-        <dd class="runtime-path">
-          <code title={model.system?.locations?.runtimeDirectory}
-            >{model.system?.locations?.runtimeDirectory ??
-              t("unknownValue")}</code
-          ><CopyButton
-            value={model.system?.locations?.runtimeDirectory}
-            label={t("copyRuntimeFolder")}
-          />
         </dd>
         <dt>Tailscale</dt>
         <dd>
@@ -130,7 +127,7 @@
     aria-busy={model.accountsLoading && model.state.admin}
   >
     <header>
-      <h2>{t("accountsCard")}</h2>
+      <div class="card-heading"><h2>{t("accountsCard")}</h2>{#if model.dashboardFailed}<Tag label={t("snapshotStale")} />{/if}</div>
       <div class="card-tools">
         <ActionButton
           icon="plus"
@@ -146,9 +143,7 @@
         />
       </div>
     </header>
-    {#if model.state.admin && model.accountsLoading && !model.dashboard}<Skeleton
-        rows={3}
-      />{:else}
+    {#if model.state.admin && model.accountsLoading && !model.dashboard}<SectionSkeleton kind="accounts" rows={model.state.photosCloudConfigured ? 2 : 1} labels={[t("appPasswordShort"),t("appleSessionShort")]} descriptions={[t("appPasswordPurpose"),t("icloudSessionPurpose")]}/>{:else}
       <div
         class="counts"
         style:--count-size={controlMetrics.compact.icon}
@@ -187,69 +182,7 @@
         {t("freshnessFailed")}
       </p>{/if}
   </section>
-  <section
-    class="card wide"
-    data-testid="capabilities-card"
-    aria-busy={model.accountsLoading}
-  >
-    <header>
-      <h2>{t("capabilitiesCard")}</h2>
-      <RefreshButton
-        id="capabilities-refresh"
-        label={t("refreshCapabilities")}
-        busy={model.accountsLoading || model.busy}
-        onclick={() => model.run(() => model.refreshCard("capabilities"))}
-      />
-    </header>
-
-    {#if model.state.admin && model.accountsLoading && !model.dashboard}<Skeleton
-        rows={3}
-      />{:else}{#each modules as module}{@const policy = model.saved[module.id]}
-        <div class="module-summary">
-          <div>
-            <h3>{module.title}</h3>
-            <div class="module-statuses">
-              <Tag
-                tone={policy && Object.values(policy).some(Boolean)
-                  ? "sage"
-                  : "neutral"}
-                label={t(
-                  !policy
-                    ? "unknownValue"
-                    : Object.values(policy).some(Boolean)
-                      ? "moduleEnabled"
-                      : "moduleDisabled",
-                )}
-              />
-              {#each Object.entries(policy ?? {}).filter(([, enabled]) => enabled) as [key]}
-                <Tag label={t(scopeCopy[module.id + "." + key] ?? key)} />
-              {/each}
-            </div>
-          </div>
-          <div class="actions">
-            <ModuleSwitch
-              label={t("moduleEnable") + " " + module.title}
-              enabled={!!policy && Object.values(policy).some(Boolean)}
-              disabled={!model.state.enrolled || model.busy || !policy}
-              onchange={(enable) => openModule(module.id, enable)}
-            />
-            <ActionButton
-              icon="settings"
-              label={t("moduleConfigure") + " " + module.title}
-              disabled={!model.state.enrolled || model.busy}
-              onclick={() => openModule(module.id)}
-            />
-          </div>
-        </div>{/each}{/if}
-
-    {#if modules.some((module) => module.id === "photos")}<p
-        class="muted"
-        data-testid="photos-shared-write-unsupported"
-      >
-        {t("photosUnsupported")}
-      </p>{/if}
-    {#if model.dashboardFailed}<p class="muted">{t("freshnessFailed")}</p>{/if}
-  </section>
+  <ServiceCapabilities {model} {modules} {openModule}/>
 </div>
 
 <style>
@@ -265,7 +198,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.75rem;
+    font-size: inherit;
   }
 
   .overview-grid {
@@ -273,15 +206,6 @@
     align-items: start;
     grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
-  }
-  .card {
-    padding: 1.25rem;
-    border: 1px solid var(--ui-border);
-    border-radius: 6px;
-    margin: 0;
-  }
-  .wide {
-    grid-column: 1/-1;
   }
   header {
     display: flex;
@@ -295,7 +219,7 @@
   }
   dl {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    grid-template-columns: max-content minmax(0, 1fr);
     align-items: center;
     gap: 0.75rem;
     margin: 0;
@@ -322,38 +246,9 @@
     line-height: 1;
     font-weight: 500;
   }
-  .module-statuses {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-top: 0.5rem;
-  }
-  .module-summary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    border-top: 1px solid var(--ui-border);
-    padding: 0.75rem 0;
-  }
-  .module-summary h3 {
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-  .module-summary .actions {
-    margin: 0;
-  }
   @media (max-width: 700px) {
     .overview-grid {
       grid-template-columns: 1fr;
-    }
-    .wide {
-      grid-column: auto;
-    }
-    .card {
-      padding: 1rem;
     }
   }
 </style>

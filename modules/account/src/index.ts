@@ -10,3 +10,5 @@ export * from './auth/bootstrap.js';
 export * from './auth/rate-limit.js';
 export * from './auth/local-owner.js';
 export * from './auth/oauth-errors.js';
+
+export * from './auth/client-permission-sync.js';
