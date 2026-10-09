@@ -6,9 +6,9 @@ import {generateKeyPair,SignJWT,jwtVerify} from '../../../icloud/node_modules/jo
 import {Client} from '../../../icloud/node_modules/@modelcontextprotocol/sdk/dist/esm/client/index.js';
 import {StreamableHTTPClientTransport} from '../../../icloud/node_modules/@modelcontextprotocol/sdk/dist/esm/client/streamableHttp.js';
 const compiled=process.argv.includes('--compiled');
-const {createHomeKitModule}=await import(compiled?'../../../icloud/dist/homekit/module.js':'../../../icloud/src/homekit/module.js');
-const {ModuleRuntime}=await import(compiled?'../../../icloud/dist/modules/runtime.js':'../../../icloud/src/modules/runtime.js');
-const {createHttpApp}=await import(compiled?'../../../icloud/dist/server/http.js':'../../../icloud/src/server/http.js');
+const {createHomeKitModule}=await import(compiled?'../../../studio/dist/server/homekit/module.js':'../../../studio/server/homekit/module.js');
+const {ModuleRuntime}=await import(compiled?'../../../studio/dist/server/modules/runtime.js':'../../../studio/server/modules/runtime.js');
+const {createHttpApp}=await import(compiled?'../../../studio/dist/server/server/http.js':'../../../studio/server/server/http.js');
 const [buildPath,inventoryPath,outputRoot]=process.argv.slice(2);if(!buildPath||!inventoryPath||!outputRoot)throw Error('Build receipt, approved inventory and private output required');
 process.umask(0o077);
 const build=JSON.parse(await readFile(buildPath,'utf8')),inventory=JSON.parse(await readFile(inventoryPath,'utf8'));if(build.state!=='succeeded'||!build.signatureVerified||inventory.homes.length!==1)throw Error('Approved signed single-Home evidence required');

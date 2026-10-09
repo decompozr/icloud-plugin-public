@@ -1,22 +1,24 @@
 # Application architecture
 
-Account, Mail and Calendar backend ownership have moved to `modules/account`, `modules/mail` and `modules/calendar`; server/process ownership
-remains in the transitional app until the next phases. See [the accepted Studio
-server migration](studio-server-migration.md).
+Studio is the sole server application: UI/Web rendering, API/MCP ingress,
+composition and process lifecycle live in `apps/studio`. Account, Mail, Calendar,
+Photos and HomeKit own their independent server/UI entries in `modules/`.
+The existing protocol URLs, datastore identities and native providers are preserved.
+See [the migration and deployment evidence](studio-server-migration.md).
 
 This document describes the source architecture, not the currently deployed
 release. The application is one Bun service with a shared host and registered
 feature modules. Mail and Calendar contribute feature-owned capabilities; optional
 Photos uses the same shared host and authorization flow with a Mac-local provider.
 Installed release and live remote acceptance are separate evidence. See the
-[generic capability contract](../apps/icloud/src/modules/README.md#generic-capability-onboarding-and-acceptance).
+[generic capability contract](../apps/studio/server/modules/README.md#generic-capability-onboarding-and-acceptance).
 
 ## Feature ownership and shared infrastructure
 
 Mail owns its domain, services, iCloud adapters, MCP tool definitions and durable
 operation state under `modules/mail/src`. The [Mail module](../modules/mail/README.md)
 constructs them and contributes capabilities through the
-[module runtime](../apps/icloud/src/modules/README.md). The shared MCP host receives
+[module runtime](../apps/studio/server/modules/README.md). The shared MCP host receives
 registered tool contributions; it does not import Mail services or implement a
 mail/calendar switch. Domain and services are feature-owned code, not global
 registries that each need to understand every feature.
@@ -24,7 +26,7 @@ registries that each need to understand every feature.
 The application composition root chooses modules and provides shared dependencies.
 Owner identity, OAuth, public/private listeners, opaque credential custody and
 operation tracking are shared infrastructure. See the complete
-[source subsystem index](../apps/icloud/src/README.md) and [workspace](workspace.md).
+[source subsystem index](../apps/studio/server/README.md) and [workspace](workspace.md).
 
 ```text
 application composition
@@ -43,7 +45,7 @@ The registry validates contributions before serving them. The host advertises
 currently enabled contributions and checks required scopes before dispatch.
 Modules own policy readers and invocation behavior; enabling a server capability
 never expands a client's existing consent. The exact TypeScript registration
-contract is maintained with [module runtime documentation](../apps/icloud/src/modules/README.md).
+contract is maintained with [module runtime documentation](../apps/studio/server/modules/README.md).
 
 A Mail request flows from public HTTP to token verification, registered-tool
 lookup and permission checks, Mail input validation, service preflight, provider

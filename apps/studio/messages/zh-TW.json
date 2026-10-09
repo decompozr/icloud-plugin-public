@@ -535,5 +535,17 @@
   "homekitControl": "控制裝置及本 app 擁有的場景／自動化",
   "homekitRead": "讀取 Home",
   "homekitAutomations": "管理場景與停用自動化",
-  "systemDiagnosticsShort": "診斷資訊"
+  "systemDiagnosticsShort": "診斷資訊",
+  "serviceBackgroundTitle": "背景服務",
+  "serviceStartAtLogin": "登入這台 Mac 時自動啟動",
+  "serviceRestartOnFailure": "異常退出後自動重啟",
+  "serviceLoginHelp": "在你的 Mac 使用者環境中執行，保留 Photos 與 Apple Home 的既有存取。變更後此頁會重新連線。",
+  "serviceRestart": "重新啟動服務",
+  "serviceRestartHelp": "已接受的工作會完成後再重新啟動。此頁會重新連線，帳號與權限會保留。",
+  "serviceReconnecting": "背景服務設定已儲存，正在重新連線…",
+  "serviceSaved": "背景服務已就緒。",
+  "serviceReadFailed": "無法讀取背景服務狀態。",
+  "serviceCheckStatus": "尚無法確認完成，請先重新整理狀態再重試。",
+  "serviceSuperseded": "較新的設定變更已取代此要求，請重新整理狀態。",
+  "serviceRefresh": "重新整理背景服務狀態"
 }

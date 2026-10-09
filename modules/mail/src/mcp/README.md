@@ -2,7 +2,7 @@
 
 This folder translates Mail use cases into registered MCP tools. It owns `mail_*`
 names, input schemas, operation annotations, scope requirements and Mail result/error
-mapping. The shared [MCP host](../../../../apps/icloud/src/mcp/README.md) owns protocol dispatch and obtains
+mapping. The shared [MCP host](../../../../apps/studio/server/mcp/README.md) owns protocol dispatch and obtains
 this catalog from the module registry.
 
 A call passes through host authentication/scope checks and the enabled-policy gate,

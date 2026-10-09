@@ -16,12 +16,12 @@ A project-owned Surface route explaining the current iCloud plugin source and th
 
 Paths below are relative to the repository root:
 
-- `apps/icloud/src/server/application.ts`: Mail/Calendar registration and conditional Photos composition; shared admin/auth integration.
-- `apps/icloud/src/modules/runtime.ts` and `context.ts`: module contracts, dynamic policy, invocation tracking, request identity and whole-runtime disposal.
-- `apps/icloud/src/mcp/server.ts` and `README.md`: discovery and invocation scope checks.
-- `apps/icloud/src/{mail,calendar,photos}/module.ts`: actual module contributions.
-- Feature READMEs and `apps/icloud/src/{auth,admin,storage}/README.md`: subsystem ownership and evidence limits.
-- `apps/icloud/src/photos/{provider,shared-albums}.ts`: local/native and separate provider-session paths; source presence does not prove remote/cloud acceptance.
+- `apps/studio/server/server/application.ts`: Mail/Calendar registration and conditional Photos composition; shared admin/auth integration.
+- `apps/studio/server/modules/runtime.ts` and `context.ts`: module contracts, dynamic policy, invocation tracking, request identity and whole-runtime disposal.
+- `apps/studio/server/mcp/server.ts` and `README.md`: discovery and invocation scope checks.
+- `apps/studio/server/{mail,calendar,photos}/module.ts`: actual module contributions.
+- Feature READMEs and `apps/studio/server/{auth,admin,storage}/README.md`: subsystem ownership and evidence limits.
+- `apps/studio/server/photos/{provider,shared-albums}.ts`: local/native and separate provider-session paths; source presence does not prove remote/cloud acceptance.
 
 Some older overview prose still describes Calendar as unimplemented. The guide uses current composition and feature source instead. Installed application versions and live provider behavior were not verified during this documentation task.
 

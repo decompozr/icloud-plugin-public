@@ -4,7 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {z} from 'zod';
-import {createHttpApp} from '../../icloud/dist/mail/http.js';
+import {createHttpApp} from '../../studio/dist/server/mail/http.js';
 import {MailService} from '@decompozr/mail/server/services/mail.js';
 import {OutboundService} from '@decompozr/mail/server/services/outbound.js';
 import {SqliteOutboundLedger} from '@decompozr/mail/server/storage/outbound-ledger.js';

@@ -1,7 +1,7 @@
 import {cp,stat,readFile,mkdir} from 'node:fs/promises';
 import {join} from 'node:path';
 import {z} from 'zod';
-import {inspectHomeKitHelper,HOMEKIT_PROTOCOL_VERSION,HOMEKIT_SUPPORTED_PROTOCOLS} from '../../../apps/icloud/src/homekit/preflight.js';
+import {inspectHomeKitHelper,HOMEKIT_PROTOCOL_VERSION,HOMEKIT_SUPPORTED_PROTOCOLS} from '@decompozr/homekit/server/preflight.js';
 export const homeKitPayloadSchema=z.object({app:z.enum(['apps/homekit-helper/HomeKitProbe.app','apps/homekit-helper/HomeKitHelper.app']),protocolVersion:z.enum(HOMEKIT_SUPPORTED_PROTOCOLS),sourceSHA256:z.string().regex(/^[a-f0-9]{64}$/),signingTeam:z.string().regex(/^[A-Z0-9]{10}$/)}).strict();
 export type HomeKitPayload=z.infer<typeof homeKitPayloadSchema>;
 export async function verifyHomeKitPayload(root:string,payload:HomeKitPayload){const result=await inspectHomeKitHelper({native_app:join(root,payload.app),python:'/usr/bin/python3',source_sha256:payload.sourceSHA256,signing_team:payload.signingTeam});if(result.status!=='pass'||result.protocolVersion!==payload.protocolVersion)throw Error(`HomeKit payload preflight failed: ${result.stage}`);}

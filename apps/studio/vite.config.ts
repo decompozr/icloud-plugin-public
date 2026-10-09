@@ -12,7 +12,7 @@ export default defineConfig({
       emitTsDeclarations: true,
     }),
     sveltekit({
-      adapter: adapter({ out: "dist/kit", precompress: false }),
+      adapter: adapter({ out: "dist/ui/kit", precompress: false }),
       paths: { relative: false },
       appDir: "icloud/_studio",
       csp: {

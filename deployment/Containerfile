@@ -1,27 +1,13 @@
 # Build for the runtime OS/architecture. Never copy host node_modules or .env.
 FROM oven/bun:1.4.2 AS build
 WORKDIR /build
-COPY LICENSE THIRD_PARTY_NOTICES.md plugin.json ./
-COPY apps/icloud/package.json apps/icloud/bun.lock apps/icloud/tsconfig.json apps/icloud/tsconfig.build.json ./apps/icloud/
-COPY packages/tooling/package.json packages/tooling/bun.lock ./packages/tooling/
-COPY apps/studio/package.json apps/studio/bun.lock ./apps/studio/
-RUN cd apps/studio && bun install --frozen-lockfile
-RUN cd apps/icloud && bun install --frozen-lockfile
-RUN cd packages/tooling && bun install --frozen-lockfile
-COPY apps/studio/messages ./apps/studio/messages
-COPY apps/studio/project.inlang/settings.json ./apps/studio/project.inlang/
-COPY apps/studio/vite.config.ts ./apps/studio/
-COPY apps/studio/src ./apps/studio/src
-COPY apps/studio/build ./apps/studio/build
-COPY apps/studio/tsconfig.json apps/studio/THIRD_PARTY_NOTICES.md ./apps/studio/
-COPY apps/icloud/src ./apps/icloud/src
-COPY apps/icloud/assets/plugin-icon.png ./apps/icloud/assets/plugin-icon.png
-COPY apps/icloud/assets/inter.ttf apps/icloud/assets/inter-OFL.txt ./apps/icloud/assets/
-COPY skills/icloud-mail/SKILL.md ./skills/icloud-mail/SKILL.md
-COPY skills/icloud-calendar/SKILL.md ./skills/icloud-calendar/SKILL.md
-COPY skills/icloud-photos/SKILL.md ./skills/icloud-photos/SKILL.md
+COPY package.json bun.lock LICENSE THIRD_PARTY_NOTICES.md plugin.json ./
+COPY apps ./apps
+COPY packages ./packages
+COPY modules ./modules
+COPY skills ./skills
 COPY bin ./bin
-COPY packages/tooling ./packages/tooling
+RUN bun install --frozen-lockfile
 RUN bun bin/build && bun bin/build-artifact /artifact
 
 FROM oven/bun:1.4.2 AS runtime
@@ -30,7 +16,7 @@ COPY --from=build /artifact/ ./
 USER root
 RUN mkdir -p /state /custody /config /diagnostics && chown 10001:10001 /state /custody /config /diagnostics && chmod 700 /state /custody
 # Public plugin templates may originate in an owner-only checkout.
-RUN find /opt/icloud/apps/icloud/dist/plugin-template -type d -exec chmod 755 {} + && find /opt/icloud/apps/icloud/dist/plugin-template -type f -exec chmod 644 {} +
+RUN find /opt/icloud/apps/studio/dist/server/plugin-template -type d -exec chmod 755 {} + && find /opt/icloud/apps/studio/dist/server/plugin-template -type f -exec chmod 644 {} +
 USER 10001:10001
 EXPOSE 4100 4101
-ENTRYPOINT ["bun", "apps/icloud/dist/index.js", "--config", "/config/config.toml"]
+ENTRYPOINT ["bun", "apps/studio/dist/server/index.js", "--config", "/config/config.toml"]

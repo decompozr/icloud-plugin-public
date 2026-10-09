@@ -2,7 +2,7 @@ import {test,expect} from 'bun:test';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {z} from 'zod';
-import {createHttpApp} from '../../icloud/dist/mail/http.js';
+import {createHttpApp} from '../../studio/dist/server/mail/http.js';
 import {UnsubscribeService} from '@decompozr/mail/server/services/unsubscribe.js';
 import {createUnsubscribeGateway} from '@decompozr/mail/server/icloud/unsubscribe.js';
 import {MailService} from '@decompozr/mail/server/services/mail.js';
@@ -94,8 +94,8 @@ test('built HTTP MCP application traverses auth/protocol/service/provider and re
 });
 
 test('built MCP drain preserves accepted provider work after HTTP disconnect and emits private-safe outcomes',async()=>{
- const {OperationMonitor}=await import('../../icloud/dist/observability/operations.js');
- const {HttpLifecycle}=await import('../../icloud/dist/server/lifecycle.js');
+ const {OperationMonitor}=await import('../../studio/dist/server/observability/operations.js');
+ const {HttpLifecycle}=await import('../../studio/dist/server/server/lifecycle.js');
  const events:unknown[]=[];const monitor=new OperationMonitor(event=>{events.push(event);}),lifecycle=new HttpLifecycle();
  const gateway=new FixtureGateway();let release:()=>void=()=>{},started:()=>void=()=>{};
  const gate=new Promise<void>(r=>{release=r;}),began=new Promise<void>(r=>{started=r;});

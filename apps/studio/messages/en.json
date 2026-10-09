@@ -535,5 +535,17 @@
   "homekitControl": "Control devices and app-owned scenes/automations",
   "homekitRead": "Read Home",
   "homekitAutomations": "Manage scenes and disabled automations",
-  "systemDiagnosticsShort": "Diagnostics"
+  "systemDiagnosticsShort": "Diagnostics",
+  "serviceBackgroundTitle": "Background service",
+  "serviceStartAtLogin": "Start automatically when I sign in to this Mac",
+  "serviceRestartOnFailure": "Restart after an unexpected exit",
+  "serviceLoginHelp": "Runs in your Mac user session so Photos and Apple Home retain their existing access. Changes reconnect this page.",
+  "serviceRestart": "Restart service",
+  "serviceRestartHelp": "Accepted work will finish before restart. This page will reconnect; accounts and permissions are preserved.",
+  "serviceReconnecting": "Service settings saved. Reconnecting…",
+  "serviceSaved": "Background service is ready.",
+  "serviceReadFailed": "Could not read background service status.",
+  "serviceCheckStatus": "Could not verify completion. Refresh status before trying again.",
+  "serviceSuperseded": "A newer settings change replaced this request. Refresh status.",
+  "serviceRefresh": "Refresh background service status"
 }

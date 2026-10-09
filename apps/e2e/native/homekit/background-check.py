@@ -5,7 +5,7 @@ import subprocess,json,tempfile,threading,queue,time,os,sys
 if len(sys.argv)!=3:raise SystemExit('Usage: background-check.py SIGNED_BUILD_RECEIPT PRIVATE_OUTPUT_ROOT')
 base=Path(sys.argv[2]).resolve();root=Path(tempfile.mkdtemp(prefix='acceptance-',dir=base));root.chmod(0o700)
 build=json.loads(Path(sys.argv[1]).read_text());assert build['state']=='succeeded' and build['signatureVerified']
-p=subprocess.Popen(['/usr/bin/python3','apps/icloud/src/homekit/stdio-adapter.py','--app',build['app'],'--state-directory',str(root/'sessions'),'--read-only'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=(root/'adapter.log').open('w'),text=True)
+p=subprocess.Popen(['/usr/bin/python3','apps/studio/server/homekit/stdio-adapter.py','--app',build['app'],'--state-directory',str(root/'sessions'),'--read-only'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=(root/'adapter.log').open('w'),text=True)
 q=queue.Queue();seq=0;status=None
 threading.Thread(target=lambda:[q.put(json.loads(line)) for line in p.stdout],daemon=True).start()
 def request(method,params):

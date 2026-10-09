@@ -17,7 +17,7 @@ only where needed. Existing person labels and true Shared Album reads have been
 verified on the synced Mac library; native sharing and deletion source is implemented, with live acceptance pending.
 See the [build plan and evidence](docs/photos-capability-plan.md). Historical
 retired prototype history is described in [the experiment archive](docs/research/prototype-archive/photos.md).
-An opt-in [Photos module](apps/icloud/src/photos/README.md) now implements read tools
+An opt-in [Photos module](apps/studio/server/photos/README.md) now implements read tools
 and reviewed album, metadata and deletion workflows. Empty ordinary-album lifecycle writes are verified; native asset writes and
 Shared Album upload remain unverified.
 No production Photos capability is deployed.

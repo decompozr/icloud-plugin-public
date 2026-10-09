@@ -8,4 +8,4 @@ case "$1" in /*) ;; *) echo 'Configuration path must be absolute' >&2; exit 64;;
 artifact_directory=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$artifact_directory"
 # No dependency installation, build, environment-file sourcing, or config reset.
-exec bun ./apps/icloud/dist/index.js --config "$@"
+exec bun ./apps/studio/dist/server/index.js --config "$@"

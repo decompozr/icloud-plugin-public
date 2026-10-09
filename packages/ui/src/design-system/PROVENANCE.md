@@ -13,3 +13,7 @@ Switch is copied unchanged from `src/lib/Switch.svelte` at the same pinned
 revision. Its control metrics, palette, focus and reduced-motion behavior remain
 upstream-owned. The shared ModuleSwitch only proposes the existing configuration
 dialog and restores the persisted state until confirmation succeeds.
+
+SettingsSection is a project-owned layout adapter using the pinned spacing, border
+and typography roles. It adds no control or independent visual metrics; the catalog
+Switch/Button/Icon/Modal remain unchanged.

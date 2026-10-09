@@ -11,7 +11,7 @@ identify integrations; this project is not an official product of those companie
 
 The bundled Inter variable font is from the DecompozR Design System asset set
 (source revision `c0863d99015cfd6b039755f2f2fb94ce5ee47aa7`). Its SIL Open Font
-License is preserved at `apps/icloud/assets/inter-OFL.txt` and in built assets.
+License is preserved at `apps/studio/assets/runtime/inter-OFL.txt` and in built assets.
 The native HTML styling follows that design system's consumer guide and semantic
 color/control recipes. Studio bundles the Svelte server renderer and its runtime
 helpers. Their notices are preserved in `apps/studio/THIRD_PARTY_NOTICES.md`
@@ -19,7 +19,7 @@ and the installed `assets/studio-LICENSES.txt`.
 
 Studio refresh, settings and add controls use the pinned DecompozR Design System
 Lucide icon geometry at the same source revision. Its ISC license is preserved in
-`apps/icloud/assets/lucide-LICENSE.txt` and the installed assets.
+`apps/studio/assets/runtime/lucide-LICENSE.txt` and the installed assets.
 
 ## Agentic connector icon
 
@@ -72,5 +72,5 @@ SOFTWARE.
 
 Modern protocol transport uses `@modelcontextprotocol/server` and its core package
 v2.3.1 from https://github.com/modelcontextprotocol/typescript-sdk, licensed under
-Apache-2.0. The license is preserved at `apps/icloud/assets/mcp-sdk-LICENSE.txt`.
+Apache-2.0. The license is preserved at `apps/studio/assets/runtime/mcp-sdk-LICENSE.txt`.
 The official v2 client is a development/explicit acceptance dependency only.

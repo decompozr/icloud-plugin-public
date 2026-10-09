@@ -1,5 +1,5 @@
 import {test,expect} from 'bun:test';
-import {renderAdmin,renderAuth,renderCredential,renderPhotosSetup,renderPhotosCloud,pageStyles,type UiCopy} from '../dist/index.js';
+import {renderAdmin,renderAuth,renderCredential,renderPhotosSetup,renderPhotosCloud,pageStyles,type UiCopy} from '../dist/ui/index.js';
 const copy:UiCopy={t:key=>key,richText:key=>[{text:key,strong:false}],authT:key=>key};
 test('Studio renders all private destinations with isolated controls',()=>{
  for(const view of ['overview','accounts','connections','system','setup'] as const){

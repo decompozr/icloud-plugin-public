@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
+    "emitDeclarationOnly": true
+  },
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.worker.ts",
+    "src/**/test-fixtures/**",
+    "src/cloud-setup.ts",
+    "src/cloud-setup-browser.ts",
+    "src/upload-source.ts",
+    "src/shared-stream-protocol.ts",
+    "src/shared-management-contract.ts",
+    "src/cloud-setup-ui.ts",
+    "src/shared-albums.ts",
+    "src/cloud-session.ts",
+    "src/shared-stream.ts",
+    "src/cloud-verification.ts",
+    "src/shared-upload-contract.ts",
+    "src/archived-sharing-module.ts"
+  ]
+}

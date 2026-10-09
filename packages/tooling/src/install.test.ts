@@ -9,9 +9,9 @@ test('scoped version switch preserves state; mismatched update leaves current in
  const dir=await mkdtemp(join(tmpdir(),'icloud-install-test-'));
  const source=join(dir,'artifact'),prefix=join(dir,'install');
  try{
-  await mkdir(join(source,'apps/icloud/dist'),{recursive:true});
+  await mkdir(join(source,'apps/studio/dist'),{recursive:true});
   await Bun.write(join(source,'runtime.sh'),'#!/bin/sh\nexit 0\n');
-  await Bun.write(join(source,'apps/icloud/dist/index.js'),'// fixture artifact only');
+  await Bun.write(join(source,'apps/studio/dist/server/index.js'),'// fixture artifact only');
   const metadata={format:1,name:'icloud-plugin',version:'0.1.0',platform:process.platform,arch:process.arch,bun:Bun.version};
   await Bun.write(join(source,'artifact.json'),JSON.stringify(metadata));
   await installArtifact(source,prefix);
@@ -50,9 +50,9 @@ test('installation refuses unknown directories and symlinked ownership boundarie
  const dir=await mkdtemp(join(tmpdir(),'icloud-install-boundary-'));
  try{
   const source=join(dir,'artifact'),prefix=join(dir,'install');
-  await mkdir(join(source,'apps/icloud/dist'),{recursive:true});
+  await mkdir(join(source,'apps/studio/dist'),{recursive:true});
   await Bun.write(join(source,'runtime.sh'),'#!/bin/sh\n');
-  await Bun.write(join(source,'apps/icloud/dist/index.js'),'// fixture');
+  await Bun.write(join(source,'apps/studio/dist/server/index.js'),'// fixture');
   await Bun.write(join(source,'artifact.json'),JSON.stringify({format:1,name:'icloud-plugin',version:'0.1.0',platform:process.platform,arch:process.arch,bun:Bun.version}));
   await mkdir(prefix);
   await Bun.write(join(prefix,'unknown.txt'),'preserve me');
