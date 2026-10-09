@@ -738,3 +738,15 @@ and refusal to unload a live/replaced job. Six bounded service tests/33 assertio
 pass, including the zombie-parent regression. Review and clean-main repair rollout
 remain pending; this is not final migration delivery yet. Parallel UI work at8464
 and its uncommitted checkout remain untouched, with a scoped coordination packet.
+
+The110 repair was deployed from clean main a9b00ce. Readback confirms the job is
+managed and running with both selected defaults enabled; its protected receipt is
+runtime/backups/pre-0.1.110-20261009T173125Z/upgrade-receipt.json.
+The initially failed package lifecycle check omitted the disposable installation
+prefix, so it attempted admission against the running home installation. Supplying
+the fixture prefix isolates custody and locks: all18 package lifecycle/OAuth/Mail
+tests pass with151 assertions against the unchanged110 artifact. Independent
+disposable two-start/stop verification also passes. This does not establish a
+production lock-release defect; no production locking change was needed. Final
+managed restart completed through the supported CLI and its matching operation receipt;
+private sign-in returned200 afterward. Remaining live acceptance and cleanup are pending.
