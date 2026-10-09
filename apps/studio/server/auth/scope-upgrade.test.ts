@@ -122,7 +122,7 @@ test('persisted resource scope upgrade reproduces narrowing and merge preserves 
   const otherBefore=db.query('SELECT identifier,name,allowedScopes,updatedAt FROM oauthResource WHERE identifier=?').get(base+'/other-resource');
   const clientsBefore=db.query('SELECT clientId,scopes,updatedAt FROM oauthClient ORDER BY clientId').all();
   const consentBefore=db.query('SELECT clientId,scopes,updatedAt FROM oauthConsent ORDER BY clientId').all();
-  db.close();db=new Database(databasePath);const productionModule: {createOwnerAuth:typeof ProductionFactory}=process.env.CP5_ARTIFACT_DIR?await import(pathToFileURL(join(process.env.CP5_ARTIFACT_DIR,'apps/studio/dist/server/account/index.js')).href):await import('@decompozr/account/server');component=await productionModule.createOwnerAuth({...config,database:db});handler=component.publicHandler;
+  db.close();db=new Database(databasePath);const productionModule: {createOwnerAuth:typeof ProductionFactory}=process.env.CP5_ARTIFACT_DIR?await import(pathToFileURL(Bun.resolveSync('@decompozr/account/server',join(process.env.CP5_ARTIFACT_DIR,'apps/studio'))).href):await import('@decompozr/account/server');component=await productionModule.createOwnerAuth({...config,database:db});handler=component.publicHandler;
   // Force lazy seed through actual resource token verification.
   expect((await component.verifyBearer('Bearer '+sendTokens.access_token)).scopes.has('mail.send')).toBe(false);
   const resourceAfter=db.query<{name:string;allowedScopes:string;updatedAt:string},[string]>('SELECT name,allowedScopes,updatedAt,accessTokenTtl,metadata FROM oauthResource WHERE identifier=?').get(base+'/icloud/mcp')!;
