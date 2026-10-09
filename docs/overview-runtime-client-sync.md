@@ -47,3 +47,27 @@ and live verification are recorded separately after immutable-main delivery.
 Integration self-checking passed the full checkpoint: 710 unit/archive tests and
 13 built HTTP E2E tests, zero final Svelte errors/warnings, and 28 desktop/mobile
 module-settings browser checks. No configured remote CI was observed.
+
+## Native deployment verified (2026-10-09)
+
+[PR #153](https://github.com/decompozr/icloud-plugin/pull/153) and the requirement
+row alignment correction [PR #154](https://github.com/decompozr/icloud-plugin/pull/154)
+are merged. Native 0.1.111 was built from clean remote-main commit
+`6f727929173646bb3d793542d1b8dca4d9f397d7`. The platform archive SHA-256 is
+`0ae585effe0507c21d0b849b584623b25a4f4f4b073add77a8964e88cc54fcd8`.
+
+The actual packaged launcher passed installation/restart and OAuth persistence
+checks (5 tests, 358 assertions). Installation used the existing update/service
+commands after graceful shutdown and a consistent protected backup. Installed
+payload bytes match the staged artifact, signed HomeKit payload is unchanged,
+config/custody and prior protected database rows are preserved, and the new audit
+table is empty at deployment. The managed service is running with its existing
+login/restart settings. All 13 read-only doctor checks pass. HTTPS private admin
+correctly redirects an unauthenticated browser to the owner passkey page, which
+renders with no page errors. Existing owner sign-in and physical-device settings
+acceptance remain unverified by this deployment check.
+
+The production entry is `https://mac-mini.duckbill-ionian.ts.net:8443/icloud/admin`;
+port 8464 remains the separate fictional preview. Native 0.1.110 and the stopped
+state backup under the installation's `runtime/backups/pre-0.1.111-*` are retained
+for recovery. No other service or Tailscale mapping was changed.
