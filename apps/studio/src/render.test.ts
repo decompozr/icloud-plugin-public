@@ -15,7 +15,7 @@ test('Studio renders all private destinations with isolated controls',()=>{
 test('untrusted presentation values remain text and cannot inject handlers or elements',()=>{
  const attack='"><img src=x onerror="alert(1)">';
  const html=renderAdmin({enrolled:true,ready:true,admin:true,view:'overview',modules:[{id:attack,title:attack,fields:[{id:attack,label:attack}]}]},copy,'','en');
- expect(html).not.toContain('<img');expect(html).not.toContain('onerror="alert(1)"');
+ expect(html).not.toContain('<img');expect(html).not.toMatch(/<[^>]*\bonerror\s*=/);
  const auth=renderAuth('consent',false,{'photos.read':attack},copy,'','zh-TW');
  expect(auth).toContain('<html lang="zh-TW">');expect(auth).not.toContain('<img');
  expect(auth).toContain('data-auth-return=""');

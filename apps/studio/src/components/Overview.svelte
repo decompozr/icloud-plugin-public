@@ -1,6 +1,5 @@
 <script lang="ts">
   import ServiceCapabilities from './ServiceCapabilities.svelte';
-  import NextStep from "./NextStep.svelte";
   import AccountCard from "@decompozr/account/ui/AccountCard.svelte";
   import Tag from "@decompozr/ui/design-system/Tag.svelte";
   import { controlMetrics } from "@decompozr/ui/design-system/controlMetrics.js";
@@ -12,16 +11,14 @@
   import type { DialogCenter } from "../lib/ui-state.svelte.js";
   import CopyButton from "@decompozr/ui/components/CopyButton.svelte";
   import RefreshButton from "@decompozr/ui/components/RefreshButton.svelte";
-  import Skeleton from "@decompozr/ui/components/Skeleton.svelte";
+  import SectionSkeleton from "@decompozr/ui/components/SectionSkeleton.svelte";
   import DesignIcon from "@decompozr/ui/components/DesignIcon.svelte";
   let {
     model,
     dialogs,
     setup = false,
-    onconnections = () => {},
-  }: { model: AdminModel; dialogs: DialogCenter; setup?: boolean; onconnections?: () => void } = $props();
+  }: { model: AdminModel; dialogs: DialogCenter; setup?: boolean } = $props();
   const { t } = getContext<UiCopy>("copy");
-  let capabilityRegion: HTMLElement | undefined = $state();
   const moduleOrder: Record<string, number> = {
     mail: 0,
     calendar: 1,
@@ -46,14 +43,6 @@
         (key) => network[key as keyof typeof network] === true,
       ),
   );
-  function revealCapabilities() {
-    if (!capabilityRegion) return;
-    capabilityRegion.focus({ preventScroll: true });
-    capabilityRegion.scrollIntoView({
-      block: 'start',
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-    });
-  }
   function openModule(id: string, enable?: boolean) {
     model.discardPolicy();
     model.moduleDialog = id;
@@ -64,7 +53,6 @@
 </script>
 
 <div class="overview-grid">
-  {#if model.state.admin}<NextStep {model} {dialogs} {onconnections} oncapabilities={revealCapabilities} />{/if}
   <section
     class="card"
     data-testid="service-card"
@@ -84,11 +72,19 @@
           )}
       />
     </header>
-    {#if model.systemLoading && model.state.admin && !model.system}<Skeleton
-        rows={3}
-      />{:else}<dl>
+    {#if model.systemLoading && model.state.admin && !model.system}<SectionSkeleton kind="runtime" copyIndex={1} labels={[t("serviceVersion"),t("systemRuntimeFolder"),t("serviceStatus"),"Tailscale"]}/>{:else}<dl>
         <dt>{t("serviceVersion")}</dt>
         <dd>{model.system?.process.version ?? t("unknownValue")}</dd>
+        <dt>{t("systemRuntimeFolder")}</dt>
+        <dd class="runtime-path">
+          <code title={model.system?.locations?.runtimeDirectory}
+            >{model.system?.locations?.runtimeDirectory ??
+              t("unknownValue")}</code
+          ><CopyButton
+            value={model.system?.locations?.runtimeDirectory}
+            label={t("copyRuntimeFolder")}
+          />
+        </dd>
         <dt>{t("serviceStatus")}</dt>
         <dd>
           {t(
@@ -98,16 +94,6 @@
                 ? "ready"
                 : "unknownValue",
           )}
-        </dd>
-        <dt>{t("runtimeFolder")}</dt>
-        <dd class="runtime-path">
-          <code title={model.system?.locations?.runtimeDirectory}
-            >{model.system?.locations?.runtimeDirectory ??
-              t("unknownValue")}</code
-          ><CopyButton
-            value={model.system?.locations?.runtimeDirectory}
-            label={t("copyRuntimeFolder")}
-          />
         </dd>
         <dt>Tailscale</dt>
         <dd>
@@ -157,9 +143,7 @@
         />
       </div>
     </header>
-    {#if model.state.admin && model.accountsLoading && !model.dashboard}<Skeleton
-        rows={3}
-      />{:else}
+    {#if model.state.admin && model.accountsLoading && !model.dashboard}<SectionSkeleton kind="accounts" rows={model.state.photosCloudConfigured ? 2 : 1} labels={[t("appPasswordShort"),t("appleSessionShort")]} descriptions={[t("appPasswordPurpose"),t("icloudSessionPurpose")]}/>{:else}
       <div
         class="counts"
         style:--count-size={controlMetrics.compact.icon}
@@ -198,7 +182,7 @@
         {t("freshnessFailed")}
       </p>{/if}
   </section>
-  <ServiceCapabilities {model} {modules} {openModule} bind:region={capabilityRegion}/>
+  <ServiceCapabilities {model} {modules} {openModule}/>
 </div>
 
 <style>

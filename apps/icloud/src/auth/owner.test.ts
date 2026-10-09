@@ -38,7 +38,7 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const res=privateRoute?await component.privateHandler(r):await fetch(r,{redirect:'manual'});
   for(const cookie of res.headers.getSetCookie()){const pair=cookie.split(';')[0]!,at=pair.indexOf('=');cookies.set(pair.slice(0,at),pair.slice(at+1));}return res;
  };
- const config={accountStore,database:db,publicBaseURL:base,privateOrigin:base,rpID:'127.0.0.1',secret:'fixture-long-only-secret-production-never-123',resource:base+'/icloud/mcp',scopes:['mail.read','mail.write','mail.send','calendar.read','calendar.write','calendar.schedule','calendar.share','offline_access'],allowedScopes:()=>enabledScopes,ownerId:()=>owner,checkBootstrapProof:(value:string)=>{if(value!==proof)throw Error('Denied');}};
+ const config={autoSyncEnabledPermissions:true,accountStore,database:db,publicBaseURL:base,privateOrigin:base,rpID:'127.0.0.1',secret:'fixture-long-only-secret-production-never-123',resource:base+'/icloud/mcp',scopes:['mail.read','mail.write','mail.send','calendar.read','calendar.write','calendar.schedule','calendar.share','offline_access'],allowedScopes:()=>enabledScopes,ownerId:()=>owner,checkBootstrapProof:(value:string)=>{if(value!==proof)throw Error('Denied');}};
  db.exec('CREATE TABLE plugin_auth_private (id TEXT PRIMARY KEY, value TEXT NOT NULL)');
  db.query('INSERT INTO plugin_auth_private VALUES (?,?)').run('resource-client','legacy-encrypted-record');
  let component=await createOwnerAuth({...config,scopes:config.scopes.filter(scope=>!scope.startsWith('calendar.'))});
@@ -122,16 +122,18 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const recovery=await request(recoveryPath,undefined,false,true);
   expect(recovery.status).toBe(200);
   const report=await recovery.json() as {clients:Array<{clientId:string;recovery:string;missingEnabledScopes:string[]}>};
-  expect(report.clients.find(c=>c.clientId===client.client_id)?.missingEnabledScopes).toContain('calendar.read');
+  expect(report.clients.find(c=>c.clientId===client.client_id)?.missingEnabledScopes).toEqual([]);
+  expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('calendar.write')).toBe(true);
+  expect((await component.verifyBearer('Bearer '+next.access_token)).accountId).toBe('original-mailbox');
   const snapshots=()=>JSON.stringify(['oauthConsent','oauthAccessToken','oauthRefreshToken'].map(table=>db.query('SELECT * FROM '+table).all()));
   const beforeScopeUpdate=snapshots();
   expect((await request(recoveryPath,{clientId:client.client_id,additionalScopes:['calendar.read']},false,true)).status).toBe(400);
   expect((await request(recoveryPath,{clientId:client.client_id,additionalScopes:['unknown.scope'],confirm:true},false,true)).status).toBe(409);
   const upgrade=await request(recoveryPath,{clientId:client.client_id,additionalScopes:['calendar.read'],confirm:true},false,true);
   expect(upgrade.status).toBe(200);
-  expect((await upgrade.json() as {registeredScopes:string[]}).registeredScopes).toEqual(['mail.read','mail.write','mail.send','offline_access','calendar.read']);
+  expect((await upgrade.json() as {registeredScopes:string[]}).registeredScopes).toEqual(['mail.read','mail.write','mail.send','offline_access','calendar.read','calendar.write','calendar.schedule','calendar.share']);
   expect(snapshots()).toBe(beforeScopeUpdate);
-  expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('calendar.read')).toBe(false);
+  expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('calendar.read')).toBe(true);
   // No direct auth database writes: create the old connection through actual consent.
   const anonymousStart=await request(authorizationPath.replace(client.client_id,anonymous.client_id));
   const anonymousLocation=new URL(anonymousStart.headers.get('location')!,base);
@@ -159,7 +161,7 @@ test('owner component actual private Passkey enrollment OAuth resource refresh r
   const calendarExchange=await request('/icloud/auth/oauth2/token',{grant_type:'authorization_code',client_id:calendarClient.client_id,redirect_uri:base+'/callback',resource:base+'/icloud/mcp',code:calendarCallback.searchParams.get('code')!,code_verifier:verifier},true);
   expect(calendarExchange.status).toBe(200);
   const calendarTokens=tokensSchema.parse(await calendarExchange.json()),calendarPrincipal=await component.verifyBearer('Bearer '+calendarTokens.access_token);
-  expect(calendarPrincipal.clientId).toBeDefined();expect(calendarPrincipal.expiresAt).toBeGreaterThan(Date.now());expect(calendarPrincipal.accountId).toBe('original-mailbox');expect(calendarPrincipal.scopes.has('calendar.read')).toBe(true);expect(calendarPrincipal.scopes.has('mail.read')).toBe(true);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('mail.read')).toBe(true);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('calendar.read')).toBe(false);
+  expect(calendarPrincipal.clientId).toBeDefined();expect(calendarPrincipal.expiresAt).toBeGreaterThan(Date.now());expect(calendarPrincipal.accountId).toBe('original-mailbox');expect(calendarPrincipal.scopes.has('calendar.read')).toBe(true);expect(calendarPrincipal.scopes.has('mail.read')).toBe(true);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('mail.read')).toBe(true);expect((await component.verifyBearer('Bearer '+next.access_token)).scopes.has('calendar.read')).toBe(true);
   // New capabilities traverse the same registration and signed-consent flow.
   const previousEnabled=[...enabledScopes];enabledScopes.push('photos.read','photos.write');
   config.scopes.push('photos.read','photos.write','photos.delete');component=await createOwnerAuth(config);handler=component.publicHandler;

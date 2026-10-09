@@ -446,3 +446,5 @@ Module settings close directly discards its draft, without a redundant confirmat
 Admin navigation uses the persistent navbar only. The redundant Pages dropdown is removed from page headings, superseding earlier touch-menu guidance. Named links, title hints, keyboard focus and active-state cues remain.
 
 Sticky page-heading backgrounds own the shell top inset. The scroll container has no top padding, so moving content cannot leak into a gap above the header; initial heading/control placement is preserved.
+
+Overview now uses a 44px fixed heading and 8px following gap, with no extra top inset or task banner. SectionSkeleton reproduces Runtime label/value/copy slots, Accounts identity/access rows and quiet-icon slots, and registered capability rows. It uses catalog metrics/semantic colors, static metadata labels and noninteractive placeholders; text placeholder widths are proportional estimates because unknown content/count can vary. Runtime reads Version, Folder, Status, Tailscale. See [current stories/evidence](overview-runtime-client-sync.md).

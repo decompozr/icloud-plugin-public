@@ -1,3 +1,4 @@
+import {createClientPermissionSync} from './client-permission-sync.js';
 import {createClientRecovery,withOAuthMutation} from './client-recovery.js';
 import { Database } from 'bun:sqlite';
 import { betterAuth } from 'better-auth';
@@ -27,6 +28,7 @@ export interface OwnerAuthOptions {
  resource: string;
  scopes: string[];
  allowedScopes?(): readonly string[];
+ autoSyncEnabledPermissions?:boolean;
  ownerId(): string | null | undefined;
  checkBootstrapProof(proof: string): void;
  accountStore?: AccountStore;
@@ -219,7 +221,17 @@ export async function createOwnerAuth(options:OwnerAuthOptions) {
   if(options.accountStore){if(!token.account_id)throw Error('Account binding required');options.accountStore.account(token.sub,token.account_id);}
   return{subject:token.sub,scopes,clientId:token.client_id,expiresAt:token.exp*1000,...(token.account_id?{accountId:token.account_id}:{})};
  }
+ const synchronizeClientPermissions=createClientPermissionSync({database:options.database,resource:options.resource,ownerId:options.ownerId,declaredScopes:options.scopes,allowedScopes:()=>options.allowedScopes?.()??options.scopes,validAccount:(owner,accountId)=>{try{return !!options.accountStore?.account(owner,accountId).credentialStored}catch{return false}}});
  const serializedPaths=new Set(['/icloud/auth/oauth2/token','/icloud/auth/oauth2/authorize','/icloud/auth/oauth2/continue','/icloud/auth/oauth2/consent','/icloud/admin/oauth-clients']);
- const handle=(request:Request,privateRoute:boolean)=>serializedPaths.has(new URL(request.url).pathname)?withOAuthMutation(options.database,()=>route(request,privateRoute)):route(request,privateRoute);
- return{publicHandler:(request:Request)=>handle(request,false),privateHandler:(request:Request)=>handle(request,true),verifyBearer,ownerSession:(headers:Headers)=>session(headers),enrollmentSession:(headers:Headers)=>session(headers,false)};
+ const handle=async(request:Request,privateRoute:boolean)=>{
+  const url=new URL(request.url),path=url.pathname;let permissionSync:Awaited<ReturnType<typeof synchronizeClientPermissions>>|undefined;
+  if(options.autoSyncEnabledPermissions&&privateRoute&&request.method==='GET'&&path==='/icloud/admin/oauth-clients'&&!url.searchParams.has('action')&&!url.searchParams.has('clientId')&&url.origin===options.privateOrigin&&(!request.headers.has('host')||request.headers.get('host')===url.host)&&(!request.headers.has('origin')||request.headers.get('origin')===url.origin)){
+   let authenticated=false;try{await session(request.headers);authenticated=true;}catch{/* The normal route returns the owner denial. */}
+   if(authenticated){try{permissionSync=await synchronizeClientPermissions();}catch{return Response.json({error:'CLIENT_PERMISSION_SYNC_FAILED'},{status:503});}}
+  }
+  const result=await(serializedPaths.has(path)?withOAuthMutation(options.database,()=>route(request,privateRoute)):route(request,privateRoute));
+  if(permissionSync&&result.ok){const payload=await result.json(),headers=new Headers(result.headers);headers.delete('content-length');return Response.json({...payload,existingGrantsChanged:permissionSync.grants>0,permissionSync},{status:result.status,headers});}
+  return result;
+ };
+ return{synchronizeClientPermissions,publicHandler:(request:Request)=>handle(request,false),privateHandler:(request:Request)=>handle(request,true),verifyBearer,ownerSession:(headers:Headers)=>session(headers),enrollmentSession:(headers:Headers)=>session(headers,false)};
 }

@@ -327,3 +327,11 @@ Observed cause: the scroll container's 16px top padding kept the sticky heading 
 Execution: update the shared shell/header recipe; verify initial and partially/deeply scrolled header bounds and hit-test coverage on desktop/mobile, run navigation regression, and refresh private 8464. Native deployment N/A.
 
 Sticky-header acceptance: source build/type checks passed. Before, the scrolled heading began at viewport y=16px; after, its opaque box starts at y=0. Desktop/mobile tests at scrollTop 0/80/350 confirmed top-edge hit-test coverage and unchanged text positions versus the prior live preview. Navigation regression passed 35 checks after waiting for pending fixture route handlers before removal. Inspected [before](assets/account-access/header-gap-before.png), [desktop](assets/account-access/sealed-header-desktop.png) and [mobile](assets/account-access/sealed-header-mobile.png); HTTPS 8464 readback passed. Fixture-only; physical-device checks not run.
+
+## Slim shared page header
+
+Story: As a user reviewing Overview, I want a compact fixed title row that leaves more room for content while keeping clear icons and accessible touch targets. Use a common 44px heading row, zero additional vertical padding and an 8px gap below it. The sidebar brand begins at the same top edge and its 44px slot aligns with the heading. Keep the sealed background, normal icon density, focus and 44px touch targets. Capability scroll margin follows the slimmer header plus one spacing[2] gap.
+
+Execution: use pinned controlMetrics.coarseTarget and spacing tokens in shared header styling, remove redundant scoped margin/top inset, verify dimensions/scroll coverage/overflow and navigation on desktop/mobile, then update the existing private 8464 fixture. This supersedes the preserved-title-position constraint of the earlier gap repair. Native installation N/A.
+
+Latest Overview direction removes the entire NextStep banner/component/classifier, superseding its earlier setup/review and Choose capabilities scroll stories. The navbar and direct section actions remain. Slim header, matching section skeletons, Runtime field order, automatic owner-authorized client permissions and offline fixture scenarios are documented in [overview-runtime-client-sync.md](overview-runtime-client-sync.md).

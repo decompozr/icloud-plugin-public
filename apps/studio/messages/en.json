@@ -586,5 +586,7 @@
   "icloudDisconnectHelp": "Disconnect this account's stored iCloud web session. Your App Password stays stored.",
   "icloudDisconnectConfirm": "Confirm disconnecting this account's iCloud Session",
   "icloudSessionDisconnected": "iCloud Session disconnected.",
-  "credentialSessionResetHelp": "Updating this App Password also clears this account's stored iCloud Session. You will need to sign in again."
+  "credentialSessionResetHelp": "Updating this App Password also clears this account's stored iCloud Session. You will need to sign in again.",
+  "clientSyncIncomplete": "Settings were saved, but some client permissions could not be synchronized. Refresh connection status to retry; shared registrations may require separate recovery.",
+  "systemRuntimeFolder": "Folder"
 }

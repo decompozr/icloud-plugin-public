@@ -20,10 +20,8 @@ export const actionStyles = `
 [data-dz-action][data-danger][data-appearance=quiet]{--quiet-ink:${semanticColors.critical}!important;--quiet-hover:${semanticColors.criticalSurface}!important;--quiet-active:${semanticColors.criticalSurface}!important}
 .action-hint{display:none;position:absolute;z-index:10;inset-block-start:calc(100% + ${spacing[1]});inset-inline-end:0;width:max-content;max-width:min(18rem,calc(100vw - ${spacing[8]}));padding:${spacing[2]};border:1px solid ${semanticColors.borderStrong};border-radius:${radius.control};background:${semanticColors.surface};color:${semanticColors.text};font-size:${typography.bodyCompact.fontSize};line-height:${typography.bodyCompact.lineHeight};overflow-wrap:anywhere;pointer-events:none}
 .action-explanation:focus-within .action-hint{display:block}
-.next-step{display:flex;align-items:center;justify-content:space-between;gap:${spacing[4]};flex-wrap:wrap;padding:${spacing[4]};border-bottom:1px solid ${semanticColors.border};background:${semanticColors.surfaceSubtle}}
-.next-step h2,.next-step p{margin:0}.next-step p{margin-top:${spacing[2]}}
-.page-heading{position:sticky;top:0;z-index:2;background:${semanticColors.surface};padding-block-start:calc(var(--shell-inset) + ${spacing[1]});padding-block-end:${spacing[1]}}
-.capabilities-target{scroll-margin-block-start:calc(${controlMetrics.coarseTarget} + ${spacing[6]})}
+.page-heading{position:sticky;top:0;z-index:2;background:${semanticColors.surface};min-height:${controlMetrics.coarseTarget};padding-block:${spacing[0]};margin-bottom:${spacing[2]}}
+.capabilities-target{scroll-margin-block-start:calc(${controlMetrics.coarseTarget} + ${spacing[2]})}
 .page-title{display:flex;align-items:center;gap:${spacing[3]};flex-wrap:wrap;min-width:0}
 .service-capabilities>header{display:flex;align-items:center;justify-content:space-between;gap:${spacing[4]};margin-bottom:${spacing[3]}}
 .capability-title{display:flex;align-items:center;gap:${spacing[2]}}
@@ -45,14 +43,14 @@ export const actionStyles = `
 .card-heading{display:flex;align-items:center;gap:${spacing[2]};flex-wrap:wrap}
 .card-tools,.account-actions{display:flex;align-items:center;gap:${spacing[2]};flex-wrap:wrap}
 .account-list{display:grid;gap:${spacing[3]};margin-block:${spacing[4]}}
-.account-card{display:grid;gap:${spacing[3]};padding:${spacing[4]};border:1px solid ${semanticColors.border};border-radius:${radius.surface};background:${semanticColors.surface}}
+.account-card,.skeleton-account{display:grid;gap:${spacing[3]};padding:${spacing[4]};border:1px solid ${semanticColors.border};border-radius:${radius.surface};background:${semanticColors.surface}}
 .account-access-row{display:flex;align-items:flex-start;justify-content:space-between;gap:${spacing[3]};padding-top:${spacing[3]};border-top:1px solid ${semanticColors.border}}
 .account-access-copy{min-width:0;flex:1}.account-access-heading{display:flex;align-items:center;gap:${spacing[2]};flex-wrap:wrap}.account-access-heading h4{margin:0;font-size:${typography.heading.fontSize};line-height:${typography.heading.lineHeight}}
 .account-access-heading>svg{width:${controlMetrics.compact.icon};height:${controlMetrics.compact.icon};flex:none}.account-access-copy p{margin-top:${spacing[2]};color:${semanticColors.textMuted};font-size:${typography.body.fontSize};line-height:${typography.body.lineHeight}}
 .account-access-actions{display:flex;align-items:center;gap:${spacing[1]};flex:none}
 @media(max-width:540px){.account-access-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:${spacing[2]} ${spacing[3]}}.account-access-copy{display:contents}.account-access-heading{grid-column:1;grid-row:1}.account-access-copy>p{grid-column:1/-1;grid-row:2;margin-top:0}.account-access-actions{grid-column:2;grid-row:1;align-self:start}}
 .account-card-header{display:flex;align-items:center;justify-content:flex-start;gap:${spacing[3]};flex-wrap:wrap}
-.account-card h3,.account-card p{margin:0;padding:0;border:0;overflow-wrap:anywhere}
+.account-card h3,.account-card p,.skeleton-account p{margin:0;padding:0;border:0;overflow-wrap:anywhere}
 .account-identity{min-width:0;flex:0 1 auto}
 .account-statuses{display:flex;gap:${spacing[2]};flex-wrap:wrap}
 .account-status{display:flex;align-items:center;gap:${spacing[2]};flex-wrap:wrap}

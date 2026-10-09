@@ -272,7 +272,6 @@
           {model}
           {dialogs}
           setup={!pageState.admin}
-          onconnections={() => void navigate("connections", "/icloud/admin/connections")}
         />
       {:else if view === "accounts"}<section class="card">
           <header class="card-header">
@@ -325,6 +324,7 @@
             <summary>{t("photosPermissionHelpShort")}</summary>
             <p>{t("connectionsHelp")}</p>
           </details>
+          {#if model.clientSyncIncomplete}<p class="form-error" role="status">{t("clientSyncIncomplete")}</p>{/if}
           <div id="connections-list" tabindex="-1">
             <AdminDashboard {model} view="connections" />
           </div>
@@ -518,7 +518,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding-top: var(--shell-inset);
+    padding-top: 0;
     padding-bottom: max(var(--shell-inset), env(safe-area-inset-bottom, 0px));
     overflow: visible;
     width: var(--shell-rail);
@@ -535,9 +535,6 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-  }
-  .page-heading {
-    margin-bottom: 1rem;
   }
   .page-heading h1 {
     margin: 0;

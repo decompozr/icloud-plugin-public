@@ -18,39 +18,23 @@ try {
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 }, extraHTTPHeaders: { 'x-fixture-session': 'owner' } });
   const page = await desktop.newPage(), errors: string[] = [];
   page.on('pageerror', (error: Error) => errors.push(error.message));
-  const task = page.getByTestId('next-step');
-  const waitTask = async (expected: string) => { await page.waitForFunction(value => document.querySelector('[data-testid="next-step"]')?.getAttribute('data-next-task') === value, expected); };
   await page.goto(origin + '/icloud/admin');
-  await waitTask('capabilities');
-  const next = await task.boundingBox(), service = await page.getByTestId('service-card').boundingBox();
-  assert(next!.y < service!.y, 'Task guidance precedes diagnostics');
-  await task.getByRole('button', { name: 'Choose capabilities', exact: true }).click();
-  assert(await page.getByTestId('capabilities-card').evaluate(node => node === document.activeElement), 'Capability guidance reveals the full service choice rather than forcing Mail');
+  await page.getByTestId('service-card').waitFor();
+  assert(await page.getByTestId('next-step').count() === 0, 'Overview has no task/review banner');
   await page.getByRole('button', { name: 'Configure Mail', exact: true }).click();
   await page.getByRole('dialog', { name: 'Mail Settings', exact: true }).waitFor();
-  assert(await page.locator('#scope-mail-read').isChecked() === false, 'Task entry never automatically enables operations');
+  assert(await page.locator('#scope-mail-read').isChecked() === false, 'Opening settings never automatically enables operations');
   await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
-
-  await page.route('**/icloud/admin/system-status', async route => {
-    const response = await route.fetch(), data = await response.json();
-    data.connectivity = { state: 'unknown', installed: null, authenticated: null, online: null, privateReachable: null };
-    await route.fulfill({ response, json: data });
-  });
-  await page.reload(); await waitTask('refresh'); assert(true, 'Unknown network prompts observation rather than a guessed setup failure');
-  await page.unrouteAll({ behavior: 'wait' });
   await desktop.request.get(origin + '/fixture/network-off');
-  await page.reload(); await waitTask('network'); assert(true, 'Observed network failure chooses its requirement');
+  await page.reload();
+  await page.getByTestId('service-card').getByRole('button', { name: 'Set up', exact: true }).waitFor();
+  assert(await page.getByTestId('next-step').count() === 0, 'Network guidance stays inside Runtime');
   await desktop.request.get(origin + '/fixture/network-on');
-  await page.route('**/icloud/admin/status', async route => {
-    const response = await route.fetch(), data = await response.json(); data.accounts = [];
-    await route.fulfill({ response, json: data });
-  });
-  await page.reload(); await waitTask('account');
-  await task.getByRole('button', { name: 'Add an iCloud account', exact: true }).click();
-  await page.getByRole('dialog').waitFor(); assert(true, 'Missing account guidance opens the existing credential dialog');
-  await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
-  await page.unroute('**/icloud/admin/status');
-
+  await page.route('**/icloud/admin/status', async route => { const response=await route.fetch(),data=await response.json();data.accounts=[];await route.fulfill({response,json:data}); });
+  await page.reload();await page.getByTestId('accounts-card').getByText('Add an iCloud account to configure credentials and client connections.', {exact:true}).waitFor();
+  await page.getByTestId('accounts-card').getByRole('button',{name:'Add an iCloud account',exact:true}).first().click();
+  await page.getByRole('dialog').waitFor();assert(true,'Account setup remains a direct section action');
+  await page.getByRole('button',{name:'Close dialog',exact:true}).click();await page.unrouteAll({behavior:'wait'});
   for (let index = 1; index <= 4; index++) {
     const response = await desktop.request.post(origin + '/icloud/admin/accounts/add', {
       headers: { origin }, data: { user: index === 4 ? "comparison-account-with-a-long-identifier-4@example.invalid" : `comparison-${index}@example.invalid`, label: index === 4 ? "Comparison account 4 with a deliberately long name for small screens" : `Comparison account ${index}`, appPassword: 'fixture-dummy' },
@@ -111,18 +95,8 @@ try {
 
   const update = await desktop.request.post(origin + '/icloud/admin/capabilities', { headers: { origin }, data: { policy: { read: true, write: false, send: false, unsubscribe: false }, confirmEnable: true } });
   assert(update.ok(), 'Fixture-only explicit capability update succeeds');
-  await page.goto(origin + '/icloud/admin'); await waitTask('review');
-  assert((await task.textContent()).includes('A registration alone does not verify access'), 'Registration is not represented as client acceptance');
-  await page.route('**/icloud/admin/oauth-clients', route => route.fulfill({ json: { clients: [], connections: [] } }));
-  await page.reload(); await waitTask('client');
-  await task.getByRole('button', { name: 'Connect ChatGPT', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Connect ChatGPT', exact: true }).waitFor();
-  assert((await page.getByRole('dialog').textContent()).includes('https://public.example.invalid/icloud/mcp'), 'Client guidance uses the established service address');
-  await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
-  await page.unroute('**/icloud/admin/oauth-clients');
-  await desktop.request.get(origin + '/fixture/status-fail');
-  await page.reload(); await waitTask('refresh'); assert(true, 'Stale/failed evidence chooses refresh');
-  await desktop.request.get(origin + '/fixture/status-recover');
+  await page.goto(origin+'/icloud/admin');await page.getByTestId('service-card').waitFor();
+  assert(await page.getByTestId('next-step').count()===0,'Existing client does not create a manual-review banner');
   for (const path of ['/icloud/admin', '/icloud/admin/accounts', '/icloud/admin/connections', '/icloud/admin/system']) {
     await mobile.goto(origin + path); await mobile.locator('.shell-nav a[aria-current=page]').waitFor();
     assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Task entry wraps on ' + path);

@@ -166,3 +166,14 @@ test('missing app passwords block fresh Mail and Calendar activation but allow d
   expect((await(await get()).json()).capabilities).toEqual(initial.capabilities);
  }finally{await f.close();}
 });
+
+test('authorized capability save synchronizes after persistence; invalid origin/confirmation never invokes sync',async()=>{
+ const f=credentialFixture(async()=>{}),origin='https://private.invalid';let policy={read:false,write:false,send:false,unsubscribe:false},calls=0;
+ const handler=createPrivateAdmin({privateOrigin:origin,store:f.store,ownerAuth:{ownerSession:async()=>({user:{id:'owner'}}),enrollmentSession:async()=>({user:{id:'owner'}})},diagnostics:async()=>({installed:true,authenticated:true,online:true,privateReachable:true}),validateCredential:async()=>{},capabilities:()=>policy,updateCapabilities:async next=>{policy=next as typeof policy;return policy;},synchronizeClientPermissions:async()=>{expect(policy.read).toBe(true);calls++;return{status:'synced',clients:1,grants:3,skipped:0}}});
+ const request=(confirmEnable:boolean,requestOrigin=origin)=>handler(new Request(origin+'/icloud/admin/capabilities',{method:'POST',headers:{origin:requestOrigin,'content-type':'application/json'},body:JSON.stringify({policy:{read:true,write:false,send:false,unsubscribe:false},confirmEnable})}));
+ try{expect((await request(true,'https://attacker.invalid')).status).toBe(403);expect((await request(false)).status).toBe(409);expect(calls).toBe(0);const result=await request(true);expect(result.status).toBe(200);expect((await result.json()).permissionSync).toEqual({status:'synced',clients:1,grants:3,skipped:0});expect(calls).toBe(1);}finally{f.close()}
+});
+test('sync failure reports persisted settings separately from failed permissions',async()=>{
+ const f=credentialFixture(async()=>{}),origin='https://private.invalid';let policy={read:false};const handler=createPrivateAdmin({privateOrigin:origin,store:f.store,ownerAuth:{ownerSession:async()=>({user:{id:'owner'}}),enrollmentSession:async()=>({user:{id:'owner'}})},diagnostics:async()=>({installed:true,authenticated:true,online:true,privateReachable:true}),validateCredential:async()=>{},capabilities:()=>policy,updateCapabilities:async next=>{policy=next as typeof policy;return policy;},synchronizeClientPermissions:async()=>{throw Error('Fixture failure')}});
+ try{const response=await handler(new Request(origin+'/icloud/admin/capabilities',{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({policy:{read:true},confirmEnable:true})}));expect(response.status).toBe(200);expect(await response.json()).toEqual({capabilities:{read:true},permissionSync:{status:'failed'}});expect(policy.read).toBe(true);}finally{f.close()}
+});

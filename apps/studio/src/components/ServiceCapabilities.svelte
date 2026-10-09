@@ -4,7 +4,7 @@
  import type {AdminModel} from '../lib/admin-model.svelte.js';
  import Tag from '@decompozr/ui/design-system/Tag.svelte';
  import RefreshButton from '@decompozr/ui/components/RefreshButton.svelte';
- import Skeleton from '@decompozr/ui/components/Skeleton.svelte';
+ import SectionSkeleton from '@decompozr/ui/components/SectionSkeleton.svelte';
  import CapabilityCard from './CapabilityCard.svelte';
  let {model,modules,openModule,region=$bindable()}:{model:AdminModel;modules:{id:string;title:string}[];openModule:(id:string,enable?:boolean)=>void;region?:HTMLElement}=$props();
  const {t}=getContext<UiCopy>('copy');
@@ -27,9 +27,7 @@
       />
     </header>
 
-    {#if model.state.admin && model.accountsLoading && !model.dashboard}<Skeleton
-        rows={3}
-      />{:else}{#each modules as module}{@const policy = model.saved[module.id]}
+    {#if model.state.admin && model.accountsLoading && !model.dashboard}<SectionSkeleton kind="capabilities" rows={modules.length} labels={modules.map(module=>module.title)}/>{:else}{#each modules as module}{@const policy = model.saved[module.id]}
         <CapabilityCard {model} {module} {openModule}/>{/each}{/if}
 
     {#if modules.some((module) => module.id === "photos")}<p

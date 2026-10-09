@@ -11,7 +11,7 @@ try{
  const reader=worker.stdout.getReader(),first=await reader.read();reader.releaseLock();const origin=new TextDecoder().decode(first.value).trim();
  browser=await chromium.launch({headless:true,executablePath:option('--chrome')});
  const context=await browser.newContext({extraHTTPHeaders:{'x-fixture-session':'owner'},viewport:{width:1280,height:1000}}),page=await context.newPage();let nativeConfirmations=0;page.on('dialog',async(dialog:any)=>{nativeConfirmations++;await dialog.dismiss()});const errors:string[]=[];page.on('pageerror',(e:Error)=>errors.push(e.message));
- await page.goto(origin+'/icloud/admin');const card=page.getByTestId('capabilities-card');await card.locator('.module-summary').first().waitFor();
+ await page.goto(origin+'/icloud/admin');const card=page.getByTestId('capabilities-card');await card.locator('.status-dot').first().waitFor();
  assert(await card.locator('.status-dot').count()===4,'Each module has a status dot');assert(await card.getByText('Disabled',{exact:true}).count()===0,'Disabled tags removed');
  await page.getByRole('button',{name:'Configure Mail',exact:true}).click();const modal=page.getByRole('dialog',{name:'Mail Settings',exact:true});await modal.waitFor();
  assert(await modal.getByRole('heading',{name:'Requirements',exact:true}).count()===1,'Requirements heading');assert(await modal.locator('.requirements-heading .status-marker').count()===1,'Heading status marker');

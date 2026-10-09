@@ -164,6 +164,7 @@ export async function createApplication(
       resource: settings.public_origin + "/icloud/mcp",
       scopes: runtime.declaredScopes,
       allowedScopes: () => runtime.allowedScopes,
+      autoSyncEnabledPermissions: true,
       ownerId: () => deps.store.ownerId(),
       checkBootstrapProof: (proof) => deps.store.checkBootstrapProof(proof),
       accountStore: deps.store,
@@ -270,6 +271,7 @@ export async function createApplication(
       publicMcpUrl: new URL("/icloud/mcp", settings.public_origin).href,
       store: deps.store,
       ownerAuth: auth,
+      synchronizeClientPermissions: () => auth.synchronizeClientPermissions(),
       diagnostics,
       setupState,
       ...mailModule.admin,
@@ -577,6 +579,7 @@ export async function createApplication(
         cookiePrefix: "icloud_local",
         accountStore: deps.store,
         allowedScopes: () => runtime.allowedScopes,
+        autoSyncEnabledPermissions: true,
         secret: createHash("sha256")
           .update(deps.masterKey)
           .update("local-owner-auth-v1")
@@ -601,6 +604,7 @@ export async function createApplication(
         localOwner: true,
         store: deps.store,
         ownerAuth: localAuth,
+        synchronizeClientPermissions: () => auth.synchronizeClientPermissions(),
         diagnostics,
         setupState: async (request) => {
           let passkeyRegistered = false;
