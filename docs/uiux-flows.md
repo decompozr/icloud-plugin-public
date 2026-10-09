@@ -301,3 +301,11 @@ Notifications now use a single app-wide top layer, slide away after five seconds
 Account cards now expose separate App Password and iCloud Session rows with direct quiet icons, replacing Manage account menus. Updated user stories, credential/session dependencies, confirmation and recovery are in [account-access-ux.md](account-access-ux.md).
 
 Module settings footer actions align right. Shared mobile dialogs slide down on dismissal, retain native modality until exit finishes and respect reduced motion; module drafts close without a second confirmation. See [module-settings-ux.md](module-settings-ux.md).
+
+## One navigation system (2026-10-09)
+
+Story: As an owner switching between Overview, Accounts, Connections and System, I use the existing persistent navbar. The page heading identifies the current destination without a duplicate Pages dropdown. Accessible link names, title hints, keyboard focus, aria-current and the right-edge selection line preserve discoverability. Busy/modal navigation guards remain and expose aria-disabled. This supersedes the earlier named Pages-menu design.
+
+Execution: remove the redundant Menu and its shared visibility rules, adapt the existing touch navigation regression to the navbar, build and verify all destinations/back navigation/deep-scroll/modal guards, then update the existing private 8464 fixture. Native deployment N/A.
+
+Navbar-only acceptance: source build/type checks and 28 Studio tests passed. Updated task-entry flow passed 35 checks, including navbar-only destination discovery, shell-preserving navigation/back, deep-scroll visibility and modal guards; requirements flow passed 143 checks. Inspected [mobile navbar](assets/account-access/navbar-only-mobile.png) and [private preview](assets/account-access/navbar-only-live.png). HTTPS 8464 browser readback confirmed four links and no Pages dropdown. Fixture-only; no physical-device acceptance claimed.

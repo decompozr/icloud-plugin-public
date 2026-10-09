@@ -71,21 +71,21 @@ try {
   assert(mobileBounds.every(rect => rect.x === mobileBounds[0].x), 'Touch comparison remains one column');
   assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Long account labels and addresses wrap without horizontal overflow');
   await mobile.evaluate(() => { (window as any).taskShell = document.querySelector('#wizard'); });
-  await mobile.getByRole('button', { name: 'Pages', exact: true }).click();
-  assert(await mobile.getByRole('menuitem').count() === 4, 'Named page choices are discoverable');
-  await mobile.screenshot({ path: join(output, 'touch-pages.png') });
-  await mobile.getByRole('menuitem', { name: 'Client connections', exact: true }).click();
+  assert(await mobile.locator('.shell-nav a').count() === 4, 'One navbar exposes all page destinations');
+  assert(await mobile.locator('.readable-navigation').count() === 0, 'No duplicate Pages dropdown');
+  await mobile.screenshot({ path: join(output, 'touch-navbar.png') });
+  await mobile.locator('.shell-nav a[href="/icloud/admin/connections"]').click();
   await mobile.waitForURL(origin + '/icloud/admin/connections');
-  assert(await mobile.evaluate(() => (window as any).taskShell === document.querySelector('#wizard')), 'Pages navigation preserves the shell');
+  assert(await mobile.evaluate(() => (window as any).taskShell === document.querySelector('#wizard')), 'Navbar navigation preserves the shell');
   await mobile.goBack(); await mobile.waitForURL(origin + '/icloud/admin/accounts');
   const account = mobile.locator('.account-card').nth(4), accountId = await account.getAttribute('data-account-id');
   await account.getByRole('button', { name: 'Update app password', exact: true }).click();
   await mobile.getByRole('dialog').waitFor();
   await mobile.waitForFunction(id => (document.querySelector('#credential-account') as HTMLSelectElement)?.value === id, accountId);
   assert(await mobile.locator('#credential-account').inputValue() === accountId, 'Comparison actions open the intended account');
-  const navigation = await mobile.locator('.readable-navigation .trigger').boundingBox();
-  assert(navigation!.y >= 0 && navigation!.y + navigation!.height <= 844, 'Readable navigation stays in view after deep account scrolling');
-  assert(await mobile.locator('.readable-navigation .trigger').isDisabled(), 'Modal guards disable page switching');
+  const navigation = await mobile.locator('.shell-nav a').first().boundingBox();
+  assert(navigation!.y >= 0 && navigation!.y + navigation!.height <= 844, 'Navbar stays in view after deep account scrolling');
+  assert(await mobile.locator('.shell-nav a').first().getAttribute('aria-disabled') === 'true', 'Modal guards disable page switching');
   await mobile.getByRole('button', { name: 'Close dialog', exact: true }).click();
   await mobile.getByRole('button', { name: 'Add an iCloud account', exact: true }).click();
   const dialog = mobile.getByRole('dialog'); await dialog.waitFor();
@@ -124,11 +124,11 @@ try {
   await page.reload(); await waitTask('refresh'); assert(true, 'Stale/failed evidence chooses refresh');
   await desktop.request.get(origin + '/fixture/status-recover');
   for (const path of ['/icloud/admin', '/icloud/admin/accounts', '/icloud/admin/connections', '/icloud/admin/system']) {
-    await mobile.goto(origin + path); await mobile.getByRole('button', { name: 'Pages', exact: true }).waitFor();
+    await mobile.goto(origin + path); await mobile.locator('.shell-nav a[aria-current=page]').waitFor();
     assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Task entry wraps on ' + path);
   }
   await touch.addCookies([{ name: 'PARAGLIDE_LOCALE', value: 'zh-TW', url: origin }]);
-  await mobile.goto(origin + '/icloud/admin'); await mobile.getByRole('button', { name: '頁面', exact: true }).waitFor();
+  await mobile.goto(origin + '/icloud/admin'); await mobile.locator('.shell-nav a[aria-current=page]').waitFor();
   assert(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Traditional Chinese task entry wraps');
   await mobile.screenshot({ path: join(output, 'touch-chinese-task.png') });
   assert(errors.length === 0, 'No page errors: ' + errors.join('; '));

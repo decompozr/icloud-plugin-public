@@ -25,8 +25,6 @@ export const actionStyles = `
 .page-heading{position:sticky;top:0;z-index:2;background:${semanticColors.surface};padding-block:${spacing[1]}}
 .capabilities-target{scroll-margin-block-start:calc(${controlMetrics.coarseTarget} + ${spacing[6]})}
 .page-title{display:flex;align-items:center;gap:${spacing[3]};flex-wrap:wrap;min-width:0}
-.readable-navigation{display:none}
-@media(max-width:700px),(hover:none){.readable-navigation{display:inline-flex}}
 .service-capabilities>header{display:flex;align-items:center;justify-content:space-between;gap:${spacing[4]};margin-bottom:${spacing[3]}}
 .capability-title{display:flex;align-items:center;gap:${spacing[2]}}
 .module-summary{display:flex;justify-content:space-between;align-items:center;gap:${spacing[4]};flex-wrap:wrap;border-top:1px solid ${semanticColors.border};padding-block:${spacing[3]}}

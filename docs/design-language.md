@@ -442,3 +442,5 @@ Overview uses consistent bordered cards for System Runtime, iCloud Accounts and 
 Icon action density now defaults to normal catalog metrics: 20px desktop glyph in a 36px target; 24px coarse-pointer glyph in a 44px target. Quiet and bordered appearances share these dimensions. This supersedes the earlier blanket compact icon-action convention; explicit compact density remains available.
 
 Module settings close directly discards its draft, without a redundant confirmation. Footer Save/Cancel align right. Shared mobile Modal keeps native modality through its downward exit and restores focus after completion; reduced motion skips the exit. Other credential/destructive confirmations stay explicit.
+
+Admin navigation uses the persistent navbar only. The redundant Pages dropdown is removed from page headings, superseding earlier touch-menu guidance. Named links, title hints, keyboard focus and active-state cues remain.

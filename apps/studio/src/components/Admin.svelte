@@ -1,5 +1,4 @@
 <script lang="ts">
-  import Menu from "@decompozr/ui/design-system/Menu.svelte";
   import AccountCard from "@decompozr/account/ui/AccountCard.svelte";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { spacing } from "@decompozr/ui/design-system/spacing.js";
@@ -236,6 +235,7 @@
                   ? ` · ${model.connectionsNeedingReview.length} ${t("connectionUpdatesCountLabel")}`
                   : "")}
               onclick={(event) => tabNavigation(destination, href, event)}
+              aria-disabled={model.busy || navigating || toast.dialogs > 0 || undefined}
               aria-current={view === destination ? "page" : undefined}
               ><DesignIcon
                 name={destination === "overview"
@@ -259,7 +259,7 @@
     <div id="page-content" tabindex="-1">
       <div class="page-heading">
         <div class="page-title"><h1>{t(heading)}</h1>
-          {#if pageState.enrolled}<div class="readable-navigation"><Menu label={t("navigatePages")} compact disabled={model.busy || navigating || toast.dialogs > 0} items={links.map(([href,key,destination]) => ({id:destination!,label:t(key!),disabled:view===destination,onSelect:()=>void navigate(destination!,href!)}))} /></div>{/if}
+
         </div>
         {#if view === "overview"}<RefreshButton
             id="overview-refresh"
