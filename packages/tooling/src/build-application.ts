@@ -9,6 +9,7 @@ if(studioMetadata.version!==sourceMetadata.version)throw Error('Studio and appli
 if(pluginMetadata.version!==sourceMetadata.version)throw Error('Application and downloadable plugin versions must match before building.');
 await command([process.execPath,join(repository,'packages/tooling/src/build-account.ts')]);
 await command([process.execPath,join(repository,'packages/tooling/src/build-mail.ts')]);
+await command([process.execPath,join(repository,'packages/tooling/src/build-calendar.ts')]);
 await command([process.execPath,'run','--cwd',join(repository,'apps/studio'),'build']);
 await command([process.execPath,'run','--cwd',join(repository,'apps/studio'),'typecheck']);
 await command([process.execPath,'run','--cwd',app,'typecheck']);

@@ -14,7 +14,8 @@
     "nodemailer": "10.0.14",
     "zod": "3.25.76",
     "@decompozr/account": "workspace:*",
-    "@decompozr/mail": "workspace:*"
+    "@decompozr/mail": "workspace:*",
+    "@decompozr/calendar": "workspace:*"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.3.1",

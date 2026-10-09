@@ -2,5 +2,6 @@
 import{command}from'../packages/tooling/src/command.js';
 await command([process.execPath,'run','--cwd','modules/account','build']);
 await command([process.execPath,'run','--cwd','modules/mail','build']);
+await command([process.execPath,'run','--cwd','modules/calendar','build']);
 await command([process.execPath,'run','--cwd','apps/studio','build']);
-for(const owner of ['modules/account','modules/mail','apps/studio','apps/icloud','packages/tooling'])await command([process.execPath,'run','--cwd',owner,'test']);
+for(const owner of ['modules/account','modules/mail','modules/calendar','apps/studio','apps/icloud','packages/tooling'])await command([process.execPath,'run','--cwd',owner,'test']);

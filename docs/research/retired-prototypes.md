@@ -15,7 +15,7 @@ are unchanged. No service release or restart is required.
 | Auth and provider candidates | `apps/icloud/src/auth/` production handler and synthetic Passkey/OAuth tests |
 | Setup and encrypted-store candidate | `apps/icloud/src/storage/`, `auth/` and `server/` tests |
 | Runtime and container candidates | `apps/icloud/src/server/`, `packages/tooling/` and `apps/e2e/lifecycle/` |
-| Calendar client, scenarios, demos and live experiment helpers | `apps/icloud/src/calendar/` production codec, gateway and service tests |
+| Calendar client, scenarios, demos and live experiment helpers | `modules/calendar/src/` production codec, gateway and service tests |
 | Parked Photos picker executable | [Parked Photos findings](../photos-parked.md) and [picker evidence](prototype-archive/photos-picker.md); source in Git history |
 
 The real ImapFlow command/recovery and MIME-parser checks are preserved as
