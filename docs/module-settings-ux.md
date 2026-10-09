@@ -70,3 +70,11 @@ Implementation contract: reuse the unmodified catalog Menu through a shared Glob
 Action alignment story: As an owner scanning named actions and wrapped descriptions, I want each switch at the top of its row beside the action title, so description length does not shift the control vertically. Shared row layout uses flex-start while catalog switch metrics and touch targets remain unchanged. Verify desktop/mobile wrapped descriptions.
 
 Globe/alignment acceptance: full source build/type checks passed. Desktop and touch checks confirmed a quiet 44px globe trigger, translated Language name, full menu labels with selected-locale checkmark, locale persistence after reload, ArrowDown and Escape focus restoration. All four action rows align switch wrappers to the top of their text columns on desktop/mobile. Recovery flow passed 18 checks. Inspected [globe desktop](assets/module-settings/globe-desktop.png), [globe mobile](assets/module-settings/globe-mobile.png), [aligned desktop](assets/module-settings/alignment-desktop.png), and [aligned mobile](assets/module-settings/alignment-mobile.png). HTTPS 8464 readback confirmed both changes. Fixture-only; no physical-device acceptance.
+
+## Flat navigation selection marker
+
+Story: As a user switching sections, I want a flat line at the right edge of the active navigation tab, closest to its content, to identify my current destination. Selection has no rounded tile or enclosing border. Hover and keyboard focus remain visible; aria-current, marker motion and reduced-motion behavior remain unchanged.
+
+Execution contract: reuse the existing 2px indicator metric and semantic focus color in shared navigation styling; verify all four destinations on desktop/mobile, then refresh the existing private 8464 fixture. Native installation N/A.
+
+Flat marker acceptance: full build/type checks passed. All four destinations at desktop and mobile widths use one 2px right-edge marker matching the selected tab height/top, with zero radius/border and no selected tile fill. Reduced-motion transition is disabled. Inspected [desktop](assets/module-settings/nav-line-desktop.png) and [mobile](assets/module-settings/nav-line-mobile.png); live HTTPS 8464 readback passed. Fixture-only; physical devices not checked.

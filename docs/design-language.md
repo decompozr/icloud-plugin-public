@@ -432,3 +432,5 @@ Save uses the unmodified Lucide disk glyph from revision 951813ce76a859d4d8b1453
 All icon-only ActionButton consumers use catalog quiet appearance through the shared adapter. Critical icon actions retain semantic critical color with a transparent idle surface/border. Labeled actions retain their catalog recipes.
 
 Language navigation uses shared GlobeMenu: catalog Menu interaction with a project-owned pinned Lucide globe glyph, quiet icon trigger, translated accessible name and full selected-language labels inside the menu. Vendor source remains unchanged.
+
+The vertical navigation active marker is a flat 2px line at the right edge facing the content. It has no rounded selection surface or enclosing border; navigation targets, keyboard focus and aria-current are preserved.
