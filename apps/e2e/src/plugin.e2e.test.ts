@@ -6,13 +6,13 @@ import {join,resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
 test('built private HTTP download authenticates owner and packages only installed public configuration',async()=>{
- const runtime=process.env.CP5_ARTIFACT_DIR?resolve(process.env.CP5_ARTIFACT_DIR,'apps/icloud/dist'):resolve(import.meta.dir,'../../icloud/dist');
- const {createPrivateAdmin}:typeof import('../../icloud/dist/admin/handler.js')=await import(pathToFileURL(join(runtime,'admin/handler.js')).href);
- const {SqliteOwnerStore}:typeof import('../../icloud/dist/account/index.js')=await import(pathToFileURL(join(runtime,'account/index.js')).href);
- const {configuredPluginArchive}:typeof import('../../icloud/dist/plugin/package.js')=await import(pathToFileURL(join(runtime,'plugin/package.js')).href);
+ const runtime=process.env.CP5_ARTIFACT_DIR?resolve(process.env.CP5_ARTIFACT_DIR,'apps/studio/dist/server'):resolve(import.meta.dir,'../../studio/dist/server');
+ const {createPrivateAdmin}:typeof import('../../studio/dist/server/admin/handler.js')=await import(pathToFileURL(join(runtime,'admin/handler.js')).href);
+ const {SqliteOwnerStore}:typeof import('@decompozr/account/server')=await import(pathToFileURL(Bun.resolveSync('@decompozr/account/server',resolve(runtime,'../..'))).href);
+ const {configuredPluginArchive}:typeof import('../../studio/dist/server/plugin/package.js')=await import(pathToFileURL(join(runtime,'plugin/package.js')).href);
  const dir=await mkdtemp(join(tmpdir(),'icloud-download-')),proof=randomBytes(32).toString('hex'),key=randomBytes(32);
  const store=SqliteOwnerStore.provision({databasePath:join(dir,'db'),markerPath:join(dir,'marker'),masterKey:key,bootstrapProof:proof});store.enroll({proof,ownerId:'owner',credential:Buffer.from('PRIVATE-CREDENTIAL-CANARY')});
- const template=process.env.CP5_ARTIFACT_DIR?resolve(process.env.CP5_ARTIFACT_DIR,'apps/icloud/dist/plugin-template'):resolve(import.meta.dir,'../../icloud/dist/plugin-template');
+ const template=process.env.CP5_ARTIFACT_DIR?resolve(process.env.CP5_ARTIFACT_DIR,'apps/studio/dist/server/plugin-template'):resolve(import.meta.dir,'../../studio/dist/server/plugin-template');
  const handler=createPrivateAdmin({privateOrigin:'https://private.example.invalid',publicMcpUrl:'https://public.example.invalid/icloud/mcp',pluginArchive:()=>configuredPluginArchive(template,'https://public.example.invalid'),store,ownerAuth:{ownerSession:async headers=>{if(headers.get('authorization')!=='Bearer fixture-owner')throw Error('Denied');return{user:{id:'owner'}};},enrollmentSession:async()=>{throw Error('Denied');}},diagnostics:async()=>({installed:true,authenticated:true,online:true,privateReachable:true}),validateCredential:async()=>{}});
  const server=Bun.serve({hostname:'127.0.0.1',port:0,fetch:handler});try{
  const url=`http://127.0.0.1:${server.port}/icloud/admin/plugin.zip?url=https://attacker.invalid`;

@@ -7,15 +7,24 @@
     "svelte": "5.57.1"
   },
   "name": "@decompozr/homekit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "files": [
+    "dist",
     "ui",
     "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
   ],
   "exports": {
+    "./server": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server/*.js": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    },
     "./ui": "./ui/index.ts",
     "./ui/*": "./ui/*",
     "./ui/*.js": "./ui/*.ts",
@@ -23,7 +32,10 @@
   },
   "dependencies": {
     "@decompozr/ui": "workspace:*",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "@decompozr/account": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.31.0",
+    "zod-to-json-schema": "3.25.2"
   },
   "peerDependencies": {
     "svelte": "5.57.1"
@@ -32,5 +44,11 @@
     "svelte": {
       "optional": true
     }
+  },
+  "scripts": {
+    "build": "bun ../../packages/tooling/src/build-homekit.ts",
+    "build:types": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test ./src"
   }
 }

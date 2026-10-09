@@ -22,6 +22,7 @@
   import Modal from "@decompozr/ui/components/Modal.svelte";
   import DesignIcon from "@decompozr/ui/components/DesignIcon.svelte";
   import LanguageMenu from "./LanguageMenu.svelte";
+  import BackgroundService from "./BackgroundService.svelte";
   import SystemReset from "./SystemReset.svelte";
   import RefreshButton from "@decompozr/ui/components/RefreshButton.svelte";
   let { state: pageState }: { state: AdminState } = $props();
@@ -377,6 +378,7 @@
           <div id="system-content">
             <AdminDashboard {model} view="system" />
           </div>
+          <BackgroundService />
           <SystemReset available={pageState.resetAvailable} />
           <div class="actions">
             <ActionButton

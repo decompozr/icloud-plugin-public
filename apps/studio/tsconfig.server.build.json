@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "dist/server",
+    "rootDir": "server",
+    "noUncheckedIndexedAccess": true,
+    "declaration": true,
+    "emitDeclarationOnly": true
+  },
+  "include": [
+    "server/**/*.ts"
+  ],
+  "exclude": [
+    "server/**/*.test.ts",
+    "server/**/*.worker.ts",
+    "server/**/test-fixtures/**"
+  ]
+}

@@ -2,7 +2,7 @@ import { test, expect } from 'bun:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { z } from 'zod';
-import { createHttpApp } from '../../icloud/dist/mail/http.js';
+import { createHttpApp } from '../../studio/dist/server/mail/http.js';
 import { MailService } from '@decompozr/mail/server/services/mail.js';
 import { ICloudMailAdapter } from '@decompozr/mail/server/icloud/adapter.js';
 import { readConfig } from '@decompozr/mail/server/config.js';

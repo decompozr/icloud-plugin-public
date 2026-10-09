@@ -649,3 +649,74 @@ receipt in `runtime/backups/pre-0.1.108-20261009T034226Z/upgrade-receipt.json`
 remain for recovery. Task-owned scratch/build checkout will be removed after
 committed preservation; checkpoints, active checkout and unrelated state remain.
 Calendar is deployed awaiting owner pass; Photos backend extraction is next.
+
+## Remaining migration completion authorization and execution contract
+
+Owner passed Calendar and explicitly authorized all remaining phases without
+per-phase pass waits. Finish Photos/HomeKit backend ownership, then Studio server/
+API/MCP/listener/process composition, release/install/doctor path updates and
+removal of the old app. Keep static trusted local bundles and one service release;
+dynamic upgrades/registry remain out of scope. Existing URLs, OAuth/account/custody,
+SQLite/ledger namespaces, native identities and policies remain unchanged.
+
+1. Extract Photos/HomeKit backend packages, inject original host context including
+   abort/authorize and subscription restoration, preserve provider/default sidecar
+   lookup and native assets. Archived Shared Album paths remain excluded from
+   production; do not revive them while moving ownership.
+2. Independently build/install/check packages and relevant source/packaged tests;
+   obtain independent security/lifecycle review and deploy from clean main with
+   protected backup and read-only installed acceptance.
+3. Move the remaining host into Studio, adjust tooling/artifact entry paths, preserve
+   legacy artifact inspection/rollback and external identities, then remove old
+   app and adapters without changing UI or introducing a second runtime.
+4. Verify full build/tests/E2E, native/helper exclusions and private/public ingress,
+   drain/restart, outside-repo bundles, distribution/upgrade and live actual reads;
+   independently review, merge, clean-main release/deploy and preserve results.
+
+No real mail/calendar/Photos/Home write, reset, new grant or native permission
+request is authorized by migration. Reuse the installed signed helper unchanged.
+Later physical/recipient acceptance remains separate. Task-owned scratch stays
+under ignored .decompozr/flow/run; accepted source/deployment evidence is tracked.
+
+### Final source ownership and background service verification
+
+Photos/HomeKit backends now have independent server/UI entries and package-adjacent
+allowlisted native/sidecar assets. Archived Shared Album implementations/tests are
+source-only and excluded from production. Studio owns the remaining host in server/;
+UI/host build outputs are distinct (dist/ui, dist/server), preserving build/test
+isolation. Artifact/runtime/install/doctor/container tooling targets Studio; only
+explicit historical artifact inspection keeps a legacy entry fallback. Native
+helper bytes, URL/OAuth/database identities and provider logic remain unchanged.
+
+The owner requested reboot recovery and explicitly selected both automatic defaults.
+The deployed0.1.108 was restored without initialization after reboot; its private
+sign-in returned200. The new per-user LaunchAgent starts after login and a persistent
+CLI supervises server-child failures independently. No launchd KeepAlive key is used
+because it implicitly forces RunAtLoad. Kernel advisory locks prevent duplicate
+runtime/control admission and release on exit/reboot; per-UUID receipts preserve
+coalesced/superseded requests. Control validates actual loaded arguments/PID plus
+owned prefix/plist before graceful drain and unload. Reset queues the same service
+control; one-shot utilities preserve its record. UI uses pinned Switch/Modal/Icon/
+Toast controls and a shared token-based section adapter. No actual reset is tested.
+
+Source checks currently pass599 tests/5,278 expect calls, E2E13/258 and targeted
+service/reset/CLI12/67, including concurrent runtime admission. Independent extracted
+backend checks93/498 pass; final host/service review, browser and immutable clean-main
+package/deployment acceptance remain pending. Container client exists but its engine
+is stopped; no unrelated VM/service was started. Native deployment remains the task
+target. Runtime configuration, master key, grants and native permission requests were
+not changed while implementing. Existing service0.1.108 remains running until the
+verified upgrade. Dynamic module upgrade/registry and pre-login native availability
+remain outside this delivery.
+
+Final local checks: Studio/application/module builds and typechecks pass; full599/
+5,278 and E2E13/258 pass. Browser fixtures pass58 shell and142 requirement checks,
+plus independent service toggles/readback, restart confirmation, mobile wrapping
+and Traditional Chinese. The new mobile service screenshot was visually inspected.
+Final independent service review12/67 passes concurrent admission/kernel release,
+UUID supersession and async failure isolation, reset supervision and one-shot record
+preservation; no scoped blocker remains. UI declaration closure includes the generated
+Paraglide dependency; the transitional built account facade is removed. Container
+source/context paths use the root frozen workspace; actual container build was not
+run because its engine is stopped and native deployment is the requested target.
+Clean-main packaging/lifecycle and deployed LaunchAgent/live reads remain pending.

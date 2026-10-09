@@ -1,0 +1,14 @@
+import {resolve,join} from 'node:path';
+import {mkdir,rm,cp} from 'node:fs/promises';
+import {command,repository} from './command.js';
+const account=join(repository,'modules/photos'),source=join(account,'src'),output=join(account,'dist');
+await command([process.execPath,'run','--cwd',account,'typecheck']);
+await rm(output,{recursive:true,force:true});await mkdir(output,{recursive:true});
+await command([process.execPath,'run','--cwd',account,'build:types']);
+const entries:string[]=[];
+for await(const path of new Bun.Glob('**/*.ts').scan(source))if(!["archived-sharing-module.ts", "cloud-session.ts", "cloud-setup-browser.ts", "cloud-setup-ui.ts", "cloud-setup.ts", "cloud-verification.ts", "shared-albums.ts", "shared-management-contract.ts", "shared-stream-protocol.ts", "shared-stream.ts", "shared-upload-contract.ts", "upload-source.ts"].includes(path)&&!path.includes('test-fixtures/')&&!path.endsWith('.test.ts')&&!path.endsWith('.worker.ts'))entries.push(resolve(source,path));
+const result=await Bun.build({entrypoints:entries,root:source,outdir:output,target:'bun',packages:'external',splitting:true});
+if(!result.success)throw new AggregateError(result.logs,'Photos backend build failed');
+console.log('Built independently installed Photos backend; host/UI/tests excluded.');
+for(const file of ['reader.py','metadata-write.py'])await cp(join(source,file),join(output,file));await mkdir(join(output,'native'),{recursive:true});for(const file of ['PhotosHelper.swift','Info.plist'])await cp(join(source,'native',file),join(output,'native',file));
+for(const file of ['archived-sharing-module', 'shared-albums', 'cloud-setup', 'cloud-session', 'shared-stream', 'upload-source', 'cloud-setup-browser', 'cloud-setup-ui', 'cloud-verification', 'shared-management-contract', 'shared-stream-protocol', 'shared-upload-contract'])await rm(join(output,file+'.d.ts'),{force:true});

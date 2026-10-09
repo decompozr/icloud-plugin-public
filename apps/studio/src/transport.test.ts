@@ -1,9 +1,9 @@
 import { test, expect } from "bun:test";
 import { join } from "node:path";
-import { createStudio } from "../dist/transport.js";
+import { createStudio } from "../dist/ui/transport.js";
 import en from "../messages/en.json";
 import zh from "../messages/zh-TW.json";
-const studio = await createStudio(join(import.meta.dir, "../dist/kit"));
+const studio = await createStudio(join(import.meta.dir, "../dist/ui/kit"));
 test("Paraglide JSON catalogs have matching identifiers and preserve English base copy", () => {
   expect(Object.keys(en).sort()).toEqual(Object.keys(zh).sort());
   for (const [key, value] of Object.entries(en)) {

@@ -3,5 +3,9 @@ import{command}from'../packages/tooling/src/command.js';
 await command([process.execPath,'run','--cwd','modules/account','build']);
 await command([process.execPath,'run','--cwd','modules/mail','build']);
 await command([process.execPath,'run','--cwd','modules/calendar','build']);
-await command([process.execPath,'run','--cwd','apps/studio','build']);
-for(const owner of ['modules/account','modules/mail','modules/calendar','apps/studio','apps/icloud','packages/tooling'])await command([process.execPath,'run','--cwd',owner,'test']);
+await command([process.execPath,'run','--cwd','modules/homekit','build']);
+await command([process.execPath,'run','--cwd','modules/photos','build']);
+await command([process.execPath,'run','--cwd','apps/studio','build:ui']);
+for(const owner of ['modules/account','modules/mail','modules/calendar','modules/photos','modules/homekit','apps/studio','packages/tooling'])await command([process.execPath,'run','--cwd',owner,'test']);
+
+await command([process.execPath,'test','apps/e2e/archive']);

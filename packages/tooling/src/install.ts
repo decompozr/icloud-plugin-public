@@ -6,12 +6,13 @@ export async function inspectArtifact(path:string):Promise<Artifact>{
  const value=artifactSchema.parse(JSON.parse(await readFile(join(path,'artifact.json'),'utf8')) as unknown);
  if(value.bun!==Bun.version)throw Error('Artifact requires its recorded Bun version');
  if(value.platform!==process.platform||value.arch!==process.arch)throw Error('Artifact does not match this runtime platform');
- for(const file of ['runtime.sh','apps/icloud/dist/index.js'])if(!(await lstat(join(path,file))).isFile())throw Error('Incomplete artifact');
+ const entry=await Bun.file(join(path,'apps/studio/dist/server/index.js')).exists()?'apps/studio/dist/server/index.js':'apps/icloud/dist/index.js';
+ for(const file of ['runtime.sh',entry])if(!(await lstat(join(path,file))).isFile())throw Error('Incomplete artifact');
  if(value.homekit)await verifyHomeKitPayload(path,value.homekit);
  return value;
 }
 const marker=JSON.stringify({format:1,owner:'icloud-plugin-install'});
-async function assertOwnedPrefix(prefix:string){
+export async function assertOwnedPrefix(prefix:string){
  if(!(await lstat(prefix)).isDirectory())throw Error('Not an owned installation directory');
  const path=join(prefix,'.icloud-install');
  if(!(await lstat(path)).isFile()||await readFile(path,'utf8')!==marker)throw Error('Not an owned installation');

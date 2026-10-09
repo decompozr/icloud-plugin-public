@@ -3,7 +3,7 @@ import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {diagnose} from './doctor.js';
-import type {AppSettings} from '../../../apps/icloud/src/server/settings.js';
+import type {AppSettings} from '../../../apps/studio/server/server/settings.js';
 test('doctor performs only bounded GET checks and does not follow redirects or expose file contents',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'icloud-doctor-'));const requests:string[]=[];
  await mkdir(join(dir,'state'),{mode:0o700});for(const name of ['key','marker'])await writeFile(join(dir,name),'SECRET-FILE-CANARY',{mode:0o600});

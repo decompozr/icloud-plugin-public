@@ -19,7 +19,7 @@ try{
  finishPhotos();await page.waitForTimeout(350);if(!await confirmation.isDisabled())throw Error('Late Photos response changed Home readiness');
  if(!await home.getByRole('button',{name:'Save capabilities',exact:true}).isDisabled())throw Error('Late response enabled module save');
  finishHome();await page.waitForTimeout(150);if(errors.length)throw Error(errors.join(';'));if(!photoRequests)throw Error('Race not exercised');
- const client=resolve(import.meta.dir,'../../icloud/dist/studio/client');let inspected=0;
+ const client=resolve(import.meta.dir,'../../studio/dist/server/studio/client');let inspected=0;
  for await(const path of new Bun.Glob('**/*.js').scan(client)){const text=await Bun.file(join(client,path)).text();if(/bun:sqlite|SqliteOwnerStore|createOwnerAuth|node:fs|createDecipheriv/.test(text))throw Error('Backend code leaked into client '+path);inspected++;}
  console.log(JSON.stringify({passed:true,bundledDisabledPanels:4,lateReadinessFenced:true,clientChunksInspected:inspected,backendLeaks:0}));
 }finally{await browser?.close();worker.kill();await worker.exited;const err=await new Response(worker.stderr).text();if(err)console.error(err)}

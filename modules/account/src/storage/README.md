@@ -50,7 +50,7 @@ feature that interprets the plaintext. Returned temporary secret buffers should 
 cleared after use. The caller owns shutdown and closes the store.
 
 Mail capability policy and outbound replay state are owned by
-[Mail storage](../../../../apps/icloud/src/mail/storage/README.md). Source placement does not imply a second
+[Mail storage](../../../../apps/studio/server/mail/storage/README.md). Source placement does not imply a second
 copy of the user's mailbox or storage within Apple iCloud. Actual mutable files use
 the configured installation state/custody paths. `ports.ts` retains a separate
 credential-store type sketch; it is not the concrete owner store API.

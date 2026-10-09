@@ -15,7 +15,9 @@
     "zod": "3.25.76",
     "@decompozr/account": "workspace:*",
     "@decompozr/mail": "workspace:*",
-    "@decompozr/calendar": "workspace:*"
+    "@decompozr/calendar": "workspace:*",
+    "@decompozr/homekit": "workspace:*",
+    "@decompozr/photos": "workspace:*"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.3.1",
