@@ -13,7 +13,7 @@
 </script>
         <div class="module-summary">
           <div>
-            <h3 class="capability-title"><StatusMarker dot state={!policy || model.dashboardFailed ? 'unknown' : Object.values(policy).some(Boolean) ? 'ready' : 'missing'} label={t(!policy || model.dashboardFailed ? 'unknownValue' : Object.values(policy).some(Boolean) ? 'moduleEnabled' : 'moduleDisabled')}/>{module.title}</h3>
+            <h3 class="capability-title"><StatusMarker dot state={!policy || model.dashboardFailed ? 'unknown' : Object.values(policy).some(Boolean) ? 'ready' : 'unknown'} label={t(!policy || model.dashboardFailed ? 'unknownValue' : Object.values(policy).some(Boolean) ? 'moduleEnabled' : 'moduleDisabled')}/>{module.title}</h3>
             <div class="module-statuses">
               {#each Object.entries(policy ?? {}).filter(([, enabled]) => enabled) as [key]}
                 <Tag label={t(scopeCopy[module.id + "." + key] ?? key)} />

@@ -296,3 +296,5 @@ Acceptance is visible/accessible titles for all four fixture modules and the
 Traditional Chinese title, plus build/type checks and the existing Studio suite.
 
 Latest module settings component stories and fixture acceptance: [module-settings-ux.md](module-settings-ux.md).
+
+Notifications now use a single app-wide top layer, slide away after five seconds (paused during hover/focus), and never reserve modal space or change scroll. The All control stays right aligned with its label before the switch; disabled modules use gray dots. See the follow-up stories in [module-settings-ux.md](module-settings-ux.md).

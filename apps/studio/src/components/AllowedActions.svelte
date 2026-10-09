@@ -11,7 +11,7 @@
 <section class="module-actions" aria-label={t('moduleActionsShort')}>
  <header class="module-section-heading allowed-actions-heading">
   <h3>{t('moduleActionsShort')}</h3>
-  <DraftSwitch label={t('allActionsShort')} aria-label={t('toggleAllActions')} pending={changed} checked={allOn} disabled={disabled||!editable.length} onchange={event=>ontoggle(event.currentTarget.checked)}/>
+  <span class="all-actions-switch"><DraftSwitch label={t('allActionsShort')} aria-label={t('toggleAllActions')} pending={changed} checked={allOn} disabled={disabled||!editable.length} onchange={event=>ontoggle(event.currentTarget.checked)}/></span>
  </header>
  <ul class="module-action-list">
  {#each fields as field}<AllowedAction {id} {field} {definition} checked={!!draft[field.id]} pending={!!draft[field.id]!==!!saved[field.id]} disabled={disabled||field.available===false||(dependencies[field.id]??[]).some(parent=>!editable.includes(parent))} onchange={value=>ontoggle(value,field.id)}/>{:else}<li>{t('emptyValue')}</li>{/each}

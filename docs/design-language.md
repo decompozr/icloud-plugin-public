@@ -43,9 +43,7 @@ without changing the owner's full-width shell. Affected Overview headings show
 Last known state Tags after failed refreshes.
 
 Shared Modal keeps the header stationary with one bounded content scrollport.
-Its consumer adapter measures the existing notification region and reserves
-matching content space; if notifications intersect decisions, content scrolls
-just enough to reveal them without changing focus. Catalog appearance, dismiss
+Notifications use one app-owned native popover top layer, with five-second automatic dismissal paused by hover/focus. No notification height is reserved and no content is scrolled by toast changes. A native-modal bridge changes the host parent only to preserve interaction through browser inertness; its fixed top-layer geometry remains independent of layout. Catalog appearance, dismiss
 controls and notification semantics remain unchanged. Physical-device/onscreen
 keyboard acceptance remain unverified; round 3 addresses F12–F15; no award/compliance claim is made.
 
@@ -428,3 +426,5 @@ mobile dialogs/toast placement and physical iPhone acceptance remain unverified.
 ## Capability settings adapters (2026-10-09)
 
 Shared StatusMarker and DraftSwitch extend semantic state presentation without changing catalog source. Status dots use spacing[2] and radius.full. Aligned requirement markers use spacing[6]. Pending switches use warning/warningSurface for both enable and disable drafts; saved enabled switches retain the catalog green. Quiet icon actions use the catalog Button quiet appearance and named accessible controls. See [module settings stories](module-settings-ux.md).
+
+Save uses the unmodified Lucide disk glyph from revision 951813ce76a859d4d8b145366972cbb237147a4e, as a project-owned asset with ISC attribution. Disabled module dots are gray; red is reserved for observed failure. All text precedes its right-aligned switch.

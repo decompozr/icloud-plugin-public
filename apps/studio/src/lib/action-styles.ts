@@ -19,7 +19,7 @@ export const actionStyles = `
 .page-title{display:flex;align-items:center;gap:${spacing[3]};flex-wrap:wrap;min-width:0}
 .readable-navigation{display:none}
 @media(max-width:700px),(hover:none){.readable-navigation{display:inline-flex}}
-.allowed-actions-heading{justify-content:flex-start!important}
+.service-capabilities>header{display:flex;align-items:center;justify-content:space-between;gap:${spacing[4]};margin-bottom:${spacing[3]}}
 .capability-title{display:flex;align-items:center;gap:${spacing[2]}}
 .module-summary{display:flex;justify-content:space-between;align-items:center;gap:${spacing[4]};flex-wrap:wrap;border-top:1px solid ${semanticColors.border};padding-block:${spacing[3]}}
 .module-summary h3{margin:0;padding:0;border:0}.module-summary .actions{margin:0}

@@ -51,7 +51,7 @@
   <CapabilityRequirements {definition} {requirementIdentity} {credentialReady} {credentialKnown} {requirementsReady} {requirementUnknown} onverified={value => { permissionReady = value; }} />
   <AllowedActions {id} fields={metadata?.fields ?? []} {definition} {draft} saved={id ? model.saved[id] ?? {} : {}} {editable} {dependencies} {allOn} disabled={model.busy || !policyKnown} ontoggle={toggle} />
   <div class="actions">
-    <ActionButton appearance="quiet" class="primary" label={t('saveModule')} icon="check" disabled={model.busy || !canSave || !model.changes.length} onclick={() => void model.run(save, 'workingPolicy')} />
+    <ActionButton appearance="quiet" class="primary" label={t('saveModule')} icon="save" disabled={model.busy || !canSave || !model.changes.length} onclick={() => void model.run(save, 'workingPolicy')} />
     <ActionButton appearance="quiet" label={t('cancel')} icon="close" disabled={model.busy} onclick={close} />
   </div>
 </Modal>

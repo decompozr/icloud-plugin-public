@@ -3,7 +3,6 @@
   import { getContext, onMount, tick, untrack } from "svelte";
   import type { Snippet } from "svelte";
   import type { UiCopy } from "../contracts.js";
-  import Toaster from "./Toaster.svelte";
   import type { ToastCenter } from "../toast-state.svelte.js";
   let {
     open,
@@ -29,41 +28,6 @@
     const bounds = element.getBoundingClientRect();
     return event.target === element && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom);
   }
-  let notificationSpace = $state(0);
-  $effect(() => {
-    const visible = open;
-    const messages = toast?.items.length ?? 0;
-    if (!visible || !messages) {
-      notificationSpace = 0;
-      return;
-    }
-    let cancelled = false;
-    let observer: ResizeObserver | undefined;
-    tick().then(() => {
-      if (cancelled) return;
-      const region = element?.querySelector<HTMLElement>('.toast-region');
-      if (!region) return;
-      const measure = () => {
-        notificationSpace = region.offsetHeight;
-        tick().then(() => {
-          if (cancelled) return;
-          const content = element.querySelector<HTMLElement>('.modal-content');
-          const actions = content?.querySelectorAll<HTMLElement>('.actions');
-          const footer = actions?.[actions.length - 1];
-          if (!content || !footer) return;
-          const notification = region.getBoundingClientRect();
-          const controls = footer.getBoundingClientRect();
-          if (controls.bottom > notification.top && controls.top < notification.bottom) {
-            content.scrollTop += controls.bottom - notification.top + parseFloat(getComputedStyle(content).paddingTop);
-          }
-        });
-      };
-      observer = new ResizeObserver(measure);
-      observer.observe(region);
-      measure();
-    });
-    return () => { cancelled = true; observer?.disconnect(); };
-  });
   $effect(() => {
     if (open && element)
       untrack(async () => {
@@ -113,7 +77,6 @@
     if (dismiss && !busy) onclose();
   }}
   aria-labelledby={titleId}
-  style:--modal-notification-space={`${notificationSpace}px`}
   oncancel={(e) => {
     e.preventDefault();
     if (!busy) onclose();
@@ -131,10 +94,7 @@
     />
   </header>
   <div class="modal-content">
-    {#if toast && open}<Toaster
-        center={toast}
-        embedded
-      />{/if}{@render children()}
+    {@render children()}
   </div>
 </dialog>
 
@@ -174,7 +134,7 @@
     flex: 1;
     min-height: 0;
     padding: 1.25rem;
-    padding-bottom: calc(1.25rem + var(--modal-notification-space, 0px));
+    padding-bottom: 1.25rem;
     overflow: auto;
   }
   dialog :global(.card) {

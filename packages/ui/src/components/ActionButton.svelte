@@ -2,6 +2,7 @@
   import type { HTMLButtonAttributes } from "svelte/elements";
   import Button from "../design-system/Button.svelte";
   import DesignIcon from "./DesignIcon.svelte";
+  import SaveIcon from "./SaveIcon.svelte";
   import ProjectIcon from "./Icon.svelte";
   import type { IconName } from "../design-system/icons.js";
   let {
@@ -17,7 +18,7 @@
   }: Omit<HTMLButtonAttributes, "class" | "children"> & {
     class?: string;
     label: string;
-    icon: IconName | "passkey";
+    icon: IconName | "passkey" | "save";
     variant?: "primary" | "secondary";
     appearance?: "default" | "quiet";
     size?: "normal" | "compact";
@@ -60,7 +61,7 @@
     title={label}
     data-danger={danger || undefined}
   >
-    {#if icon === "passkey"}<ProjectIcon name="passkey" />{:else}<DesignIcon name={icon} size={size === "compact" ? "1rem" : "1.25rem"} />{/if}
+    {#if icon === "save"}<SaveIcon />{:else if icon === "passkey"}<ProjectIcon name="passkey" />{:else}<DesignIcon name={icon} size={size === "compact" ? "1rem" : "1.25rem"} />{/if}
     {#if showLabel}<span>{label}</span>{/if}
   </Button>
   {#if !showLabel}<span class="action-hint" aria-hidden="true">{label}</span>{/if}

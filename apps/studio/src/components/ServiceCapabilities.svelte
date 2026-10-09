@@ -10,7 +10,7 @@
  const {t}=getContext<UiCopy>('copy');
 </script>
   <section
-    class="card wide capabilities-target"
+    class="card wide capabilities-target service-capabilities"
     bind:this={region}
     tabindex="-1"
     aria-label={t("capabilitiesCard")}
