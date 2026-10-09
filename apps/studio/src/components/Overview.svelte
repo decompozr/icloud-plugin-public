@@ -1,9 +1,8 @@
 <script lang="ts">
+  import ServiceCapabilities from './ServiceCapabilities.svelte';
   import NextStep from "./NextStep.svelte";
   import AccountCard from "@decompozr/account/ui/AccountCard.svelte";
-  import ModuleSwitch from "@decompozr/ui/components/ModuleSwitch.svelte";
   import Tag from "@decompozr/ui/design-system/Tag.svelte";
-  import { scopeCopy } from "../lib/admin-model.svelte.js";
   import { controlMetrics } from "@decompozr/ui/design-system/controlMetrics.js";
   import { spacing } from "@decompozr/ui/design-system/spacing.js";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
@@ -192,72 +191,7 @@
         {t("freshnessFailed")}
       </p>{/if}
   </section>
-  <section
-    class="card wide capabilities-target"
-    bind:this={capabilityRegion}
-    tabindex="-1"
-    aria-label={t("capabilitiesCard")}
-    data-testid="capabilities-card"
-    aria-busy={model.accountsLoading}
-  >
-    <header>
-      <div class="card-heading"><h2>{t("capabilitiesCard")}</h2>{#if model.dashboardFailed}<Tag label={t("snapshotStale")} />{/if}</div>
-      <RefreshButton
-        id="capabilities-refresh"
-        label={t("refreshCapabilities")}
-        busy={model.accountsLoading || model.busy}
-        onclick={() => model.run(() => model.refreshCard("capabilities"))}
-      />
-    </header>
-
-    {#if model.state.admin && model.accountsLoading && !model.dashboard}<Skeleton
-        rows={3}
-      />{:else}{#each modules as module}{@const policy = model.saved[module.id]}
-        <div class="module-summary">
-          <div>
-            <h3>{module.title}</h3>
-            <div class="module-statuses">
-              <Tag
-                tone={policy && Object.values(policy).some(Boolean)
-                  ? "sage"
-                  : "neutral"}
-                label={t(
-                  !policy
-                    ? "unknownValue"
-                    : Object.values(policy).some(Boolean)
-                      ? "moduleEnabled"
-                      : "moduleDisabled",
-                )}
-              />
-              {#each Object.entries(policy ?? {}).filter(([, enabled]) => enabled) as [key]}
-                <Tag label={t(scopeCopy[module.id + "." + key] ?? key)} />
-              {/each}
-            </div>
-          </div>
-          <div class="actions">
-            <ModuleSwitch
-              label={t("moduleEnable") + " " + module.title}
-              enabled={!!policy && Object.values(policy).some(Boolean)}
-              disabled={!model.state.enrolled || model.busy || !policy}
-              onchange={(enable) => openModule(module.id, enable)}
-            />
-            <ActionButton
-              icon="settings"
-              label={t("moduleConfigure") + " " + module.title}
-              disabled={!model.state.enrolled || model.busy}
-              onclick={() => openModule(module.id)}
-            />
-          </div>
-        </div>{/each}{/if}
-
-    {#if modules.some((module) => module.id === "photos")}<p
-        class="muted"
-        data-testid="photos-shared-write-unsupported"
-      >
-        {t("photosUnsupported")}
-      </p>{/if}
-    {#if model.dashboardFailed}<p class="muted">{t("freshnessFailed")}</p>{/if}
-  </section>
+  <ServiceCapabilities {model} {modules} {openModule} bind:region={capabilityRegion}/>
 </div>
 
 <style>
@@ -330,29 +264,6 @@
     font-size: var(--count-size);
     line-height: 1;
     font-weight: 500;
-  }
-  .module-statuses {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-top: 0.5rem;
-  }
-  .module-summary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-    border-top: 1px solid var(--ui-border);
-    padding: 0.75rem 0;
-  }
-  .module-summary h3 {
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-  .module-summary .actions {
-    margin: 0;
   }
   @media (max-width: 700px) {
     .overview-grid {

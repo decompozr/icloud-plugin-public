@@ -3,7 +3,7 @@ import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {createStudio} from '../../studio/dist/transport.js';
-const studio=await createStudio(resolve(import.meta.dir,'../../icloud/dist/studio'));
+const studio=await createStudio(process.env.ICLOUD_FIXTURE_STUDIO_PATH?resolve(process.env.ICLOUD_FIXTURE_STUDIO_PATH):resolve(import.meta.dir,'../../icloud/dist/studio'));
 import {createPrivateAdmin} from '../../icloud/src/admin/handler.js';
 import {mailAdminPresentation} from '../../icloud/src/mail/admin.js';
 import {SqliteOwnerStore} from '@decompozr/account/server';

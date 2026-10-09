@@ -27,7 +27,7 @@ try {
   await task.getByRole('button', { name: 'Choose capabilities', exact: true }).click();
   assert(await page.getByTestId('capabilities-card').evaluate(node => node === document.activeElement), 'Capability guidance reveals the full service choice rather than forcing Mail');
   await page.getByRole('button', { name: 'Configure Mail', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Mail · Module settings', exact: true }).waitFor();
+  await page.getByRole('dialog', { name: 'Mail Settings', exact: true }).waitFor();
   assert(await page.locator('#scope-mail-read').isChecked() === false, 'Task entry never automatically enables operations');
   await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
 

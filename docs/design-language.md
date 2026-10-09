@@ -37,7 +37,7 @@ abbreviation rather than a speech-bubble glyph, with locale supplied at layout l
 System setup actions and empty Accounts expose visible task labels.
 
 Existing catalog keyboard-focus recipes are restored, superseding the historical
-blanket suppression. Module settings consume unchanged catalog Checkbox controls.
+blanket suppression. Module settings consume unchanged catalog Switch controls through a shared pending-state adapter.
 Intrinsic label columns and nearby account actions reduce desktop scan distance
 without changing the owner's full-width shell. Affected Overview headings show
 Last known state Tags after failed refreshes.
@@ -384,7 +384,7 @@ Private screenshots and rollout receipts: `.flow-runtime/homekit-background/grou
 The exact fixture server was stopped; the production page remains available.
 
 
-Home module settings use a short readiness status and one connection-consent footer.
+Module settings show aligned requirement markers and omit the connection-approval footer.
 The embedded dialog omits the helper/Dock implementation note and duplicate linking
 explanation. Standalone linking retains its brief no-device/no-permission-change
 notice. Explicit unchecked Home-link approval and all handlers remain unchanged.
@@ -424,3 +424,7 @@ Private deployment receipts are retained at the existing runtime's
 No browser is currently connected and Safari's native window lookup is unavailable:
 final installed scroll/spacing/toast visual acceptance, native discard cancellation,
 mobile dialogs/toast placement and physical iPhone acceptance remain unverified.
+
+## Capability settings adapters (2026-10-09)
+
+Shared StatusMarker and DraftSwitch extend semantic state presentation without changing catalog source. Status dots use spacing[2] and radius.full. Aligned requirement markers use spacing[6]. Pending switches use warning/warningSurface for both enable and disable drafts; saved enabled switches retain the catalog green. Quiet icon actions use the catalog Button quiet appearance and named accessible controls. See [module settings stories](module-settings-ux.md).

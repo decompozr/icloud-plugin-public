@@ -7,8 +7,9 @@
   import RequirementStep from "@decompozr/ui/components/RequirementStep.svelte";
   let {
     active = true,
+    embedded = false,
     onverified,
-  }: { active?: boolean; onverified?: (ready: boolean) => void } = $props();
+  }: { active?: boolean; embedded?: boolean; onverified?: (ready: boolean) => void } = $props();
   const { t } = getContext<UiCopy>("copy");
   const toast = getContext<ToastCenter>("toast");
   let busy = $state(false);
@@ -154,7 +155,7 @@
     </p>{/if}
   <div class="status-row">
     <span id="photos-status" role="status" aria-live="polite"
-      >{last?.ready ? t("requirementsReady") : busy ? t("checking") : ""}</span
+      >{!embedded && last?.ready ? t("requirementsReady") : busy ? t("checking") : ""}</span
     ><ActionButton
       type="button"
       class="secondary"

@@ -102,19 +102,16 @@ in status or diagnostics.
 so I can enable the minimum useful capabilities intentionally.
 
 **Flow:** Open module settings or propose an enable with its switch → complete
-missing requirements → inspect capability labels → select operations → explicitly
-confirm any elevation → save, or cancel the draft.
+missing requirements → inspect capability labels → select operations → save the reviewed draft explicitly, or cancel the draft.
 
-**Design:** Requirements precede operations. Checkbox labels and consent are
-readable and aligned. Save and Cancel have visible text. The compact switch is a
+**Design:** Requirements precede operations. Switch labels and descriptions are readable and aligned. Quiet Save and Cancel icons have accessible names and hints. The compact switch is a
 proposal entry point, while the saved state remains authoritative.
 
-**Feedback and recovery:** Save stays unavailable until prerequisites and explicit
-confirmation are satisfied. Failed saves report an error and do not present the
+**Feedback and recovery:** Save stays unavailable until prerequisites are satisfied. Failed saves report an error and do not present the
 draft as persisted policy. Closing a changed draft retains the existing discard
 confirmation.
 
-**Acceptance:** Consent begins unchecked; opening/cancelling does not elevate
+**Acceptance:** Opening/cancelling does not elevate
 permissions; touch controls remain 44px targets with quieter faces; dialog content
 and decision controls stay reachable in short mobile viewports; no backend policy
 or native permission change is introduced by visual work.
@@ -287,3 +284,15 @@ unknown states, no automatic elevation, async intended-account readback, long na
 form feedback, and locale. Physical-device, onscreen-keyboard, screen-reader and
 real-client/provider acceptance remain separate. This round is a local milestone;
 8464 continues to serve only fictional preview data.
+
+## Module settings title (2026-10-09)
+
+Story: as an owner opening a module's settings, I want the title to identify the
+module and task directly. Titles use `{module name} Settings` in English and
+`{module name} 設定` in Traditional Chinese, with no middle dot or redundant
+"Module" wording. Example: `Mail Settings`. This copy-only change preserves
+module names, permission choices, consent, save/cancel and modal behavior.
+Acceptance is visible/accessible titles for all four fixture modules and the
+Traditional Chinese title, plus build/type checks and the existing Studio suite.
+
+Latest module settings component stories and fixture acceptance: [module-settings-ux.md](module-settings-ux.md).

@@ -9,6 +9,7 @@
     icon,
     class: className = "",
     variant,
+    appearance = "default",
     showLabel = false,
     size = showLabel ? "normal" : "compact",
     loading = false,
@@ -18,6 +19,7 @@
     label: string;
     icon: IconName | "passkey";
     variant?: "primary" | "secondary";
+    appearance?: "default" | "quiet";
     size?: "normal" | "compact";
     loading?: boolean;
     showLabel?: boolean;
@@ -49,6 +51,7 @@
     {...rest}
     class={`${showLabel ? "dz-labeled-action" : "dz-icon-action"} ${layoutClass}`}
     variant={primary}
+    {appearance}
     {size}
     touchAppearance={showLabel ? "default" : "compact"}
     {loading}

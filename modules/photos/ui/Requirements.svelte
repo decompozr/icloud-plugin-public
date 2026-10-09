@@ -3,4 +3,4 @@
  import Setup from './PhotosSetup.svelte';
  let{onverified}:ModuleRequirementsProps=$props();
 </script>
-<Setup {onverified}/>
+<Setup embedded {onverified}/>

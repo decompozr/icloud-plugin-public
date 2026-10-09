@@ -1,3 +1,4 @@
+import { modalStyles } from "@decompozr/ui/modal-styles.js";
 import { actionStyles } from "./lib/action-styles.js";
 import { typography } from "@decompozr/ui/design-system/typography.js";
 import { readableTypography } from "@decompozr/ui/readable-typography.js";
@@ -50,6 +51,7 @@ input:not([type=checkbox]):not([type=radio]),select{padding:.4375rem .5rem}
 .shell-nav .active-indicator{position:absolute;left:0;right:0;top:0;border-radius:4px;background:var(--ui-soft);border-left:2px solid var(--ui-focus);pointer-events:none;transition:top 180ms ease}
 @view-transition{navigation:none}@media(prefers-reduced-motion:reduce){.shell-nav .active-indicator{transition:none}}
 ${actionStyles}
+${modalStyles}
 /* Shared reading hierarchy; catalog controls retain their pinned metrics. */
 body{font-size:${readableTypography.fontSize};line-height:${readableTypography.lineHeight}}
 h2,h3{font-size:${typography.heading.fontSize};line-height:${typography.heading.lineHeight}}

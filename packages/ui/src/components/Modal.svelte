@@ -24,6 +24,11 @@
   let counted = false;
   let element: HTMLDialogElement;
   let previous: HTMLElement | null = null;
+  let backdropPointer: number | null = null;
+  function outside(event: PointerEvent) {
+    const bounds = element.getBoundingClientRect();
+    return event.target === element && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom);
+  }
   let notificationSpace = $state(0);
   $effect(() => {
     const visible = open;
@@ -99,6 +104,14 @@
 
 <dialog
   bind:this={element}
+  data-dz-modal
+  onpointerdown={(event) => { backdropPointer = event.button === 0 && outside(event) ? event.pointerId : null; }}
+  onpointercancel={() => { backdropPointer = null; }}
+  onpointerup={(event) => {
+    const dismiss = backdropPointer === event.pointerId && outside(event);
+    backdropPointer = null;
+    if (dismiss && !busy) onclose();
+  }}
   aria-labelledby={titleId}
   style:--modal-notification-space={`${notificationSpace}px`}
   oncancel={(e) => {
@@ -110,7 +123,7 @@
     <h2 id={titleId}>{title}</h2>
     <ActionButton
       type="button"
-      class="secondary icon-button"
+      appearance="quiet"
       disabled={busy}
       onclick={onclose}
       label={t("closeModal")}
