@@ -37,7 +37,7 @@ try {
     await route.fulfill({ response, json: data });
   });
   await page.reload(); await waitTask('refresh'); assert(true, 'Unknown network prompts observation rather than a guessed setup failure');
-  await page.unroute('**/icloud/admin/system-status');
+  await page.unrouteAll({ behavior: 'wait' });
   await desktop.request.get(origin + '/fixture/network-off');
   await page.reload(); await waitTask('network'); assert(true, 'Observed network failure chooses its requirement');
   await desktop.request.get(origin + '/fixture/network-on');

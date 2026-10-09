@@ -22,7 +22,7 @@ export const actionStyles = `
 .action-explanation:focus-within .action-hint{display:block}
 .next-step{display:flex;align-items:center;justify-content:space-between;gap:${spacing[4]};flex-wrap:wrap;padding:${spacing[4]};border-bottom:1px solid ${semanticColors.border};background:${semanticColors.surfaceSubtle}}
 .next-step h2,.next-step p{margin:0}.next-step p{margin-top:${spacing[2]}}
-.page-heading{position:sticky;top:0;z-index:2;background:${semanticColors.surface};padding-block:${spacing[1]}}
+.page-heading{position:sticky;top:0;z-index:2;background:${semanticColors.surface};padding-block-start:calc(var(--shell-inset) + ${spacing[1]});padding-block-end:${spacing[1]}}
 .capabilities-target{scroll-margin-block-start:calc(${controlMetrics.coarseTarget} + ${spacing[6]})}
 .page-title{display:flex;align-items:center;gap:${spacing[3]};flex-wrap:wrap;min-width:0}
 .service-capabilities>header{display:flex;align-items:center;justify-content:space-between;gap:${spacing[4]};margin-bottom:${spacing[3]}}

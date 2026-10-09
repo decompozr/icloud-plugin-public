@@ -317,3 +317,13 @@ Story: As an owner clicking Choose capabilities, I want the page to glide to the
 Execution: native scrollIntoView smooth behavior, reduced-motion auto fallback, existing destination focus and scroll margin. Build, verify actual scroll progression/focus and reduced motion, run the task-entry regression, then refresh the existing private 8464 fixture. Native installation N/A.
 
 Smooth-entry acceptance: build/type checks passed; actual multi-frame scroll progression and destination focus were verified in desktop/touch contexts, while reduced-motion scrolling positions immediately. Task-entry browser flow passed 35 checks. Inspected [desktop destination](assets/account-access/smooth-capabilities-desktop.png) and [mobile destination](assets/account-access/smooth-capabilities-mobile.png); HTTPS 8464 readback confirmed actual smooth movement. Fixture-only; physical devices not checked.
+
+## Sealed sticky page header
+
+Story: As a user scrolling Overview or another admin page, I want the fixed page heading to cover the top edge completely so moving content never leaks above it. Existing text/control placement and sidebar alignment remain.
+
+Observed cause: the scroll container's 16px top padding kept the sticky heading 16px below the viewport edge, exposing underlying content. Move that inset from the scrolling container into the heading's opaque padding. The heading sticks at top:0; its initial text position and following-content position are preserved using existing spacing tokens.
+
+Execution: update the shared shell/header recipe; verify initial and partially/deeply scrolled header bounds and hit-test coverage on desktop/mobile, run navigation regression, and refresh private 8464. Native deployment N/A.
+
+Sticky-header acceptance: source build/type checks passed. Before, the scrolled heading began at viewport y=16px; after, its opaque box starts at y=0. Desktop/mobile tests at scrollTop 0/80/350 confirmed top-edge hit-test coverage and unchanged text positions versus the prior live preview. Navigation regression passed 35 checks after waiting for pending fixture route handlers before removal. Inspected [before](assets/account-access/header-gap-before.png), [desktop](assets/account-access/sealed-header-desktop.png) and [mobile](assets/account-access/sealed-header-mobile.png); HTTPS 8464 readback passed. Fixture-only; physical-device checks not run.

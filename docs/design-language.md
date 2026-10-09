@@ -444,3 +444,5 @@ Icon action density now defaults to normal catalog metrics: 20px desktop glyph i
 Module settings close directly discards its draft, without a redundant confirmation. Footer Save/Cancel align right. Shared mobile Modal keeps native modality through its downward exit and restores focus after completion; reduced motion skips the exit. Other credential/destructive confirmations stay explicit.
 
 Admin navigation uses the persistent navbar only. The redundant Pages dropdown is removed from page headings, superseding earlier touch-menu guidance. Named links, title hints, keyboard focus and active-state cues remain.
+
+Sticky page-heading backgrounds own the shell top inset. The scroll container has no top padding, so moving content cannot leak into a gap above the header; initial heading/control placement is preserved.

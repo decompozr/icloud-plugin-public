@@ -499,6 +499,7 @@
     overscroll-behavior-y: contain;
     scrollbar-gutter: stable;
     padding: var(--shell-inset);
+    padding-top: 0;
     padding-left: 0;
     padding-right: max(var(--shell-inset), env(safe-area-inset-right, 0px));
     padding-bottom: max(var(--shell-inset), env(safe-area-inset-bottom, 0px));
