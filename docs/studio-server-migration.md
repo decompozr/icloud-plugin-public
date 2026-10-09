@@ -615,5 +615,37 @@ Complete590 tests / 5,197 expect calls and builtE2E13/258 pass, including Calend
 ledger exports inside the consumer and typechecks their API. Independent review
 passed47/228 for isolation, credential races, scopes, conditional dispatch, unknown
 outcomes and replay;12 declarations resolve within the package and13 client files
-contain no backend markers. No scoped blocker. Candidate0.1.108 awaits clean-main
-packaged/lifecycle verification and preserved-state deployment.
+contain no backend markers. No scoped blocker. Release0.1.108 was delivered below.
+
+### Calendar backend deployment (0.1.108)
+
+PR147 merged at `fbda7dbb84b9d1f5ff3eec7454162caf233510dd`. Release0.1.108
+was built from a clean detached checkout of remote main, frozen workspace and
+standalone consumer locks, and six exact local bundles. Calendar0.3.0 and Mail0.3.0
+ship their server/UI entries; installed host output has no old Calendar service.
+Native staging verified the existing signed HomeKit payload without a native build,
+launch or permission request. Its bytes are identical to installed0.1.107.
+
+The final packaged Calendar fixtures pass39/157 against absolute installed-package
+imports; the codec fixture also resolves the artifact's own pinned ICAL dependency.
+The first harness attempt missed that dependency path; the corrected complete39
+fixtures pass. Packaged restart/OAuth persistence checks independently pass2/151
+against the same immutable artifact. No Calendar provider behavior was modified.
+
+After graceful drain and protected stopped-state backup, the supported updater
+installed the exact payload without initialization. File/symlink hashes/modes,
+config/custody bytes, non-transient SQLite rows and integrity are preserved. Only
+resource/rate-limit diagnostic tables are excluded from the row comparison.
+HomeKit ledger files and helper bytes are unchanged. Local/private sign-in200,
+byte-exact private CSS, security headers,13 clean client files and doctor13 pass.
+The existing main MCP reads four actual calendars, the profile and nine mailboxes
+through the installed packages. No event/calendar create/edit/delete, invitation,
+sharing, mail/native write, reset or new consent was performed.
+
+Source/independent checks are recorded above; PR147 has no configured remote CI.
+Physical-device/real Passkey and broader provider/recipient acceptance are not
+claimed. The immutable canonical archive, installed0.1.107/0.1.108 and protected
+receipt in `runtime/backups/pre-0.1.108-20261009T034226Z/upgrade-receipt.json`
+remain for recovery. Task-owned scratch/build checkout will be removed after
+committed preservation; checkpoints, active checkout and unrelated state remain.
+Calendar is deployed awaiting owner pass; Photos backend extraction is next.
