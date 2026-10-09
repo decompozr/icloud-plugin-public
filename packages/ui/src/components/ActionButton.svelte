@@ -52,7 +52,7 @@
     {...rest}
     class={`${showLabel ? "dz-labeled-action" : "dz-icon-action"} ${layoutClass}`}
     variant={primary}
-    {appearance}
+    appearance={showLabel ? appearance : "quiet"}
     {size}
     touchAppearance={showLabel ? "default" : "compact"}
     {loading}

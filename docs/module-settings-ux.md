@@ -52,3 +52,11 @@ Story: As an owner comparing enabled and disabled modules, I want one reserved a
 Execution: update the shared row minimum, build/type-check, compare enabled/disabled geometry on desktop/mobile, and refresh the existing private fixture preview. Native installation N/A.
 
 Spacing acceptance: build/type checks passed. At 1280px and 390px, saved Mail read-only and three disabled modules each measured 85px row height with a 28px summary line. Inspected [desktop](assets/module-settings/spacing-1280.png) and [mobile](assets/module-settings/spacing-390.png); HTTPS 8464 browser readback confirmed the reserved line. These checks use fictional data.
+
+## Borderless icon actions
+
+Story: As an owner scanning controls, I want icon-only settings, refresh, copy, add, close and save/cancel actions to use a consistent quiet appearance so repeated button borders do not compete with the content. Hover/pressed feedback, accessible names and hints, keyboard focus, disabled/loading state and existing 44px touch targets remain. Named text actions retain their existing catalog appearance.
+
+Implementation contract: apply catalog Button quiet appearance in the shared ActionButton adapter for every icon-only consumer; preserve critical icon color without restoring its border. Build/type-check, inspect desktop/touch and confirm representative actions remain operable; update the established private 8464 fixture. Native installation N/A.
+
+Borderless acceptance: full build/type checks passed. Ten visible icon buttons were checked in each desktop and touch context: quiet appearance, transparent idle surface/border, accessible names and 44px minimum touch targets. Configure/Close remained operable; the recovery flow passed 17 checks including keyboard focus. Inspected [desktop](assets/module-settings/icons-desktop.png) and [mobile](assets/module-settings/icons-mobile.png). HTTPS 8464 readback confirmed quiet Configure Mail and Refresh capabilities. Fixture-only; no physical-device acceptance claimed.

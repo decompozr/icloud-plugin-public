@@ -428,3 +428,5 @@ mobile dialogs/toast placement and physical iPhone acceptance remain unverified.
 Shared StatusMarker and DraftSwitch extend semantic state presentation without changing catalog source. Status dots use spacing[2] and radius.full. Aligned requirement markers use spacing[6]. Pending switches use warning/warningSurface for both enable and disable drafts; saved enabled switches retain the catalog green. Quiet icon actions use the catalog Button quiet appearance and named accessible controls. See [module settings stories](module-settings-ux.md).
 
 Save uses the unmodified Lucide disk glyph from revision 951813ce76a859d4d8b145366972cbb237147a4e, as a project-owned asset with ISC attribution. Disabled module dots are gray; red is reserved for observed failure. All text precedes its right-aligned switch.
+
+All icon-only ActionButton consumers use catalog quiet appearance through the shared adapter. Critical icon actions retain semantic critical color with a transparent idle surface/border. Labeled actions retain their catalog recipes.
