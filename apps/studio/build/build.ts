@@ -2,7 +2,7 @@ import { mkdir, rm, cp } from "node:fs/promises";
 import { join,dirname } from "node:path";
 import { svelteServerPlugin } from "./svelte-plugin.js";
 const root = join(import.meta.dir, ".."),
-  dist = join(root, "dist");
+  dist = join(root, "dist/ui");
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 const kit = Bun.spawn(
@@ -15,6 +15,7 @@ const result = await Bun.build({
     join(root, "src/index.ts"),
     join(root, "src/compat-resources.ts"),
     join(root, "src/transport.ts"),
+    join(root,"src/lib/connection-readiness.ts"),
   ],
   outdir: dist,
   target: "bun",
@@ -42,6 +43,7 @@ const types = Bun.spawn(
     "--skipLibCheck",
     join(root, "src/index.ts"),
     join(root, "src/transport.ts"),
+    join(root,"src/lib/connection-readiness.ts"),
     join(root, "src/svelte.d.ts"),
   ],
   { stdout: "inherit", stderr: "inherit" },
@@ -67,3 +69,5 @@ await Bun.write(
 console.log(
   "Built Svelte Studio SSR renderer; no source/compiler required at runtime.",
 );
+
+await mkdir(join(dist,'lib/paraglide'),{recursive:true});await cp(join(root,'src/lib/paraglide/runtime.d.ts'),join(dist,'lib/paraglide/runtime.d.ts'));

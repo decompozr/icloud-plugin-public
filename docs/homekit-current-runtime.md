@@ -555,3 +555,168 @@ executeActionSet for Turn Off Third Floor, followed by its bounded action readba
 and independent target reads. Until then this milestone is deployed but physical
 scene acceptance remains open. Existing definitions and automation management
 permissions remain unchanged; no new physical writes occurred for this extension.
+
+## Automatic connection capability synchronization (0.1.100 deployed)
+
+Enabling a module now updates eligible installation-owner client registration
+ceilings automatically. A separate Connections Review action is no longer needed
+for those registrations. Existing consent, tokens and refresh grants are preserved.
+Disabled, unrelated and shared registrations remain excluded.
+
+A reconnect whose scope list exactly matches an audited former complete
+registration snapshot is updated to the currently enabled registered scopes before
+the provider signs a new authorization request. This addresses the observed
+ChatGPT reconnect requesting only Mail, Calendar and offline access despite the
+same client's enabled Photos and HomeKit registration. Explicit narrow requests,
+silent authorization and other-resource requests remain unchanged. Fresh displayed
+consent and the selected account are still required; scope synchronization grants
+no Home access by itself.
+
+The synthetic OAuth check verifies a cached complete reconnect reaches the signed
+consent page with new permissions, preserves state and PKCE, and preserves every
+grant when denied. A narrow read request remains narrow. Live client consent and
+the approved Office Light / first-floor native scene sequence remain pending.
+
+PR135 merged at `9fc8cb5cdcde06a91ba9768fc39a20310cf7af65` and signed-helper
+release 0.1.100 is installed locally. The unchanged formal helper source pin is
+`bc41a6dd69184a13c7a77ea40c770b29360d632bbc0a9e6ad02c30c196fbbb85`;
+its existing Release signature and team were verified without a new native build.
+Installed payload verification matched 17,426 files/symlinks. Configuration, custody,
+Home bindings/policy, consent/access/refresh rows and owner-store rows were retained.
+Registration ceilings and their audits may change intentionally at startup.
+
+The actual public authorization endpoint was checked via CLI with this ChatGPT
+client's old Mail/Calendar/offline scope snapshot. It returned a signed owner-login
+continuation offering all 15 enabled scopes, including `homekit.scenes`, while
+preserving state and PKCE. This check issued no token and performed no physical
+write. Read-only doctor checks passed. The old open signed consent page is immutable
+and must be restarted through the host's reconnect flow to receive the new list.
+The current conversation still reports scene consent false; genuine host consent
+and the approved first-floor native scene effect remain external prerequisites.
+
+## Existing-scene dispatch contract correction (0.1.102 deployed and first-floor scene accepted)
+
+After genuine scene consent, the approved Office Light ON operation acknowledged
+and freshly read true. The following Turn Off First Floor native scene apply
+returned `INVALID_ARGUMENTS_OR_HOME` without its operation identity; the host
+correctly retained an unknown outcome and did not retry. Read-only reconciliation
+found no native operation reservation and no scene execution date. The Office
+Light remained on.
+
+Source inspection established a pre-dispatch allowlist omission: production
+preview validated the host-only existing-scene authorization flag, but native
+dispatch did not include that field in its exact argument set. A shared Foundation
+argument policy now accepts the strict Boolean true flag only for production scene
+execution, preserving the same intent in its journal request. Argument rejections
+include operation identity, original intent and explicit no-write evidence.
+The original unknown outcome remains immutable. After signed repair deployment,
+a new operation for the already approved first-floor effect is required; neither
+the original operation nor third-floor effects will be retried.
+
+The signed Release repair was deployed locally at 0.1.102 from PR139 merge
+`c813c0b4b9dfecd53bd4d4fb1c20192b6c04a4c8`, helper source pin
+`800ba4be0d044695072877ebbfab0e393508c7d9d335eddeb1ca214f8a84b967`.
+Custody, owner state, policies and client grants were preserved; only helper pin
+and exact existing Home/account/uid binding generation changed. 18,778 installed
+files/symlinks matched the artifact and doctor checks passed.
+
+A new approved Turn Off First Floor operation executed the actual native
+`executeActionSet` API once, acknowledged, and verified all four action readbacks.
+Four independent fresh reads confirmed OFF, including Office Light. No third-floor
+action or definition mutation occurred. The original unknown plan remains unknown
+and was not retried. This establishes SDK callback/fresh-device-state acceptance,
+not independent human physical observation.
+
+## Owner-selected daily thermostat automation
+
+The owner requested every day around 02:00, Heat mode and target 23 Celsius.
+The selected operating timezone is America/Toronto. Inventory identified one
+Living Room Thermostat service with a writable Celsius target temperature and
+heating/cooling target state. Fresh initial reads were 24 Celsius and Off.
+An immediate thermostat write is not part of this scheduling request.
+
+A read-only 23 Celsius control preview exposed Float32 metadata grid rounding:
+step 0.1 is returned as 0.10000000149011612, causing strict double-offset validation
+to reject a valid setpoint. The correction permits bounded Float-format grid
+tolerance proportional to Float32 precision, capped at 0.0001 of a step. Integer
+formats, range limits and meaningful off-grid values remain strict. Scheduling
+and actual 02:00 firing remain pending deployment/definition/enable acceptance.
+
+## Durable automation creation reconciliation
+
+The owner-approved Heat/23 Celsius scene was created with two exact Thermostat
+actions; it has not executed. The 02:00 America/Toronto automation add callback
+succeeded, but creation correlation retained unknown because its naming guard
+still expected the experimental `DecompozR Test` scheme. The independent manager
+readback identified exactly one new disabled event trigger with the production
+nonce suffix, but its event array was empty. No duplicate or enabled trigger was
+created and no immediate thermostat write occurred.
+
+Production reconciliation now recognizes the production nonce suffix while
+retaining successful callback, immutable submitted ID, exact Home, baseline-ID
+exclusion, unique independent addition, disabled state and empty-scene guards.
+It rejects legacy experimental names. The existing native ledger-only recovery
+path is exposed through a bounded owner/account/Home-bound MCP tool for a retained
+unknown createAutomation plan and a freshly reviewed exact resource/revision.
+The original unknown outcome remains unchanged and receives a separate recovery
+observation. Ownership proof does not claim intended events were persisted.
+After recovery, a separate once-only updateEvents operation repairs the intended
+02:00 event before scene association and enablement. The original add is never
+retried, and an existing household trigger cannot be adopted by name alone.
+
+## Daily thermostat definition and enablement accepted (0.1.104)
+
+The exact task-created automation was recovered using the retained successful
+callback, immutable submitted identity, pre-add baseline and one independent
+canonical addition. This was ledger-only installation-owner CLI recovery; it did
+not fabricate a client principal, modify OAuth grants, create another trigger or
+retry the original creation. The new production MCP recovery tool has source
+coverage but has not yet been accepted in a refreshed host tool catalog.
+
+The first explicit America/Toronto event update returned HMErrorDomain 3; it remains
+unknown without retry. After the complete Heat/23 Celsius scene was associated,
+a new revision-reviewed Home-local calendar update persisted hour 2/minute 0.
+The accepted route uses Home-local time (`timeZone: null`); explicit timezone
+overrides are not promoted to accepted. These two changed preconditions do not
+isolate the reason for the prior parameter rejection.
+
+The same automation `2AE78253-B65B-5B19-B49E-CB0E1E99A1A6` now has one calendar
+event, executeOnce false, no weekday restriction/predicate/end events, and exactly
+one associated app-owned scene `F5A16105-15BE-502B-B429-53DC25C5BF7A`. That scene
+has only the Living Room Thermostat's target temperature 23 Celsius and Heat mode 1.
+Native enable acknowledged and later readback reports enabled true/activationState 4.
+Independent fresh reads after setup remained 24 Celsius and Off; no immediate
+thermostat write or scene execution occurred. Natural 02:00 firing remains pending.
+
+Public read-only definition snapshots can lag callbacks and do not load the mutable
+ownership ledger; their owned flag is not authoritative for mutation ownership.
+Prepare/apply use the app-scoped ledger and preserved exact owner/account/Home guards.
+
+## Natural automation names
+
+Explicit rename uses the requested display name without a product prefix or UUID.
+Creation still uses a temporary correlation nonce until ownership is proved;
+confirmed ownership remains in the app ledger by exact ID, not by display name.
+An app-owned active automation can be renamed without disabling it. The readback
+compares all configuration except the display name and independent hub activation
+state, preserving enabled state, events, recurrence and scene associations. Other
+structural edits retain their disabled/ownership/reference restrictions.
+The owner selected the natural description `Heat to 23°C at 2 AM`.
+
+The signing workflow now uses a separate hidden Terminal instance when called
+from a background security session. Worker ancestry and the pre-launch Terminal
+PID baseline prove ownership; only the exact new instance is hidden/terminated.
+This supports quiet signing while preserving existing user Terminal windows.
+
+Local release 0.1.106 is installed from PR143 merge
+`0d690a6a712409d5a03f5eb748b77e13e0ebfc49`, with signed Release helper source pin
+`590791ea42594ec56a8d8631d1e729e17f8c9dbea8b2211232f716a6ea8d487e`.
+Actual connected-client rename and an independent newly launched helper both
+verified `Heat to 23°C at 2 AM` on the same automation ID. Enabled/active state,
+the daily Home-local 02:00 event and the Heat/23 Celsius scene association were
+preserved. No thermostat write, schedule recreation or unknown-operation retry
+was performed. 18,778 installed files/symlinks matched the artifact; client grants,
+owner data and policy were preserved. Doctor checks passed. 36 native checks and
+full build/typechecks passed; these were same-agent checks, with no configured CI.
+Natural first 02:00 firing and unlocked desktop no-flash observation remain open,
+so this delivery is not a claim that the whole HomeKit module is fully accepted.

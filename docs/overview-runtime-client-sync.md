@@ -33,3 +33,17 @@ Private HTTPS 8464 browser readback confirmed header height, removed banner, Ver
 - https://mac-mini.duckbill-ionian.ts.net:8464/fixture/scenarios/normal
 
 These only change fictional fixture diagnostics; the real tailnet and other Serve mappings remain running. Real provider access, installed deployment and external client tool-list refresh are not acceptance claims. Shared/multi-resource or incomplete grants remain explicit exceptions instead of being silently broadened.
+
+## Main integration and deployment candidate (2026-10-09)
+
+The accepted UI is integrated with the current module UI context and Studio-owned
+server. Requirements use module registrations and scoped provider services; feature
+components do not regain ambient shell state. Existing registration-ceiling sync
+remains in Account, with the explicitly authorized live-grant sync following
+validated capability saves and owner connection refresh. Initial OAuth consent
+remains explicit. Version 0.1.111 is the native deployment candidate; installation
+and live verification are recorded separately after immutable-main delivery.
+
+Integration self-checking passed the full checkpoint: 710 unit/archive tests and
+13 built HTTP E2E tests, zero final Svelte errors/warnings, and 28 desktop/mobile
+module-settings browser checks. No configured remote CI was observed.

@@ -207,9 +207,6 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
-  .wide {
-    grid-column: 1/-1;
-  }
   header {
     display: flex;
     align-items: center;
@@ -252,9 +249,6 @@
   @media (max-width: 700px) {
     .overview-grid {
       grid-template-columns: 1fr;
-    }
-    .wide {
-      grid-column: auto;
     }
   }
 </style>

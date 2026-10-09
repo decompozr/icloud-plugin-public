@@ -186,6 +186,7 @@ final class HomeDefinitions: HomeComponent, HMHomeDelegate {
             var actionTarget: [String: Any]?, actionValue: Any?, actionBaseline = Set<String>()
             var copiedActionValue: NSCopying?, confirmedActionId: String?
             var desiredName: String?
+            var renameSnapshot: [String: Any]?
             let extra: Set<String>
             switch action {
             case "createScene": extra = ["name"]
@@ -213,9 +214,9 @@ final class HomeDefinitions: HomeComponent, HMHomeDelegate {
             } else if action != "createScene" {
                 guard let currentId = resourceId, ["scene", "automation"].contains(kind) else { throw ControlFailure.invalid("RESOURCE_ID_KIND_REQUIRED") }
                 creationOperation = try store.requireOwned(homeId: homeId, id: currentId, kind: kind)
-                if action == "rename", let name = args["name"] as? String { desiredName = try LifecycleStore.resourceName(name, operationId: creationOperation) }
                 let snapshot = try lifecycleDefinition(home: home, kind: kind, resourceId: currentId)
                 try LifecycleStore.requireRevision(args["expectedRevision"] as? String, snapshot: snapshot)
+                if action == "rename" { renameSnapshot = snapshot }
                 if kind == "scene" {
                     scene = home.actionSets.first(where: { $0.uniqueIdentifier.uuidString == currentId })
                     guard let scene = scene else { throw ControlFailure.invalid("USER_SCENE_NOT_FOUND") }
@@ -224,7 +225,7 @@ final class HomeDefinitions: HomeComponent, HMHomeDelegate {
                 } else {
                     trigger = home.triggers.first(where: { $0.uniqueIdentifier.uuidString == currentId }) as? HMEventTrigger
                     guard let trigger = trigger else { throw ControlFailure.invalid("EVENT_TRIGGER_NOT_FOUND") }
-                    try requireEditableTrigger(trigger, home: home)
+                    if action != "rename" { try requireEditableTrigger(trigger, home: home) }
                 }
                 if action == "addAction" {
                     guard let scene = scene, scene.actions.count < 256, let target = args["target"] as? [String: Any] else { throw ControlFailure.invalid("ACTION_SCENE_TARGET_REQUIRED") }
@@ -310,7 +311,8 @@ final class HomeDefinitions: HomeComponent, HMHomeDelegate {
                         }
                         let observed = try self.lifecycleDefinition(home: observedHome, kind: kind, resourceId: currentId)
                         if let desiredName = desiredName, observed["name"] as? String != desiredName { throw ControlFailure.invalid("NAME_READBACK_MISMATCH") }
-                        if kind == "automation", observed["enabled"] as? Bool != false { throw ControlFailure.invalid("DISABLED_READBACK_MISMATCH") }
+                        if let before = renameSnapshot { try LifecycleStore.requireRenameReadback(before: before, after: observed) }
+                        else if kind == "automation", observed["enabled"] as? Bool != false { throw ControlFailure.invalid("DISABLED_READBACK_MISMATCH") }
                         let observedScene = observedHome.actionSets.first(where: { $0.uniqueIdentifier.uuidString == currentId })
                         let observedTrigger = observedHome.triggers.first(where: { $0.uniqueIdentifier.uuidString == currentId }) as? HMEventTrigger
                         if newAction != nil, let target = actionTarget, let value = actionValue {

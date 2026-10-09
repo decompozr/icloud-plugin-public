@@ -1,7 +1,7 @@
 # Independent packages and application boundaries
 
-Account backend ownership has moved to `modules/account`; server/process ownership
-remains in the transitional app until the next phases. See [the accepted Studio
+Studio owns the complete server/process; all five feature backends live in their
+independent module packages. See [the accepted Studio
 server migration](studio-server-migration.md).
 
 The runtime application is `apps/icloud`; `apps/studio` owns its Svelte
@@ -13,7 +13,7 @@ and retired experiment findings live in `docs/research/prototype-archive/`. Reta
 library checks use application dependencies and run in the formal test suite.
 
 ```text
-apps/icloud/src/
+apps/studio/server/
   index.ts         process entrypoint
   modules/         feature registration and lifecycle contracts
   mail/            Mail module and all Mail-owned implementation
@@ -35,7 +35,7 @@ apps/icloud/src/
 
 Every source subsystem has a README describing its purpose, owned contracts,
 use cases, dependencies, state/security boundaries, verification and limitations.
-The [source index](../apps/icloud/src/README.md) links each one. Central
+The [source index](../apps/studio/server/README.md) links each one. Central
 [architecture](architecture.md) owns cross-subsystem composition; the
 [Mail contract](mailbox-tools.md) owns detailed user-facing operation semantics.
 These documents are part of the source deliverable and must change with behavior.
@@ -51,7 +51,7 @@ this layout inventory does not identify or verify a running release.
 | Lifecycle | Command from repository root | Output and boundary |
 | --- | --- | --- |
 | Development | `bun bin/dev` | Runs source with watch; requires local app configuration. No deployment. |
-| Build | `bun bin/build` | Typechecks then emits `apps/icloud/dist/index.js` for Bun. Does not start a service. |
+| Build | `bun bin/build` | Typechecks then emits `apps/studio/dist/server/index.js` for Bun. Does not start a service. |
 | Release | `bun bin/release` | Packages the existing build and installed dependencies into a versioned host-platform archive under `releases/`; refuses overwrite. No build, registry upload or publication. |
 | Runtime | `bun bin/runtime` | Runs the existing app build only; no compilation or dependency installation. |
 | Verification | `bun bin/typecheck`, `bun bin/test` | Checks app and tooling units/types; `bun bin/e2e` uses the separate built-service project. Native helper acceptance remains explicit. |
@@ -65,8 +65,7 @@ bun install --frozen-lockfile
 ```
 
 Studio depends on public package exports, not neighboring source paths. The
-account package exports backend and UI separately; other feature packages expose
-UI until their backend extraction phase. Packages use independent 0.1.0 versions,
+all feature packages export backend and UI separately. Packages use independent versions,
 which are separate from the application's release version. Packed workspace
 references become exact versions; production installs local immutable tarballs
 with an isolated consumer lock and frozen installation. Surface route sources

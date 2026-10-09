@@ -6,11 +6,15 @@
   import type { ToastCenter } from "../lib/ui-state.svelte.js";
   import RequirementStep from "@decompozr/ui/components/RequirementStep.svelte";
   import Modal from "@decompozr/ui/components/Modal.svelte";
+  import {moduleUiProvider} from "../lib/module-ui-provider.js";
+  import type{DialogCenter} from "../lib/ui-state.svelte.js";
+  import RequirementsMount from "@decompozr/ui/components/RequirementsMount.svelte";
   import {bundledModules} from "../lib/bundled-modules.js";
   import RefreshButton from "@decompozr/ui/components/RefreshButton.svelte";
   let { model }: { model: AdminModel } = $props();
   const { t } = getContext<UiCopy>("copy"),
     toast = getContext<ToastCenter>("toast");
+  const services=moduleUiProvider(getContext<UiCopy>("copy"),toast,getContext<DialogCenter>("dialogs"));
   const kind = $derived(model.requirementDialog);
   const definition=$derived(bundledModules.find(module=>module.id===kind));
   const connectivity = $derived(
@@ -125,7 +129,7 @@
     {#if !model.canRegister && !model.state.admin}<p class="muted">
         {t("ownerDenied")}
       </p>{/if}
-  {:else if definition}{@const Requirements=definition.Requirements}<Requirements/>
+  {:else if definition}{#key definition.id}<RequirementsMount {definition} {services} onverified={()=>{}}/>{/key}
   {:else}<p>{t("connectIntro")}</p>
     {#if model.state.publicMcpUrl}<div class="copy-row">
         <code>{model.state.publicMcpUrl}</code><ActionButton

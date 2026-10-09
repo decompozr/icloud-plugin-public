@@ -246,9 +246,11 @@ state/secrets and records checksums. Verify isolated consumer installation, pack
 exports, Svelte composition, client/server boundaries and native artifact upgrade.
 
 No new runtime or global installer. Preserve provider/state/scope/native behavior.
-Registry publication awaits an explicitly selected private destination and access;
-no public npm publish is authorized. Local package artifacts and installed service
-are deliverable independently of that missing destination. Remaining source/server
+The owner selected local package artifacts and existing Git remote source/version
+management for this stage. Registry selection/publication is out of scope, not a
+delivery blocker. Keep package private flags and do not publish to public npm.
+The canonical local service archive includes all installed versioned package TGZs;
+Git preserves source and version metadata. No hosted binary upload is claimed. Remaining source/server
 migration phases and owner acceptance still remain visible.
 
 ### Versioned package checkpoint
@@ -258,8 +260,7 @@ imports use package exports; account backend is installed once and the temporary
 built-test facade forwards to that same instance. Standalone consumers install
 exact local TGZs, not source-folder links. Workspace ranges become exact packed
 dependencies, with license/notices, checksums and filtered contents. Private flags
-remain until an explicitly selected private registry is configured; no registry
-publish has run. Other feature server exports remain deferred, not fabricated.
+remain for local/Git delivery; registry publication is not required. Other feature server exports remain deferred, not fabricated.
 
 Self-checking: 583 tests / 5,136 assertions, built HTTP E2E 13 / 258, package
 consumer test 1 / 9 outside the repo, 58 persistent-shell browser checks, four
@@ -274,7 +275,7 @@ instead of silently deleting that dependency. Existing SDK versions are preserve
 
 Fresh-checkout root frozen install, complete build and all 583 tests / 5,136
 assertions pass after the package-relative filtering fix. Clean-main release/install
-and live readback remain pending. Registry selection/publication and owner acceptance remain separate
+and live readback remain pending. Registry publication is out of scope; owner acceptance remains separate
 from local package delivery.
 
 Fresh-checkout verification caught an absolute-path filtering defect: a build
@@ -305,7 +306,447 @@ from upgrade-time preservation.
 Local/private sign-in returns 200, two CSS assets match, 13 installed client files
 exclude backend markers, and 13 doctor checks pass from this Mac. Existing main
 MCP profile and actual 9-mailbox read succeed without new registration/consent or
-provider writes. Physical owner/device walkthrough remains pending. Private registry
-selection/publication remains unresolved; local package installation and service
-delivery do not claim module publication. Owner pass still gates the next backend
+provider writes. Physical owner/device walkthrough remains pending. The owner accepted local
+package installation and existing Git remote source/version delivery without a
+registry. No registry or hosted binary publication is claimed. Owner pass still gates the next backend
 extraction phase.
+
+### Accepted delivery scope
+
+The owner confirmed that a registry is not needed for now. Local workspaces and
+installed versioned TGZs, the canonical service release archive, and existing Git
+remote source/version history satisfy this package-delivery phase. Registry work
+is removed from pending requirements. Package versions remain independent; future
+module changes still require dependency verification and a service upgrade before
+activation. Owner pass continues to gate the next backend/server migration phase.
+
+### Release-first module runtime direction
+
+The owner clarified the durable delivery model: assemble local module bundles and
+ship one complete service release, including future iterations. Independent module
+versions are composition/compatibility identities; they do not require a registry
+or separate deployed services. The current install upgrades the complete release.
+
+Dynamic module upgrade is a later stage after backend extraction and Studio server
+ownership. Studio/runtime becomes the thin MCP/control-plane shell: listeners,
+authentication/authorization enforcement, route/UI composition and module lifecycle
+hosting. Module packages own feature logic, tools, requirements and UI. No feature
+implementation should be pulled back into the shell for convenience.
+
+Later dynamic upgrades must explicitly design compatibility validation, blocking
+new work, draining accepted operations, resource disposal, atomic activation and
+rollback. Owner identity/key custody, grants and OS permissions remain independent
+of code replacement. This direction does not claim hot upgrade is implemented now,
+select an update distribution transport or authorize unattended activation.
+
+## Module declaration ownership correction
+
+Each module declares and exports its own public data/API contracts. The account
+wire schema moves to `@decompozr/account/contracts`, a browser-safe subpath separate
+from its backend entry. No feature depends on a central package containing other
+features' declarations or readiness/business decisions.
+
+Current connection/read-evidence interpretation belongs to Studio composition,
+not a generic contracts package; the transitional server consumes its compiled
+host helper. Existing module/runtime registration and lifecycle interfaces remain
+in their current host until the shell migration, without introducing another
+central framework. Remove the superseded contracts package and its dependencies.
+Validate client purity, module isolation, packed consumer install, host/server
+build, OAuth/custody/lifecycle preservation and deployed readback.
+
+UI remains a three-layer decision: the pinned design-system owns visual primitives;
+shared project UI owns composite adapters; feature modules own domain UI. The local
+design-system checkout has a library export but still declares private 0.0.0, so
+this correction does not replace pinned vendor controls with an unversioned live
+checkout. A later independently versioned design-system package can replace those
+pinned copies while retaining the thin UI adapter package. No visual redesign.
+
+### Shell provider and extension UI boundary
+
+The owner clarified two supported mechanisms: a module ships and owns its complete
+UI (component/state/interactions) and the shell mounts its contribution, or the
+module invokes shell-owned standard UI through `ctx` services. Modules never
+import shell component implementations or the global shell model. A module may
+use a versioned design-system dependency for its own UI without knowing the shell's
+component catalog. The current directly shared project UI package is transitional;
+its shell services/adapters must move behind `ctx` in the subsequent UI boundary
+slice. This contract cleanup does not claim that provider/contribution mechanism
+has been fully implemented.
+
+### Current feature UI audit
+
+No module currently declares a navbar/standalone page registration. Account owns
+full authentication page components, but Studio hardcodes their route mounting.
+Mail and Calendar each have only a wrapper around the account app-password
+requirement; these should become declarative requirements with no feature renderer.
+Photos exposes library/authorization status, open-library/privacy actions and
+recheck controls: generic requirements become declarations, while any special
+permission interaction may use an optional modal section. HomeKit exposes account/
+Home selection, explicit linking, binding list and unlink; linking is a legitimate
+custom section (or optional standalone page). Account exposes cards, app-password
+modal, Passkey/OAuth pages and the parked web-session form; other modules should
+request account operations through ctx, not import those component implementations.
+
+The next UI slice uses module-owned declarations for scopes, capabilities, generic
+requirements and settings. Shell renders those standardized controls consistently.
+Optional module renderers are limited to registered navbar pages, standalone pages
+and custom configuration sections. Shell injects ctx on mount; global actions and
+shared dialogs/notifications/account operations are provider functions. A module
+is not required to own a Svelte wrapper for every configuration item. Current
+wrappers/direct shared adapters are transitional, not the accepted final interface.
+
+Contract correction verification: 583 tests / 5,136 assertions, E2E 13 / 258 and
+packaged lifecycle/OAuth 2 / 151 pass. Independent review confirms unchanged owner
+schemas, isolated browser contracts and 13 clean client files. A host declaration
+initially referenced an unshipped Studio directory; emitted declarations are now
+embedded at the artifact-local admin path and independent recheck is clear.
+
+### Owned contract delivery
+
+PR #133 is merged and service 0.1.99 was built from clean remote main
+`f8314f75d54c10687ba37078e9150d6282e5e21b`, verified as the tip before release/install.
+Final frozen build, all UI type checks and artifact lifecycle/OAuth checks (2 / 151)
+pass. Account/Mail/Calendar package versions are 0.1.1; account declares its own
+browser-pure contracts, and the central package is absent. Other package versions
+remain unchanged. The native helper bundle is unchanged and staging verifies it.
+
+After graceful drain and protected stopped-state backup, the supported updater
+installed the exact payload without initialization. Config/custody bytes, protected
+non-transient database rows and integrity are preserved; expected resource/rate-limit
+timestamps are excluded. Prior release 0.1.98 and the pre-0.1.99 backup remain for
+rollback. A private upgrade receipt records these checks. Sign-in returns 200,
+13 client files exclude backend markers, and 13 doctor checks pass from this Mac.
+The existing main MCP reads 9 mailboxes without new registration/consent or writes.
+These checks do not establish physical owner/device acceptance.
+
+The feature UI audit and revised ctx/registration boundary are accepted direction,
+not an implemented new renderer protocol. Mail/Calendar wrappers, self-owned page
+contributions, standard declarative popup fields and Home linking ctx integration
+remain the next UI boundary slice.
+
+## Declarative extension UI and injected provider implementation
+
+This slice replaces mandatory UI wrappers with module requirements declarations.
+Shell owns common app-password rendering. Optional custom configuration sections
+receive a mount-scoped ctx with translation, notifications, account operations,
+readiness reporting and explicitly declared API operations. No module imports a
+shell model/controller to perform global actions. Ordinary visual primitives stay
+pinned; native/provider policy and permissions do not change.
+
+Optional module pages register metadata/renderer through the same UI contribution
+interface, with safe unique paths under the private admin module namespace. Navbar
+participation is optional. No empty feature page is invented just to exercise the
+API. Tests use synthetic contributions to validate registration and mounting.
+
+Acceptance: Mail/Calendar have no requirement Svelte wrapper; Home/Photos custom
+sections use injected ctx rather than shell copy/toast/dialog internals; unknown
+API operations and expired mounts fail closed; late responses cannot target new
+dialogs; registrations validate identity/paths/conflicts; full build/tests, compiled
+consumer/client purity, private ingress and deployment/state preservation pass.
+
+### Declarative ctx implementation checkpoint
+
+Mail/Calendar no longer ship requirement components or depend on account UI; their
+requirement arrays are rendered by shell. Home/Photos expose optional custom
+sections receiving a lease-scoped ctx; API operations are declared and namespace
+validated, account/global notification/confirmation services are injected.
+Optional page metadata/renderer registration validates unique safe private paths;
+navbar participation is optional. Host route gating recognizes only registered
+pages and retains owner checks; default feature bundles deliberately add no empty
+product pages. Back/cancel recovery retains exact modulePath, including standalone
+non-navbar contributions. Existing auth UI remains a dedicated account provider
+route rather than a fabricated feature page. Further thin-shell/server extraction
+remains phased.
+
+589 tests / 5,185 assertions, E2E 13 / 258, packaged lifecycle/OAuth 2 / 151 pass.
+Browser fixtures pass 58 shell and 142 requirements/credential/locale/consent checks,
+four disabled bundled panels, late-response fencing and 13 clean client files.
+Mobile credential modal screenshot was visually inspected. No real provider/native
+action or physical device acceptance was performed. Independent review found and
+verified early page allowlist, inherited operation lookup and module-page URL
+restoration fixes: anonymous303/foreign403/owner200/unknown404, ctx3/19 and public
+ingress/client purity pass. No remaining scoped blocker. Service candidate0.1.101
+and affected package0.2.0 versions were delivered as described below.
+
+### Declarative ctx deployment (0.1.101)
+
+PR136 merged at `32f01a89fef477014ec7d6f4c6a97710d7573a35`. Release 0.1.101
+was built from a clean detached checkout of that remote main, using frozen workspace
+and standalone consumer locks and all six local package artifacts at 0.2.0. The
+existing signed HomeKit Release helper remains unchanged; staging verified its
+signature, team, protocol and source pin without launching it or requesting native
+permissions. No registry publication or dynamic module loading was added.
+
+Post-integration checks: 589 tests / 5,185 assertions, E2E13/258 and final packaged
+lifecycle/OAuth2/151 pass. Browser fixtures pass 58 shell and 142 requirements checks,
+four disabled module panels, late-response fencing and 13 clean client files.
+Independent security review additionally passed 8 synthetic tests / 239 assertions
+at the integrated source, with no remaining scoped blocker. No remote CI checks
+are configured for PR136; local and independent checks are the recorded evidence.
+
+After graceful drain and protected stopped-state backup, the supported updater
+installed the exact payload without initialization. Configuration/custody bytes,
+all non-transient SQLite rows and database integrity are preserved. Only resource
+and rate-limit diagnostic tables are excluded from that row comparison. Local
+sign-in uses the configured `localhost` host and returns200; the private Tailscale
+sign-in returns200 with security headers and byte-identical client CSS. All 13
+read-only doctor checks pass. Existing main MCP profile and nine mailboxes read
+successfully after deployment. No provider write, reset or permission request was
+performed; physical device, real Passkey and owner UI acceptance remain pending.
+
+The canonical release archive and installed0.1.100/0.1.101 remain for rollback.
+The protected receipt is in
+`runtime/backups/pre-0.1.101-20261008T155636Z/upgrade-receipt.json`. Task-owned
+build/install/browser/test scratch is removed after this record is committed;
+the active checkout, runtime checkpoint and unrelated records remain. This UI
+boundary slice is delivered; full backend/server extraction remains phased and
+awaits owner pass before the next slice.
+
+## Phase 2 Mail backend extraction execution contract
+
+Owner accepted the declarative UI delivery and explicitly requested the next Mail
+slice. Existing module packages are retained; this moves the backend currently in
+`apps/icloud/src/mail` into the existing `modules/mail` package, not a new registry.
+
+1. Move Mail domain, services, provider adapters, storage, tool/scope declarations
+   and configuration into its server entry; independently build and install it.
+2. Inject verified invocation lookup and operation monitoring as narrow dependency
+   ports. Mail declares its registration; the existing host owns the shared runtime,
+   AsyncLocalStorage, ingress, UI presentation and process lifecycle. Do not copy
+   the runtime implementation or import shell source into the package.
+3. Retain only transitional host composition/presentation adapters, update their
+   consumers to public package exports and move pure tests with their backend.
+4. Verify account isolation/revocation, tool scopes, unknown outbound outcomes and
+   drain/disposal, built outside-repo consumption, full application tests/E2E and
+   unchanged client boundary. Obtain independent security review.
+5. Merge, build from clean remote main, release and deploy to the established native
+   prefix with graceful drain, protected backup and exact payload/data checks;
+   verify doctor, private UI and existing MCP profile/mailboxes reads. No provider
+   write, new permission request or automation mutation is part of this slice.
+
+Acceptance is installed Mail module ownership with unchanged names, persisted
+policies/replay history and authorization behavior. Keep the currently installed
+HomeKit signed helper and automation setup intact. Owner pass gates Calendar,
+then Photos/HomeKit extraction and final Studio server composition/removal of the
+old application. Version allocation is provisional until release reconciliation.
+
+### Mail backend source verification checkpoint
+
+Mail0.3.0 now builds its domain, services, IMAP/SMTP/unsubscribe adapters, policy,
+replay ledger, scope/tool declarations and factory independently. Its public server
+entry is separate from UI. Only declaration ports describe the injected verified
+invocation lookup and monitor; no host runtime/AsyncLocalStorage implementation
+is copied or reverse-imported. The transitional host supplies the original lookup,
+presentation and HTTP/MCP fixture composition. Existing account, tool, scope,
+provider endpoint and table/ledger semantics are unchanged.
+
+590 tests / 5,197 assertions and built E2E13/258 pass. An outside-repository install
+loads all six exact local bundles plus Mail backend/provider exports, verifies
+resolution inside the consumer and typechecks actual API usage. Public nodemailer
+declaration types ship as an exact dependency. Source/workers/tests are excluded
+from package backend output. Independent review passed46/157 on account isolation,
+revocation, scopes, unknown/replay outcomes, wire behavior and drain/disposal;20
+Mail declaration files resolve inside the package and13 client files have no
+backend markers. No remaining scoped blocker. Service0.1.107 was delivered below.
+
+### Mail backend deployment (0.1.107)
+
+PR145 merged at `f6a53432f934546e5ace07ef0557a87c829df252`. Release0.1.107
+was built from a clean detached checkout of that remote main with frozen workspace
+and standalone consumer locks. Six exact local bundles ship together; Mail0.3.0
+contains the backend and UI entries. Installed host output contains no old Mail
+service implementation. No registry or dynamic module loading was introduced.
+
+Final packaged checks passed18 tests, including runtime restart/OAuth persistence
+and module-owned draft/attachment/replay fixtures (151 Bun expect calls; Node assert
+checks also run in the Mail fixtures). Native staging verified the existing0.1.106
+Release signature/team/protocol/source pin without building or launching a helper.
+HomeKit payload bytes are identical and its ledger files are preserved; no Home
+scene, thermostat, automation, policy or permission was mutated by this slice.
+
+The supported updater ran after graceful drain and a protected stopped-state
+backup. All installed payload file/symlink hashes/modes match the artifact;
+configuration/custody bytes, non-transient SQLite rows and integrity are preserved.
+Resource/rate-limit diagnostic tables alone are excluded from row comparison.
+Local/private sign-in return200; private CSS matches installed bytes, security
+headers remain,13 client files contain no backend markers, and all13 doctor checks
+pass. Existing main MCP profile and nine mailboxes read successfully through the
+installed Mail package. No real mail send/edit/delete or new consent was performed.
+
+The immutable canonical archive and installed0.1.106/0.1.107 remain for rollback.
+The protected upgrade receipt is
+`runtime/backups/pre-0.1.107-20261008T211824Z/upgrade-receipt.json`. Task-owned
+scratch/build checkout will be removed after committed preservation; active
+checkout, checkpoint and unrelated records remain. Independent source checks are
+recorded above; PR145 has no configured remote CI. Physical-device/real Passkey
+acceptance is not claimed. Mail is deployed awaiting owner pass; Calendar is next,
+then Photos/HomeKit backend ownership and final Studio server composition.
+
+## Phase 2 Calendar backend extraction execution contract
+
+Owner passed the deployed Mail slice and requested continuation. Move the existing
+Calendar domain/codec, CalDAV gateway, services, encrypted ledger, tool/scopes and
+capability declarations into the existing Calendar package. Keep its UI entry
+separate. The host injects the original verified invocation lookup and monitor;
+retain a thin host factory adapter and host account/transport integration tests.
+No parallel registry, listener or authorization mechanism is introduced.
+
+Acceptance: independent build and outside-repository package/API type consumption;
+account isolation, credential/policy races, scope escalation, conditional provider
+operations, recurrence/availability and unknown/replay tests; full build/tests and
+built E2E; independent review; clean-main packaging/lifecycle and deployed preserved
+state. The established native prefix, current signed HomeKit helper and automation
+ledgers remain unchanged. Live verification is read-only through existing MCP; no
+real Calendar create/edit/delete/invite/share or new consent. Preserve current
+Mail/auth behavior and database names. Calendar0.3.0/service0.1.108 are provisional
+until release reconciliation. Owner pass gates the following Photos slice.
+
+### Calendar backend source verification checkpoint
+
+Calendar0.3.0 independently builds the existing codec/domain, CalDAV client/gateway,
+services, encrypted policy/operation/sync ledger, tool schemas/scopes and capability
+fields. The host's thin factory injects its existing verified invocation lookup;
+structural dependency ports expose only required context/monitor behavior. Provider
+implementations and persistence/authorization logic are unchanged; no duplicate
+runtime or shell reverse import is introduced. Browser UI remains a separate entry.
+
+Complete590 tests / 5,197 expect calls and builtE2E13/258 pass, including Calendar's
+39/157 owned suite. Outside-repo installation resolves Calendar backend/gateway/
+ledger exports inside the consumer and typechecks their API. Independent review
+passed47/228 for isolation, credential races, scopes, conditional dispatch, unknown
+outcomes and replay;12 declarations resolve within the package and13 client files
+contain no backend markers. No scoped blocker. Release0.1.108 was delivered below.
+
+### Calendar backend deployment (0.1.108)
+
+PR147 merged at `fbda7dbb84b9d1f5ff3eec7454162caf233510dd`. Release0.1.108
+was built from a clean detached checkout of remote main, frozen workspace and
+standalone consumer locks, and six exact local bundles. Calendar0.3.0 and Mail0.3.0
+ship their server/UI entries; installed host output has no old Calendar service.
+Native staging verified the existing signed HomeKit payload without a native build,
+launch or permission request. Its bytes are identical to installed0.1.107.
+
+The final packaged Calendar fixtures pass39/157 against absolute installed-package
+imports; the codec fixture also resolves the artifact's own pinned ICAL dependency.
+The first harness attempt missed that dependency path; the corrected complete39
+fixtures pass. Packaged restart/OAuth persistence checks independently pass2/151
+against the same immutable artifact. No Calendar provider behavior was modified.
+
+After graceful drain and protected stopped-state backup, the supported updater
+installed the exact payload without initialization. File/symlink hashes/modes,
+config/custody bytes, non-transient SQLite rows and integrity are preserved. Only
+resource/rate-limit diagnostic tables are excluded from the row comparison.
+HomeKit ledger files and helper bytes are unchanged. Local/private sign-in200,
+byte-exact private CSS, security headers,13 clean client files and doctor13 pass.
+The existing main MCP reads four actual calendars, the profile and nine mailboxes
+through the installed packages. No event/calendar create/edit/delete, invitation,
+sharing, mail/native write, reset or new consent was performed.
+
+Source/independent checks are recorded above; PR147 has no configured remote CI.
+Physical-device/real Passkey and broader provider/recipient acceptance are not
+claimed. The immutable canonical archive, installed0.1.107/0.1.108 and protected
+receipt in `runtime/backups/pre-0.1.108-20261009T034226Z/upgrade-receipt.json`
+remain for recovery. Task-owned scratch/build checkout will be removed after
+committed preservation; checkpoints, active checkout and unrelated state remain.
+Calendar is deployed awaiting owner pass; Photos backend extraction is next.
+
+## Remaining migration completion authorization and execution contract
+
+Owner passed Calendar and explicitly authorized all remaining phases without
+per-phase pass waits. Finish Photos/HomeKit backend ownership, then Studio server/
+API/MCP/listener/process composition, release/install/doctor path updates and
+removal of the old app. Keep static trusted local bundles and one service release;
+dynamic upgrades/registry remain out of scope. Existing URLs, OAuth/account/custody,
+SQLite/ledger namespaces, native identities and policies remain unchanged.
+
+1. Extract Photos/HomeKit backend packages, inject original host context including
+   abort/authorize and subscription restoration, preserve provider/default sidecar
+   lookup and native assets. Archived Shared Album paths remain excluded from
+   production; do not revive them while moving ownership.
+2. Independently build/install/check packages and relevant source/packaged tests;
+   obtain independent security/lifecycle review and deploy from clean main with
+   protected backup and read-only installed acceptance.
+3. Move the remaining host into Studio, adjust tooling/artifact entry paths, preserve
+   legacy artifact inspection/rollback and external identities, then remove old
+   app and adapters without changing UI or introducing a second runtime.
+4. Verify full build/tests/E2E, native/helper exclusions and private/public ingress,
+   drain/restart, outside-repo bundles, distribution/upgrade and live actual reads;
+   independently review, merge, clean-main release/deploy and preserve results.
+
+No real mail/calendar/Photos/Home write, reset, new grant or native permission
+request is authorized by migration. Reuse the installed signed helper unchanged.
+Later physical/recipient acceptance remains separate. Task-owned scratch stays
+under ignored .decompozr/flow/run; accepted source/deployment evidence is tracked.
+
+### Final source ownership and background service verification
+
+Photos/HomeKit backends now have independent server/UI entries and package-adjacent
+allowlisted native/sidecar assets. Archived Shared Album implementations/tests are
+source-only and excluded from production. Studio owns the remaining host in server/;
+UI/host build outputs are distinct (dist/ui, dist/server), preserving build/test
+isolation. Artifact/runtime/install/doctor/container tooling targets Studio; only
+explicit historical artifact inspection keeps a legacy entry fallback. Native
+helper bytes, URL/OAuth/database identities and provider logic remain unchanged.
+
+The owner requested reboot recovery and explicitly selected both automatic defaults.
+The deployed0.1.108 was restored without initialization after reboot; its private
+sign-in returned200. The new per-user LaunchAgent starts after login and a persistent
+CLI supervises server-child failures independently. No launchd KeepAlive key is used
+because it implicitly forces RunAtLoad. Kernel advisory locks prevent duplicate
+runtime/control admission and release on exit/reboot; per-UUID receipts preserve
+coalesced/superseded requests. Control validates actual loaded arguments/PID plus
+owned prefix/plist before graceful drain and unload. Reset queues the same service
+control; one-shot utilities preserve its record. UI uses pinned Switch/Modal/Icon/
+Toast controls and a shared token-based section adapter. No actual reset is tested.
+
+Source checks currently pass599 tests/5,278 expect calls, E2E13/258 and targeted
+service/reset/CLI12/67, including concurrent runtime admission. Independent extracted
+backend checks93/498 pass; final host/service review, browser and immutable clean-main
+package/deployment acceptance remain pending. Container client exists but its engine
+is stopped; no unrelated VM/service was started. Native deployment remains the task
+target. Runtime configuration, master key, grants and native permission requests were
+not changed while implementing. Existing service0.1.108 remains running until the
+verified upgrade. Dynamic module upgrade/registry and pre-login native availability
+remain outside this delivery.
+
+Final local checks: Studio/application/module builds and typechecks pass; full599/
+5,278 and E2E13/258 pass. Browser fixtures pass58 shell and142 requirement checks,
+plus independent service toggles/readback, restart confirmation, mobile wrapping
+and Traditional Chinese. The new mobile service screenshot was visually inspected.
+Final independent service review12/67 passes concurrent admission/kernel release,
+UUID supersession and async failure isolation, reset supervision and one-shot record
+preservation; no scoped blocker remains. UI declaration closure includes the generated
+Paraglide dependency; the transitional built account facade is removed. Container
+source/context paths use the root frozen workspace; actual container build was not
+run because its engine is stopped and native deployment is the requested target.
+Clean-main packaging/lifecycle and deployed LaunchAgent/live reads remain pending.
+
+### Native rollout and exited-process correction
+
+Clean-main source1eb147f packages0.1.109; final lifecycle/OAuth/Mail fixtures18/151
+pass. Exact payload, config/custody, non-transient SQLite rows/integrity and Home
+ledgers are preserved. LaunchAgent defaults selected by owner are enabled. Initial
+manual-to-managed apply retained SERVICE_DRAIN_TIMEOUT: the CLI had exited but its
+Python deployment parent had not reaped it, so kill(pid,0) still saw a zombie. No
+force termination or provider replay occurred. After parent cleanup, the supported
+explicit service start registered a managed/running job; private sign-in200.
+
+The109 protected receipt is in
+runtime/backups/pre-0.1.109-20261009T172031Z/upgrade-receipt.json. Correction110
+recognizes exited/zombie state during graceful drain while retaining owner/PID checks
+and refusal to unload a live/replaced job. Six bounded service tests/33 assertions
+pass, including the zombie-parent regression. Review and clean-main repair rollout
+remain pending; this is not final migration delivery yet. Parallel UI work at8464
+and its uncommitted checkout remain untouched, with a scoped coordination packet.
+
+The110 repair was deployed from clean main a9b00ce. Readback confirms the job is
+managed and running with both selected defaults enabled; its protected receipt is
+runtime/backups/pre-0.1.110-20261009T173125Z/upgrade-receipt.json.
+The initially failed package lifecycle check omitted the disposable installation
+prefix, so it attempted admission against the running home installation. Supplying
+the fixture prefix isolates custody and locks: all18 package lifecycle/OAuth/Mail
+tests pass with151 assertions against the unchanged110 artifact. Independent
+disposable two-start/stop verification also passes. This does not establish a
+production lock-release defect; no production locking change was needed. Final
+managed restart completed through the supported CLI and its matching operation receipt;
+private sign-in returned200 afterward. Remaining live acceptance and cleanup are pending.

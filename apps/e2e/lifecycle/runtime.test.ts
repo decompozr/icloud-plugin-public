@@ -15,7 +15,7 @@ scenario('installed artifact initializes explicitly, restarts without resetting 
  expect(await install.exited).toBe(0);
  const entry=join(prefix,'current/icloud-plugin');
  let child:ReturnType<typeof Bun.spawn>|undefined;
- const spawn=(initialize=false)=>Bun.spawn([entry,'run','--config',config,...(initialize?['--initialize']:[])],{cwd:dir,env:{PATH:`${dirname(process.execPath)}:/usr/bin:/bin`},stdout:'pipe',stderr:'pipe'});
+ const spawn=(initialize=false)=>Bun.spawn([entry,'run','--prefix',prefix,'--config',config,...(initialize?['--initialize']:[])],{cwd:dir,env:{PATH:`${dirname(process.execPath)}:/usr/bin:/bin`},stdout:'pipe',stderr:'pipe'});
  try{
   await Bun.write(config,`public_origin="https://icloud.invalid"\nprivate_origin="https://icloud.invalid:8443"\npublic_port=${publicPort}\nprivate_port=${privatePort}\nstate_directory="./state"\nmaster_key_file="./custody/master.key"\ninstallation_marker="./custody/installation.marker"\ntailscale_binary="/nonexistent-fixture-tailscale"\n`);
   expect(await spawn().exited).toBe(1);

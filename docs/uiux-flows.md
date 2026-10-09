@@ -335,3 +335,18 @@ Story: As a user reviewing Overview, I want a compact fixed title row that leave
 Execution: use pinned controlMetrics.coarseTarget and spacing tokens in shared header styling, remove redundant scoped margin/top inset, verify dimensions/scroll coverage/overflow and navigation on desktop/mobile, then update the existing private 8464 fixture. This supersedes the preserved-title-position constraint of the earlier gap repair. Native installation N/A.
 
 Latest Overview direction removes the entire NextStep banner/component/classifier, superseding its earlier setup/review and Choose capabilities scroll stories. The navbar and direct section actions remain. Slim header, matching section skeletons, Runtime field order, automatic owner-authorized client permissions and offline fixture scenarios are documented in [overview-runtime-client-sync.md](overview-runtime-client-sync.md).
+# Studio user flows
+
+## Background service management
+
+Actor: installation owner after a Mac login/reboot. Intent: restore access without
+opening a terminal. System & diagnostics shows independent catalog switches for
+start at login and restart after unexpected exit. Changes persist settings and
+gracefully reconnect; toasts report queued/completed/unverified outcomes. Explicit
+restart uses the shared confirmation modal. Accepted work drains without forced
+termination or automatic provider retries. Refresh status before retry after failure.
+Development/container hosts disable native controls. Acceptance: owner/origin gates,
+queued restart recovery, persisted switch readback, keyboard/mobile wrapping,
+reduced-motion catalog behavior, real LaunchAgent registration and retained data/
+helper identity. Startup occurs after user login; pre-login native availability
+is not claimed. Owner selected both automatic defaults enabled for deployment.

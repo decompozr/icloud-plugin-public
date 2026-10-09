@@ -10,7 +10,11 @@
     "./ui": "./ui/index.ts",
     "./ui/*": "./ui/*",
     "./ui/*.js": "./ui/*.ts",
-    "./ui/*.svelte.js": "./ui/*.svelte.ts"
+    "./ui/*.svelte.js": "./ui/*.svelte.ts",
+    "./contracts": {
+      "types": "./dist/contracts.d.ts",
+      "default": "./dist/contracts.js"
+    }
   },
   "scripts": {
     "build": "bun ../../packages/tooling/src/build-account.ts",
@@ -25,7 +29,6 @@
     "jose": "6.2.12",
     "zod": "3.25.76",
     "@decompozr/ui": "workspace:*",
-    "@decompozr/contracts": "workspace:*",
     "@simplewebauthn/browser": "14.0.0"
   },
   "devDependencies": {
@@ -35,7 +38,7 @@
     "svelte": "5.57.1"
   },
   "packageManager": "bun@1.4.2",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "files": [
     "dist",
     "ui",

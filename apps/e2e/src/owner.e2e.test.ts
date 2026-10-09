@@ -8,10 +8,10 @@ import {createServer as probeServer,type Server} from 'node:net';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {z} from 'zod';
-import {createApplication} from '../../icloud/dist/server/application.js';
-import {SqliteOwnerStore} from '../../icloud/dist/account/index.js';
-import type {AppSettings} from '../../icloud/dist/server/settings.js';
-import type {MailGateway,MailSession,MailMessageInput,SendResult} from '../../icloud/dist/mail/domain/mail.js';
+import {createApplication} from '../../studio/dist/server/server/application.js';
+import {SqliteOwnerStore} from '@decompozr/account/server';
+import type {AppSettings} from '../../studio/dist/server/server/settings.js';
+import type {MailGateway,MailSession,MailMessageInput,SendResult} from '@decompozr/mail/server/domain/mail.js';
 import {passkeyResponse} from './helpers/owner-passkey.js';
 
 // Run via the separate E2E package: the built application API, real HTTP/auth/storage,
@@ -25,7 +25,7 @@ async function close(s:Server){await new Promise<void>((resolve,reject)=>s.close
 test('built owner application completes private enrollment, OAuth MCP, rotation, revocation and restart over HTTP',async()=>{
  const directory=mkdtempSync(join(tmpdir(),'icloud-owner-e2e-'));
  mkdirSync(join(directory,'.assets'));writeFileSync(join(directory,'.assets','admin-browser.js'),'export const fixture = true;');writeFileSync(join(directory,'.assets','auth-browser.js'),'export const fixture = true;');
- cpSync(new URL('../../icloud/dist/plugin-template',import.meta.url),join(directory,'plugin-template'),{recursive:true});
+ cpSync(new URL('../../studio/dist/server/plugin-template',import.meta.url),join(directory,'plugin-template'),{recursive:true});
  const masterKey=randomBytes(32),proof=randomBytes(32).toString('hex');
  const options={databasePath:join(directory,'owner.sqlite'),markerPath:join(directory,'marker'),masterKey};
  let store=SqliteOwnerStore.provision({...options,bootstrapProof:proof});
@@ -37,7 +37,7 @@ test('built owner application completes private enrollment, OAuth MCP, rotation,
  db.exec('CREATE TABLE icloudOperatorPolicy(singleton INTEGER PRIMARY KEY CHECK(singleton=1),readEnabled INTEGER NOT NULL,writeEnabled INTEGER NOT NULL,sendEnabled INTEGER NOT NULL,unsubscribeEnabled INTEGER NOT NULL); INSERT INTO icloudOperatorPolicy VALUES(1,1,1,0,1)');
  let ready=false;const usedCredentials:string[]=[];let writes=0;
  const session:MailSession={supportsMove:true,list:async()=>[{path:'INBOX',name:'INBOX',selectable:true}],select:async()=>({uidValidity:'1',uidNext:2,supportsKeywords:false,release(){}}),search:async()=>[1],summaries:async()=>[{uid:1,subject:'Fixture',from:[],flags:[]}],metadata:async()=>({attachments:[],flags:[]}),download:async()=>{throw Error('Unused');},mark:async()=>{writes++;return true;},flag:async()=>false,tag:async()=>false,move:async()=>false};
- const dependencies=()=>({bootstrapProof:()=>proof,store,masterKey,authDatabase:db,studioDirectory:join(import.meta.dir,'../../icloud/dist/studio'),assetsDirectory:join(directory,'.assets'),diagnostics:async()=>({installed:ready,authenticated:ready,online:ready,privateReachable:ready}),provider:(credential:{user:string;appPassword:string}):MailGateway&{send(input:MailMessageInput):Promise<SendResult>}=>({withSession:async run=>{usedCredentials.push(credential.appPassword);if(credential.appPassword==='rejected-fixture')throw Error('Provider rejects fixture');return run(session);},parse:async()=>({to:[],text:'fixture'}),send:async()=>{throw Error('Unused');}})});
+ const dependencies=()=>({bootstrapProof:()=>proof,store,masterKey,authDatabase:db,studioDirectory:join(import.meta.dir,'../../studio/dist/server/studio'),assetsDirectory:join(directory,'.assets'),diagnostics:async()=>({installed:ready,authenticated:ready,online:ready,privateReachable:ready}),provider:(credential:{user:string;appPassword:string}):MailGateway&{send(input:MailMessageInput):Promise<SendResult>}=>({withSession:async run=>{usedCredentials.push(credential.appPassword);if(credential.appPassword==='rejected-fixture')throw Error('Provider rejects fixture');return run(session);},parse:async()=>({to:[],text:'fixture'}),send:async()=>{throw Error('Unused');}})});
  let listeners:Server[]=[];
  const start=async()=>{const app=await createApplication(settings,dependencies());for(const [http,port] of [[app.publicApp,publicPort],[app.privateApp,privatePort]] as const){const listener=http.listen(port,'127.0.0.1');await new Promise<void>(r=>listener.once('listening',r));listeners.push(listener);}};
  const stop=async()=>{for(const listener of listeners)await close(listener);listeners=[];};

@@ -70,7 +70,7 @@ final class LifecycleStore {
         let before = try one("before-add-trigger"), callback = try one("add-trigger-completion"), readback = try one("independent-manager-readback")
         guard callback["callbackError"] is NSNull, let submitted = before["definition"] as? [String: Any],
             let acknowledged = callback["definition"] as? [String: Any], let expectedName = submitted["name"] as? String,
-            UUID(uuidString: operationId) != nil, expectedName.hasPrefix("DecompozR Test \(operationId) "),
+            UUID(uuidString: operationId) != nil, expectedName.hasPrefix("DecompozR "), expectedName.hasSuffix(" \(operationId)"),
             acknowledged["name"] as? String == expectedName, acknowledged["id"] as? String == submitted["id"] as? String,
             let baseline = before["baselineTriggerIds"] as? [String],
             callback["baselineTriggerIds"] as? [String] == baseline, readback["baselineTriggerIds"] as? [String] == baseline,
@@ -98,6 +98,14 @@ final class LifecycleStore {
         guard UUID(uuidString: operationId) != nil, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               name.utf8.count <= 120 else { throw ControlFailure.invalid("RESOURCE_NAME_INVALID") }
         return "DecompozR \(name) \(operationId)"
+    }
+    static func requireRenameReadback(before: [String: Any], after: [String: Any]) throws {
+        var expected = before, observed = after
+        // Hub readiness can change independently; all behavior/configuration stays identical.
+        for key in ["name", "activationState"] { expected.removeValue(forKey: key); observed.removeValue(forKey: key) }
+        guard try JSONSerialization.data(withJSONObject: expected, options: [.sortedKeys]) == JSONSerialization.data(withJSONObject: observed, options: [.sortedKeys]) else {
+            throw ControlFailure.invalid("RENAME_CONFIGURATION_CHANGED")
+        }
     }
     static func actionMatches(_ action: [String: Any], target: [String: Any], value: Any) throws -> Bool {
         guard action["kind"] as? String == "characteristicWrite", action["opaque"] as? Bool == false,

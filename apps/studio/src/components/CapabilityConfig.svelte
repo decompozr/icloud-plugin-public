@@ -9,8 +9,11 @@
   import ActionButton from '@decompozr/ui/components/ActionButton.svelte';
   import CapabilityRequirements from './CapabilityRequirements.svelte';
   import AllowedActions from './AllowedActions.svelte';
+  import {moduleUiProvider} from '../lib/module-ui-provider.js';
+  import type {ToastCenter} from '../lib/ui-state.svelte.js';
   let { model, dialogs }: { model: AdminModel; dialogs: DialogCenter } = $props();
-  const { t } = getContext<UiCopy>('copy');
+  const copy = getContext<UiCopy>('copy'); const {t}=copy;
+  const services=untrack(()=>moduleUiProvider(copy,getContext<ToastCenter>('toast'),dialogs));
   let permissionReady = $state<boolean | null>(null);
   let renderedId = $state<string>();
   $effect(() => { if (model.moduleDialog) renderedId = model.moduleDialog; });
@@ -50,7 +53,7 @@
 </script>
 
 <Modal open={!!model.moduleDialog} onclosed={() => { if (!model.moduleDialog) renderedId = undefined; }} title={(metadata?.title ?? '') + ' ' + t('moduleSettings')} onclose={close} busy={model.busy}>
-  <CapabilityRequirements {definition} {requirementIdentity} {credentialReady} {credentialKnown} {requirementsReady} {requirementUnknown} onverified={value => { permissionReady = value; }} />
+  <CapabilityRequirements {services} {definition} {requirementIdentity} {credentialReady} {credentialKnown} {requirementsReady} {requirementUnknown} onverified={value => { permissionReady = value; }} />
   <AllowedActions {id} fields={metadata?.fields ?? []} {definition} {draft} saved={id ? model.saved[id] ?? {} : {}} {editable} {dependencies} {allOn} disabled={model.busy || !policyKnown} ontoggle={toggle} />
   <div class="actions capability-config-actions">
     <ActionButton appearance="quiet" class="primary" label={t('saveModule')} icon="save" disabled={model.busy || !canSave || !model.changes.length} onclick={() => void model.run(save, 'workingPolicy')} />

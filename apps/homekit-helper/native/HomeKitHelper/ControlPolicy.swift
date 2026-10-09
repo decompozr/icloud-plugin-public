@@ -2,6 +2,24 @@ import Foundation
 import CoreFoundation
 enum ControlFailure: Error { case invalid(String) }
 
+enum ProductionControlArguments {
+    static func keys(tool: String, production: Bool, intent: [String: Any]?) throws -> Set<String> {
+        var keys: Set<String> = tool == "homekit_write"
+            ? ["homeId", "accessoryId", "serviceId", "characteristicId", "value", "operationId"]
+            : tool == "homekit_execute_scene" ? ["homeId", "sceneId", "operationId"]
+            : ["homeId", "automationId", "enabled", "operationId"]
+        if production { keys.insert("expectedRevision") }
+        if let flag = intent?["allowExistingSceneExecution"] {
+            guard production, tool == "homekit_execute_scene", let boolean = flag as? NSNumber,
+                  CFGetTypeID(boolean) == CFBooleanGetTypeID(), boolean.boolValue else {
+                throw ControlFailure.invalid("EXISTING_SCENE_AUTHORIZATION_INVALID")
+            }
+            keys.insert("allowExistingSceneExecution")
+        }
+        return keys
+    }
+}
+
 enum ControlValue {
     static let formats: Set<String> = ["bool", "int", "float", "uint8", "uint16", "uint32", "uint64", "string", "data", "tlv8", "array", "dict"]
     // Only for SDK-owned scene/readback values. External command decoding stays strict.
@@ -43,7 +61,10 @@ enum ControlValue {
             if let values = validValues, !values.isEmpty, !values.contains(where: { $0.compare(n) == .orderedSame }) { try reject("ENUM_VALUE_INVALID") }
             if let step = step, step.doubleValue > 0 {
                 let offset = (v - (minimum?.doubleValue ?? 0)) / step.doubleValue
-                if abs(offset - offset.rounded()) > 1e-7 { try reject("STEP_VALUE_INVALID") }
+                // HAP Float metadata may contain the binary Float32 approximation of 0.1.
+                // Bound its grid tolerance; integer formats retain the strict check.
+                let tolerance = format == "float" ? min(1e-4, max(1e-7, abs(offset) * Double(Float.ulpOfOne))) : 1e-7
+                if abs(offset - offset.rounded()) > tolerance { try reject("STEP_VALUE_INVALID") }
             }
             return n
         case "string":

@@ -9,7 +9,8 @@
   "dependencies": {
     "zod": "3.25.76",
     "@decompozr/account": "workspace:*",
-    "@decompozr/contracts": "workspace:*"
+    "@decompozr/homekit": "workspace:*",
+    "@decompozr/photos": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "1.4.2",

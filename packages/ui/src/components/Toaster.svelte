@@ -90,6 +90,7 @@
     open={true}
   >
     {#each center.items as item (item.id)}<div
+        role="group"
         data-testid="toast"
         data-toast-id={item.id}
         onpointerenter={()=>pause(item.id)}

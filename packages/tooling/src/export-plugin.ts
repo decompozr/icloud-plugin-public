@@ -1,7 +1,7 @@
 import{mkdir,readFile,writeFile,cp,rm}from'node:fs/promises';
 import{resolve,join}from'node:path';
 import{z}from'zod';
-import{pluginZip}from'../../../apps/icloud/src/plugin/archive.js';
+import{pluginZip}from'../../../apps/studio/server/plugin/archive.js';
 const manifest=z.object({$schema:z.literal('https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'),name:z.literal('icloud-plugin'),version:z.string().regex(/^\d+\.\d+\.\d+$/),description:z.string().min(1),license:z.string(),keywords:z.array(z.string()),extensions:z.object({'com.openai':z.object({interface:z.object({displayName:z.string().min(1),shortDescription:z.string().min(1).max(30),longDescription:z.string().min(1),category:z.literal('Productivity'),defaultPrompt:z.string().min(1),logo:z.literal('./assets/plugin-icon.png'),composerIcon:z.literal('./assets/plugin-icon.png')}).strict()}).strict()}).strict()}).strict();
 const endpoint=z.string().url().refine(value=>{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&!u.search&&!u.hash&&u.pathname==='/icloud/mcp';},'A configured HTTPS /icloud/mcp URL without credentials is required');
 export async function exportPlugin(options:{repository:string;output:string;url:string}){
@@ -23,7 +23,7 @@ export async function exportPlugin(options:{repository:string;output:string;url:
   for(const [name,skill] of skills){await mkdir(join(directory,'skills',name),{recursive:true});await writeFile(join(directory,'skills',name,'SKILL.md'),skill);}
   await writeFile(join(root,'.agents/plugins/marketplace.json'),JSON.stringify({name:'icloud-plugin-local',plugins:[{name:'icloud-plugin',source:{source:'local',path:'./plugins/icloud-plugin'},policy:{installation:'AVAILABLE',authentication:'ON_INSTALL'},category:'Productivity'}]},null,2)+'\n');
   await mkdir(join(directory,'assets'));
-  await cp(join(options.repository,'apps/icloud/assets/plugin-icon.png'),join(directory,'assets/plugin-icon.png'));
+  await cp(join(options.repository,'apps/studio/assets/runtime/plugin-icon.png'),join(directory,'assets/plugin-icon.png'));
   await cp(join(options.repository,'LICENSE'),join(directory,'LICENSE'));
   await cp(join(options.repository,'THIRD_PARTY_NOTICES.md'),join(directory,'THIRD_PARTY_NOTICES.md'));
   const files=new Map<string,Uint8Array>();

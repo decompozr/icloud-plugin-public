@@ -1,4 +1,4 @@
-import type { RecoveryClient } from "@decompozr/contracts";
+import type { RecoveryClient } from "./connection-readiness.js";
 /** Use the same actionable status as the capability-review control. */
 export function connectionNeedsReview(
   client: RecoveryClient | undefined,

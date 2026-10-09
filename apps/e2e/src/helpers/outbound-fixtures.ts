@@ -1,7 +1,7 @@
 import {createServer,type Socket} from 'node:net';
 import nodemailer from 'nodemailer';
 import {ImapFlow} from 'imapflow';
-import {ICloudOutboundAdapter} from '../../../icloud/dist/mail/icloud/outbound.js';
+import {ICloudOutboundAdapter} from '@decompozr/mail/server/icloud/outbound.js';
 const credentials={user:'sender@example.invalid',password:'dummy'};
 export async function smtpFixture(drop = false) {
   const sockets = new Set<Socket>(), messages: string[] = [], commands: string[] = [];

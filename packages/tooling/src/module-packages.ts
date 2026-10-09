@@ -2,7 +2,7 @@ import {join,resolve,basename,relative,sep} from 'node:path';
 import {mkdir,cp,readFile,writeFile,rm} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {repository} from './command.js';
-export const modulePackageOwners=['packages/contracts','packages/ui','modules/account','modules/mail','modules/calendar','modules/photos','modules/homekit'] as const;
+export const modulePackageOwners=['packages/ui','modules/account','modules/mail','modules/calendar','modules/photos','modules/homekit'] as const;
 export async function packModulePackages(output:string){
  output=resolve(output);await mkdir(output,{recursive:true});
  const manifests=await Promise.all(modulePackageOwners.map(async owner=>({owner,value:JSON.parse(await readFile(join(repository,owner,'package.json'),'utf8'))})));

@@ -2,10 +2,10 @@ import { test, expect } from 'bun:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { z } from 'zod';
-import { createHttpApp } from '../../icloud/dist/mail/http.js';
-import { MailService } from '../../icloud/dist/mail/services/mail.js';
-import { ICloudMailAdapter } from '../../icloud/dist/mail/icloud/adapter.js';
-import { readConfig } from '../../icloud/dist/mail/config.js';
+import { createHttpApp } from '../../studio/dist/server/mail/http.js';
+import { MailService } from '@decompozr/mail/server/services/mail.js';
+import { ICloudMailAdapter } from '@decompozr/mail/server/icloud/adapter.js';
+import { readConfig } from '@decompozr/mail/server/config.js';
 import { startImapFixture } from './helpers/imap-fixture.js';
 
 const response = z.object({ content: z.array(z.object({ type: z.literal('text'), text: z.string() })), isError: z.boolean().optional() });

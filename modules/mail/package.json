@@ -4,18 +4,28 @@
     "@types/bun": "1.4.2",
     "@types/node": "22.20.4",
     "typescript": "5.9.3",
-    "svelte": "5.57.1"
+    "svelte": "5.57.1",
+    "@types/mailparser": "3.9.0"
   },
   "name": "@decompozr/mail",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "files": [
+    "dist",
     "ui",
     "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md"
   ],
   "exports": {
+    "./server": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server/*.js": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    },
     "./ui": "./ui/index.ts",
     "./ui/*": "./ui/*",
     "./ui/*.js": "./ui/*.ts",
@@ -23,8 +33,16 @@
   },
   "dependencies": {
     "@decompozr/ui": "workspace:*",
+    "zod": "3.25.76",
+    "imapflow": "1.7.8",
+    "mailparser": "3.9.33",
+    "nodemailer": "10.0.14",
+    "ipaddr.js": "2.5.0",
+    "mailauth": "7.1.0",
+    "@modelcontextprotocol/sdk": "1.31.0",
+    "zod-to-json-schema": "3.25.2",
     "@decompozr/account": "workspace:*",
-    "zod": "3.25.76"
+    "@types/nodemailer": "7.0.12"
   },
   "peerDependencies": {
     "svelte": "5.57.1"
@@ -33,5 +51,11 @@
     "svelte": {
       "optional": true
     }
+  },
+  "scripts": {
+    "build": "bun ../../packages/tooling/src/build-mail.ts",
+    "build:types": "tsc --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test ./src"
   }
 }

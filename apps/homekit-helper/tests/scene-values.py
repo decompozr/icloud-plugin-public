@@ -39,6 +39,38 @@ precondition(SceneReadbackPolicy.summarize([["status":"verified"]])["individualA
 precondition(SceneReadbackPolicy.summarize([["status":"mismatch"]])["error"] as? String == "READBACK_MISMATCH")
 precondition(SceneReadbackPolicy.summarize([["status":"read_failed"]])["error"] as? String == "SCENE_READBACK_UNAVAILABLE")
 precondition(SceneReadbackPolicy.summarize([["status":"unreadable"],["status":"verified"]])["individualActionsVerified"] as? Bool == false)
-print("22 exact scene/provider/naming/readback checks passed; physical writes 0")
+let thermostatStep = NSNumber(value: Float(0.1))
+let thermostatValue = try ControlValue.decode(23, format: "float", minimum: 9, maximum: 32, step: thermostatStep)
+precondition((thermostatValue as? NSNumber)?.doubleValue == 23)
+denied{_ = try ControlValue.decode(23.05, format: "float", minimum: 9, maximum: 32, step: thermostatStep)}
+denied{_ = try ControlValue.decode(33, format: "float", minimum: 9, maximum: 32, step: thermostatStep)}
+denied{_ = try ControlValue.decode(23, format: "uint8", minimum: 9, maximum: 32, step: thermostatStep)}
+let productionName = try LifecycleStore.resourceName("Daily Heat", operationId: operation)
+let candidate: [String: Any] = ["id": operation, "homeId": home, "name": productionName, "kind": "event", "enabled": false, "sceneIds": [String](), "events": [[String: Any]]()]
+let submitted: [String: Any] = ["id": home, "homeId": home, "name": productionName]
+var creationRecords: [[String: Any]] = [
+ ["phase": "before-add-trigger", "operationId": operation, "homeId": home, "definition": submitted, "baselineTriggerIds": [String]()],
+ ["phase": "add-trigger-completion", "operationId": operation, "homeId": home, "definition": submitted, "baselineTriggerIds": [String](), "callbackError": NSNull()],
+ ["phase": "independent-manager-readback", "operationId": operation, "homeId": home, "newDefinitions": [candidate], "baselineTriggerIds": [String]()]]
+try check(try LifecycleStore.creationCandidate(records: creationRecords, homeId: home, operationId: operation)["id"] as? String == operation)
+denied{_ = try LifecycleStore.creationCandidate(records: Array(creationRecords.prefix(2)), homeId: home, operationId: operation)}
+var ambiguous = creationRecords; ambiguous[2]["newDefinitions"] = [candidate, candidate]
+denied{_ = try LifecycleStore.creationCandidate(records: ambiguous, homeId: home, operationId: operation)}
+var prior = creationRecords; for i in prior.indices { prior[i]["baselineTriggerIds"] = [operation] }
+denied{_ = try LifecycleStore.creationCandidate(records: prior, homeId: home, operationId: operation)}
+denied{_ = try LifecycleStore.creationCandidate(records: creationRecords, homeId: operation, operationId: operation)}
+var legacy = creationRecords; var oldSubmitted = submitted; oldSubmitted["name"] = "DecompozR Test \(operation) Daily Heat"; legacy[0]["definition"] = oldSubmitted; legacy[1]["definition"] = oldSubmitted
+var oldCandidate = candidate; oldCandidate["name"] = oldSubmitted["name"]; legacy[2]["newDefinitions"] = [oldCandidate]
+denied{_ = try LifecycleStore.creationCandidate(records: legacy, homeId: home, operationId: operation)}
+let active: [String: Any] = ["id": operation, "homeId": home, "name": productionName, "enabled": true, "activationState": 4, "events": [["kind": "calendar", "hour": 2]], "sceneIds": [operation]]
+var natural = active; natural["name"] = "Heat to 23°C at 2 AM"
+try LifecycleStore.requireRenameReadback(before: active, after: natural)
+var stopped = natural; stopped["enabled"] = false
+denied{try LifecycleStore.requireRenameReadback(before: active, after: stopped)}
+var changed = natural; changed["events"] = [["kind": "calendar", "hour": 3]]
+denied{try LifecycleStore.requireRenameReadback(before: active, after: changed)}
+changed = natural; changed["sceneIds"] = [String]()
+denied{try LifecycleStore.requireRenameReadback(before: active, after: changed)}
+print("36 exact scene/provider/creation/rename checks passed; physical writes 0")
 ''')
  subprocess.run(['xcrun','swift',str(p)],check=True,env=dict(os.environ,DEVELOPER_DIR='/Applications/Xcode.app/Contents/Developer'))

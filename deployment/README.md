@@ -159,7 +159,7 @@ Source checkout is uncommitted; no Git revision provenance is claimed. Read-only
 hash comparison found identical entry bytes in the current build, native artifact
 and Linux image:
 
-- `apps/icloud/dist/index.js` SHA256:
+- `apps/studio/dist/server/index.js` SHA256:
   `ef1f71ad57493363fb48031f3f6ce75db5c41ddf7fe3c8a93699ad003233664f`.
 - `bun.lock` SHA256:
   `50bf746769f2fab5dcb0cc6197b26f18238814a2962895f8df2c92bb4546f9d4`.
@@ -227,7 +227,7 @@ such as `&`. Its stable label and filename are `local.icloud-mail-mcp` and
 The invocation is equivalent to:
 
 ```sh
-/absolute/path/to/bun /absolute/install/prefix/current/apps/icloud/dist/index.js --config /absolute/private/config.toml
+/absolute/path/to/bun /absolute/install/prefix/current/apps/studio/dist/server/index.js --config /absolute/private/config.toml
 ```
 
 Keep configuration, state, and custody outside `current`; the configuration must

@@ -1,8 +1,12 @@
+import{acquireRuntimeLock}from'./runtime-lock.js';
+import {backgroundService,readServiceSettings,superviseRuntime} from './background-service.js';
+import{writeFile,rm,mkdir,link,readFile}from'node:fs/promises';
 import {homedir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {installArtifact,uninstallArtifact} from './install.js';
 
 export async function releaseCli(args:string[],artifactDirectory:string){
+ if(args[0]==='service'){const command=args[1];const at=args.indexOf('--prefix');const prefix=at>=0?resolve(args[at+1]!):join(homedir(),'.decompozr/plugins/icloud');let settings;const flag=(name:string)=>{const i=args.indexOf(name);const v=args[i+1];if(i<0||!['true','false'].includes(v??''))throw Error('Explicit boolean required');return v==='true'};if(command==='configure')settings={startAtLogin:flag('--start-at-login'),restartOnFailure:flag('--restart-on-failure')};const op=args.indexOf('--operation');console.log(JSON.stringify(await backgroundService(prefix,command!,settings,{},op>=0?args[op+1]:undefined)));return;}
  const [action,...rest]=args;
  let prefix=join(homedir(),'.decompozr/plugins/icloud');
  let config:string|undefined;
@@ -23,9 +27,13 @@ export async function releaseCli(args:string[],artifactDirectory:string){
   console.log(await installArtifact(artifactDirectory,prefix,action==='update'));
   console.log(`Installed at ${prefix}`);
  }else if(action==='run'){
-  const child=Bun.spawn([process.execPath,join(artifactDirectory,'apps/icloud/dist/index.js'),'--config',config??join(prefix,'runtime/config.toml'),...(initialize?['--initialize']:[]),...(prepareLocalOwner?['--prepare-local-owner']:[]),...(noOpen?['--no-open']:[])],{cwd:artifactDirectory,stdin:'inherit',stdout:'inherit',stderr:'inherit'});
-  for(const signal of ['SIGTERM','SIGINT'] as const)process.on(signal,()=>child.kill(signal));
-  process.exitCode=await child.exited;
+  const entry=await Bun.file(join(artifactDirectory,'apps/studio/dist/server/index.js')).exists()?join(artifactDirectory,'apps/studio/dist/server/index.js'):join(artifactDirectory,'apps/icloud/dist/index.js');
+  const record=join(prefix,'runtime/service-process.json');let ownedRecord=false,release=()=>{};
+  if(!initialize&&!prepareLocalOwner){await mkdir(join(prefix,'runtime'),{recursive:true});release=acquireRuntimeLock(prefix,'service-run');try{const ps=(pid:number)=>{const p=Bun.spawnSync(['/bin/ps','-p',String(pid),'-o','lstart=']);return p.exitCode===0?Buffer.from(p.stdout).toString().trim():undefined};let existing:{pid:number;startedAt?:string}|undefined;try{existing=await Bun.file(record).json()}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw Error('SERVICE_RECORD_REQUIRES_REVIEW')}if(existing&&existing.pid!==process.pid){if(!Number.isSafeInteger(existing.pid))throw Error('SERVICE_RECORD_REQUIRES_REVIEW');const started=ps(existing.pid);if(started&&(!existing.startedAt||started===existing.startedAt))throw Error('SERVICE_ALREADY_RUNNING')}await writeFile(record,JSON.stringify({pid:process.pid,startedAt:ps(process.pid),command:process.argv.join(' ')}),{mode:0o600});ownedRecord=true;}catch(error){release();throw error}}
+  let child:ReturnType<typeof Bun.spawn>|undefined,intentionalStop=false;
+  for(const signal of ['SIGTERM','SIGINT'] as const)process.on(signal,()=>{intentionalStop=true;child?.kill(signal)});
+  process.exitCode=await superviseRuntime(async()=>{child=Bun.spawn([process.execPath,entry,'--config',config??join(prefix,'runtime/config.toml'),...(initialize?['--initialize']:[]),...(prepareLocalOwner?['--prepare-local-owner']:[]),...(noOpen?['--no-open']:[])],{cwd:artifactDirectory,env:{...process.env,ICLOUD_INSTALL_PREFIX:prefix},stdin:'inherit',stdout:'inherit',stderr:'inherit'});return child.exited},async()=>!initialize&&!prepareLocalOwner&&(await readServiceSettings(prefix)).restartOnFailure,()=>intentionalStop);
+  release();if(ownedRecord)try{const value=await Bun.file(record).json();if(value.pid===process.pid)await rm(record)}catch{}
  }else if(action==='uninstall'){
   if(config||initialize||prepareLocalOwner||noOpen)throw Error('Uninstall does not configure runtime');
   await uninstallArtifact(prefix);

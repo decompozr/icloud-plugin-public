@@ -11,15 +11,15 @@ are unchanged. No service release or restart is required.
 
 | Retired source | Current owner |
 | --- | --- |
-| Mail policy and unsubscribe sketches | `apps/icloud/src/mail/` production domain/service/adapter tests |
+| Mail policy and unsubscribe sketches | `modules/mail/src/` production domain/service/adapter tests |
 | Auth and provider candidates | `apps/icloud/src/auth/` production handler and synthetic Passkey/OAuth tests |
 | Setup and encrypted-store candidate | `apps/icloud/src/storage/`, `auth/` and `server/` tests |
 | Runtime and container candidates | `apps/icloud/src/server/`, `packages/tooling/` and `apps/e2e/lifecycle/` |
-| Calendar client, scenarios, demos and live experiment helpers | `apps/icloud/src/calendar/` production codec, gateway and service tests |
+| Calendar client, scenarios, demos and live experiment helpers | `modules/calendar/src/` production codec, gateway and service tests |
 | Parked Photos picker executable | [Parked Photos findings](../photos-parked.md) and [picker evidence](prototype-archive/photos-picker.md); source in Git history |
 
 The real ImapFlow command/recovery and MIME-parser checks are preserved as
-`apps/icloud/src/mail/icloud/library-protocol.test.ts` and
+`modules/mail/src/icloud/library-protocol.test.ts` and
 `library-recovery.test.ts`, with the loopback fixture under `test-fixtures/`.
 They use the application's existing pinned dependencies and run with
 `bun run --cwd apps/icloud test`. They test library behavior, including unsafe

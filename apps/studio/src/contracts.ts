@@ -13,7 +13,8 @@ export interface AdminState {
   admin: boolean;
   localOwner?: boolean;
   connectionCommands?: readonly string[];
-  view?: "overview" | "accounts" | "connections" | "system" | "setup";
+  view?: "overview" | "accounts" | "connections" | "system" | "setup" | "module";
+  modulePath?:string;
   mode?: "account";
   publicMcpUrl?: string;
   pluginDownload?: boolean;

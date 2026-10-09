@@ -3,11 +3,9 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "apps/icloud",
     "apps/studio",
     "apps/e2e",
     "packages/tooling",
-    "packages/contracts",
     "packages/ui",
     "modules/*"
   ],
