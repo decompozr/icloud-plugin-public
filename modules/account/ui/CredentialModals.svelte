@@ -1,4 +1,6 @@
 <script lang="ts">
+ import FieldLabel from "@decompozr/ui/design-system/FieldLabel.svelte";
+ import Select from "@decompozr/ui/design-system/Select.svelte";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
@@ -197,21 +199,8 @@
         void submit();
       }}
     >
-      {#if !current?.options.submit}<label for="credential-account"
-          >{t("chooseExistingAccount")}</label
-        ><select
-          id="credential-account"
-          bind:value={accountId}
-          disabled={busy}
-          onchange={() => { password = ""; submitError = ""; }}
-          ><option value="">{t("newAccountOption")}</option
-          >{#each accounts as account}<option value={account.id}
-              >{account.label === account.user
-                ? account.user
-                : account.label + " · " + account.user}</option
-            >{/each}</select
-        >{/if}
-      {#if !accountId}<label for="credential-user">{t("email")}</label><input
+      {#if !current?.options.submit}<Select id="credential-account" label={t('chooseExistingAccount')} bind:value={accountId} disabled={busy} onchange={()=>{password='';submitError='';}} options={[{value:'',label:t('newAccountOption')},...accounts.map(account=>({value:account.id,label:account.label===account.user?account.user:account.label+' · '+account.user}))]}/>{/if}
+      {#if !accountId}<FieldLabel for="credential-user">{t("email")}</FieldLabel><input
           id="credential-user"
           aria-describedby={submitError ? errorId : undefined}
           type="email"
@@ -220,14 +209,14 @@
           autocomplete="username"
           bind:value={user}
           disabled={busy}
-        /><label for="credential-label">{t("accountLabel")}</label><input
+        /><FieldLabel for="credential-label">{t("accountLabel")}</FieldLabel><input
           id="credential-label"
           maxlength="100"
           autocomplete="off"
           bind:value={label}
           disabled={busy}
         />{/if}
-      <label for="credential-password">{t("password")}</label><input
+      <FieldLabel for="credential-password">{t("password")}</FieldLabel><input
         id="credential-password"
         aria-describedby={submitError ? errorId : undefined}
         type="password"

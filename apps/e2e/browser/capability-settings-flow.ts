@@ -12,6 +12,7 @@ try{
  browser=await chromium.launch({headless:true,executablePath:option('--chrome')});
  const context=await browser.newContext({extraHTTPHeaders:{'x-fixture-session':'owner'},viewport:{width:1280,height:1000}}),page=await context.newPage();let nativeConfirmations=0;page.on('dialog',async(dialog:any)=>{nativeConfirmations++;await dialog.dismiss()});const errors:string[]=[];page.on('pageerror',(e:Error)=>errors.push(e.message));
  await page.goto(origin+'/icloud/admin');const card=page.getByTestId('capabilities-card');await card.locator('.status-dot').first().waitFor();
+ const notice=card.getByTestId('photos-shared-write-unsupported');assert(await notice.count()===1,'One registered Photos notice');assert((await notice.evaluate((el:HTMLElement)=>el.closest('.module-summary')?.querySelector('h3')?.textContent??'')).trim()==='Photos','Warning belongs inside Photos module');assert(await notice.getAttribute('role')==='note','Static warning semantics');
  assert(await card.locator('.status-dot').count()===4,'Each module has a status dot');assert(await card.getByText('Disabled',{exact:true}).count()===0,'Disabled tags removed');
  await page.getByRole('button',{name:'Configure Mail',exact:true}).click();const modal=page.getByRole('dialog',{name:'Mail Settings',exact:true});await modal.waitFor();
  assert(await modal.getByRole('heading',{name:'Requirements',exact:true}).count()===1,'Requirements heading');assert(await modal.locator('.requirements-heading .status-marker').count()===1,'Heading status marker');

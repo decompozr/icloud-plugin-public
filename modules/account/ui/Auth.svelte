@@ -1,4 +1,5 @@
 <script lang="ts">
+ import Checkbox from "@decompozr/ui/design-system/Checkbox.svelte";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
@@ -305,15 +306,8 @@
         <legend>{authT("permissions")}</legend>{#each groups as group}<h3>
             {authT(group.title)}
           </h3>
-          {#each group.scopes as scope}<label class="permission-choice"
-              ><input
-                type="checkbox"
-                value={scope}
-                bind:group={chosen}
-                data-auth-scope
-                disabled={busy}
-              /><span>{scopeLabel(scope)}</span></label
-            >{/each}{/each}
+          {#each group.scopes as scope}<Checkbox class="permission-choice" value={scope} checked={chosen.includes(scope)} data-auth-scope disabled={busy} label={scopeLabel(scope)} onchange={e=>{chosen=e.currentTarget.checked?[...new Set([...chosen,scope])]:chosen.filter(value=>value!==scope);}}/>
+          {/each}{/each}
       </fieldset>
     {:else}<p class="muted">{authT("introSignIn")}</p>{/if}
     <div class="actions">
@@ -348,31 +342,5 @@
     border: 0;
     padding: 0;
     margin: 1.5rem 0;
-  }
-  .permission-choice {
-    display: flex;
-    gap: 0.75rem;
-    align-items: flex-start;
-    padding: 0.5rem 0;
-    border: 1px solid transparent;
-    border-radius: 0.25rem;
-    margin: 0;
-    font-weight: 400;
-    cursor: pointer;
-  }
-  .permission-choice:hover {
-    background: var(--ui-soft);
-  }
-  .permission-choice:has(input:focus-visible) {
-    outline: 2px solid var(--ui-focus);
-    outline-offset: 2px;
-  }
-  @media (pointer: coarse) {
-    .permission-choice {
-      min-height: 44px;
-    }
-  }
-  .permission-choice input {
-    margin-top: 0.15rem;
   }
 </style>

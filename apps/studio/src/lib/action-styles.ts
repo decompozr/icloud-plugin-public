@@ -26,6 +26,7 @@ export const actionStyles = `
 .service-capabilities>header{display:flex;align-items:center;justify-content:space-between;gap:${spacing[4]};margin-bottom:${spacing[3]}}
 .capability-title{display:flex;align-items:center;gap:${spacing[2]}}
 .module-summary{display:flex;justify-content:space-between;align-items:center;gap:${spacing[4]};flex-wrap:wrap;border-top:1px solid ${semanticColors.border};padding-block:${spacing[3]}}
+.module-summary:has(.module-notices){row-gap:${spacing[2]}}
 .module-summary h3{margin:0;padding:0;border:0}.module-summary .actions{margin:0}
 .module-statuses{min-height:calc(${controlMetrics.coarseTarget} - 2 * ${spacing[2]});display:flex;gap:${spacing[2]};flex-wrap:wrap;margin-top:${spacing[2]}}
 .module-section-heading{display:flex;align-items:center;justify-content:space-between;gap:${spacing[3]};flex-wrap:wrap;margin-block:${spacing[4]} ${spacing[2]}}
@@ -57,5 +58,6 @@ export const actionStyles = `
 .account-selection{display:flex;align-items:center;justify-content:space-between;gap:${spacing[3]};min-width:0}
 .account-selection .account-identity{overflow-wrap:anywhere}
 @media(max-width:540px){.account-card-header>.account-identity{flex-basis:100%}.connection-review{flex-direction:column;align-items:flex-start}}
+.field[data-size]+label[data-size],.field[data-size]+.field[data-size]{margin-top:${controlMetrics.groupGap}}
 .dz-labeled-action[data-dz-action] svg{width:var(--control-icon);height:var(--control-icon);flex:none}
 `;

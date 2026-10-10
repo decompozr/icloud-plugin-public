@@ -3,6 +3,8 @@
  import type {UiCopy} from '../contracts.js';
  import type {AdminModel} from '../lib/admin-model.svelte.js';
  import {scopeCopy} from '../lib/admin-model.svelte.js';
+ import {bundledModules} from '../lib/bundled-modules.js';
+ import ModuleNotices from '@decompozr/ui/components/ModuleNotices.svelte';
  import Tag from '@decompozr/ui/design-system/Tag.svelte';
  import ModuleSwitch from '@decompozr/ui/components/ModuleSwitch.svelte';
  import StatusMarker from '@decompozr/ui/components/StatusMarker.svelte';
@@ -34,4 +36,5 @@
               onclick={() => openModule(module.id)}
             />
           </div>
+            <ModuleNotices moduleId={module.id} notices={bundledModules.find(value=>value.id===module.id)?.notices??[]} />
         </div>
