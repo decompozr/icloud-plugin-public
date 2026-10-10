@@ -21,4 +21,4 @@ Acceptance:
 
 ## Integration context
 
-The current UI task branch is `improve-studio-uiux-proportions`. Capability components were introduced in commit `c856802`; follow-up controls/toasts in `0dc8b4b`; consistent empty summary lines in `d57b422`. Coordinate with these component boundaries rather than restoring the former monolithic Overview.
+The original UI task branch was `improve-studio-uiux-proportions`; completion is merged from `finish-studio-design-system` in PR #157 and deployed in 0.1.112. Capability components were introduced in commit `c856802`; follow-up controls/toasts in `0dc8b4b`; consistent empty summary lines in `d57b422`. Coordinate with these component boundaries rather than restoring the former monolithic Overview.

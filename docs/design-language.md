@@ -1,5 +1,16 @@
 # Shared interface design
 
+## Completed catalog adoption (0.1.112)
+
+[Design completion](studio-design-completion.md) supersedes prior notes about
+remaining Select/FieldLabel and native-checkbox adoption. All domain selects,
+field labels and permission checkboxes now consume the unchanged pinned catalog.
+Catalog group spacing is shared; consent starts unchecked and submits exact choices.
+Module registrations own notices rendered within their module, including loading
+skeletons. The Photos unsupported Shared Album warning is no longer global.
+Native 0.1.112 and its authenticated production Chrome interface were verified;
+physical iPhone and assistive-technology checks remain explicitly unavailable.
+
 ## Task entry and comparison (round 3, 2026-10-08)
 
 [Round 3](uiux-round3.md) addresses the four remaining workflow findings and maps
