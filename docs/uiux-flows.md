@@ -350,3 +350,12 @@ queued restart recovery, persisted switch readback, keyboard/mobile wrapping,
 reduced-motion catalog behavior, real LaunchAgent registration and retained data/
 helper identity. Startup occurs after user login; pre-login native availability
 is not claimed. Owner selected both automatic defaults enabled for deployment.
+
+## Final remaining-design completion
+
+The owner requested completion of every previously listed implementation gap.
+[Final user stories and acceptance](studio-design-completion.md) cover registered
+module warnings, account/context selects, field labels and exact permission choices.
+These changes are deployed in native 0.1.112 and verified in authenticated production
+Chrome. The prior Photos handoff is implemented; legacy domain controls are gone.
+Physical-device and native assistive-technology evidence remain unavailable, not passing.
