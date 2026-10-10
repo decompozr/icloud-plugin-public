@@ -21,7 +21,6 @@
                 <Tag label={t(scopeCopy[module.id + "." + key] ?? key)} />
               {/each}
             </div>
-            <ModuleNotices moduleId={module.id} notices={bundledModules.find(value=>value.id===module.id)?.notices??[]} />
           </div>
           <div class="actions">
             <ModuleSwitch
@@ -37,4 +36,5 @@
               onclick={() => openModule(module.id)}
             />
           </div>
+            <ModuleNotices moduleId={module.id} notices={bundledModules.find(value=>value.id===module.id)?.notices??[]} />
         </div>
