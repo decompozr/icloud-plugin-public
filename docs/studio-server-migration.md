@@ -750,3 +750,33 @@ disposable two-start/stop verification also passes. This does not establish a
 production lock-release defect; no production locking change was needed. Final
 managed restart completed through the supported CLI and its matching operation receipt;
 private sign-in returned200 afterward. Remaining live acceptance and cleanup are pending.
+
+### Migration and daemon acceptance (2026-10-09)
+
+Backend/module ownership and the sole Studio host migration are delivered through
+PR149-152. The parallel UI owner subsequently integrated main and deployed0.1.111
+from6f727929173646bb3d793542d1b8dca4d9f397d7; this task retained that deployment
+and its active UI checkout. The installed111 payload matches all17,662 archive
+payload files (AppleDouble metadata excluded), and14 served sign-in JS/CSS assets
+match installed bytes. All13 read-only doctor checks pass. The signed HomeKit
+payload remains byte-identical to retained108 and its signature verifies.
+
+Existing MCP credentials successfully read the account profile, nine mailboxes
+and four calendars. Earlier connector internal errors no longer reproduce.
+Photos health returns the explicit photos_permission_required rejection; its
+reader reports that when the OS denies a read. No native permission was granted,
+TCC state edited, or provider write performed. Photos library access and actual
+HomeKit/Photos device operations are not accepted by this verification. Existing
+module requirement controls remain the owner's permission setup path. Login
+startup is enabled and managed restart was observed, but a physical reboot was
+not performed.
+
+Source and fixture checks, independent reviews and protected deployment receipts
+are recorded above. No remote CI is configured. The110 historical package is
+retained alongside111 and protected backups; its archive SHA-256 is
+1b9cbe5c559f40996d3711798656ce502286031b466f2a13ab112ea86006ed44.
+After preserving this summary and verifying no active writer, the task-owned
+detached build checkout, extraction/build logs and scratch outputs were removed.
+Obsolete ignored apps/icloud build/dependency output in the migration and primary
+checkouts was removed; it contained no tracked source. The active UI checkout,
+managed installation, releases, backups and compact recovery records remain.
