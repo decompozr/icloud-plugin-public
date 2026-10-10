@@ -58,5 +58,6 @@ export const actionStyles = `
 .account-selection{display:flex;align-items:center;justify-content:space-between;gap:${spacing[3]};min-width:0}
 .account-selection .account-identity{overflow-wrap:anywhere}
 @media(max-width:540px){.account-card-header>.account-identity{flex-basis:100%}.connection-review{flex-direction:column;align-items:flex-start}}
+.field[data-size]+label[data-size],.field[data-size]+.field[data-size]{margin-top:${controlMetrics.groupGap}}
 .dz-labeled-action[data-dz-action] svg{width:var(--control-icon);height:var(--control-icon);flex:none}
 `;
