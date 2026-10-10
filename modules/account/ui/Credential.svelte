@@ -1,4 +1,6 @@
 <script lang="ts">
+ import FieldLabel from "@decompozr/ui/design-system/FieldLabel.svelte";
+ import Select from "@decompozr/ui/design-system/Select.svelte";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "@decompozr/ui/contracts";
@@ -30,23 +32,8 @@
       if (model) void model.run(() => model!.rotate(), "saving");
     }}
   >
-    <label for="account"><Copy copyKey="accountsTitle" /></label><select
-      id="account"
-      required
-      value={model?.selectedAccount ?? ""}
-      disabled={model?.busy ?? true}
-      onchange={(e) => {
-        model?.chooseAccount(e.currentTarget.value);
-        e.currentTarget.value = model?.selectedAccount ?? "";
-      }}
-      >{#each model?.dashboard?.accounts ?? [] as account}<option
-          value={account.id}
-          >{account.label === account.user
-            ? account.user
-            : account.label + " · " + account.user}</option
-        >{/each}</select
-    >
-    <label for="password"><Copy copyKey="password" /></label><input
+    <Select id="account" label={t('accountsTitle')} required value={model?.selectedAccount??''} disabled={model?.busy??true} onchange={e=>{model?.chooseAccount(e.currentTarget.value);e.currentTarget.value=model?.selectedAccount??'';}} options={(model?.dashboard?.accounts??[]).map(account=>({value:account.id,label:account.label===account.user?account.user:account.label+' · '+account.user}))}/>
+    <FieldLabel for="password"><Copy copyKey="password" /></FieldLabel><input
       id="password"
       name="password"
       type="password"

@@ -1,4 +1,7 @@
 <script lang="ts">
+ import Checkbox from "@decompozr/ui/design-system/Checkbox.svelte";
+ import FieldLabel from "@decompozr/ui/design-system/FieldLabel.svelte";
+ import Select from "@decompozr/ui/design-system/Select.svelte";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext, onMount } from "svelte";
   import { z } from "zod";
@@ -156,21 +159,7 @@
     <p>{t("photosCloudHelp")}</p>
   </details>
   <p>{t("photosCloudPrivacy")}</p>
-  <label for="photos-cloud-account">{t("connectionAccount")}</label><select
-    id="photos-cloud-account"
-    required
-    bind:value={account}
-    disabled={busy}
-    onchange={() => {
-      clear();
-      confirm = false;
-      void run(refresh);
-    }}
-    ><option value="">{t("chooseContext")}</option>{#each accounts as a}<option
-        value={a.id}
-        >{a.label === a.user ? a.user : a.label + " · " + a.user}</option
-      >{/each}</select
-  >
+  <Select id="photos-cloud-account" label={t('connectionAccount')} required bind:value={account} disabled={busy} onchange={()=>{clear();confirm=false;void run(refresh);}} options={[{value:'',label:t('chooseContext')},...accounts.map(a=>({value:a.id,label:a.label===a.user?a.user:a.label+' · '+a.user}))]}/>
   <p id="photos-cloud-status" class="muted">{t(statusKey)}</p>
   <ActionButton
     type="button"
@@ -201,8 +190,7 @@
       id="photos-cloud-login-fields"
       disabled={busy || !status?.dependencyReady}
     >
-      <label for="photos-cloud-password">{t("photosCloudPassword")}</label
-      ><input
+      <FieldLabel for="photos-cloud-password">{t("photosCloudPassword")}</FieldLabel><input
         id="photos-cloud-password"
         type="password"
         autocomplete="current-password"
@@ -226,13 +214,12 @@
       void run(() => action("verify", { code: value }));
     }}
   >
-    <label for="photos-cloud-code"
+    <FieldLabel for="photos-cloud-code"
       >{t(
         status?.verificationMethod === "sms"
           ? "photosCloudSmsCode"
           : "photosCloudCode",
-      )}</label
-    ><input
+      )}</FieldLabel><input
       id="photos-cloud-code"
       type="text"
       inputmode="numeric"
@@ -283,11 +270,5 @@
     }}
     label={t("photosCloudRevoke")}
     icon="unplug"
-  /><label
-    ><input
-      type="checkbox"
-      id="photos-cloud-revoke-confirm"
-      bind:checked={confirm}
-    />{t("photosCloudConfirm")}</label
-  >
+  /><Checkbox id="photos-cloud-revoke-confirm" label={t("photosCloudConfirm")} bind:checked={confirm}/>
 </section>

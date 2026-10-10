@@ -1,4 +1,5 @@
 <script lang="ts">
+ import FieldLabel from "@decompozr/ui/design-system/FieldLabel.svelte";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { getContext } from "svelte";
   import type { UiCopy } from "../contracts.js";
@@ -129,9 +130,8 @@
     </p>
     <p class="muted">{t("resetPreserved")}</p>
     <p class="muted">{t("resetBackupHelp")}</p>
-    <label for="reset-confirmation"
-      >{t("resetTypePhrase")} <code>{phrase}</code></label
-    ><input
+    <FieldLabel for="reset-confirmation"
+      >{t("resetTypePhrase")} <code>{phrase}</code></FieldLabel><input
       id="reset-confirmation"
       bind:value={confirmation}
       autocomplete="off"

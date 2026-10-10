@@ -1,4 +1,5 @@
 <script lang="ts">
+ import Select from "@decompozr/ui/design-system/Select.svelte";
   import AccountCard from "@decompozr/account/ui/AccountCard.svelte";
   import ActionButton from "@decompozr/ui/components/ActionButton.svelte";
   import { spacing } from "@decompozr/ui/design-system/spacing.js";
@@ -348,22 +349,8 @@
         <details class="card readiness">
           <summary id="readiness-title">{t("readinessTitle")}</summary>
           <p>{t("readinessHelp")}</p>
-          <label for="readiness-account">{t("readinessAccount")}</label><select
-            id="readiness-account"
-            bind:value={model.readinessAccount}
-            ><option value="">{t("chooseContext")}</option
-            >{#each model.dashboard?.accounts ?? [] as account}<option
-                value={account.id}
-                >{account.label + " · " + account.user}</option
-              >{/each}</select
-          ><label for="readiness-client">{t("readinessClient")}</label><select
-            id="readiness-client"
-            bind:value={model.readinessClient}
-            ><option value="">{t("chooseContext")}</option
-            >{#each model.clients ?? [] as client}<option
-                value={client.clientId}>{client.name ?? client.clientId}</option
-              >{/each}</select
-          >
+          <Select id="readiness-account" label={t('readinessAccount')} bind:value={model.readinessAccount} options={[{value:'',label:t('chooseContext')},...(model.dashboard?.accounts??[]).map(account=>({value:account.id,label:account.label+' · '+account.user}))]}/>
+          <Select id="readiness-client" label={t('readinessClient')} bind:value={model.readinessClient} options={[{value:'',label:t('chooseContext')},...(model.clients??[]).map(client=>({value:client.clientId,label:client.name??client.clientId}))]}/>
           <div id="readiness-results">
             <AdminDashboard {model} view="readiness" />
           </div>
