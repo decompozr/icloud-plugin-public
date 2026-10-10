@@ -10,7 +10,7 @@ try{
   await page.getByTestId('accounts-card').locator('header').getByRole('button').first().click();const dialog=page.getByRole('dialog');await dialog.waitFor();
   a(await dialog.locator('.field[data-size=normal] #credential-account').count()===1,'Account select is pinned catalog');await dialog.locator('#credential-account').selectOption('');await dialog.locator('#credential-user').waitFor();
   a(await dialog.locator('label[data-size=normal][for=credential-user]').count()===1,'Email uses catalog FieldLabel');a(await dialog.locator('label[data-size=normal][for=credential-password]').count()===1,'Password uses catalog FieldLabel');a(await dialog.locator('#credential-password').inputValue()==='','Secret remains blank');
-  a(await dialog.evaluate((el:HTMLElement)=>el.scrollWidth<=el.clientWidth),'Modal wraps');await dialog.screenshot({path:join(output,`credential-${locale}-${width}.png`)});await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
+  a(await dialog.evaluate((el:HTMLElement)=>el.scrollWidth<=el.clientWidth),'Modal wraps');await dialog.evaluate((el:HTMLElement)=>Promise.all(el.getAnimations().map(animation=>animation.finished.catch(()=>{}))));await dialog.screenshot({path:join(output,`credential-${locale}-${width}.png`)});await page.keyboard.press('Escape');await dialog.waitFor({state:'hidden'});
   a(errors.length===0,'No page errors');await context.close();
  }
  console.log(JSON.stringify({passed:true,checks,fixtureOnly:true}));await Bun.write(join(output,'result.json'),JSON.stringify({passed:true,checks,fixtureOnly:true},null,2));
