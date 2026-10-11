@@ -720,3 +720,83 @@ owner data and policy were preserved. Doctor checks passed. 36 native checks and
 full build/typechecks passed; these were same-agent checks, with no configured CI.
 Natural first 02:00 firing and unlocked desktop no-flash observation remain open,
 so this delivery is not a claim that the whole HomeKit module is fully accepted.
+
+
+## Experiment wrap-up and iOS direction (2026-10-11)
+
+The owner requested wrapping up the current Mac-backed experiments and moving
+future experiments toward a native iOS app connected to ChatGPT, with invocation
+from the phone and HomeKit execution on the phone. This closes the current
+experiment phase as incomplete; it does not accept the entire production roadmap.
+The existing production integration remains retained. No new iOS implementation,
+physical control test, security grant, service change or deployment is included
+in this documentation milestone.
+
+Preserve `Heat to 23°C at 2 AM`, its exact existing automation and associated scene,
+and its enabled daily Home-local schedule. Do not delete, disable, recreate or
+rename either resource as part of wrapping up. Preserve original unknown operations,
+signed build products/provenance, rollback releases/backups, the assigned worktree,
+retained branches and both native conversation histories. The completed cache-only
+cleanup adds no feature acceptance and does not authorize another blanket cleanup.
+
+Accepted evidence remains the scoped production reads/definitions, once-only
+control contracts, real natural callbacks through an official MCP subscription
+client, and the approved first-floor native scene execution with four fresh OFF
+reads. The third-floor scenario remains canceled. Sleep/wake and logout/login
+checks remain excluded by the owner's always-on operating assumption.
+
+Carry these unresolved checks into future work without relabeling them passing:
+
+- Natural 02:00 thermostat execution: configured/enabled state and current target
+  values cannot establish causal execution. Retained provider history or an
+  observed natural event with adequate attribution is still required; do not
+  manually execute the thermostat or scene to manufacture acceptance.
+- Refreshed real-client acceptance of the new creation-recovery wrapper.
+- Unlocked-desktop no-flash observation; prior loginwindow sampling is insufficient.
+
+### Muse comparison: evidence and limits
+
+Meta's [Muse architecture description](https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse)
+places the agent in a dedicated cloud VM, with iOS/Android/web clients connected
+through a secure transport and connector actions governed separately from model
+proposals. This supports cloud reasoning plus a connected client; it does not
+establish device-only inference or the precise HomeKit dispatch implementation.
+
+The author's [iOS static-analysis report](https://github.com/mahdi-salmanzade/meta-muse-teardown/blob/main/reports/IOS-8.1.md)
+identifies accessory-setting and scene-running commands, node invocation results
+and native approval paths. These are version-specific findings from a third-party
+decrypted sample whose instruction bytes were not authenticated, without native
+runtime execution or captured traffic. Treat a cloud-command-to-iOS-HomeKit bridge
+as an architectural lead, not verified retail behavior. The
+[current iOS guide](https://github.com/mahdi-salmanzade/meta-muse-teardown/blob/main/IOS.md)
+preserves those evidence limits. Muse Home Link is a separate LAN-device route,
+not evidence for the phone's native HomeKit execution path.
+
+### Next bounded iOS experiment
+
+Desired user story: the owner invokes a Home workflow from the phone, reviews the
+exact Home/target/effect when required, and the native iOS app performs authorized
+HomeKit work on that phone and returns an acknowledged result plus fresh readback.
+Unavailable phone execution or an ambiguous result is reported explicitly; there
+is no automatic fallback to Mac execution and no unknown-operation replay.
+
+First establish a supported ChatGPT-to-native-iOS invocation path. Preserve the
+requirement for ChatGPT connection; using an OpenAI API-backed chat inside our own
+app is a distinct candidate and is not automatically an accepted substitute.
+OpenAI's [MCP quickstart](https://developers.openai.com/plugins/build/app-quickstart)
+describes server tools and optional web UI; its documented integration alone does
+not demonstrate a native iOS executor. The documented
+[mobile remote connection](https://learn.chatgpt.com/docs/remote-connections)
+uses a connected computer's tools and therefore does not satisfy phone execution.
+A deep link, queued command, connector listing or simulator result also does not
+prove successful physical-iPhone invocation and HomeKit readback.
+
+Start with exact-ID read-only Home/characteristic discovery on a physical iPhone,
+explicit OS/client consent, correlated request/result evidence and a verified
+phone execution boundary. Gate later controls on a concrete approved target/effect.
+Evaluate foreground behavior first; background/locked-phone behavior needs its own
+OS-supported evidence and must not be assumed reliable from push registration.
+Reuse the typed authorization, exact-ID, revision, durable unknown-outcome and
+once-only semantics where appropriate, while separately validating iOS lifecycle
+and persistence. No new app, phone installation or household action was performed
+in this wrap-up.
