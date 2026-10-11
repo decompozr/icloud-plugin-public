@@ -360,9 +360,19 @@ These changes are deployed in native 0.1.112 and verified in authenticated produ
 Chrome. The prior Photos handoff is implemented; legacy domain controls are gone.
 Physical-device and native assistive-technology evidence remain unavailable, not passing.
 
+## Populated mobile rows and account choice
+
+Physical-phone reports exposed wrapping cases absent from the earlier disabled
+module fixtures. [The mobile alignment stories](mobile-alignment-ux.md) define
+fixed header controls, full-width summaries/notices and a readable account identity
+with a named icon action. Native 0.1.113 deploys both fixes; keyboard account/query
+preservation and unchecked consent are verified. Installed-renderer mobile tests
+use fictional provider data and remain distinct from physical-phone acceptance.
+
 ## Dedicated Photos file-access requirement
 
 [Photos Reader permissions](photos-reader-permissions.md) defines the owner story,
 fixed reader-app reveal/settings action, explicit OS grant, recheck and recovery.
 The generic service runtime receives no disk-access grant. Native signing and real
 permission acceptance remain pending; source/fixture checks are not live acceptance.
+

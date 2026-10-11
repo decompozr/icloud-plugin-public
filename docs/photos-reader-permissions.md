@@ -75,6 +75,6 @@ fixing startup hooks and the blocked-input deadline; its safe fixtures3/11 pass.
 Production Developer signing currently fails with `errSecInternalComponent`;
 login-keychain inspection reports `User interaction is not allowed`. No keychain
 password, ACL, trust setting or TCC entry was modified. Resolve native signing access
-on the Mac before building the stable signed app. The actual deployed0.1.112 remains
-intact;0.1.113 is an undeployed candidate. Signed packaging, protected upgrade and
+on the Mac before building the stable signed app. The actual deployed0.1.113 remains
+intact;0.1.114 is an undeployed candidate. Signed packaging, protected upgrade and
 actual dedicated-reader OS permission/read acceptance remain required.

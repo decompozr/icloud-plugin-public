@@ -600,5 +600,6 @@
   "icloudSessionDisconnected": "iCloud Session disconnected.",
   "credentialSessionResetHelp": "Updating this App Password also clears this account's stored iCloud Session. You will need to sign in again.",
   "clientSyncIncomplete": "Settings were saved, but some client permissions could not be synchronized. Refresh connection status to retry; shared registrations may require separate recovery.",
-  "systemRuntimeFolder": "Folder"
+  "systemRuntimeFolder": "Folder",
+  "auth_useAccount": "Connect account"
 }
