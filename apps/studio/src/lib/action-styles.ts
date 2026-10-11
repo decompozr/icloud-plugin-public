@@ -25,10 +25,13 @@ export const actionStyles = `
 .page-title{display:flex;align-items:center;gap:${spacing[3]};flex-wrap:wrap;min-width:0}
 .service-capabilities>header{display:flex;align-items:center;justify-content:space-between;gap:${spacing[4]};margin-bottom:${spacing[3]}}
 .capability-title{display:flex;align-items:center;gap:${spacing[2]}}
-.module-summary{display:flex;justify-content:space-between;align-items:center;gap:${spacing[4]};flex-wrap:wrap;border-top:1px solid ${semanticColors.border};padding-block:${spacing[3]}}
-.module-summary:has(.module-notices){row-gap:${spacing[2]}}
-.module-summary h3{margin:0;padding:0;border:0}.module-summary .actions{margin:0}
-.module-statuses{min-height:calc(${controlMetrics.coarseTarget} - 2 * ${spacing[2]});display:flex;gap:${spacing[2]};flex-wrap:wrap;margin-top:${spacing[2]}}
+.module-summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:${spacing[2]} ${spacing[4]};border-top:1px solid ${semanticColors.border};padding-block:${spacing[3]}}
+.module-summary>div:first-child{display:contents}
+.module-summary h3{grid-column:1;grid-row:1;min-height:${controlMetrics.normal.target};align-items:center;margin:0;padding:0;border:0}
+.module-summary .actions{grid-column:2;grid-row:1;margin:0;align-self:start}
+.module-summary .module-notices{grid-column:1/-1;grid-row:3}
+.module-statuses{grid-column:1/-1;grid-row:2;min-height:calc(${controlMetrics.coarseTarget} - 2 * ${spacing[2]});display:flex;gap:${spacing[2]};flex-wrap:wrap;margin-top:0;min-width:0}
+@media(pointer:coarse){.module-summary h3{min-height:${controlMetrics.coarseTarget}}}
 .module-section-heading{display:flex;align-items:center;justify-content:space-between;gap:${spacing[3]};flex-wrap:wrap;margin-block:${spacing[4]} ${spacing[2]}}
 .module-section-heading h3{margin:0;padding:0;border:0;font-size:${typography.heading.fontSize};line-height:${typography.heading.lineHeight}}
 .capability-config-actions{justify-content:flex-end}
@@ -55,8 +58,8 @@ export const actionStyles = `
 .account-identity{min-width:0;flex:0 1 auto}
 .account-statuses{display:flex;gap:${spacing[2]};flex-wrap:wrap}
 .account-status{display:flex;align-items:center;gap:${spacing[2]};flex-wrap:wrap}
-.account-selection{display:flex;align-items:center;justify-content:space-between;gap:${spacing[3]};min-width:0}
-.account-selection .account-identity{overflow-wrap:anywhere}
+.account-selection{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:${spacing[3]};min-width:0}
+.account-selection .account-identity{display:flex;flex-direction:column;gap:${spacing[1]};min-width:0;overflow-wrap:anywhere}
 @media(max-width:540px){.account-card-header>.account-identity{flex-basis:100%}.connection-review{flex-direction:column;align-items:flex-start}}
 .field[data-size]+label[data-size],.field[data-size]+.field[data-size]{margin-top:${controlMetrics.groupGap}}
 .dz-labeled-action[data-dz-action] svg{width:var(--control-icon);height:var(--control-icon);flex:none}
