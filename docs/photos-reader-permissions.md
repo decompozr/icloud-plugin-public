@@ -25,6 +25,21 @@ scripting. Existing mutations, consent, saved plans and unknown-outcome rules re
 in force. Historical plans lacking the new open-library observation require fresh
 review rather than automatic replay.
 
+## Xcode signing
+
+The PhotosReader Xcode project uses the existing development team and a normal
+macOS app target. Build packaging signs fixed nested runtime code before Xcode
+signs the app; no keychain, ACL or global xcode-select setting is changed. The
+setup command uses the full installed Xcode through a per-process DEVELOPER_DIR.
+Xcode still uses the same signing keychain; its local GUI can present the owner
+a signing prompt that the remote execution context cannot answer.
+
+The operator may add --prepare-only to the setup command to stage resources without
+signing or installing. Preparation reports a destination-specific copied project with
+resources bound to that exact staging directory. Open that reported Xcode project,
+choose PhotosReader / My Mac and Build. Do not Run or grant access to a test fixture. GUI output remains
+a candidate until signature/provenance and protected installation are verified.
+
 ## Explicit operator setup
 
 Reuse the existing compatible dependency environment and an available signing
@@ -78,3 +93,14 @@ password, ACL, trust setting or TCC entry was modified. Resolve native signing a
 on the Mac before building the stable signed app. The actual deployed0.1.113 remains
 intact;0.1.114 is an undeployed candidate. Signed packaging, protected upgrade and
 actual dedicated-reader OS permission/read acceptance remain required.
+
+Xcode27 project discovery and the unsigned app build pass. A Developer-signed
+Xcode probe is still rejected with errSecInternalComponent during nested signing.
+This confirms switching build tools alone does not resolve native keychain access;
+local signing interaction remains required. Neither probe was installed or granted
+Full Disk Access.
+
+The destination-bound Xcode project also builds successfully with signing disabled,
+and isolated project-generation tests4/16 pass. Independent recheck3/13 confirms
+that preparation cannot point the GUI at another staged library. The local GUI
+project is prepared but actual signed output remains to be verified.

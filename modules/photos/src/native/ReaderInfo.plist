@@ -4,6 +4,8 @@
 <key>CFBundleIdentifier</key><string>com.decompozr.photos-reader</string>
 <key>CFBundleExecutable</key><string>photos-reader</string>
 <key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleShortVersionString</key><string>1.0.0</string>
 <key>CFBundleName</key><string>DecompozR Photos Reader</string>
 <key>CFBundleDisplayName</key><string>DecompozR Photos Reader</string>
 <key>LSUIElement</key><true/>
