@@ -29,3 +29,21 @@ Inspected captures: [enabled modules](assets/mobile-alignment/modules-en-390.png
 
 Native 0.1.113 deployment and live verification are recorded after immutable-main
 build and the existing supported installation lifecycle. The 8464 preview remains off.
+
+## Native deployment (2026-10-11)
+
+[PR #159](https://github.com/decompozr/icloud-plugin/pull/159) is merged. Native
+0.1.113 was built from clean remote-main commit
+`5f6671b10b3edbf28dd8451149e0b9f65cf22b58`; archive SHA-256 is
+`9318442842093c8037dc2b03873bc82c790bc216dd4318bed0dc99d347a07ab4`.
+The packaged lifecycle/OAuth persistence checks pass 5 tests / 358 assertions.
+Supported stop/update/start preserved config, custody, protected database records,
+service preferences and the signed HomeKit payload. Installed payload matches the
+artifact and all 13 read-only health checks pass. Prior native 0.1.112 and the
+stopped state backup remain available for recovery.
+
+The actual installed renderer additionally passes all 104 bilingual/populated
+mobile regression checks using fictional provider data. Real HTTPS private admin
+returns the expected owner sign-in200. The Chrome extension was unavailable for
+authenticated live-browser inspection in this run; installed-renderer fixtures
+are not represented as physical-phone or external-client acceptance.
