@@ -600,5 +600,6 @@
   "icloudSessionDisconnected": "已中斷 iCloud Session。",
   "credentialSessionResetHelp": "更新 App Password 也會清除此帳號已儲存的 iCloud Session；之後需要重新登入。",
   "clientSyncIncomplete": "設定已儲存，但部分用戶端權限未能同步。重新整理連線狀態可重試；共用註冊可能需要個別處理。",
-  "systemRuntimeFolder": "資料夾"
+  "systemRuntimeFolder": "資料夾",
+  "auth_useAccount": "連接此帳戶"
 }

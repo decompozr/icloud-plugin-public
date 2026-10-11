@@ -238,7 +238,6 @@
                 >{/if}
             </div>
             <ActionButton
-              showLabel
               type="button"
               class="secondary"
               disabled={busy || !account.credentialStored}
@@ -254,7 +253,7 @@
                   ),
                 )}
               icon="arrow-right"
-              label={authT("selectedAccount") + ": " + d.primary}
+              label={authT("useAccount") + ": " + d.primary}
             />
           </div>{/each}
       </div>
