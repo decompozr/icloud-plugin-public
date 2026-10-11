@@ -2,18 +2,15 @@
 Revalidate the selected system library and exact pre-write values before changes.
 """
 import json, sys
-from pathlib import Path
-from reader import main as read
+from reader_transport import snapshot
 
 def run(request):
     import photoscript
-    from osxphotos.utils import get_last_library_path
     expected=request['expected']
-    current=read({'library':request['library'],'command':'inspect','input':request['mutation']})
+    current=snapshot(request)
     if current!=expected: return {'status':'stale_plan'}
     # AppleScript targets the currently open library, which may differ from system.
-    opened=get_last_library_path()
-    if not opened or Path(opened).resolve()!=Path(request['library']).resolve():
+    if current.get('openLibraryMatches') is not True:
         return {'status':'wrong_open_library'}
     changes=request['mutation']['values']; photos=[]
     for entry in expected['assets']:

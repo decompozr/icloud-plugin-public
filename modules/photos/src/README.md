@@ -99,7 +99,7 @@ A failed setup retains `.setup-in-progress` and partial output for diagnosis; us
 new destination rather than retrying over those files. Configure the optional `[photos]` block
 shown in config.example.toml. The library must be selected explicitly; writes
 require the system library, and scripting additionally requires the open library
-be that library. Full Disk Access for the host and Photos/Automation permissions
+be that library. Full Disk Access for the dedicated DecompozR Photos Reader and Photos/Automation permissions
 are distinct. Dependency installation never happens in an MCP request.
 
 When Photos is configured, the owner setup/admin page includes permission status,

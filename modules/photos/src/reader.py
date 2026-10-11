@@ -156,6 +156,10 @@ def main(request):
         system=get_system_library_path()
         if not system or Path(system).resolve()!=library: raise ValueError('writes_require_system_library')
         result={'libraryScope':scope,'mutation':data,'assets':[summary(p) for p in selected_assets(data.get('assetIds',[]))]}
+        if data.get('action') == 'set_metadata':
+            from osxphotos.utils import get_last_library_path
+            opened=get_last_library_path()
+            result['openLibraryMatches']=bool(opened and Path(opened).resolve()==library)
         if any(p['shared'] for p in result['assets']): raise ValueError('shared_source_write_unsupported')
         if data.get('albumId'):
             a,k=selected_album(data['albumId']); result['album']=album(a,k)

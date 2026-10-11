@@ -117,11 +117,11 @@ export async function createApplication(
   const runtime = new ModuleRuntime()
     .register(mailModule.registration)
     .register(calendarModule.registration);
-  const photosPermissions=settings.photos?photosSetup({python:settings.photos.python,library:settings.photos.library,nativeHelper:settings.photos.native_helper}):undefined;
+  const photosPermissions=settings.photos?photosSetup({python:settings.photos.python,library:settings.photos.library,nativeHelper:settings.photos.native_helper,readerHelper:settings.photos.reader_helper}):undefined;
   const photosAdmin=settings.photos?createPhotosAdmin({database:deps.authDatabase,store:deps.store,ceiling:{read:true,write:settings.photos.allow_writes,delete:settings.photos.allow_writes&&settings.photos.allow_delete}}):undefined;
   if(settings.photos&&photosAdmin){
     const p=settings.photos;
-    const provider=new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,stateDirectory:join(settings.state_directory,'photos'),reviewDirectory:join(dirname(settings.master_key_file),'photos-shared-reviews')});
+    const provider=new LocalPhotosProvider({python:p.python,library:p.library,nativeHelper:p.native_helper,readerHelper:p.reader_helper,stateDirectory:join(settings.state_directory,'photos'),reviewDirectory:join(dirname(settings.master_key_file),'photos-shared-reviews')});
     const service=new PhotosService(deps.authDatabase,provider,photosAdmin.policy,()=>{const owner=deps.store.ownerId();if(!owner)throw Error('Owner required');return owner;});
     runtime.register(photosRegistration(service,photosAdmin.policy));
   }

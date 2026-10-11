@@ -29,7 +29,7 @@
     },
     "apps/studio": {
       "name": "@icloud-plugin/studio",
-      "version": "0.1.109",
+      "version": "0.1.113",
       "dependencies": {
         "@better-auth/oauth-provider": "1.7.7",
         "@better-auth/passkey": "1.7.7",
@@ -175,7 +175,7 @@
     },
     "modules/photos": {
       "name": "@decompozr/photos",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "dependencies": {
         "@decompozr/account": "workspace:*",
         "@decompozr/ui": "workspace:*",

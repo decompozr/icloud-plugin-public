@@ -8,8 +8,9 @@ import {PhotosService} from './service.js';
 import {photosRegistration} from './module.js';
 export async function cli(args:string[]){
  if(args.length!==2)throw Error('Usage: bun photos/cli.ts CONFIG.json REQUEST.json');
- const config=z.object({python:z.string(),library:z.string(),nativeHelper:z.string(),stateDirectory:z.string(),allowWrites:z.boolean().default(false),allowDelete:z.boolean().default(false)}).strict().parse(JSON.parse(readFileSync(args[0]!,'utf8')));
+ const config=z.object({python:z.string(),library:z.string(),nativeHelper:z.string(),readerHelper:z.string().optional(),stateDirectory:z.string(),allowWrites:z.boolean().default(false),allowDelete:z.boolean().default(false)}).strict().parse(JSON.parse(readFileSync(args[0]!,'utf8')));
  for(const key of ['python','library','nativeHelper','stateDirectory'] as const)config[key]=resolve(config[key]);
+ if(config.readerHelper)config.readerHelper=resolve(config.readerHelper);
  const request=z.object({tool:z.string(),input:z.unknown().default({})}).strict().parse(JSON.parse(readFileSync(args[1]!,'utf8')));
  if(request.tool==='authorize'){console.log(JSON.stringify(await runNative(config.nativeHelper,{command:'authorize'},60000)));return;}
  mkdirSync(config.stateDirectory,{recursive:true,mode:0o700});const stat=lstatSync(config.stateDirectory);

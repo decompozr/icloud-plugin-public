@@ -9,12 +9,20 @@ import {readReview} from './shared-review.js';
 const moduleDirectory=dirname(fileURLToPath(import.meta.url));
 const base=existsSync(join(moduleDirectory,'reader.py'))?moduleDirectory:join(moduleDirectory,'photos');
 const envelope=z.discriminatedUnion('ok',[z.object({ok:z.literal(true),result:z.unknown()}).strict(),z.object({ok:z.literal(false),error:z.string().regex(/^[a-z_]{1,80}$/)}).strict()]);
-const snapshot=z.object({libraryScope:z.string().regex(/^[a-f0-9]{16}$/),mutation:mutationSchema,assets:z.array(assetSchema).max(50),album:albumSchema.optional(),members:z.array(z.string()).max(100000).optional()}).strict();
-export interface ProviderSettings {python:string;library:string;nativeHelper:string;sidecarDirectory?:string;timeoutMs?:number;stateDirectory?:string;reviewDirectory?:string}
+const snapshot=z.object({libraryScope:z.string().regex(/^[a-f0-9]{16}$/),mutation:mutationSchema,assets:z.array(assetSchema).max(50),album:albumSchema.optional(),members:z.array(z.string()).max(100000).optional(),openLibraryMatches:z.boolean().optional()}).strict();
+export interface ProviderSettings {python:string;library:string;nativeHelper:string;readerHelper?:string;sidecarDirectory?:string;timeoutMs?:number;stateDirectory?:string;reviewDirectory?:string}
 /** Launch Services preserves the app's Photos consent identity. Never retry a launch. */
 export async function runNative(helper:string,input:unknown,timeoutMs=60000,authorize?:()=>void):Promise<unknown>{
+ return runPackagedApp(helper,'photos-helper',input,timeoutMs,authorize);
+}
+const readerCommands=new Set(['access','health','persons','albums','query','detail','preview','compare','cleanup','inspect']);
+export async function runReader(helper:string,input:{command:string;library:string;input?:unknown},timeoutMs=60000){
+ if(!readerCommands.has(input.command)||!isAbsolute(input.library))throw new PhotosError('invalid_reader_request');
+ return runPackagedApp(helper,'photos-reader',input,timeoutMs);
+}
+async function runPackagedApp(helper:string,executable:'photos-helper'|'photos-reader',input:unknown,timeoutMs:number,authorize?:()=>void):Promise<unknown>{
  const app=dirname(dirname(dirname(helper)));
- if(!isAbsolute(helper)||!app.endsWith('.app')||join(app,'Contents','MacOS','photos-helper')!==helper)throw new PhotosError('packaged_helper_required');
+ if(!isAbsolute(helper)||!app.endsWith('.app')||join(app,'Contents','MacOS',executable)!==helper)throw new PhotosError('packaged_helper_required');
  const encoded=JSON.stringify(input);if(Buffer.byteLength(encoded)>65536)throw new PhotosError('request_too_large');
  const directory=await mkdtemp(join(tmpdir(),'icloud-photos-native-'));
  let child:Bun.Subprocess|undefined;
@@ -58,8 +66,8 @@ export async function runProcess(argv:string[],input:unknown,timeoutMs=60000,sig
  }catch(e){child.kill();throw e instanceof PhotosError?e:new PhotosError('invalid_provider_response');}finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
 }
 export class LocalPhotosProvider implements PhotosProvider {
- constructor(private readonly settings:ProviderSettings){if(![settings.python,settings.library,settings.nativeHelper].every(isAbsolute))throw new PhotosError('absolute_provider_paths_required');}
- private reader(command:string,input:unknown){return runProcess([this.settings.python,join(this.settings.sidecarDirectory??base,'reader.py')],{library:this.settings.library,command,input},this.settings.timeoutMs);}
+ constructor(private readonly settings:ProviderSettings){if(![settings.python,settings.library,settings.nativeHelper,...(settings.readerHelper?[settings.readerHelper]:[])].every(isAbsolute))throw new PhotosError('absolute_provider_paths_required');}
+ private reader(command:string,input:unknown){if(!this.settings.readerHelper)throw new PhotosError('photos_reader_setup_required');return runReader(this.settings.readerHelper,{library:this.settings.library,command,input},this.settings.timeoutMs);}
  async read(command:string,input:unknown):Promise<unknown>{
   const value=await this.reader(command,input);
   if(command==='detail')return assetSchema.parse(value);
@@ -93,7 +101,7 @@ export class LocalPhotosProvider implements PhotosProvider {
   const current=snapshot.parse(await this.reader('inspect',mutation));
   if(JSON.stringify(current)!==JSON.stringify(expected))throw new PhotosError('stale_plan');
   const result=mutation.action==='set_metadata'
-   ? await runProcess([this.settings.python,join(this.settings.sidecarDirectory??base,'metadata-write.py')],{library:this.settings.library,mutation,expected:current},this.settings.timeoutMs)
+   ? await runProcess([this.settings.python,join(this.settings.sidecarDirectory??base,'metadata-write.py')],{library:this.settings.library,readerHelper:this.settings.readerHelper,mutation,expected:current},this.settings.timeoutMs)
    : await this.native('apply',mutation);
   return z.object({status:z.enum(['applied','outcome_unknown','stale_plan','wrong_open_library']),localReadbackVerified:z.boolean().optional(),serverSyncVerified:z.literal(false).optional(),createdUuid:z.string().optional(),items:z.array(z.object({uuid:z.string(),status:z.enum(['applied','outcome_unknown','not_attempted'])}).strict()).max(50).optional()}).strict().parse(result);
  }

@@ -21,6 +21,8 @@ bootstrap_owner_login = "owner@example.invalid"
 # [photos]
 # python = "/absolute/path/to/isolated/python"
 # library = "/Users/you/Pictures/Photos Library.photoslibrary"
+# Dedicated signed reader; general Bun does not need Full Disk Access.
+# reader_helper = "/absolute/reader-runtime/DecompozR Photos Reader.app/Contents/MacOS/photos-reader"
 # native_helper = "/absolute/path/to/photos-helper"
 # allow_writes = true
 # allow_delete = false

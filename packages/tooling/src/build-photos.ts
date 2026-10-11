@@ -10,5 +10,5 @@ for await(const path of new Bun.Glob('**/*.ts').scan(source))if(!["archived-shar
 const result=await Bun.build({entrypoints:entries,root:source,outdir:output,target:'bun',packages:'external',splitting:true});
 if(!result.success)throw new AggregateError(result.logs,'Photos backend build failed');
 console.log('Built independently installed Photos backend; host/UI/tests excluded.');
-for(const file of ['reader.py','metadata-write.py'])await cp(join(source,file),join(output,file));await mkdir(join(output,'native'),{recursive:true});for(const file of ['PhotosHelper.swift','Info.plist'])await cp(join(source,'native',file),join(output,'native',file));
+for(const file of ['reader.py','reader-bootstrap.py','metadata-write.py','reader_transport.py'])await cp(join(source,file),join(output,file));await mkdir(join(output,'native'),{recursive:true});for(const file of ['PhotosHelper.swift','Info.plist','PhotosReader.swift','ReaderInfo.plist'])await cp(join(source,'native',file),join(output,'native',file));
 for(const file of ['archived-sharing-module', 'shared-albums', 'cloud-setup', 'cloud-session', 'shared-stream', 'upload-source', 'cloud-setup-browser', 'cloud-setup-ui', 'cloud-verification', 'shared-management-contract', 'shared-stream-protocol', 'shared-upload-contract'])await rm(join(output,file+'.d.ts'),{force:true});

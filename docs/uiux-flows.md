@@ -359,3 +359,10 @@ module warnings, account/context selects, field labels and exact permission choi
 These changes are deployed in native 0.1.112 and verified in authenticated production
 Chrome. The prior Photos handoff is implemented; legacy domain controls are gone.
 Physical-device and native assistive-technology evidence remain unavailable, not passing.
+
+## Dedicated Photos file-access requirement
+
+[Photos Reader permissions](photos-reader-permissions.md) defines the owner story,
+fixed reader-app reveal/settings action, explicit OS grant, recheck and recovery.
+The generic service runtime receives no disk-access grant. Native signing and real
+permission acceptance remain pending; source/fixture checks are not live acceptance.
