@@ -36,17 +36,13 @@ The task requires CLI-only build/signing; no further native GUI launch is part
 of this workflow. --prepare-only stages resources and reports the destination-bound
 project for command-line inspection/building, without signing or installing.
 
-A read-only SecKeychainGetStatus check returned status0 and unlocked=false. The
-existing login keychain is locked. The owner can unlock it in the Mac/SSH terminal:
-
-```sh
-security unlock-keychain /Users/scottchu/Library/Keychains/login.keychain-db
-```
-
-The default command prompts in the terminal. Do not use -u (GUI) or -p (password
-argument). Password entry is local to the owner's terminal; the agent receives
-no password. Retry xcodebuild and verify the signed product after state changes.
-No keychain ACL, trust or partition-list modification is authorized by this step.
+The read-only diagnostic returned status0 and unlocked=false for the personal
+login keychain. This explains the current CLI signing failure; recurring owner
+unlock is rejected as the long-term workflow. The owner requested online research
+into unattended signing. [Automation research](photos-reader-signing-automation.md)
+compares isolated build keychains, cloud-managed identities and pre-signed releases.
+No credential export/import, keychain/ACL change, secret upload or new cloud service
+has been performed. The credential source and storage destination remain undecided.
 
 ## Explicit operator setup
 
