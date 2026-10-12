@@ -31,14 +31,22 @@ The PhotosReader Xcode project uses the existing development team and a normal
 macOS app target. Build packaging signs fixed nested runtime code before Xcode
 signs the app; no keychain, ACL or global xcode-select setting is changed. The
 setup command uses the full installed Xcode through a per-process DEVELOPER_DIR.
-Xcode still uses the same signing keychain; its local GUI can present the owner
-a signing prompt that the remote execution context cannot answer.
+Xcode CLI uses the same signing keychain; selecting Xcode does not unlock it.
+The task requires CLI-only build/signing; no further native GUI launch is part
+of this workflow. --prepare-only stages resources and reports the destination-bound
+project for command-line inspection/building, without signing or installing.
 
-The operator may add --prepare-only to the setup command to stage resources without
-signing or installing. Preparation reports a destination-specific copied project with
-resources bound to that exact staging directory. Open that reported Xcode project,
-choose PhotosReader / My Mac and Build. Do not Run or grant access to a test fixture. GUI output remains
-a candidate until signature/provenance and protected installation are verified.
+A read-only SecKeychainGetStatus check returned status0 and unlocked=false. The
+existing login keychain is locked. The owner can unlock it in the Mac/SSH terminal:
+
+```sh
+security unlock-keychain /Users/scottchu/Library/Keychains/login.keychain-db
+```
+
+The default command prompts in the terminal. Do not use -u (GUI) or -p (password
+argument). Password entry is local to the owner's terminal; the agent receives
+no password. Retry xcodebuild and verify the signed product after state changes.
+No keychain ACL, trust or partition-list modification is authorized by this step.
 
 ## Explicit operator setup
 
@@ -97,7 +105,7 @@ actual dedicated-reader OS permission/read acceptance remain required.
 Xcode27 project discovery and the unsigned app build pass. A Developer-signed
 Xcode probe is still rejected with errSecInternalComponent during nested signing.
 This confirms switching build tools alone does not resolve native keychain access;
-local signing interaction remains required. Neither probe was installed or granted
+owner CLI unlock remains required. Neither probe was installed or granted
 Full Disk Access.
 
 The destination-bound Xcode project also builds successfully with signing disabled,
