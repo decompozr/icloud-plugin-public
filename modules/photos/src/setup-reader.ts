@@ -39,10 +39,12 @@ export async function createReaderXcodeProject(native:string,directory:string){
  await writeFile(projectFile,specification.replaceAll('PHOTOS_READER_RESOURCES = "";','PHOTOS_READER_RESOURCES = "$(SRCROOT)/../DecompozR Photos Reader.app/Contents/Resources";'));
  return project;
 }
-export async function setupReader(args:string[]){
+export async function setupReader(args:string[],signingKeychain?:string){
  const {options,native,project,app,resources,library,helper}=await prepareReader(args);
  const developerDirectory=process.env.DEVELOPER_DIR??'/Applications/Xcode.app/Contents/Developer';
- await capture(['xcodebuild','-project',project,'-scheme','PhotosReader','-configuration','Release','-derivedDataPath',join(options.directory,'DerivedData'),'CONFIGURATION_BUILD_DIR='+options.directory,'PHOTOS_READER_RESOURCES='+resources,'CODE_SIGN_IDENTITY='+options.sign,'CODE_SIGNING_ALLOWED=YES','build'],{...process.env,DEVELOPER_DIR:developerDirectory});
+ if(signingKeychain&&!/^\/[A-Za-z0-9_./-]+$/.test(signingKeychain))throw Error('Invalid isolated signing keychain path');
+ const signing=signingKeychain?['PHOTOS_READER_SIGNING_KEYCHAIN='+signingKeychain,'OTHER_CODE_SIGN_FLAGS=--keychain '+signingKeychain]:[];
+ await capture(['xcodebuild','-project',project,'-scheme','PhotosReader','-configuration','Release','-derivedDataPath',join(options.directory,'DerivedData'),'CONFIGURATION_BUILD_DIR='+options.directory,'PHOTOS_READER_RESOURCES='+resources,'CODE_SIGN_IDENTITY='+options.sign,'CODE_SIGNING_ALLOWED=YES',...signing,'build'],{...process.env,DEVELOPER_DIR:developerDirectory});
  await capture(['codesign','--verify','--deep','--strict',app]);
  const signature=await capture(['codesign','-d','-r-',app]);
  const sha256=async(path:string)=>createHash('sha256').update(await readFile(path)).digest('hex');

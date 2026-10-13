@@ -28,6 +28,8 @@ if os.environ.get('CODE_SIGNING_ALLOWED') == 'YES':
     if not identity or identity == '-':
         raise RuntimeError('A stable signing identity is required')
     if code:
-        result = subprocess.run(['/usr/bin/codesign', '--sign', identity, '--force', '--options', 'runtime', '--timestamp=none', *code])
+        keychain = os.environ.get('PHOTOS_READER_SIGNING_KEYCHAIN')
+        selection = ['--keychain', keychain] if keychain else []
+        result = subprocess.run(['/usr/bin/codesign', *selection, '--sign', identity, '--force', '--options', 'runtime', '--timestamp=none', *code])
         if result.returncode:
             raise RuntimeError('Nested reader code signing failed')

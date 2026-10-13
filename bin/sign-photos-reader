@@ -1,0 +1,17 @@
+#!/usr/bin/env bun
+import {withBuildSigner} from '../packages/tooling/src/signing-session.js';
+import {setupReader} from '../modules/photos/src/setup-reader.js';
+
+const args=process.argv.slice(2),values:Record<string,string>={};
+const allowed=['--output','--python','--library','--p12-file','--password-file','--identity'];
+for(let i=0;i<args.length;i+=2){const key=args[i],value=args[i+1];if(!key||!allowed.includes(key)||!value||values[key])throw Error('Usage: bun bin/sign-photos-reader --output NEW_PRIVATE_DIR --python EXISTING_PYTHON --library LIBRARY --p12-file PRIVATE_P12 --password-file PRIVATE_PASSWORD_FILE --identity CERTIFICATE_SHA1');values[key]=value;}
+if(allowed.some(key=>!values[key]))throw Error('Explicit output, dependencies and provisioned signing credentials required');
+try{
+ const result=await withBuildSigner({p12File:values['--p12-file']!,passwordFile:values['--password-file']!,identity:values['--identity']!},signer=>setupReader([values['--output']!,'--python',values['--python']!,'--library',values['--library']!,'--sign',signer.identity],signer.keychain));
+ console.log(JSON.stringify({...result,signingSessionCleaned:true}));
+}catch(error){
+ // No raw child diagnostics, credential contents or signing session passwords.
+ const message=(error as Error).message;
+ const safe=/^[A-Z_]{1,80}$/.test(message)?message:'SIGNING_BUILD_FAILED';
+ console.error(JSON.stringify({status:'failed',error:safe}));process.exitCode=1;
+}
