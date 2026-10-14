@@ -56,3 +56,23 @@ change, service restart or Photos write was performed during this investigation.
 [Apple DTS discussion of terminal versus launchd access](https://developer.apple.com/forums/thread/118508)
 provides platform context; local TCC readback and matched checks are the evidence
 for this installation.
+
+## Controlled one-shot LaunchAgent experiment
+
+A follow-up experiment ran the exact same read-only health probe twice, with the
+same explicit environment variables, Bun executable, Python interpreter, installed
+reader and selected library. The first run was spawned from the executor SSH
+shell; the second was spawned by a temporary per-user LaunchAgent with RunAtLoad
+and no keep-alive. No production listener or daemon was started by the probe.
+
+| Case | Bun PID / parent PID | Result |
+| --- | --- | --- |
+| Executor shell | 81855 / 81853 | Reader health succeeded |
+| Temporary LaunchAgent | 81901 / 1 | photos_permission_required |
+
+The temporary job was unloaded successfully and launchctl readback confirmed it
+was absent. Production service process record, release symlink and configuration
+hash matched before and after. This strengthens the launch-context explanation:
+changing only the launch context reproduced the failure without a dependency,
+helper or production configuration change. This is same-agent experimental
+verification, not independent review or an actual iTerm run.
