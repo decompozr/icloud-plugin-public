@@ -112,3 +112,21 @@ returned errno 1 / Operation not permitted before any owner access grant.
 The job was removed and production hashes/release remained unchanged. This
 separately establishes that signing does not grant protected Photos-file access;
 the owner permission step and post-grant experiment remain pending.
+
+### Owner-granted fixed-location App experiment
+
+The signed experiment App was copied unchanged outside the worktree to the existing
+installation's runtime experiments directory. All copied files and the Apple/Team
+signature were verified. The owner reported completing the access grant. A fresh
+one-shot LaunchAgent probe from that fixed App then successfully opened the selected
+Photos database and read 16 bytes. The temporary job was removed and production
+service/config hashes and current release remained unchanged.
+
+Compared with the ungranted trusted-signed baseline (errno 1), this confirms that
+owner authorization of the dedicated App can permit its Bun/Python child chain to
+read the protected database under launchd. This is a same-agent, live permission
+experiment. It does not establish full osxphotos health, metadata operations, MCP
+client acceptance, reboot/update permission continuity, or production packaging
+security. Existing external Bun/Python dependencies are still outside the sealed
+probe App. The signed, authorized fixture is retained for subsequent work; the
+production service and existing helpers have not been replaced.
