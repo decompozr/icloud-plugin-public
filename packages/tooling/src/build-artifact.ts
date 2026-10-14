@@ -1,6 +1,7 @@
 import{tmpdir}from'node:os';
 import{packModulePackages}from'./module-packages.js';
 import {stageHomeKitPayload} from './homekit-payload.js';
+import {prepareServiceApp} from './service-app.js';
 import {artifactSchema,packageVersionSchema} from './artifact.js';
 import {cp,mkdir,rm,chmod,mkdtemp} from 'node:fs/promises';
 import {resolve,join,dirname} from 'node:path';
@@ -50,5 +51,6 @@ try{
  let homekit;if(receiptFlag>=0)homekit=await stageHomeKitPayload(output,resolve(process.argv[receiptFlag+1]!),process.argv[teamFlag+1]!);
  const metadata=packageVersionSchema.parse(await Bun.file(join(root,'apps/studio/package.json')).json() as unknown);
  await Bun.write(join(output,'artifact.json'),JSON.stringify(artifactSchema.parse({format:1,name:'icloud-plugin',version:metadata.version,platform:process.platform,arch:process.arch,bun:Bun.version,...homekit?{homekit}:{}}),null,2)+'\n');
+ if(process.platform==='darwin')await prepareServiceApp(output,join(root,'packages/tooling/src/native/ServiceLauncher.swift'),metadata.version);
  console.log(output);
 }catch(error){await rm(output,{recursive:true,force:true});throw error;}

@@ -1,0 +1,40 @@
+#!/usr/bin/env bun
+import {resolve,join} from 'node:path';
+import {readdir,lstat,readFile,realpath} from 'node:fs/promises';
+import {serviceAppSchema,verifyServiceApp} from '../packages/tooling/src/service-app.js';
+import {artifactSchema} from '../packages/tooling/src/artifact.js';
+const [directory,identity]=process.argv.slice(2);
+if(!directory||!identity||!/^[A-Fa-f0-9]{40}$/.test(identity)||process.argv.length!==4)throw Error('Usage: bun bin/sign-studio-service ARTIFACT_DIRECTORY CERTIFICATE_SHA1');
+const root=resolve(directory),app=join(root,'DecompozR Studio.app');
+const metadata=artifactSchema.parse(JSON.parse(await readFile(join(root,'artifact.json'),'utf8')));
+if(metadata.platform!=='darwin')throw Error('SERVICE_APP_REQUIRES_MACOS');
+if(!(await lstat(app)).isDirectory())throw Error('SERVICE_APP_ROOT_INVALID');
+const canonical=await realpath(app),binaries:string[]=[];if(!canonical.startsWith((await realpath(root))+'/'))throw Error('SERVICE_APP_ROOT_INVALID');
+async function walk(path:string):Promise<void>{
+ const actual=await realpath(path);if(actual!==canonical&&!actual.startsWith(canonical+'/'))throw Error('SERVICE_APP_EXTERNAL_SYMLINK');
+ const info=await lstat(path);
+ if(info.isSymbolicLink())return;
+ if(info.isDirectory()){
+  // Preserve independently signed HomeKit bundles and their entitlements.
+  if(path!==app&&path.endsWith('.app'))return;
+  for(const name of await readdir(path))await walk(join(path,name));return;
+ }
+ if(!info.isFile())throw Error('SERVICE_APP_SPECIAL_FILE');
+ const f=Bun.file(path);if(f.size<4)return;
+ const magic=Buffer.from(await f.slice(0,4).arrayBuffer()).toString('hex');
+ if(['cffaedfe','cefaedfe','feedfacf','feedface','cafebabe','bebafeca','cafebabf','bfbafeca'].includes(magic))binaries.push(path);
+}
+await walk(app);
+const entitlements=join(root,'studio-runtime.entitlements');
+await Bun.write(entitlements,await readFile(new URL('../packages/tooling/src/native/Bun.entitlements',import.meta.url)));
+async function sign(args:string[]){const p=Bun.spawn(['/usr/bin/codesign',...args],{stdin:'inherit',stdout:'inherit',stderr:'inherit'});if(await p.exited!==0)throw Error('SERVICE_APP_SIGNING_FAILED');}
+for(const binary of binaries){
+ if(binary===join(app,'Contents/MacOS/studio-service'))continue;
+ await sign(['--force','--sign',identity,'--options','runtime',...(binary===join(app,'Contents/Resources/bun')?['--entitlements',entitlements]:[]),'--timestamp',binary]);
+}
+const appEntitlements=join(root,'studio-service.entitlements');await Bun.write(appEntitlements,'<?xml version="1.0"?><plist version="1.0"><dict><key>com.apple.security.automation.apple-events</key><true/><key>com.apple.security.personal-information.photos-library</key><true/></dict></plist>');
+await sign(['--force','--sign',identity,'--options','runtime','--entitlements',appEntitlements,'--timestamp',app]);
+const serviceApp=serviceAppSchema.parse({app:'DecompozR Studio.app',signingTeam:'74NBML8KJB'});
+await verifyServiceApp(root,serviceApp,metadata.version);
+await Bun.write(join(root,'artifact.json'),JSON.stringify({...metadata,serviceApp},null,2)+'\n');
+console.log('Signed service App verified. Installation, startup and privacy permissions unchanged.');

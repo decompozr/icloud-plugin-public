@@ -1,4 +1,5 @@
 import {verifyHomeKitPayload} from './homekit-payload.js';
+import {verifyServiceApp} from './service-app.js';
 import {artifactSchema,type Artifact} from './artifact.js';
 import {cp,mkdir,readFile,readdir,rename,rm,symlink,lstat} from 'node:fs/promises';
 import {resolve,join,relative,parse,dirname} from 'node:path';
@@ -9,6 +10,8 @@ export async function inspectArtifact(path:string):Promise<Artifact>{
  const entry=await Bun.file(join(path,'apps/studio/dist/server/index.js')).exists()?'apps/studio/dist/server/index.js':'apps/icloud/dist/index.js';
  for(const file of ['runtime.sh',entry])if(!(await lstat(join(path,file))).isFile())throw Error('Incomplete artifact');
  if(value.homekit)await verifyHomeKitPayload(path,value.homekit);
+ if(!value.serviceApp&&await lstat(join(path,'DecompozR Studio.app')).then(()=>true,()=>false))throw Error('UNSIGNED_SERVICE_APP');
+ if(value.serviceApp)await verifyServiceApp(path,value.serviceApp,value.version);
  return value;
 }
 const marker=JSON.stringify({format:1,owner:'icloud-plugin-install'});
@@ -45,6 +48,7 @@ export async function installArtifact(source:string,prefix:string,update=false){
  try{
   await cp(source,release,{recursive:true,verbatimSymlinks:true,errorOnExist:true});
   if(metadata.homekit)await verifyHomeKitPayload(release,metadata.homekit);
+  if(metadata.serviceApp)await verifyServiceApp(release,metadata.serviceApp,metadata.version);
   await symlink(`releases/${id}`,pending);
   await rename(pending,join(prefix,'current'));
  }catch(error){await rm(pending,{force:true});await rm(release,{recursive:true,force:true});throw error;}

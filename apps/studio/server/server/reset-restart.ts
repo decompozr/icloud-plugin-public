@@ -11,6 +11,8 @@ export function resetRestartPlan(
     platform?: string;
     uid?: number;
     serviceName?: string;
+    launcherPid?: number;
+    parentOf?: (pid:number)=>number;
     probe?: (label: string) => { present: boolean; pid?: number };
   } = {},
 ): ResetRestart {
@@ -61,9 +63,11 @@ export function resetRestartPlan(
         throw Error("RESET_SUPERVISION_UNKNOWN");
       }
     });
+  const launcher=deps.launcherPid??(process.env.ICLOUD_SERVICE_LAUNCHER_PID?Number(process.env.ICLOUD_SERVICE_LAUNCHER_PID):undefined);
+  if(launcher!==undefined){const parentOf=deps.parentOf??((child:number)=>Number(execFileSync("/bin/ps",["-p",String(child),"-o","ppid="],{encoding:"utf8",timeout:1500}).trim()));if(!Number.isSafeInteger(launcher)||launcher<2||parentOf(ppid)!==launcher)throw Error("RESET_SUPERVISION_UNKNOWN");}
   for (const label of labels) {
     const job = probe(label);
-    if (job.present && (job.pid === pid || job.pid === ppid))
+    if (job.present && (job.pid === pid || job.pid === ppid || (launcher !== undefined && job.pid === launcher)))
       return label==="com.decompozr.icloud-plugin"?"service":"supervisor";
     if (job.present) throw Error("RESET_SUPERVISION_UNKNOWN");
   }

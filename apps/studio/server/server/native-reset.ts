@@ -25,7 +25,7 @@ export function createNativeReset(
     try {
       await options.drainAndClose();
       performSystemReset(settings, id);
-      if (restart === "service") {const prefix=process.env.ICLOUD_INSTALL_PREFIX;if(!prefix)throw Error("Installed prefix unavailable");const control=spawn(process.execPath,[join(prefix,"current/icloud-plugin.js"),"service","restart","--prefix",prefix],{cwd:prefix,env:process.env,stdio:"ignore",detached:true});await new Promise<void>((resolve,reject)=>{control.once("close",code=>code===0?resolve():reject(Error("Service restart not queued")));control.once("error",reject)});control.unref();}
+      if (restart === "service") {const prefix=process.env.ICLOUD_INSTALL_PREFIX;if(!prefix)throw Error("Installed prefix unavailable");const control=spawn(process.execPath,[...(process.env.ICLOUD_SERVICE_APP?['--no-env-file','--config=/dev/null']:[]),(process.env.ICLOUD_SERVICE_APP?join(process.env.ICLOUD_SERVICE_APP,"Contents/Resources/payload/icloud-plugin.js"):join(prefix,"current/icloud-plugin.js")),"service","restart","--prefix",prefix],{cwd:prefix,env:process.env,stdio:"ignore",detached:true});await new Promise<void>((resolve,reject)=>{control.once("close",code=>code===0?resolve():reject(Error("Service restart not queued")));control.once("error",reject)});control.unref();}
       if (restart === "direct") {
         const next = spawn(
           process.execPath,

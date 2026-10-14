@@ -20,7 +20,7 @@ export function photosSetup(settings:ProviderSettings){return {
    const app=dirname(dirname(dirname(settings.nativeHelper)));
    if(!app.endsWith('.app')||join(app,'Contents','MacOS','photos-helper')!==settings.nativeHelper)throw Error('Packaged helper required');
    args=['/usr/bin/open','-n',app,'--args','--authorize'];
-  }else args=['/usr/bin/open',privacyLinks[action]];
+  }else {if(action==='files'&&process.env.ICLOUD_SERVICE_APP){const reveal=Bun.spawn(['/usr/bin/open','-R',process.env.ICLOUD_SERVICE_APP],{stdout:'ignore',stderr:'ignore'});if(await reveal.exited!==0)throw Error('Cannot reveal installed service App');}args=['/usr/bin/open',privacyLinks[action]];}
   const child=Bun.spawn(args,{stdout:'ignore',stderr:'ignore'});if(await child.exited!==0)throw Error('Cannot open settings');
   return {opened:true,ready:false,changesPerformed:false};
  }
