@@ -76,3 +76,28 @@ hash matched before and after. This strengthens the launch-context explanation:
 changing only the launch context reproduced the failure without a dependency,
 helper or production configuration change. This is same-agent experimental
 verification, not independent review or an actual iTerm run.
+
+## Dedicated service App identity experiment
+
+A disposable Studio service App launcher runs a fixed, sealed read-only Bun probe,
+which invokes the existing Python interpreter to open and read 16 bytes from the
+selected Photos database. It accepts no user command arguments and uses fixed
+child paths/arguments and a minimal environment. It exposes no network listener.
+It is an experimental service host, not an installed Photos Reader or replacement
+of the existing service. Production process record, config hash and release were
+verified unchanged, and its one-shot LaunchAgent was removed.
+
+Signing with the existing Apple Development identity failed with
+errSecInternalComponent. An ad-hoc signed fixture was used only to test attribution.
+The executor shell probe succeeded. The temporary LaunchAgent App probe returned
+errno 1 / Operation not permitted. TCC identified com.decompozr.studio-service-probe
+as responsible for the Python child, rather than generic Bun. This proves the
+identity boundary changed, not that protected access is granted.
+
+Trusted signing and owner-granted access remain unexecuted. A CLI signing script
+is staged for the owner's iTerm session because computer-control tooling rejected
+access to iTerm. The script reuses the existing Team identity, verifies the full
+bundle seal and Apple/Team requirement, and grants no privacy access. It does not
+export keys or modify the personal keychain. No production packaging decision is
+established by this fixture: deployment would still require reviewed sealed payloads,
+update identity continuity and authorization/readback acceptance.
