@@ -5,3 +5,7 @@ test('direct restart requires absence of matching supervisor; unknown probes fai
 
 test('a present current service with an unmatched PID cannot choose direct restart',()=>{expect(()=>resetRestartPlan(settings,'/fixture/dist',{pid:123,ppid:122,platform:'darwin',uid:501,serviceName:'local.icloud-plugin.fixture',probe:label=>({present:label==='local.icloud-plugin.fixture',pid:999})})).toThrow('RESET_SUPERVISION_UNKNOWN');});
 test('new installed service uses explicit service control with its matched wrapper PID',()=>{expect(resetRestartPlan(settings,'/fixture/apps/studio/dist/server',{pid:123,ppid:122,platform:'darwin',uid:501,serviceName:'com.decompozr.icloud-plugin',probe:label=>({present:label==='com.decompozr.icloud-plugin',pid:122})})).toBe('service')});
+test('signed App grandparent requires a verified supervisor parent chain',()=>{
+ expect(resetRestartPlan(settings,'/fixture/dist',{pid:123,ppid:122,launcherPid:121,parentOf:()=>121,platform:'darwin',uid:501,probe:label=>({present:label==='com.decompozr.icloud-plugin',pid:121})})).toBe('service');
+ expect(()=>resetRestartPlan(settings,'/fixture/dist',{pid:123,ppid:122,launcherPid:121,parentOf:()=>999,platform:'darwin',uid:501,probe:()=>({present:true,pid:121})})).toThrow('RESET_SUPERVISION_UNKNOWN');
+});

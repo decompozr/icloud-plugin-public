@@ -41,3 +41,29 @@ test('an exited zombie cannot hold graceful drain open while its parent waits fo
 test('failed process inspection cannot classify a live process as drained',async()=>{
  const root=await mkdtemp(join(tmpdir(),'studio-service-ps-failure-'));try{const prefix=join(root,'install');await mkdir(join(prefix,'runtime/logs'),{recursive:true});await writeFile(join(prefix,'.icloud-install'),JSON.stringify({format:1,owner:'icloud-plugin-install'}));await writeFile(join(prefix,'runtime/service-process.json'),JSON.stringify({pid:123456}));let bootstraps=0;const deps={home:root,sleep:async()=>{},kill:((pid:number)=>true) as typeof process.kill,execute:async(args:string[])=>{if(args[0]==='/bin/ps')return args.at(-1)==='stat='?{code:143,out:''}:{code:0,out:process.execPath+' '+join(prefix,'current/icloud-plugin.js')+' run --prefix '+prefix};if(args[1]==='bootstrap')bootstraps++;return{code:args[1]==='print'?1:0,out:''}}};await expect(backgroundService(prefix,'apply',undefined,deps)).rejects.toThrow('DRAIN_TIMEOUT');expect(bootstraps).toBe(0)}finally{await rm(root,{recursive:true,force:true})}
 });
+test('signed service job drains the verified Bun child and native launcher before unloading',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'studio-app-drain-'));try{
+  const prefix=join(root,'install'),app=join(prefix,'current/DecompozR Studio.app/Contents/MacOS/studio-service'),releaseApp=join(prefix,'releases/fixture/DecompozR Studio.app');
+  await mkdir(join(prefix,'runtime/logs'),{recursive:true});await writeFile(join(prefix,'.icloud-install'),JSON.stringify({format:1,owner:'icloud-plugin-install'}));
+  await writeFile(join(prefix,'runtime/service-process.json'),JSON.stringify({pid:123456,startedAt:'child start',launcherPid:123455,launcherStartedAt:'parent start',appPath:releaseApp}));
+  await mkdir(join(root,'Library/LaunchAgents'),{recursive:true});await writeFile(join(root,'Library/LaunchAgents/com.decompozr.icloud-plugin.plist'),servicePlist(prefix,process.execPath,{startAtLogin:false,restartOnFailure:false},true));
+  const argv=[app,'run','--prefix',prefix,'--no-open'];let childAlive=true,nativeChecks=0;const events:string[]=[];
+  const deps={home:root,serviceEntry:async()=>app,sleep:async()=>{},kill:((pid:number,signal?:string|number)=>{expect(pid).toBe(123456);if(signal==='SIGTERM'){events.push('drain-child');childAlive=false;}else if(!childAlive)throw Object.assign(Error(),{code:'ESRCH'});return true;}) as typeof process.kill,execute:async(args:string[])=>{
+   if(args[0]==='/usr/bin/plutil')return{code:0,out:JSON.stringify(argv)};
+   if(args[0]==='/bin/ps')return{code:0,out:args.at(-1)==='ppid='?'123455':args.at(-1)==='lstart='?(args[2]==='123455'?'parent start':'child start'):join(releaseApp,'Contents/Resources/bun')+' '+join(releaseApp,'Contents/Resources/payload/icloud-plugin.js')+' run --prefix '+prefix};
+   if(args[1]==='print'){const alive=childAlive||nativeChecks++===0;return{code:0,out:'arguments = {\n'+argv.join('\n')+'\n}\n'+(alive?'pid = 123455':'')};}
+   events.push(args[1]!);return{code:0,out:''};
+  }};
+  const result=await backgroundService(prefix,'apply',undefined,deps);expect(result.operation?.state).toBe('completed');expect(events.indexOf('bootout')).toBeGreaterThan(events.indexOf('drain-child'));expect(nativeChecks).toBeGreaterThan(1);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('legacy recovery pins the original executor and unregister removes only the owned agent',async()=>{
+ const {createHash}=await import('node:crypto');const root=await mkdtemp(join(tmpdir(),'studio-legacy-recovery-'));
+ try{const prefix=join(root,'install'),bun=join(root,'original-bun');await mkdir(join(prefix,'runtime/logs'),{recursive:true});await writeFile(join(prefix,'.icloud-install'),JSON.stringify({format:1,owner:'icloud-plugin-install'}));await writeFile(bun,'fixture executable identity');await writeFile(join(prefix,'runtime/legacy-service-executor.json'),JSON.stringify({bun,sha256:createHash('sha256').update(await readFile(bun)).digest('hex')}),{mode:0o600});
+ const agent=join(root,'Library/LaunchAgents/com.decompozr.icloud-plugin.plist');await mkdir(join(root,'Library/LaunchAgents'),{recursive:true});let launches=0;
+ const deps={home:root,execute:async(args:string[])=>{if(args[1]==='print')return{code:1,out:''};if(args[0]==='/usr/bin/plutil')return{code:0,out:JSON.stringify([bun,join(prefix,'current/icloud-plugin.js'),'run','--prefix',prefix,'--no-open'])};if(args[1]==='bootstrap'||args[1]==='kickstart')launches++;return{code:0,out:''}}};
+ await backgroundService(prefix,'start',undefined,deps);expect(await readFile(agent,'utf8')).toContain('<string>'+bun+'</string>');expect(launches).toBe(2);
+ await backgroundService(prefix,'unregister',undefined,deps);expect(await Bun.file(agent).exists()).toBe(false);expect(launches).toBe(2);
+ await writeFile(bun,'changed executable');await expect(backgroundService(prefix,'start',undefined,deps)).rejects.toThrow('INVALID_LEGACY_SERVICE_EXECUTOR');expect(launches).toBe(2);
+ }finally{await rm(root,{recursive:true,force:true})}
+});

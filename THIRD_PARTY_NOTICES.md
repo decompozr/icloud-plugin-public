@@ -74,3 +74,13 @@ Modern protocol transport uses `@modelcontextprotocol/server` and its core packa
 v2.3.1 from https://github.com/modelcontextprotocol/typescript-sdk, licensed under
 Apache-2.0. The license is preserved at `apps/studio/assets/runtime/mcp-sdk-LICENSE.txt`.
 The official v2 client is a development/explicit acceptance dependency only.
+
+## Bundled macOS service runtime
+
+DecompozR Studio.app bundles the unmodified Bun 1.4.2 runtime before applying
+our code signature. Upstream license and linked-library attribution are preserved
+in `Contents/Resources/bun-LICENSE.md`, from
+https://github.com/oven-sh/bun/blob/bun-v1.4.2/LICENSE.md.
+Corresponding Bun source and its pinned WebKit rebuilding instructions are available
+at https://github.com/oven-sh/bun/tree/bun-v1.4.2. The application JavaScript remains
+separate from the Bun binary.
