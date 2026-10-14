@@ -101,3 +101,14 @@ bundle seal and Apple/Team requirement, and grants no privacy access. It does no
 export keys or modify the personal keychain. No production packaging decision is
 established by this fixture: deployment would still require reviewed sealed payloads,
 update identity continuity and authorization/readback acceptance.
+
+### Trusted signing readback and ungranted baseline
+
+The owner subsequently completed the signing script in a local terminal. Live
+readback verified the full bundle seal, Apple Development chain and Team
+74NBML8KJB requirement. The original ad-hoc signature is no longer the tested
+artifact. A fresh one-shot LaunchAgent run of the trusted-signed probe still
+returned errno 1 / Operation not permitted before any owner access grant.
+The job was removed and production hashes/release remained unchanged. This
+separately establishes that signing does not grant protected Photos-file access;
+the owner permission step and post-grant experiment remain pending.
