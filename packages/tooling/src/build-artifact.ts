@@ -1,5 +1,6 @@
 import{tmpdir}from'node:os';
 import{packModulePackages}from'./module-packages.js';
+import {verifyPasskeyRuntime} from './verify-passkey-runtime.js';
 import {stageHomeKitPayload} from './homekit-payload.js';
 import {prepareServiceApp} from './service-app.js';
 import {artifactSchema,packageVersionSchema} from './artifact.js';
@@ -38,6 +39,7 @@ try{
   if(await lock.exited!==0||!await Bun.file(join(consumer,'bun.lock')).exists())throw Error('Standalone consumer lock generation failed');
   const install=Bun.spawn([process.execPath,'install','--production','--frozen-lockfile'],{cwd:consumer,stdout:'inherit',stderr:'inherit'});
   if(await install.exited!==0)throw Error('Frozen artifact dependency preparation failed');
+  await verifyPasskeyRuntime(consumer);
   await cp(join(consumer,'bun.lock'),join(output,'apps/studio/bun.lock'));
   await chmod(join(output,'apps/studio/bun.lock'),0o644);
   await cp(join(consumer,'node_modules'),join(output,'apps/studio/node_modules'),{recursive:true,verbatimSymlinks:true});

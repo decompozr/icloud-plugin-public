@@ -6,7 +6,12 @@ import {z} from 'zod';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createOwnerAuth} from '@decompozr/account/server';
+import {pathToFileURL} from 'node:url';
+import type {createOwnerAuth as OwnerAuthFactory} from '@decompozr/account/server';
+// Exercise the actual standalone dependency graph when validating a release.
+const {createOwnerAuth}: {createOwnerAuth: typeof OwnerAuthFactory} = process.env.CP5_ARTIFACT_DIR
+ ? await import(pathToFileURL(Bun.resolveSync('@decompozr/account/server',join(process.env.CP5_ARTIFACT_DIR,'apps/studio'))).href)
+ : await import('@decompozr/account/server');
 const hash=(v:string|Uint8Array)=>createHash('sha256').update(v).digest();
 const b64=(v:Uint8Array)=>Buffer.from(v).toString('base64url');
 const encoder=new Encoder({useRecords:false,mapsAsObjects:false});

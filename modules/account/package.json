@@ -29,7 +29,10 @@
     "jose": "6.2.12",
     "zod": "3.25.76",
     "@decompozr/ui": "workspace:*",
-    "@simplewebauthn/browser": "14.0.0"
+    "@simplewebauthn/browser": "14.0.0",
+    "@peculiar/asn1-schema": "2.11.0",
+    "@peculiar/asn1-ecc": "2.11.0",
+    "@peculiar/asn1-x509": "2.11.0"
   },
   "devDependencies": {
     "@types/bun": "1.4.2",
@@ -38,7 +41,7 @@
     "svelte": "5.57.1"
   },
   "packageManager": "bun@1.4.2",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "files": [
     "dist",
     "ui",
