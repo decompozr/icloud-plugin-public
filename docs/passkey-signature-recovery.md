@@ -47,6 +47,7 @@ modules.
 - Authentication and Mail regression: 141 tests, 617 assertions pass.
 - Release/update and independent package consumer checks: 7 tests, 55 assertions
   pass. Full application build and tooling typecheck pass.
+- Full repository fixture command: 622 tests, 5,612 assertions pass; no failures.
 
 Candidate testing used generated keys and disposable databases. No production
 credential, Passkey or OAuth state was inspected or changed. Deployment and actual
