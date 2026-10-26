@@ -80,3 +80,7 @@ HTTP, and distinct dev/build/release/runtime phases for Mac and Apple Container.
 [Migration phases](docs/svelte-migration.md) describe the acceptance gates.
 
 Install the declared module packages with `bun install --frozen-lockfile` at the repository root. Bun workspaces share one committed lock; each module owns its version and public server/UI exports. See the linked layout and `bun bin/checkpoint` verification.
+
+## Repository privacy
+
+See [privacy policy and local staged-file checks](docs/privacy.md). Personal originals and real account activity belong outside Git; use synthetic fixtures.

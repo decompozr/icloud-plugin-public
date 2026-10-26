@@ -19,3 +19,13 @@ apps/studio/project.inlang/cache/
 .decompozr/flow/run/
 
 .decompozr/flow/handoffs/
+
+# Private captures and user runtime exports belong outside every code repository.
+/private-archive/
+/private-captures/
+/personal-exports/
+/.private/
+.env
+.env.*
+!.env.example
+!.env.sample
